@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="black" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="#0a1027" name="theme-color"/>
+<meta content="#0a1027" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="#0a1027" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="dark" name="color-scheme"/>
+<title>GestOre iPhone</title>
+<meta name="application-name" content="GestOre"/>
+<link rel="manifest" href="site.webmanifest"/>
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png"/>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="app-booting">
+<div class="error-box" id="errorBox"></div>
+
+
+<div aria-hidden="true" class="splash-screen" id="splashScreen">
+  <div class="splash-aura splash-aura-left"></div>
+  <div class="splash-aura splash-aura-right"></div>
+  <div class="splash-noise"></div>
+  <div class="splash-inner">
+    <div class="splash-badge">
+      <span class="splash-badge-ring"></span>
+      <span class="splash-badge-core">
+        <img class="splash-badge-logo" src="assets/icons/icon-192.png" alt="GestOre logo" loading="eager" decoding="async" fetchpriority="high"/>
+      </span>
+    </div>
+
+    <svg class="splash-mark" viewBox="0 0 760 170" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <text x="50%" y="54%" text-anchor="middle"
+            class="splash-full-stroke"
+            style="font-size:104px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,'Segoe UI',sans-serif;letter-spacing:-4px;">GestOre</text>
+      <text x="50%" y="54%" text-anchor="middle"
+            class="splash-full-fill"
+            style="font-size:104px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,'Segoe UI',sans-serif;letter-spacing:-4px;">GestOre</text>
+      <text x="404" y="92" text-anchor="start"
+            class="splash-accent-fill-only"
+            style="font-size:104px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,'Segoe UI',sans-serif;letter-spacing:-4px;">Ore</text>
+    </svg>
+  </div>
+</div>
+<div class="app" id="app"></div>
+
+
+
+  <script src="js/core.js"></script>
+  <script src="js/payslips.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/bindings.js"></script>
+  <script src="js/editor.js"></script>
+</body>
+</html>
