@@ -12,7 +12,7 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS.
 
 releaseNotes: >-
-  Fix store assets con URL assoluti per icona e gallery.
+  Nuovo loader del caricamento dell'app GestOre.
 
 developer: IlSamm
 website: ""
