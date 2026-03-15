@@ -2,9 +2,9 @@ manifestVersion: 1
 id: ilsamm-gestore
 name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
-icon: icon.svg
+icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.0.3"
+version: "1.0.4"
 port: 8080
 
 description: >-
@@ -12,7 +12,7 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS.
 
 releaseNotes: >-
-  Fix YAML: icona e gallery lette correttamente.
+  Fix store assets con URL assoluti per icona e gallery.
 
 developer: IlSamm
 website: ""
@@ -21,9 +21,9 @@ repo: ""
 support: ""
 
 gallery:
-  - 1.png
-  - 2.png
-  - 3.png
+  - https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/1.png
+  - https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/2.png
+  - https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/3.png
 
 path: "/"
 defaultUsername: ""
