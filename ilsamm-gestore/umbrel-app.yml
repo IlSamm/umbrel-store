@@ -1,0 +1,32 @@
+manifestVersion: 1
+id: ilsamm-gestore
+name: GestOre
+tagline: Tieni ore, turni e riposi con una UI elegante
+icon: icon.svg
+category: files
+version: "1.0.3"
+port: 8080
+
+description: >-
+  GestOre è la tua app personale per gestire ore lavorate, straordinari,
+  riposi, note e dati salvati in SQLite su umbrelOS.
+
+releaseNotes: >-
+  Fix YAML: icona e gallery lette correttamente.
+
+developer: IlSamm
+website: ""
+dependencies: []
+repo: ""
+support: ""
+
+gallery:
+  - 1.png
+  - 2.png
+  - 3.png
+
+path: "/"
+defaultUsername: ""
+defaultPassword: ""
+submitter: IlSamm
+submission: ""
