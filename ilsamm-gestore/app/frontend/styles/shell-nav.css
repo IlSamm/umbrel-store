@@ -9,7 +9,8 @@
   --shell-safe-bottom: 0px;
   --shell-nav-width: min(calc(100% - 14px), 408px);
   --shell-nav-height: 72px;
-  --shell-content-bottom: calc(var(--shell-nav-height) + 16px);
+  --shell-nav-lift: 6px;
+  --shell-content-bottom: calc(var(--shell-nav-height) + var(--shell-nav-lift) + 16px);
 }
 
 html,
@@ -91,7 +92,7 @@ body::after,
   transform: translate3d(-50%, 0, 0) !important;
   border: 0 !important;
   border-radius: 28px 28px 0 0 !important;
-  height: var(--shell-nav-height) !important;
+  height: calc(var(--shell-nav-height) + var(--shell-nav-lift)) !important;
   padding: 0 !important;
   background: var(--shell-glass) !important;
   box-shadow:
@@ -125,8 +126,8 @@ body::after,
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   align-items: center !important;
   width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
+  height: var(--shell-nav-height) !important;
+  margin: 0 0 var(--shell-nav-lift) !important;
   gap: 4px !important;
   padding: 7px 7px !important;
   border: 1px solid rgba(255, 255, 255, 0.075) !important;
@@ -196,6 +197,7 @@ html.keyboard-open #app > .bottom-nav {
   :root {
     --shell-nav-width: min(calc(100% - 10px), 408px);
     --shell-nav-height: 70px;
+    --shell-nav-lift: 6px;
   }
 
   .nav-grid,
