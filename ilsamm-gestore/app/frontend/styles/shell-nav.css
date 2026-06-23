@@ -21,13 +21,14 @@ body {
   height: var(--real-app-vh, 100dvh) !important;
   overflow: hidden !important;
   overscroll-behavior: none !important;
-  background: var(--shell-bg) !important;
+  background: var(--shell-app-bg) !important;
   background-color: var(--shell-bg) !important;
 }
 
 body {
   position: relative !important;
-  background: var(--shell-bg) !important;
+  background: var(--shell-app-bg) !important;
+  background-color: var(--shell-bg) !important;
 }
 
 body::before,
@@ -77,10 +78,11 @@ body::after,
 
 .bottom-nav,
 #app > .bottom-nav {
-  position: fixed !important;
+  position: absolute !important;
   left: 50% !important;
   right: auto !important;
   bottom: 0 !important;
+  top: auto !important;
   width: var(--shell-nav-width) !important;
   max-width: var(--shell-nav-width) !important;
   margin: 0 !important;

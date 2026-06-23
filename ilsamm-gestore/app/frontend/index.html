@@ -13,11 +13,11 @@
 <meta content="dark" name="color-scheme"/>
 <title>GestOre iPhone</title>
 <meta name="application-name" content="GestOre"/>
-<link rel="manifest" href="site.webmanifest?v=20260623i"/>
+<link rel="manifest" href="site.webmanifest?v=20260623j"/>
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png"/>
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png"/>
-  <link rel="stylesheet" href="style.css?v=20260623i">
+  <link rel="stylesheet" href="style.css?v=20260623j">
 </head>
 <body class="app-booting">
 <div class="error-box" id="errorBox"></div>
@@ -60,6 +60,19 @@
   var stableViewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
   var lastNonKeyboardHeight = stableViewportHeight;
 
+  function isIOSLike() {
+    var ua = String(navigator.userAgent || '');
+    return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function getStandaloneScreenHeight() {
+    var standalone = window.navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    if (!standalone || !isIOSLike() || !window.screen) return 0;
+    var screenHeight = Math.max(Number(window.screen.height) || 0, Number(window.screen.availHeight) || 0);
+    return screenHeight > 320 && screenHeight < 1200 ? screenHeight : 0;
+  }
+
   function isEditable(el) {
     if (!el) return false;
     var tag = String(el.tagName || '').toLowerCase();
@@ -90,25 +103,28 @@
       document.documentElement.clientHeight || 0
     );
     var visualHeight = vv ? Math.round(vv.height + vv.offsetTop) : baseHeight;
+    var screenHeight = getStandaloneScreenHeight();
+    var fullHeight = Math.max(baseHeight, visualHeight, screenHeight || 0);
+    var typing = isEditable(document.activeElement);
     var bottomGap = 0;
     var keyboardOpen = false;
     if (vv) {
       var rawBottomGap = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
       bottomGap = rawBottomGap > 8 ? rawBottomGap : 0;
-      keyboardOpen = rawBottomGap > KEYBOARD_THRESHOLD;
+      keyboardOpen = typing && rawBottomGap > KEYBOARD_THRESHOLD;
     }
     if (keyboardOpen) {
-      stableViewportHeight = Math.max(stableViewportHeight || 0, lastNonKeyboardHeight || 0, baseHeight, visualHeight);
+      stableViewportHeight = Math.max(stableViewportHeight || 0, lastNonKeyboardHeight || 0, fullHeight);
     } else {
-      stableViewportHeight = Math.max(baseHeight, visualHeight, lastNonKeyboardHeight || 0);
+      stableViewportHeight = Math.max(fullHeight, lastNonKeyboardHeight || 0);
       lastNonKeyboardHeight = stableViewportHeight;
     }
-    var layoutHeight = keyboardOpen ? (lastNonKeyboardHeight || stableViewportHeight || baseHeight) : stableViewportHeight;
+    var layoutHeight = keyboardOpen ? (lastNonKeyboardHeight || stableViewportHeight || fullHeight) : stableViewportHeight;
     root.style.setProperty('--app-vh', layoutHeight + 'px');
     root.style.setProperty('--real-app-vh', layoutHeight + 'px');
     root.style.setProperty('--visible-app-vh', visualHeight + 'px');
     root.style.setProperty('--runtime-bottom-gap', Math.round(bottomGap) + 'px');
-    if (body) body.classList.toggle('keyboard-open', keyboardOpen || isEditable(document.activeElement));
+    if (body) body.classList.toggle('keyboard-open', keyboardOpen || typing);
     if (!keyboardOpen) resetWindowScroll();
   }
 
@@ -169,11 +185,11 @@
 })();
 </script>
 
-<script src="js/core.js?v=20260623i"></script>
-<script src="js/payslips.js?v=20260623i"></script>
-<script src="js/views.js?v=20260623i"></script>
-<script src="js/bindings.js?v=20260623i"></script>
-<script src="js/editor.js?v=20260623i"></script>
+<script src="js/core.js?v=20260623j"></script>
+<script src="js/payslips.js?v=20260623j"></script>
+<script src="js/views.js?v=20260623j"></script>
+<script src="js/bindings.js?v=20260623j"></script>
+<script src="js/editor.js?v=20260623j"></script>
 </body>
 </html>
 
