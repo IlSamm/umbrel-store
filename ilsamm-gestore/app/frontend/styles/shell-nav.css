@@ -6,10 +6,10 @@
     radial-gradient(circle at 86% 0%, rgba(136, 92, 255, 0.11), transparent 28%),
     linear-gradient(180deg, #08112a 0%, #081025 42%, #060b18 70%, #030711 100%);
   --shell-glass: linear-gradient(180deg, rgba(12, 16, 40, 0.88), rgba(5, 8, 22, 0.97));
-  --shell-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --shell-safe-bottom: 0px;
   --shell-nav-width: min(calc(100% - 14px), 408px);
-  --shell-nav-core-height: 64px;
-  --shell-content-bottom: calc(var(--shell-nav-core-height) + var(--shell-safe-bottom) + 18px);
+  --shell-nav-height: 72px;
+  --shell-content-bottom: calc(var(--shell-nav-height) + 16px);
 }
 
 html,
@@ -89,7 +89,8 @@ body::after,
   transform: translate3d(-50%, 0, 0) !important;
   border: 0 !important;
   border-radius: 28px 28px 0 0 !important;
-  padding-bottom: var(--shell-safe-bottom) !important;
+  height: var(--shell-nav-height) !important;
+  padding: 0 !important;
   background: var(--shell-glass) !important;
   box-shadow:
     0 -14px 32px rgba(0, 0, 0, 0.24),
@@ -122,7 +123,7 @@ body::after,
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   align-items: center !important;
   width: 100% !important;
-  height: var(--shell-nav-core-height) !important;
+  height: 100% !important;
   margin: 0 !important;
   gap: 4px !important;
   padding: 7px 7px !important;
@@ -192,7 +193,7 @@ html.keyboard-open #app > .bottom-nav {
 @media (max-width: 390px) {
   :root {
     --shell-nav-width: min(calc(100% - 10px), 408px);
-    --shell-nav-core-height: 62px;
+    --shell-nav-height: 70px;
   }
 
   .nav-grid,
