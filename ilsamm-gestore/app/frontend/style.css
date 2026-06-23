@@ -1,9 +1,9 @@
 ﻿/* GestOre CSS entrypoint */
-@import url("./styles/base.css?v=20260623g");
-@import url("./styles/shared-ui.css?v=20260623g");
-@import url("./styles/editor.css?v=20260623g");
-@import url("./styles/home-visuals.css?v=20260623g");
-@import url("./styles/splash.css?v=20260623g");
-@import url("./styles/payslips.css?v=20260623g");
-@import url("./styles/shell-nav.css?v=20260623g");
+@import url("./styles/base.css?v=20260623h");
+@import url("./styles/shared-ui.css?v=20260623h");
+@import url("./styles/editor.css?v=20260623h");
+@import url("./styles/home-visuals.css?v=20260623h");
+@import url("./styles/splash.css?v=20260623h");
+@import url("./styles/payslips.css?v=20260623h");
+@import url("./styles/shell-nav.css?v=20260623h");
 
