@@ -1,0 +1,606 @@
+/* GestOre Splash Screens and Motion */ 
+/* v61 — premium stable CSS-only clock splash */
+.go-splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 20px) 24px calc(var(--safe-bottom) + 24px);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(108, 146, 255, .10), transparent 28%),
+    linear-gradient(180deg, #050a14 0%, #08111f 56%, #091324 100%);
+  opacity: 1;
+  visibility: visible;
+  overflow: hidden;
+  transition: opacity .48s cubic-bezier(.22,.61,.36,1), visibility .48s linear;
+  isolation: isolate;
+}
+
+.go-splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.go-splash-screen.hidden .go-splash-inner {
+  opacity: 0;
+  transform: translateY(8px) scale(.988);
+  filter: blur(5px);
+}
+
+.go-splash-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(129, 168, 255, .11), transparent 20%),
+    radial-gradient(circle at 50% 60%, rgba(77, 118, 255, .06), transparent 28%);
+  filter: blur(38px);
+}
+
+.go-splash-inner {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 280px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity .38s ease, transform .52s cubic-bezier(.22,.61,.36,1), filter .38s ease;
+}
+
+.go-clock {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 16px 28px rgba(4, 10, 22, .22));
+}
+
+.go-clock-halo {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(120, 167, 255, .15) 0%, rgba(120, 167, 255, .04) 48%, transparent 72%);
+  filter: blur(14px);
+  opacity: .85;
+  animation: goClockHalo 2.8s ease-in-out infinite;
+}
+
+.go-clock-track,
+.go-clock-progress {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.go-clock-track {
+  border: 1px solid rgba(191, 210, 255, .14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.go-clock-progress {
+  inset: 3px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from -90deg,
+      rgba(145, 186, 255, .92) 0deg,
+      rgba(145, 186, 255, .92) 88deg,
+      rgba(145, 186, 255, 0) 116deg,
+      rgba(145, 186, 255, 0) 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  opacity: .92;
+  animation: goClockSweep 2.2s cubic-bezier(.45,0,.2,1) infinite;
+}
+
+.go-clock-shell {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(182, 204, 255, .12);
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -10px 18px rgba(0,0,0,.18);
+}
+
+.go-clock-face {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255,255,255,.09), transparent 20%),
+    linear-gradient(180deg, rgba(18, 29, 53, .80) 0%, rgba(10, 17, 30, .96) 100%);
+  border: 1px solid rgba(170, 193, 255, .12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -8px 16px rgba(0,0,0,.24);
+}
+
+.go-clock-ticks,
+.go-clock-ticks::before {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border-radius: 50%;
+}
+
+.go-clock-ticks {
+  background:
+    linear-gradient(rgba(204,220,255,.18), rgba(204,220,255,.18)) 50% 6px / 1.5px 6px no-repeat,
+    linear-gradient(rgba(204,220,255,.18), rgba(204,220,255,.18)) 50% calc(100% - 6px) / 1.5px 6px no-repeat,
+    linear-gradient(90deg, rgba(204,220,255,.18), rgba(204,220,255,.18)) 6px 50% / 6px 1.5px no-repeat,
+    linear-gradient(90deg, rgba(204,220,255,.18), rgba(204,220,255,.18)) calc(100% - 6px) 50% / 6px 1.5px no-repeat;
+}
+
+.go-clock-ticks::before {
+  inset: 0;
+  transform: rotate(45deg);
+  background:
+    linear-gradient(rgba(204,220,255,.12), rgba(204,220,255,.12)) 50% 6px / 1px 5px no-repeat,
+    linear-gradient(rgba(204,220,255,.12), rgba(204,220,255,.12)) 50% calc(100% - 6px) / 1px 5px no-repeat,
+    linear-gradient(90deg, rgba(204,220,255,.12), rgba(204,220,255,.12)) 6px 50% / 5px 1px no-repeat,
+    linear-gradient(90deg, rgba(204,220,255,.12), rgba(204,220,255,.12)) calc(100% - 6px) 50% / 5px 1px no-repeat;
+}
+
+.go-clock-rotor {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transform: rotate(0deg);
+  transform-origin: 50% 50%;
+}
+
+.go-clock-hour-rotor {
+  animation: goClockHour 2.8s cubic-bezier(.45,0,.2,1) infinite;
+}
+
+.go-clock-minute-rotor {
+  animation: goClockMinute 2.15s cubic-bezier(.45,0,.2,1) infinite;
+}
+
+.go-clock-needle {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  background: linear-gradient(180deg, rgba(245,248,255,.98) 0%, rgba(164,196,255,.90) 100%);
+  box-shadow: 0 0 10px rgba(132, 176, 255, .10);
+}
+
+.go-clock-hour {
+  width: 3px;
+  height: 21px;
+}
+
+.go-clock-minute {
+  width: 2px;
+  height: 30px;
+}
+
+.go-clock-axis {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, #f7faff 0%, #a1c4ff 100%);
+  box-shadow: 0 0 0 3px rgba(124, 163, 255, .08);
+}
+
+.go-splash-wordmark {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  font-size: clamp(38px, 8.2vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: .96;
+  color: rgba(246, 249, 255, .99);
+  text-shadow: 0 8px 24px rgba(5, 10, 22, .20);
+}
+
+.go-word-main {
+  color: rgba(246, 249, 255, .99);
+}
+
+.go-word-accent {
+  color: #9cbcff;
+}
+
+@keyframes goClockHalo {
+  0%, 100% { transform: scale(.98); opacity: .68; }
+  50% { transform: scale(1.02); opacity: .96; }
+}
+
+@keyframes goClockSweep {
+  0% { transform: rotate(0deg); opacity: .82; }
+  50% { opacity: 1; }
+  100% { transform: rotate(360deg); opacity: .82; }
+}
+
+@keyframes goClockHour {
+  0% { transform: rotate(-18deg); }
+  50% { transform: rotate(22deg); }
+  100% { transform: rotate(58deg); }
+}
+
+@keyframes goClockMinute {
+  0% { transform: rotate(-56deg); }
+  50% { transform: rotate(112deg); }
+  100% { transform: rotate(248deg); }
+}
+
+@media (max-width: 430px) {
+  .go-splash-inner {
+    width: min(100%, 260px);
+    gap: 14px;
+  }
+
+  .go-clock {
+    width: 102px;
+    height: 102px;
+  }
+
+  .go-splash-wordmark {
+    font-size: clamp(36px, 9vw, 41px);
+  }
+}
+.go-splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 20px) 24px calc(var(--safe-bottom) + 26px);
+  background:
+    radial-gradient(circle at 50% 15%, rgba(126, 167, 255, .14), transparent 24%),
+    radial-gradient(circle at 18% 80%, rgba(118, 104, 255, .09), transparent 27%),
+    radial-gradient(circle at 82% 76%, rgba(80, 141, 255, .08), transparent 25%),
+    linear-gradient(180deg, #040813 0%, #07101c 48%, #081223 100%);
+  opacity: 1;
+  visibility: visible;
+  overflow: hidden;
+  transition: opacity .5s cubic-bezier(.22,.61,.36,1), visibility .5s linear;
+  isolation: isolate;
+}
+
+.go-splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.go-splash-screen.hidden .go-splash-inner {
+  opacity: 0;
+  transform: translateY(10px) scale(.985);
+  filter: blur(6px);
+}
+
+.go-splash-noise,
+.go-splash-aura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.go-splash-noise {
+  opacity: .05;
+  mix-blend-mode: soft-light;
+  background-image: radial-gradient(rgba(255,255,255,.34) .42px, transparent .55px);
+  background-size: 5px 5px;
+}
+
+.go-splash-aura-left,
+.go-splash-aura-right {
+  filter: blur(58px);
+  opacity: .8;
+}
+
+.go-splash-aura-left {
+  background: radial-gradient(circle at 34% 44%, rgba(104, 142, 255, .14), transparent 56%);
+  transform: translate(-16%, -10%);
+}
+
+.go-splash-aura-right {
+  background: radial-gradient(circle at 60% 58%, rgba(117, 102, 255, .11), transparent 54%);
+  transform: translate(14%, 12%);
+}
+
+.go-splash-inner {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 320px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity .4s ease, transform .55s cubic-bezier(.22,.61,.36,1), filter .42s ease;
+}
+
+.go-clock {
+  position: relative;
+  width: 126px;
+  height: 126px;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 18px 34px rgba(5, 11, 24, .42));
+}
+
+.go-clock-glow {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(110, 155, 255, .18) 0%, rgba(68, 110, 230, .08) 44%, transparent 72%);
+  filter: blur(16px);
+  opacity: .9;
+  animation: goClockGlow 2.4s ease-in-out infinite;
+}
+
+.go-clock-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.go-clock-ring-outer {
+  border: 1px solid rgba(161, 195, 255, .12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 0 0 1px rgba(103, 145, 255, .04);
+}
+
+.go-clock-ring-progress {
+  inset: 3px;
+  border: 2.5px solid transparent;
+  border-top-color: rgba(148, 189, 255, .96);
+  border-right-color: rgba(123, 174, 255, .62);
+  border-bottom-color: rgba(123, 120, 255, .22);
+  filter: drop-shadow(0 0 8px rgba(126, 174, 255, .10));
+  animation: goClockRingSpin 1.9s linear infinite;
+}
+
+.go-clock-shell {
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  border: 1px solid rgba(160, 194, 255, .11);
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -16px 28px rgba(0,0,0,.25);
+}
+
+.go-clock-face {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255,255,255,.16), transparent 24%),
+    linear-gradient(180deg, rgba(22, 37, 68, .72) 0%, rgba(10, 17, 32, .96) 62%, rgba(7, 12, 25, .98) 100%);
+  border: 1px solid rgba(150, 184, 255, .15);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -12px 24px rgba(0,0,0,.30),
+    0 10px 30px rgba(5,10,24,.24);
+}
+
+.go-clock-face::before,
+.go-clock-face::after {
+  content: "";
+  position: absolute;
+  background: rgba(198, 216, 255, .30);
+  border-radius: 999px;
+}
+
+.go-clock-face::before {
+  width: 2px;
+  height: 7px;
+  left: calc(50% - 1px);
+  top: 9px;
+  box-shadow: 0 calc(100% - 18px) 0 rgba(198, 216, 255, .26);
+}
+
+.go-clock-face::after {
+  width: 7px;
+  height: 2px;
+  top: calc(50% - 1px);
+  left: 9px;
+  box-shadow: calc(100% - 18px) 0 0 rgba(198, 216, 255, .26);
+}
+
+.go-clock-rotor {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transform: rotate(0deg);
+  transform-origin: 50% 50%;
+}
+
+.go-clock-hour-rotor {
+  animation: goClockHour 2.8s cubic-bezier(.45,0,.2,1) infinite;
+}
+
+.go-clock-minute-rotor {
+  animation: goClockMinute 1.7s cubic-bezier(.42,0,.2,1) infinite;
+}
+
+.go-clock-needle {
+  position: absolute;
+  left: 50%;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(244,248,255,.98) 0%, rgba(143,186,255,.95) 100%);
+  box-shadow: 0 0 12px rgba(128, 176, 255, .16);
+}
+
+.go-clock-hour {
+  top: calc(50% - 24px);
+  width: 3.4px;
+  height: 24px;
+}
+
+.go-clock-minute {
+  top: calc(50% - 34px);
+  width: 2.3px;
+  height: 34px;
+}
+
+.go-clock-axis {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, #f7faff 0%, #95beff 100%);
+  box-shadow:
+    0 0 0 4px rgba(103, 143, 255, .10),
+    0 0 18px rgba(124, 171, 255, .18);
+}
+
+.go-splash-wordmark {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  font-size: clamp(40px, 8.6vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.058em;
+  line-height: .95;
+  color: rgba(244, 248, 255, .99);
+  text-shadow: 0 10px 28px rgba(6, 13, 26, .30);
+}
+
+.go-word-main { color: rgba(245, 248, 255, .99); }
+
+.go-word-accent {
+  color: #8eb5ff;
+  text-shadow: 0 0 16px rgba(123, 176, 255, .12);
+}
+
+.go-splash-subline {
+  margin-top: -1px;
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(188, 202, 229, .58);
+}
+
+@keyframes goClockGlow {
+  0%, 100% { transform: scale(.97); opacity: .78; }
+  50% { transform: scale(1.03); opacity: 1; }
+}
+
+@keyframes goClockRingSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes goClockHour {
+  0%   { transform: rotate(-24deg); }
+  50%  { transform: rotate(26deg); }
+  100% { transform: rotate(86deg); }
+}
+
+@keyframes goClockMinute {
+  0%   { transform: rotate(-80deg); }
+  50%  { transform: rotate(120deg); }
+  100% { transform: rotate(280deg); }
+}
+
+@media (max-width: 430px) {
+  .go-splash-inner {
+    width: min(100%, 296px);
+    gap: 13px;
+  }
+
+  .go-clock {
+    width: 118px;
+    height: 118px;
+  }
+
+  .go-splash-wordmark {
+    font-size: clamp(38px, 10vw, 43px);
+  }
+
+  .go-splash-subline {
+    letter-spacing: .19em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .go-clock-halo,
+  .go-clock-progress,
+  .go-clock-hour-rotor,
+  .go-clock-minute-rotor {
+    animation: none !important;
+  }
+}
+
+
+
+
+/* v90 — bottom nav lower, no bottom band, smoother tab switch */
+
+html, body, .app {
+  background-attachment: fixed !important;
+}
+
+.screen,
+.screen.home-screen {
+  transition: opacity .24s ease, transform .34s cubic-bezier(.22,.61,.36,1), filter .24s ease;
+  will-change: opacity, transform;
+}
+
+.screen.active.screen-switch {
+  animation: gestoreScreenIn .30s cubic-bezier(.22,.61,.36,1);
+}
+
+.screen.active.screen-switch-forward {
+  animation-name: gestoreScreenInRight;
+}
+
+.screen.active.screen-switch-back {
+  animation-name: gestoreScreenInLeft;
+}
+
+@keyframes gestoreScreenInRight {
+  from { opacity: 0; transform: translate3d(18px, 0, 0) scale(.992); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes gestoreScreenInLeft {
+  from { opacity: 0; transform: translate3d(-18px, 0, 0) scale(.992); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+
+.confirm-overlay,
+.confirm-overlay.open {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2001 !important;
+  pointer-events: auto !important;
+}
+
+.confirm-card {
+  position: relative;
+  z-index: 2002 !important;
+}
+
+
+/* Home payslips section */

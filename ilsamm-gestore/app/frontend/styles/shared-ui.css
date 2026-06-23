@@ -1,0 +1,438 @@
+/* GestOre Shared Visual Refresh */ 
+/* ===== GestOre visual refresh ===== */
+:root {
+  --bg: #050916;
+  --bg2: #0b1433;
+  --card-surface: linear-gradient(180deg, rgba(19, 28, 62, 0.92) 0%, rgba(11, 18, 42, 0.98) 100%);
+  --card-soft: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.025));
+  --text: #f7f9ff;
+  --muted: rgba(218, 226, 255, 0.62);
+  --line: rgba(194, 206, 255, 0.08);
+  --violet: #8f6bff;
+  --violet2: #a98fff;
+  --cyan: #7bb6ff;
+  --green: #22c55e;
+}
+
+.screen {
+  padding: max(14px, var(--safe-top)) 18px calc(118px + var(--safe-bottom));
+}
+
+.title {
+  font-size: 30px;
+  line-height: .98;
+  font-weight: 820;
+  letter-spacing: -.05em;
+}
+
+.page-top,
+.settings-top-refined {
+  margin-bottom: 18px;
+}
+
+.page-title-stack,
+.settings-title-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.page-subtitle {
+  max-width: 300px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(221, 228, 255, 0.56);
+  letter-spacing: .01em;
+}
+
+.home-top-refined {
+  margin-bottom: 18px;
+  padding-top: 6px;
+}
+
+.home-brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-brand-title-refined {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif;
+  font-size: clamp(32px, 8vw, 42px);
+  line-height: .92;
+  font-weight: 850;
+  letter-spacing: -.065em;
+  color: rgba(248, 250, 255, 0.98);
+  text-shadow: 0 1px 0 rgba(255,255,255,.06), 0 18px 36px rgba(0,0,0,.28);
+}
+
+.home-brand-title-refined span {
+  color: #7eb5ff;
+}
+
+.home-date-sub {
+  margin-top: 0;
+  font-size: 13px;
+  color: rgba(220, 227, 255, 0.58);
+  letter-spacing: .02em;
+}
+
+.card,
+.summary-card,
+.mini,
+.insight-card,
+.stats-card,
+.settings-stat,
+.stats-chip-card,
+.stats-month-cell,
+.week-day-card,
+.payslip-archive-card,
+.payslip-compare-row {
+  position: relative;
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow:
+    0 22px 44px rgba(1, 7, 25, 0.34),
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -18px 30px rgba(6, 10, 24, 0.16);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.card::before,
+.summary-card::before,
+.insight-card::before,
+.stats-card::before,
+.week-day-card::before,
+.settings-card::before,
+.payslip-archive-card::before,
+.payslip-compare-row::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+  pointer-events: none;
+}
+
+.home-hero {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(132, 144, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 82% 10%, rgba(155, 96, 255, 0.22), transparent 30%),
+    linear-gradient(180deg, rgba(54, 47, 132, 0.90) 0%, rgba(18, 25, 59, 0.96) 44%, rgba(9, 14, 34, 0.98) 100%) !important;
+  border-color: rgba(157, 132, 255, 0.22) !important;
+  box-shadow:
+    0 28px 52px rgba(2, 6, 23, 0.42),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -22px 36px rgba(11, 17, 40, 0.28) !important;
+}
+
+.home-hero-panel {
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025)) !important;
+  border-color: rgba(255,255,255,.08) !important;
+  border-radius: 32px;
+  padding: 20px 18px 18px;
+}
+
+.home-hero-day {
+  font-size: clamp(30px, 7vw, 40px);
+}
+
+.hero-status-line,
+.home-meta-pill,
+.stats-legend-chip,
+.payslip-badge,
+.legend-item,
+.settings-inline-note,
+.stats-week-row,
+.stats-overview-side,
+.type-row,
+.collapse-btn,
+.month-head,
+.settings-save-btn,
+.icon,
+.ghost,
+.solid,
+.toggle-btn,
+.payslip-field input,
+.payslip-field select,
+.payslip-textarea,
+.settings-input,
+.overlay .time-box,
+.overlay .sub-input-wrap,
+.overlay .hours-card,
+.overlay .notes {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.hero-status-line,
+.home-meta-pill {
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.home-accent-line,
+.progress,
+.week-day-bar,
+.stats-week-track,
+.stats-bar {
+  background: rgba(255,255,255,.07) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+.home-accent-line > div,
+.progress > div,
+.week-day-bar > div,
+.stats-week-fill,
+.stats-segment {
+  background: linear-gradient(90deg, #7db4ff 0%, #8f6bff 56%, #c8b2ff 100%) !important;
+  box-shadow: 0 0 18px rgba(130, 130, 255, 0.24);
+}
+
+.summary-card {
+  border-radius: 28px;
+  padding: 18px;
+}
+
+.summary-value,
+.insight-value,
+.stats-main-value,
+.stats-card-value,
+.big,
+.large,
+.home-kpi-value {
+  letter-spacing: -.05em;
+}
+
+.home-kpi,
+.insight-card,
+.stats-chip-card,
+.stats-card,
+.settings-stat,
+.mini {
+  border-radius: 22px;
+}
+
+.insight-card,
+.stats-card,
+.settings-stat,
+.stats-chip-card,
+.mini {
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.week-overview-card .card-body.compact {
+  padding-top: 18px;
+}
+
+.week-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.week-card-head .home-section-title {
+  font-size: 15px;
+  letter-spacing: -.01em;
+  color: rgba(255,255,255,.96);
+}
+
+.week-strip {
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.week-day-card {
+  border-radius: 24px;
+  min-height: 146px;
+  padding: 14px 10px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.052), rgba(255,255,255,.022));
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 12px 24px rgba(4,8,24,.16);
+}
+
+.week-day-card.today {
+  background: linear-gradient(180deg, rgba(134, 111, 255, 0.22), rgba(255,255,255,.04));
+  border-color: rgba(144, 129, 255, 0.24) !important;
+  box-shadow:
+    0 22px 38px rgba(4, 8, 26, 0.30),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 0 0 1px rgba(144, 129, 255, 0.14) !important;
+}
+
+.week-day-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,.8);
+}
+
+.week-day-dot {
+  margin-top: 8px;
+  box-shadow: 0 0 0 4px rgba(255,255,255,.03);
+}
+
+.week-day-bar {
+  width: 11px;
+  background: rgba(255,255,255,.07);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.04);
+}
+
+.week-day-bar > div {
+  box-shadow: 0 0 12px rgba(139,92,246,.30);
+}
+
+.week-day-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,.76);
+}
+
+.month-head {
+  min-height: 64px;
+  padding: 10px 10px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.week-grid {
+  margin-top: 18px;
+  margin-bottom: 10px;
+}
+
+.weekday {
+  color: rgba(220, 226, 255, 0.48);
+  font-size: 13px;
+  letter-spacing: .04em;
+}
+
+.calendar-grid {
+  gap: 12px 2px;
+}
+
+.cell {
+  width: 46px;
+  height: 54px;
+  border-radius: 22px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.03);
+  transition: transform .18s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.cell.today {
+  background: linear-gradient(180deg, rgba(141, 108, 255, 0.30), rgba(111, 169, 255, 0.18));
+  border-color: rgba(145, 120, 255, 0.28);
+  box-shadow: 0 16px 24px rgba(10, 12, 35, 0.26);
+}
+
+.cell .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(255,255,255,.035);
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.legend-item {
+  gap: 10px;
+  border-radius: 22px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.035);
+}
+
+.detail,
+.stats-week-row,
+.stats-overview-side,
+.settings-mini-detail {
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.035);
+  border-radius: 22px;
+}
+
+.stats-overview {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(127, 159, 255, 0.16), transparent 30%),
+    radial-gradient(circle at 82% 18%, rgba(163, 97, 255, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(16, 24, 56, 0.96), rgba(10, 16, 37, 0.98)) !important;
+}
+
+.stats-month-cell {
+  min-height: 60px;
+  border-radius: 20px;
+}
+
+.stats-month-cell.today {
+  border-color: rgba(145, 120, 255, 0.28) !important;
+}
+
+.settings-hero {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(109, 168, 255, 0.16), transparent 26%),
+    radial-gradient(circle at 90% 10%, rgba(166, 111, 255, 0.18), transparent 24%),
+    linear-gradient(180deg, rgba(18, 26, 60, 0.95), rgba(11, 18, 40, 0.98)) !important;
+}
+
+.settings-card,
+.payslip-hero {
+  overflow: hidden;
+}
+
+.settings-save-btn,
+.ghost,
+.icon,
+.solid,
+.toggle-btn,
+.week-day-card,
+.cell,
+.type-row,
+.collapse-btn,
+.payslip-archive-card {
+  transition: transform .18s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease, color .22s ease;
+}
+
+.settings-save-btn:active,
+.ghost:active,
+.icon:active,
+.solid:active,
+.week-day-card:active,
+.cell:active,
+.type-row:active,
+.collapse-btn:active,
+.payslip-archive-card:active {
+  transform: scale(.985);
+}
+
+.ghost,
+.icon,
+.settings-save-btn {
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.solid {
+  background: linear-gradient(135deg, #8f6bff 0%, #6fa7ff 100%);
+  color: #fff;
+  border: 0;
+  box-shadow: 0 12px 24px rgba(88, 108, 255, 0.22);
+}
+
+
+
+
+
+
+

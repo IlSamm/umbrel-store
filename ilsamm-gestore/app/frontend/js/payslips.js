@@ -1,7 +1,7 @@
 var state = {
       activeTab: 'home',
       entries: loadWithMigration(STORAGE_ENTRIES, LEGACY_ENTRY_KEYS, ENTRY_BACKUP_KEYS, {}, 'entries'),
-      settings: Object.assign({}, defaultSettings, loadWithMigration(STORAGE_SETTINGS, LEGACY_SETTINGS_KEYS, SETTINGS_BACKUP_KEYS, {}, 'settings')),
+      settings: normalizeRuntimeSettings(loadWithMigration(STORAGE_SETTINGS, LEGACY_SETTINGS_KEYS, SETTINGS_BACKUP_KEYS, {}, 'settings')),
       settingsDraft: {},
       currentMonth: new Date(),
       editingDate: null,
@@ -13,12 +13,14 @@ var state = {
       payslipDraft: null,
       payslipBusy: false,
       payslipStatus: '',
-      payslipOcrReady: false
+      payslipOcrReady: false,
+      privacyLocked: false,
+      syncStatus: 'Solo sul dispositivo',
+      lastSyncedAt: 0
     };
     state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
-    state.settings.workdays = normalizeWeekdayList(state.settings.workdays || defaultSettings.workdays || []);
-    state.settings.autoRestDays = normalizeWeekdayList(state.settings.autoRestDays || []);
     state.settingsDraft = Object.assign({}, state.settings);
+    state.privacyLocked = Boolean(state.settings.lockApp);
     saveEntries(); saveSettings();
 
     function getPayslipMonthDate(payslip) {
@@ -256,11 +258,14 @@ var state = {
     function getPayslipRegionSources(pageCanvas) {
       if (!pageCanvas) return [];
       var defs = [
-        { key: 'headerLeft', label: 'HEADER LEFT', box: [0.02, 0.02, 0.40, 0.20] },
-        { key: 'headerRight', label: 'HEADER RIGHT', box: [0.53, 0.02, 0.43, 0.21] },
-        { key: 'tableMain', label: 'TABLE MAIN', box: [0.07, 0.49, 0.61, 0.22] },
-        { key: 'bottomSummary', label: 'BOTTOM SUMMARY', box: [0.02, 0.77, 0.74, 0.18] },
-        { key: 'bottomRight', label: 'BOTTOM RIGHT', box: [0.63, 0.70, 0.24, 0.19] }
+        { key: 'fullPage', label: 'FULL PAGE', box: [0, 0, 1, 1] },
+        { key: 'headerLeft', label: 'HEADER LEFT', box: [0.02, 0.02, 0.52, 0.24] },
+        { key: 'headerRight', label: 'HEADER RIGHT', box: [0.45, 0.02, 0.53, 0.24] },
+        { key: 'companyBand', label: 'COMPANY BAND', box: [0.02, 0.04, 0.66, 0.18] },
+        { key: 'tableMain', label: 'TABLE MAIN', box: [0.04, 0.34, 0.92, 0.34] },
+        { key: 'bottomSummary', label: 'BOTTOM SUMMARY', box: [0.03, 0.66, 0.94, 0.24] },
+        { key: 'bottomRight', label: 'BOTTOM RIGHT', box: [0.58, 0.61, 0.38, 0.28] },
+        { key: 'amountsRight', label: 'AMOUNTS RIGHT', box: [0.52, 0.56, 0.44, 0.34] }
       ];
       return defs.map(function (def) {
         var crop = cropCanvasArea(pageCanvas, def.box[0], def.box[1], def.box[2], def.box[3]);
@@ -390,74 +395,209 @@ var state = {
         sourceText: source.sourceText || ''
       };
     }
+    function extractMonthYearFromFileName(fileName) {
+      var source = String(fileName || '').replace(/\.[^.]+$/, '');
+      var lower = source.toLowerCase();
+      var month = getMonthFromItalianText(lower) || 0;
+      var year = 0;
+      var direct = lower.match(/\b(20\d{2})[-_ .](0?[1-9]|1[0-2])\b/);
+      if (direct) {
+        year = Number(direct[1]) || 0;
+        month = Number(direct[2]) || month;
+      }
+      var inverse = lower.match(/\b(0?[1-9]|1[0-2])[-_ .](20\d{2})\b/);
+      if (inverse) {
+        month = Number(inverse[1]) || month;
+        year = Number(inverse[2]) || year;
+      }
+      var yearMatch = lower.match(/20\d{2}/);
+      if (yearMatch) year = Number(yearMatch[0]) || year;
+      return {
+        month: month || (new Date().getMonth() + 1),
+        year: year || new Date().getFullYear()
+      };
+    }
+    function normalizeCompanyCandidate(value) {
+      return String(value || '')
+        .replace(/^(?:azienda|datore(?:\s+di\s+lavoro)?|ragione\s+sociale|societa|società)\s*[:\-]?\s*/i, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+    function scoreCompanyCandidate(value) {
+      var line = normalizeCompanyCandidate(value);
+      if (!line || line.length < 3 || line.length > 64) return -10;
+      var score = 0;
+      if (/[a-z]/i.test(line)) score += 2;
+      if (/(s\.?r\.?l\.?|srl|s\.?p\.?a\.?|spa|snc|sas|soc\.?\s*coop\.?|cooperativa)/i.test(line)) score += 6;
+      if (/^[A-Z0-9 '&.\/-]+$/.test(line)) score += 1;
+      if (/\d/.test(line)) score -= 1;
+      if (/(via|viale|piazza|cap|telefono|tel|fax|cf|c\.f\.|p\.?iva|partita\s+iva|matric|iban|inail|comune|provincia)/i.test(line)) score -= 6;
+      return score;
+    }
+    function pickBestCompanyCandidate(candidates) {
+      var best = '';
+      var bestScore = -Infinity;
+      (candidates || []).forEach(function (value) {
+        var candidate = normalizeCompanyCandidate(value);
+        var score = scoreCompanyCandidate(candidate);
+        if (score > bestScore) {
+          best = candidate;
+          bestScore = score;
+        }
+      });
+      return best;
+    }
+    function pushWeightedAmount(list, value, weight) {
+      var amount = parseDecimalInput(value, 0);
+      if (amount > 0) list.push({ value: +amount.toFixed(2), weight: weight || 1 });
+    }
+    function pickWeightedAmount(candidates, opts) {
+      var options = opts || {};
+      var bestValue = 0;
+      var bestScore = -Infinity;
+      var buckets = {};
+      (candidates || []).forEach(function (item) {
+        if (!item) return;
+        var value = parseDecimalInput(item.value, 0);
+        if (!value) return;
+        if (options.min !== undefined && value < options.min) return;
+        if (options.max !== undefined && value > options.max) return;
+        var key = value.toFixed(2);
+        buckets[key] = (buckets[key] || 0) + (item.weight || 1);
+      });
+      Object.keys(buckets).forEach(function (key) {
+        var value = Number(key);
+        var score = buckets[key];
+        if (score > bestScore || (score === bestScore && value > bestValue)) {
+          bestValue = value;
+          bestScore = score;
+        }
+      });
+      return bestValue;
+    }
+    function mergePayslipCoreCandidates(candidates, fileName) {
+      var fallbackMonthYear = extractMonthYearFromFileName(fileName);
+      var merged = {
+        month: 0,
+        year: 0,
+        company: '',
+        netto: 0,
+        lordo: 0,
+        sourceText: ''
+      };
+      var companyCandidates = [];
+      var nettoCandidates = [];
+      var lordoCandidates = [];
+      var sourceTexts = [];
+      (candidates || []).forEach(function (item) {
+        var parsed = reducePayslipToCoreFields(item && item.parsed ? item.parsed : item);
+        var weight = item && item.weight ? item.weight : 1;
+        if (!merged.month && parsed.month) merged.month = parsed.month;
+        if (!merged.year && parsed.year) merged.year = parsed.year;
+        if (parsed.company) companyCandidates.push(parsed.company);
+        pushWeightedAmount(nettoCandidates, parsed.netto, weight);
+        pushWeightedAmount(lordoCandidates, parsed.lordo, weight);
+        if (parsed.sourceText) sourceTexts.push(parsed.sourceText);
+      });
+      merged.month = merged.month || fallbackMonthYear.month;
+      merged.year = merged.year || fallbackMonthYear.year;
+      merged.company = pickBestCompanyCandidate(companyCandidates);
+      merged.netto = pickWeightedAmount(nettoCandidates, { min: 300, max: 10000 });
+      merged.lordo = pickWeightedAmount(lordoCandidates, { min: Math.max(500, merged.netto || 0), max: 10000 }) || pickWeightedAmount(lordoCandidates, { min: 500, max: 10000 });
+      if (merged.lordo && merged.netto && merged.lordo < merged.netto) {
+        var lowerNetto = pickWeightedAmount(nettoCandidates, { min: 300, max: merged.lordo });
+        if (lowerNetto) merged.netto = lowerNetto;
+      }
+      merged.sourceText = sourceTexts.filter(Boolean).join('\n\n=== OCR ===\n');
+      return reducePayslipToCoreFields(merged);
+    }
     function extractCompanyCore(text) {
       var lines = getPayslipLines(text || '');
-      var blacklist = /(via|viale|piazza|cap|telefono|tel|fax|cf|c\.f\.|p\.?iva|partita\s+iva|matric|commercio|inail|costa\s+volpino|sovere|\bBG\b)/i;
-      for (var i = 0; i < lines.length; i += 1) {
-        var line = String(lines[i] || '').replace(/\s{2,}/g, ' ').trim();
-        if (!line || blacklist.test(line)) continue;
-        if (/(s\.?r\.?l\.?|srl|s\.?p\.?a\.?|spa|snc|sas|soc\.?\s*coop\.?|cooperativa)/i.test(line)) return line;
-      }
-      for (var j = 0; j < Math.min(lines.length, 3); j += 1) {
-        var fallback = String(lines[j] || '').replace(/\s{2,}/g, ' ').trim();
-        if (fallback && !blacklist.test(fallback) && fallback.length <= 60 && /[A-Za-z]/.test(fallback)) return fallback;
-      }
-      return '';
+      var shortlist = [];
+      for (var i = 0; i < Math.min(lines.length, 10); i += 1) shortlist.push(lines[i]);
+      return pickBestCompanyCandidate(shortlist);
     }
     function extractMonthYearCore(text) {
       var source = normalizePayslipText(text || '');
-      var month = getMonthFromItalianText(source) || (new Date().getMonth() + 1);
+      var month = getMonthFromItalianText(source) || 0;
       var yearMatch = source.match(/20\d{2}/);
-      var year = yearMatch ? Number(yearMatch[0]) : new Date().getFullYear();
+      var year = yearMatch ? Number(yearMatch[0]) : 0;
       var monthYear = source.match(/\b(0?[1-9]|1[0-2])[\/\.-](20\d{2})\b/);
       if (monthYear) {
         month = Number(monthYear[1]) || month;
         year = Number(monthYear[2]) || year;
+      }
+      var inverseMonthYear = source.match(/\b(20\d{2})[\/\.-](0?[1-9]|1[0-2])\b/);
+      if (inverseMonthYear) {
+        year = Number(inverseMonthYear[1]) || year;
+        month = Number(inverseMonthYear[2]) || month;
       }
       return { month: month, year: year };
     }
     function extractAmountCore(texts, type) {
       var sources = texts || [];
       var labels = type === 'netto'
-        ? [/(?:^|\b)netto(?:\s+da\s+pagare|\s+busta|\s+in\s+busta)?\D{0,24}([\d\.,]{3,16})/i, /([\d\.,]{3,16})\D{0,12}(?:netto\s+da\s+pagare|totale\s+netto|\bnetto\b)/i]
-        : [/(?:retribuzione\s+lorda|totale\s+lordo|imponibile\s+irpef|imponibile\s+contributi|imponibile\s+inps|lordo)\D{0,28}([\d\.,]{3,16})/i];
+        ? [/(?:^|\b)(?:netto|nctto|nelto|netro)(?:\s+da\s+pagare|\s+busta|\s+in\s+busta)?\D{0,28}([\d\.,]{3,16})/i, /([\d\.,]{3,16})\D{0,16}(?:netto\s+da\s+pagare|totale\s+netto|(?:^|\b)netto\b)/i]
+        : [/(?:retribuzione\s+lorda|totale\s+lordo|imponibile\s+irpef|imponibile\s+contributi|imponibile\s+inps|lordo|lorda)\D{0,32}([\d\.,]{3,16})/i, /([\d\.,]{3,16})\D{0,16}(?:retribuzione\s+lorda|totale\s+lordo|imponibile\s+irpef|imponibile\s+contributi|imponibile\s+inps|lordo|lorda)\b/i];
+      var labelTest = type === 'netto'
+        ? /(?:^|\b)(?:netto|nctto|nelto|netro|da\s+pagare|totale\s+netto)\b/i
+        : /(?:retribuzione\s+lorda|totale\s+lordo|imponibile\s+irpef|imponibile\s+contributi|imponibile\s+inps|lordo|lorda)\b/i;
       var min = type === 'netto' ? 300 : 500;
       var max = 10000;
+      var bestValue = 0;
+      var bestScore = -Infinity;
       for (var i = 0; i < sources.length; i += 1) {
         var src = normalizePayslipText(sources[i] || '');
         for (var p = 0; p < labels.length; p += 1) {
           var m = src.match(labels[p]);
           if (m && m[1]) {
             var num = parseItalianNumber(m[1]);
-            if (num >= min && num <= max) return num;
+            if (num >= min && num <= max) {
+              bestValue = num;
+              bestScore = Math.max(bestScore, 8);
+            }
           }
         }
         var lines = getPayslipLines(src);
         for (var l = 0; l < lines.length; l += 1) {
-          var test = type === 'netto' ? /\bnetto\b/i : /(retribuzione\s+lorda|totale\s+lordo|imponibile\s+irpef|imponibile\s+contributi|imponibile\s+inps|lordo)/i;
-          if (!test.test(lines[l])) continue;
-          var nums = getLineNumbers(lines[l], { min: min, max: max });
-          var picked = pickLastReasonableNumber(nums, { min: min, max: max });
-          if (picked) return picked;
+          var windowText = [lines[l - 1] || '', lines[l] || '', lines[l + 1] || ''].join(' ').trim();
+          if (!labelTest.test(windowText)) continue;
+          var nums = getExactLineNumbers(windowText, { min: min, max: max });
+          if (!nums.length) nums = getLineNumbers(windowText, { min: min, max: max });
+          if (!nums.length) continue;
+          for (var n = 0; n < nums.length; n += 1) {
+            var picked = nums[n];
+            var score = 4;
+            if (/[.,]\d{2}\b/.test(windowText)) score += 0.5;
+            if (type === 'netto' && /da\s+pagare|totale\s+netto/.test(windowText)) score += 2;
+            if (type === 'lordo' && /imponibile|retribuzione/.test(windowText)) score += 2;
+            if (type === 'lordo' && /netto/.test(windowText)) score -= 3;
+            if (type === 'netto' && /lordo|imponibile/.test(windowText)) score -= 2.5;
+            if (score > bestScore || (score === bestScore && picked > bestValue)) {
+              bestValue = picked;
+              bestScore = score;
+            }
+          }
         }
       }
-      return 0;
+      return bestValue || 0;
     }
     function parsePayslipCore(regionResults, fullText) {
       var regionMap = {};
       (regionResults || []).forEach(function (item) { regionMap[item.key] = normalizePayslipText(item.text || ''); });
       var allText = normalizePayslipText(fullText || '');
-      var monthYear = extractMonthYearCore((regionMap.headerRight || '') + '\n' + allText);
-      var company = extractCompanyCore(regionMap.headerLeft || '') || extractCompanyCore(allText);
-      var netto = extractAmountCore([regionMap.bottomRight || '', regionMap.bottomSummary || '', allText], 'netto');
-      var lordo = extractAmountCore([regionMap.bottomSummary || '', regionMap.tableMain || '', allText], 'lordo');
+      var fullRegionText = regionMap.fullPage || '';
+      var monthYear = extractMonthYearCore((regionMap.headerRight || '') + '\n' + fullRegionText + '\n' + allText);
+      var company = pickBestCompanyCandidate([regionMap.companyBand || '', regionMap.headerLeft || '', fullRegionText, allText]);
+      var netto = extractAmountCore([regionMap.amountsRight || '', regionMap.bottomRight || '', regionMap.bottomSummary || '', fullRegionText, allText], 'netto');
+      var lordo = extractAmountCore([regionMap.bottomSummary || '', regionMap.amountsRight || '', regionMap.tableMain || '', fullRegionText, allText], 'lordo');
       return reducePayslipToCoreFields({
-        month: monthYear.month,
-        year: monthYear.year,
+        month: monthYear.month || (new Date().getMonth() + 1),
+        year: monthYear.year || new Date().getFullYear(),
         company: company,
         netto: netto,
         lordo: lordo,
-        sourceText: allText + ((regionResults && regionResults.length) ? ('\n\n=== REGIONI OCR ===\n' + regionResults.map(function (item) {
+        sourceText: [allText, fullRegionText].filter(Boolean).join('\n\n') + ((regionResults && regionResults.length) ? ('\n\n=== REGIONI OCR ===\n' + regionResults.map(function (item) {
           return '[' + item.label + ']\n' + (item.text || '');
         }).join('\n\n')) : '')
       });
@@ -671,35 +811,42 @@ var state = {
           baseCtx.drawImage(img, 0, 0, width, height);
           var preview = baseCanvas.toDataURL('image/jpeg', 0.92);
 
-          var imageData = baseCtx.getImageData(0, 0, width, height);
+          var softCanvas = document.createElement('canvas');
+          softCanvas.width = width;
+          softCanvas.height = height;
+          var softCtx = softCanvas.getContext('2d', { willReadFrequently: true });
+          softCtx.filter = 'contrast(140%) brightness(106%) grayscale(100%)';
+          softCtx.drawImage(baseCanvas, 0, 0, width, height);
+
+          var hardCanvas = document.createElement('canvas');
+          hardCanvas.width = width;
+          hardCanvas.height = height;
+          var hardCtx = hardCanvas.getContext('2d', { willReadFrequently: true });
+          hardCtx.drawImage(softCanvas, 0, 0, width, height);
+          var imageData = hardCtx.getImageData(0, 0, width, height);
           var data = imageData.data;
           for (var i = 0; i < data.length; i += 4) {
             var gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
             gray = (gray - 128) * 1.55 + 128;
             gray = gray < 0 ? 0 : (gray > 255 ? 255 : gray);
-            var boosted = gray > 182 ? 255 : gray < 84 ? 0 : gray;
+            var boosted = gray > 182 ? 255 : gray < 92 ? 0 : gray;
             data[i] = boosted;
             data[i + 1] = boosted;
             data[i + 2] = boosted;
           }
-          baseCtx.putImageData(imageData, 0, 0);
+          hardCtx.putImageData(imageData, 0, 0);
 
-          var sharpCanvas = document.createElement('canvas');
-          sharpCanvas.width = width;
-          sharpCanvas.height = height;
-          var sharpCtx = sharpCanvas.getContext('2d', { willReadFrequently: true });
-          sharpCtx.filter = 'contrast(150%) brightness(108%) grayscale(100%)';
-          sharpCtx.drawImage(baseCanvas, 0, 0, width, height);
-          var pageCanvas = cropCanvasArea(sharpCanvas, 0.14, 0.10, 0.80, 0.86);
+          var pageCanvas = cropCanvasArea(softCanvas, 0.02, 0.02, 0.96, 0.96);
           resolve({
             preview: preview,
-            ocr: sharpCanvas.toDataURL('image/jpeg', 0.96),
-            ocrAlt: preview,
+            ocr: hardCanvas.toDataURL('image/jpeg', 0.96),
+            ocrAlt: softCanvas.toDataURL('image/jpeg', 0.96),
+            ocrWide: pageCanvas.toDataURL('image/jpeg', 0.96),
             regions: getPayslipRegionSources(pageCanvas)
           });
         };
         img.onerror = function () {
-          resolve({ preview: dataUrl, ocr: dataUrl, ocrAlt: dataUrl, regions: [] });
+          resolve({ preview: dataUrl, ocr: dataUrl, ocrAlt: dataUrl, ocrWide: dataUrl, regions: [] });
         };
         img.src = dataUrl;
       });
@@ -781,6 +928,171 @@ var state = {
         state.payslipStatus = err && err.message === 'ocr-unavailable'
           ? 'Il lettore automatico non è riuscito a caricare il motore OCR. Riprova con connessione attiva oppure compila i campi a mano.'
           : 'Non sono riuscito a leggere la busta in automatico. Riprova con una foto più nitida e ben dritta, oppure compila i campi a mano.';
+      }
+      state.payslipBusy = false;
+      state.activeTab = 'payslips';
+      render();
+    }
+
+    function getPayslipCoreFieldScore(parsed) {
+      var candidate = parsed || {};
+      var score = 0;
+      if (Number(candidate.month || 0) > 0) score += 1;
+      if (Number(candidate.year || 0) > 0) score += 1;
+      if (String(candidate.company || '').trim()) score += 1;
+      if (parseDecimalInput(candidate.netto, 0) > 0) score += 1;
+      if (parseDecimalInput(candidate.lordo, 0) > 0) score += 1;
+      return score;
+    }
+    function getPayslipMissingCoreFields(parsed) {
+      var candidate = reducePayslipToCoreFields(parsed || {});
+      var missing = [];
+      if (!String(candidate.company || '').trim()) missing.push('ditta');
+      if (parseDecimalInput(candidate.netto, 0) <= 0) missing.push('netto');
+      if (parseDecimalInput(candidate.lordo, 0) <= 0) missing.push('lordo');
+      return missing;
+    }
+    function makeEmptyPayslipDraft() {
+      return Object.assign({
+        id: '',
+        imageData: '',
+        fileName: '',
+        createdAt: Date.now()
+      }, reducePayslipToCoreFields({
+        month: new Date().getMonth() + 1,
+        year: new Date().getFullYear(),
+        company: '',
+        netto: 0,
+        lordo: 0,
+        sourceText: ''
+      }));
+    }
+    function getPayslipStatus(payslip) {
+      var score = getPayslipCoreFieldScore(payslip);
+      var hasImage = Boolean(payslip && payslip.imageData);
+      if (score >= 5) return { label: hasImage ? 'Foto + dati' : 'Completa', tone: 'ok' };
+      if (score >= 3) return { label: 'Da controllare', tone: hasImage ? 'alert' : 'soft' };
+      return { label: hasImage ? 'Foto salvata' : 'Da completare', tone: 'soft' };
+    }
+    function ensurePayslipDraft() {
+      if (!state.payslipDraft) state.payslipDraft = makeEmptyPayslipDraft();
+      return state.payslipDraft;
+    }
+    function resetPayslipDraft() {
+      state.payslipDraft = makeEmptyPayslipDraft();
+      state.payslipStatus = '';
+    }
+    function mergePayslipParsedData(parsed, extra) {
+      var current = ensurePayslipDraft();
+      var normalized = reducePayslipToCoreFields(Object.assign({}, current, parsed || {}));
+      state.payslipDraft = Object.assign({}, makeEmptyPayslipDraft(), current, normalized, extra || {});
+    }
+    function savePayslipDraft() {
+      ensurePayslipDraft();
+      var draft = Object.assign({}, makeEmptyPayslipDraft(), state.payslipDraft);
+      var saved = Object.assign({}, reducePayslipToCoreFields(draft), {
+        id: draft.id || ('payslip-' + Date.now()),
+        imageData: draft.imageData || '',
+        fileName: draft.fileName || '',
+        createdAt: draft.createdAt || Date.now()
+      });
+      var index = (state.payslips || []).findIndex(function (item) { return item.id === saved.id; });
+      if (index >= 0) state.payslips[index] = saved;
+      else state.payslips.unshift(saved);
+      state.payslips.sort(function (a, b) {
+        var ad = getPayslipMonthDate(a), bd = getPayslipMonthDate(b);
+        return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
+      });
+      savePayslips();
+      state.payslipStatus = getPayslipCoreFieldScore(saved) >= 5 ? 'Busta salvata.' : 'Busta salvata. Puoi completare i campi mancanti quando vuoi.';
+      state.activeTab = 'payslips';
+      render();
+    }
+    async function processPayslipFile(file) {
+      if (!file) return;
+      ensurePayslipDraft();
+      state.payslipBusy = true;
+      state.payslipStatus = 'Sto leggendo la foto della busta...';
+      render();
+      try {
+        if (!file.type || file.type.indexOf('image/') !== 0) throw new Error('image-only');
+        var dataUrl = await readFileAsDataURL(file);
+        var prepared = await preparePayslipImage(dataUrl);
+        mergePayslipParsedData({}, { imageData: prepared.preview || dataUrl, fileName: file.name || 'busta-paga.jpg' });
+        var Tesseract = await loadTesseract();
+        var sources = [
+          { label: 'contrasto forte', image: prepared.ocr || dataUrl },
+          { label: 'contrasto morbido', image: prepared.ocrAlt || dataUrl },
+          { label: 'pagina intera', image: prepared.ocrWide || dataUrl }
+        ].filter(function (item, index, list) {
+          if (!item.image) return false;
+          return list.findIndex(function (other) { return other.image === item.image; }) === index;
+        });
+        var attemptCandidates = [];
+        var bestText = '';
+        var bestScore = -1;
+        for (var attempt = 0; attempt < sources.length; attempt += 1) {
+          state.payslipStatus = 'Sto leggendo la foto... ' + sources[attempt].label + ' (' + (attempt + 1) + '/' + sources.length + ')';
+          render();
+          var attemptResult = await Tesseract.recognize(sources[attempt].image, 'ita', {
+            tessedit_pageseg_mode: '6',
+            preserve_interword_spaces: '1',
+            logger: function (m) {
+              if (m && m.status === 'recognizing text' && typeof m.progress === 'number') {
+                state.payslipStatus = 'Sto leggendo la foto... ' + Math.round(m.progress * 100) + '%';
+                render();
+              }
+            }
+          });
+          var extractedText = (attemptResult && attemptResult.data && attemptResult.data.text) || '';
+          var parsedCore = parsePayslipCore([], extractedText);
+          var parsedLegacy = reducePayslipToCoreFields(parsePayslipText(extractedText));
+          var attemptMerged = mergePayslipCoreCandidates([
+            { parsed: parsedCore, weight: 2.4 },
+            { parsed: parsedLegacy, weight: 1.6 }
+          ], file.name);
+          attemptCandidates.push({ parsed: attemptMerged, weight: 2.6 });
+          var score = getPayslipCoreFieldScore(attemptMerged);
+          if (score > bestScore) {
+            bestScore = score;
+            bestText = extractedText;
+          }
+        }
+        var regionResults = [];
+        var regionSources = (prepared.regions || []).filter(function (item) { return !!item.image; });
+        for (var r = 0; r < regionSources.length; r += 1) {
+          state.payslipStatus = 'Sto leggendo la foto... sezione ' + (r + 1) + '/' + regionSources.length;
+          render();
+          try {
+            var regionResult = await Tesseract.recognize(regionSources[r].image, 'ita', {
+              tessedit_pageseg_mode: '6',
+              preserve_interword_spaces: '1'
+            });
+            regionResults.push({
+              key: regionSources[r].key,
+              label: regionSources[r].label,
+              text: (regionResult && regionResult.data && regionResult.data.text) || ''
+            });
+          } catch (regionErr) {}
+        }
+        var regionCore = parsePayslipCore(regionResults, bestText || '');
+        var regionLegacy = reducePayslipToCoreFields(parsePayslipRegionTexts(regionResults, parsePayslipText(bestText || '')));
+        var finalParsed = mergePayslipCoreCandidates(
+          attemptCandidates.concat([
+            { parsed: regionCore, weight: 3.2 },
+            { parsed: regionLegacy, weight: 2.2 }
+          ]),
+          file.name
+        );
+        mergePayslipParsedData(finalParsed, { imageData: prepared.preview || dataUrl, fileName: file.name || 'busta-paga.jpg' });
+        var finalScore = getPayslipCoreFieldScore(finalParsed);
+        if (finalScore >= 5) state.payslipStatus = 'Ho letto mese, anno, ditta, netto e lordo. Controllali e salva.';
+        else if (finalScore >= 3) state.payslipStatus = 'Ho letto solo alcuni campi della foto. Controlla e completa a mano quello che manca.';
+        else state.payslipStatus = 'La foto e salvata, ma i dati letti non sono ancora affidabili. Compilali a mano.';
+      } catch (err) {
+        if (err && err.message === 'image-only') state.payslipStatus = 'Per ora puoi caricare solo foto della busta paga.';
+        else if (err && err.message === 'ocr-unavailable') state.payslipStatus = 'Il lettore automatico non si e caricato. Riprova oppure compila i campi a mano.';
+        else state.payslipStatus = 'Non sono riuscito a leggere bene la foto. Prova con una foto piu nitida oppure compila i campi a mano.';
       }
       state.payslipBusy = false;
       state.activeTab = 'payslips';

@@ -23,9 +23,11 @@ PROFILE_ID = "default"
 DEFAULT_SNAPSHOT = {
     "entries": {},
     "settings": None,
+    "payslips": [],
     "syncMeta": {
         "entriesUpdatedAt": 0,
         "settingsUpdatedAt": 0,
+        "payslipsUpdatedAt": 0,
         "lastServerSyncAt": 0,
     },
     "updatedAt": 0,
@@ -43,11 +45,15 @@ def get_db() -> sqlite3.Connection:
             profile_id TEXT PRIMARY KEY,
             entries_json TEXT NOT NULL,
             settings_json TEXT,
+            payslips_json TEXT,
             sync_meta_json TEXT NOT NULL,
             updated_at INTEGER NOT NULL
         )
         """
     )
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(app_state)")}
+    if "payslips_json" not in columns:
+        conn.execute("ALTER TABLE app_state ADD COLUMN payslips_json TEXT")
     conn.commit()
     return conn
 
@@ -55,12 +61,18 @@ def get_db() -> sqlite3.Connection:
 def load_snapshot(profile_id: str = PROFILE_ID) -> dict:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT entries_json, settings_json, sync_meta_json, updated_at FROM app_state WHERE profile_id = ?",
+            "SELECT entries_json, settings_json, payslips_json, sync_meta_json, updated_at FROM app_state WHERE profile_id = ?",
             (profile_id,),
         ).fetchone()
     if not row:
-        return dict(DEFAULT_SNAPSHOT)
-    entries_json, settings_json, sync_meta_json, updated_at = row
+        return {
+            "entries": {},
+            "settings": None,
+            "payslips": [],
+            "syncMeta": dict(DEFAULT_SNAPSHOT["syncMeta"]),
+            "updatedAt": 0,
+        }
+    entries_json, settings_json, payslips_json, sync_meta_json, updated_at = row
     try:
         entries = json.loads(entries_json) if entries_json else {}
     except json.JSONDecodeError:
@@ -70,12 +82,17 @@ def load_snapshot(profile_id: str = PROFILE_ID) -> dict:
     except json.JSONDecodeError:
         settings = None
     try:
+        payslips = json.loads(payslips_json) if payslips_json else []
+    except json.JSONDecodeError:
+        payslips = []
+    try:
         sync_meta = json.loads(sync_meta_json) if sync_meta_json else {}
     except json.JSONDecodeError:
         sync_meta = {}
     return {
         "entries": entries if isinstance(entries, dict) else {},
         "settings": settings if isinstance(settings, dict) else None,
+        "payslips": payslips if isinstance(payslips, list) else [],
         "syncMeta": {
             **DEFAULT_SNAPSHOT["syncMeta"],
             **(sync_meta if isinstance(sync_meta, dict) else {}),
@@ -87,28 +104,35 @@ def load_snapshot(profile_id: str = PROFILE_ID) -> dict:
 def save_snapshot(snapshot: dict, profile_id: str = PROFILE_ID) -> dict:
     entries = snapshot.get("entries")
     settings = snapshot.get("settings")
+    payslips = snapshot.get("payslips")
     sync_meta = snapshot.get("syncMeta") or {}
     updated_at = int(snapshot.get("updatedAt") or time.time() * 1000)
 
     entries = entries if isinstance(entries, dict) else {}
     settings = settings if isinstance(settings, dict) else None
+    payslips = payslips if isinstance(payslips, list) else []
     if not isinstance(sync_meta, dict):
         sync_meta = {}
 
+    now_ms = int(time.time() * 1000)
     sync_meta = {
         **DEFAULT_SNAPSHOT["syncMeta"],
         **sync_meta,
-        "lastServerSyncAt": int(time.time() * 1000),
+        "entriesUpdatedAt": updated_at if snapshot.get("entries") is not None else int(sync_meta.get("entriesUpdatedAt") or 0),
+        "settingsUpdatedAt": updated_at if snapshot.get("settings") is not None else int(sync_meta.get("settingsUpdatedAt") or 0),
+        "payslipsUpdatedAt": updated_at if snapshot.get("payslips") is not None else int(sync_meta.get("payslipsUpdatedAt") or 0),
+        "lastServerSyncAt": now_ms,
     }
 
     with get_db() as conn:
         conn.execute(
             """
-            INSERT INTO app_state (profile_id, entries_json, settings_json, sync_meta_json, updated_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO app_state (profile_id, entries_json, settings_json, payslips_json, sync_meta_json, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(profile_id) DO UPDATE SET
                 entries_json=excluded.entries_json,
                 settings_json=excluded.settings_json,
+                payslips_json=excluded.payslips_json,
                 sync_meta_json=excluded.sync_meta_json,
                 updated_at=excluded.updated_at
             """,
@@ -116,6 +140,7 @@ def save_snapshot(snapshot: dict, profile_id: str = PROFILE_ID) -> dict:
                 profile_id,
                 json.dumps(entries, ensure_ascii=False),
                 json.dumps(settings, ensure_ascii=False) if settings is not None else None,
+                json.dumps(payslips, ensure_ascii=False),
                 json.dumps(sync_meta, ensure_ascii=False),
                 updated_at,
             ),

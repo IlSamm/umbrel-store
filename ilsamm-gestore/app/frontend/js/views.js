@@ -7,7 +7,7 @@ function renderPayslips() {
         return '<button class="payslip-archive-card" data-open-payslip="' + item.id + '"><div class="payslip-archive-main"><div><div class="payslip-month">' + getPayslipMonthLabel(item) + '</div><div class="payslip-company">' + escapeHtml(item.company || 'Busta importata') + '</div></div><span class="payslip-badge ' + status.tone + '">' + status.label + '</span></div><div class="payslip-archive-meta"><span>Netto ' + formatMoneyEuro(item.netto) + '</span><span>Straordinari ' + formatHourValue(item.overtimeHours || 0) + '</span></div></button>';
       }).join('');
       var comparisons = getPayslipComparison(draft).filter(function (row) { return row.app || row.slip; });
-      return '<div class="top top-centered"><div class="title">Buste paga</div></div>' +
+      return '<div class="top top-centered page-top"><div class="title">Buste paga</div></div>' +
         '<div class="stack">' +
           '<div class="card payslip-hero"><div class="card-body"><div class="payslip-hero-title">Scatta una foto e controlla se torna tutto</div><div class="small muted">Legge la busta, estrae i dati principali e li confronta con il mese che hai già registrato in GestOre.</div><div class="small muted" style="margin-top:8px;">Per risultati migliori: foto dritta, luce buona e busta intera ben visibile.</div><div class="payslip-hero-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Scatta foto</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Galleria</button></div>' + draftStatus + '</div></div>' +
           '<div class="card"><div class="card-body payslip-form-body">' +
@@ -45,7 +45,7 @@ function renderPayslips() {
       var week = getWeekProgress(now);
       var monthStats = getMonthStats(state.currentMonth);
       var type = entry ? dayTypes[entry.type] : null;
-      var dayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
+      var dayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric' }).format(now);
       dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
       var statusText = entry ? currentHomeStatus(entry, breakdown) : 'Tocca per inserire la giornata';
       var todayTargetMinutes = Math.max(1, state.settings.dailyTarget * 60);
@@ -55,17 +55,47 @@ function renderPayslips() {
       var weekTargetMinutes = Math.max(1, state.settings.weeklyTarget * 60);
       var weekRemaining = Math.max(0, weekTargetMinutes - week.totalMinutes);
       var monthAverageMinutes = monthStats.workedDays ? Math.round(monthStats.totalMinutes / monthStats.workedDays) : 0;
+      var monthRecordedDays = monthStats.workedDays + monthStats.ferie + monthStats.malattia + monthStats.permesso + (monthStats.festivitaPagata || 0) + monthStats.riposo;
       var weekDays = getWeekDaysData(now);
       var weekEntriesCount = weekDays.filter(function (item) { return !!item.entry; }).length;
+      var clampChartPercent = function (value) {
+        var safe = Number(value);
+        if (!Number.isFinite(safe)) return 0;
+        return Math.max(0, Math.min(100, safe));
+      };
+      var buildProgressChartBackground = function (value, startColor, endColor, trackColor) {
+        var safe = clampChartPercent(value);
+        var sweep = (safe / 100) * 360;
+        return 'conic-gradient(from -90deg, ' + startColor + ' 0deg, ' + endColor + ' ' + sweep.toFixed(2) + 'deg, ' + trackColor + ' ' + sweep.toFixed(2) + 'deg 360deg)';
+      };
+      var buildSegmentChartBackground = function (segments, trackColor) {
+        var total = 0;
+        var parts = [];
+        var cursor = 0;
+        (segments || []).forEach(function (segment) {
+          total += Math.max(0, Number(segment.value) || 0);
+        });
+        if (!total) return 'conic-gradient(from -90deg, ' + trackColor + ' 0deg 360deg)';
+        (segments || []).forEach(function (segment) {
+          var value = Math.max(0, Number(segment.value) || 0);
+          if (!value) return;
+          var sweep = (value / total) * 360;
+          var next = Math.min(360, cursor + sweep);
+          parts.push(segment.color + ' ' + cursor.toFixed(2) + 'deg ' + next.toFixed(2) + 'deg');
+          cursor = next;
+        });
+        if (cursor < 360) parts.push(trackColor + ' ' + cursor.toFixed(2) + 'deg 360deg');
+        return 'conic-gradient(from -90deg, ' + parts.join(', ') + ')';
+      };
       var headerMessage = '';
       var heroMessage = 'Tocca qui per registrare la giornata di oggi';
       if (entry) {
         if (isStateOnlyType(entry.type)) heroMessage = type.label + ' registrata per oggi';
         else if (breakdown.overtime > 0) heroMessage = 'Hai ' + formatDuration(breakdown.overtime) + ' di straordinario registrato';
         else if (todayRemaining > 0) heroMessage = 'Ti mancano ' + formatDuration(todayRemaining) + ' al target giornaliero';
-        else heroMessage = 'Target giornaliero raggiunto';
+        else heroMessage = 'Giornata completata';
       }
-      var stateDayUi = entry && isStateOnlyType(entry.type) ? getHomeStateDayUi(entry.type) : null;
+      var stateDayUi = entry && isStateOnlyType(entry.type) ? getHomeStateDayUi(entry.type, entry) : null;
       var heroInner = stateDayUi ? ('<div class="home-hero-panel is-state-day"><div class="hero-status-line"><span class="dot" style="background:' + (type ? type.dot : '#a78bfa') + '; width:10px; height:10px; margin-top:0;"></span><span>' + statusText + '</span></div>' +
         '<div class="hero-main-emoji">' + stateDayUi.emoji + '</div>' +
         '<div class="hero-state-copy">' + stateDayUi.title + '</div>' +
@@ -82,19 +112,62 @@ function renderPayslips() {
         '<div class="home-kpi"><div class="home-kpi-value">' + (entry ? formatHourValue(minutesToHours(breakdown.overtime)) : '--') + '</div><div class="home-kpi-label">Extra</div></div>' +
         '<div class="home-kpi"><div class="home-kpi-value">' + (entry && breakdown.leave ? formatHourValue(minutesToHours(breakdown.leave)) : (entry && entry.notes ? 1 : 0)) + '</div><div class="home-kpi-label">' + (entry && entry.type === 'lavoro_ferie' ? 'Ferie' : 'Note') + '</div></div></div></div>');
       var todayInsightValue = !entry ? formatDuration(todayTargetMinutes) : (isStateOnlyType(entry.type) ? type.label : (todayRemaining > 0 ? formatDuration(todayRemaining) : 'Ok'));
-      var todayInsightSub = !entry ? 'target di oggi' : (isStateOnlyType(entry.type) ? 'giornata segnata' : (todayRemaining > 0 ? 'mancano al target' : 'target raggiunto'));
+      var todayInsightSub = !entry ? 'target di oggi' : (isStateOnlyType(entry.type) ? 'giornata segnata' : (todayRemaining > 0 ? 'mancano al target' : 'giornata completa'));
       var monthAverageValue = monthStats.workedDays ? formatHourValue(minutesToHours(monthAverageMinutes)) : '--';
-      var monthAverageSub = monthStats.workedDays ? 'media per giorno' : 'nessun giorno ancora';
       var weekGoalSub = weekRemaining > 0 ? (formatDuration(weekRemaining) + ' per chiudere la settimana') : 'target già superato';
-      return '<div class="top home-top"><div class="home-header-copy"><div class="home-intro"><div class="home-morph-wrap"><div class="home-morph-title" id="homeMorphTitle" aria-label="GestOre"><span class="home-morph-text" id="homeMorphTextA"></span><span class="home-morph-text" id="homeMorphTextB"></span></div><svg class="home-morph-filters" aria-hidden="true" focusable="false"><defs><filter id="homeMorphThreshold"><feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 255 -140"></feColorMatrix></filter></defs></svg></div></div></div></div>' +
+      var weekSummarySub = 'su ' + formatHourValue(state.settings.weeklyTarget) + ' target';
+      var monthSummarySub = monthStats.workedDays ? (monthStats.overtimeMinutes > 0 ? (formatDuration(monthStats.overtimeMinutes) + ' extra · ' + monthStats.workedDays + ' giorni') : (monthStats.workedDays + ' giorni segnati')) : 'Nessun giorno salvato';
+      var monthAverageSub = monthStats.workedDays ? 'media per giorno' : 'nessun dato';
+      var registeredSub = weekEntriesCount === 1 ? 'giorno salvato' : 'giorni salvati';
+      var weekBadgeLabel = Math.round(clampChartPercent(week.percent)) + '%';
+      var weekMetaLabel = weekRemaining > 0 ? (formatDuration(weekRemaining) + ' mancanti') : 'Target chiuso';
+      var monthBadgeLabel = String(monthRecordedDays || 0) + ' gg';
+      var monthMetaLabel = monthStats.workedDays ? (monthAverageValue + ' media') : 'Nessuna media';
+      var weekDeltaLabel = weekRemaining > 0 ? 'Mancano' : 'Extra';
+      var weekDeltaValue = weekRemaining > 0 ? formatDuration(weekRemaining) : formatDuration(Math.max(0, week.totalMinutes - weekTargetMinutes));
+      var monthOvertimeValue = monthStats.overtimeMinutes > 0 ? formatDuration(monthStats.overtimeMinutes) : '--';
+      var weekChartBackground = buildProgressChartBackground(week.percent, '#7dd3fc', '#8b5cf6', 'rgba(255,255,255,.08)');
+      var monthChartSegments = [
+        { label: 'Lavoro', value: monthStats.workedDays, color: dayTypes.lavoro.dot },
+        { label: 'Ferie', value: monthStats.ferie, color: dayTypes.ferie.dot },
+        { label: 'Malattia', value: monthStats.malattia, color: dayTypes.malattia.dot },
+        { label: 'Permesso', value: monthStats.permesso, color: dayTypes.permesso.dot },
+        { label: 'Festivi', value: monthStats.festivitaPagata || 0, color: dayTypes.festivita_pagata.dot },
+        { label: 'Riposi', value: monthStats.riposo, color: dayTypes.riposo.dot }
+      ].filter(function (segment) { return segment.value > 0; });
+      var monthChartBackground = buildSegmentChartBackground(monthChartSegments, 'rgba(255,255,255,.08)');
+      var monthLegendHtml = monthChartSegments.length
+        ? monthChartSegments.slice().sort(function (a, b) { return b.value - a.value; }).slice(0, 3).map(function (segment) {
+            return '<span class="mini-legend-chip"><span class="mini-legend-dot" style="background:' + segment.color + '"></span>' + segment.label + ' ' + segment.value + '</span>';
+          }).join('')
+        : '<div class="chart-empty-note">Nessun giorno segnato per ora.</div>';
+      monthSummarySub = monthRecordedDays ? (monthStats.overtimeMinutes > 0 ? (formatDuration(monthStats.overtimeMinutes) + ' extra · ' + monthRecordedDays + ' giorni') : (monthRecordedDays + ' giorni segnati')) : 'Nessun giorno salvato';
+      headerMessage = '';
+      return '<div class="top home-top gestore-static-top"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack">' +
           '<div class="card home-hero"><div class="card-body">' +
             '<div class="home-hero-head"><div class="home-hero-day">' + dayLabel + '</div>' + (headerMessage ? '<div class=\"hero-topline\">' + headerMessage + '</div>' : '') + '</div>' +
             '<button class="btn home-hero-btn" data-open-date="' + key + '">' + heroInner + '</button></div></div>' +
-          '<div class="home-summary"><div class="summary-card"><div class="small muted">Questa Settimana</div><div class="summary-value" style="margin-top:10px;">' + formatDuration(week.totalMinutes) + '</div><div class="summary-sub">su ' + state.settings.weeklyTarget + 'h target</div><div class="progress" style="margin-top:14px;"><div style="width:' + week.percent + '%;"></div></div></div>' +
-          '<div class="summary-card"><div class="small muted">Mese Corrente</div><div class="summary-value" style="margin-top:10px;">' + formatDuration(monthStats.totalMinutes) + '</div><div class="summary-sub">' + formatDuration(monthStats.overtimeMinutes) + ' extra • ' + monthStats.workedDays + ' giorni</div></div></div>' +
-          '<div class="card"><div class="card-body compact"><div class="home-section-title">Panoramica veloce</div><div class="home-subtle">' + weekGoalSub + '</div><div class="home-insight-grid"><div class="insight-card"><div class="insight-label">Oggi</div><div class="insight-value">' + todayInsightValue + '</div><div class="insight-sub">' + todayInsightSub + '</div></div><div class="insight-card"><div class="insight-label">Media mese</div><div class="insight-value">' + monthAverageValue + '</div><div class="insight-sub">' + monthAverageSub + '</div></div><div class="insight-card"><div class="insight-label">Registrati</div><div class="insight-value">' + weekEntriesCount + '/7</div><div class="insight-sub">giorni salvati in settimana</div></div></div></div></div>' +
-          '<div class="card"><div class="card-body compact"><div class="between"><div class="home-section-title">Settimana</div><div class="home-subtle">Tocca un giorno per aprirlo</div></div><div class="week-strip">' + weekDays.map(function (item) {
+          '<div class="home-summary">' +
+            '<div class="summary-card visual-widget visual-widget-week">' +
+              '<div class="visual-widget-top"><div><div class="visual-widget-kicker">Settimana</div><div class="visual-widget-title">Ore e target</div></div><div class="visual-widget-note">' + formatHourValue(state.settings.weeklyTarget) + '</div></div>' +
+              '<div class="visual-widget-body">' +
+                '<div class="mini-donut" style="background:' + weekChartBackground + ';"><div class="mini-donut-inner"><strong>' + weekBadgeLabel + '</strong><span>target</span></div></div>' +
+                '<div class="visual-widget-copy"><div class="visual-widget-value">' + formatDuration(week.totalMinutes) + '</div><div class="visual-widget-sub">' + weekSummarySub + '</div></div>' +
+              '</div>' +
+              '<div class="visual-widget-stats"><div class="visual-stat"><span>' + weekDeltaLabel + '</span><strong>' + weekDeltaValue + '</strong></div><div class="visual-stat"><span>Giorni</span><strong>' + weekEntriesCount + '</strong></div></div>' +
+            '</div>' +
+            '<div class="summary-card visual-widget visual-widget-month">' +
+              '<div class="visual-widget-top"><div><div class="visual-widget-kicker">Mese</div><div class="visual-widget-title">Composizione</div></div><div class="visual-widget-note">' + monthBadgeLabel + '</div></div>' +
+              '<div class="visual-widget-body">' +
+                '<div class="mini-donut" style="background:' + monthChartBackground + ';"><div class="mini-donut-inner"><strong>' + (monthRecordedDays || 0) + '</strong><span>giorni</span></div></div>' +
+                '<div class="visual-widget-copy"><div class="visual-widget-value">' + formatDuration(monthStats.totalMinutes) + '</div><div class="visual-widget-sub">' + monthSummarySub + '</div></div>' +
+              '</div>' +
+              '<div class="mini-legend-row">' + monthLegendHtml + '</div>' +
+              '<div class="visual-widget-stats"><div class="visual-stat"><span>Media</span><strong>' + monthAverageValue + '</strong></div><div class="visual-stat"><span>Straord.</span><strong>' + monthOvertimeValue + '</strong></div></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="card week-overview-card"><div class="card-body compact"><div class="week-card-head"><div class="home-section-title">Settimana</div></div><div class="week-strip">' + weekDays.map(function (item) {
             var fill = item.entry ? Math.max(16, Math.min(100, (item.minutes / todayTargetMinutes) * 100)) : 0;
             var footer = '—';
             var dotColor = 'rgba(255,255,255,.14)';
@@ -107,107 +180,142 @@ function renderPayslips() {
         '</div>';
     }
 
-    var homeMorphController = null;
-    function initHomeTitleMorph() {
-      if (homeMorphController && homeMorphController.destroy) {
-        homeMorphController.destroy();
-        homeMorphController = null;
-      }
+    
 
-      var container = document.getElementById('homeMorphTitle');
-      var text1 = document.getElementById('homeMorphTextA');
-      var text2 = document.getElementById('homeMorphTextB');
-      if (!container || !text1 || !text2) return;
 
-      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var texts = ['GESTORE', getDynamicWelcomeLabel()];
-      if (reduceMotion) {
-        text1.textContent = texts[0];
-        text2.textContent = '';
-        text1.style.opacity = '100%';
-        text1.style.filter = '';
-        text2.style.opacity = '0%';
-        text2.style.filter = '';
-        return;
-      }
+var homeMorphController = null;
+function initHomeTitleMorph() {
+  if (homeMorphController && homeMorphController.destroy) {
+    homeMorphController.destroy();
+    homeMorphController = null;
+  }
 
-      var morphTime = 1.05;
-      var cooldownTime = 4.8;
-      var textIndex = texts.length - 1;
-      var time = new Date();
-      var morph = 0;
-      var cooldown = cooldownTime;
-      var rafId = 0;
+  var container = document.getElementById('homeMorphTitle');
+  var textA = document.getElementById('homeMorphTextA');
+  var textB = document.getElementById('homeMorphTextB');
+  if (!container || !textA || !textB) return;
 
-      text1.textContent = texts[textIndex % texts.length];
-      text2.textContent = texts[(textIndex + 1) % texts.length];
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var destroyed = false;
+  var cycleTimer = null;
+  var measureNode = null;
+  var stateKey = 'a';
+  var holdMs = 4300;
+  var morphMs = 1550;
 
-      function setMorph(fraction) {
-        text2.style.filter = 'blur(' + Math.min(8 / Math.max(fraction, 0.0001) - 8, 100) + 'px)';
-        text2.style.opacity = (Math.pow(fraction, 0.4) * 100) + '%';
-
-        var inverse = 1 - fraction;
-        text1.style.filter = 'blur(' + Math.min(8 / Math.max(inverse, 0.0001) - 8, 100) + 'px)';
-        text1.style.opacity = (Math.pow(inverse, 0.4) * 100) + '%';
-        text1.textContent = texts[textIndex % texts.length];
-        text2.textContent = texts[(textIndex + 1) % texts.length];
-      }
-
-      function doMorph() {
-        morph -= cooldown;
-        cooldown = 0;
-        var fraction = morph / morphTime;
-        if (fraction > 1) {
-          cooldown = cooldownTime;
-          fraction = 1;
-        }
-        setMorph(fraction);
-      }
-
-      function doCooldown() {
-        morph = 0;
-        text2.style.filter = '';
-        text2.style.opacity = '100%';
-        text1.style.filter = '';
-        text1.style.opacity = '0%';
-      }
-
-      function animate() {
-        rafId = requestAnimationFrame(animate);
-        if (!document.body.contains(container)) return;
-
-        var newTime = new Date();
-        var shouldIncrementIndex = cooldown > 0;
-        var dt = (newTime - time) / 1000;
-        time = newTime;
-        cooldown -= dt;
-
-        if (cooldown <= 0) {
-          if (shouldIncrementIndex) textIndex++;
-          doMorph();
-        } else {
-          doCooldown();
-        }
-      }
-
-      animate();
-
-      homeMorphController = {
-        destroy: function () {
-          if (rafId) cancelAnimationFrame(rafId);
-          text1.style.filter = '';
-          text1.style.opacity = '100%';
-          text2.style.filter = '';
-          text2.style.opacity = '0%';
-        }
-      };
+  function clearTimers() {
+    if (cycleTimer) {
+      window.clearTimeout(cycleTimer);
+      cycleTimer = null;
     }
+  }
 
-    function renderCalendar() {
+  function getMeasureNode() {
+    if (measureNode && document.body.contains(measureNode)) return measureNode;
+    measureNode = document.createElement('span');
+    measureNode.setAttribute('aria-hidden', 'true');
+    measureNode.style.cssText = 'position:fixed;left:-9999px;top:-9999px;visibility:hidden;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,"Segoe UI",sans-serif;font-weight:800;letter-spacing:-0.05em;line-height:1;pointer-events:none;';
+    document.body.appendChild(measureNode);
+    return measureNode;
+  }
+
+  function getWords() {
+    return ['GestOre', getDynamicWelcomeLabel()];
+  }
+
+  function fitFontSize(words) {
+    var wrap = container.parentElement || container;
+    var available = Math.max(220, Math.floor((wrap.clientWidth || container.clientWidth || window.innerWidth || 320) - 12));
+    var node = getMeasureNode();
+    var size = Math.min(50, Math.max(32, Math.floor((window.innerWidth || 390) * 0.105)));
+    for (; size >= 30; size -= 1) {
+      node.style.fontSize = size + 'px';
+      var maxWidth = 0;
+      for (var i = 0; i < words.length; i++) {
+        node.textContent = words[i] || '';
+        maxWidth = Math.max(maxWidth, Math.ceil(node.getBoundingClientRect().width));
+      }
+      if (maxWidth <= available) break;
+    }
+    size = Math.max(30, size);
+    textA.style.fontSize = size + 'px';
+    textB.style.fontSize = size + 'px';
+  }
+
+  function setWords() {
+    var words = getWords();
+    textA.textContent = words[0];
+    textB.textContent = words[1];
+    fitFontSize(words);
+  }
+
+  function applyState(nextState) {
+    stateKey = nextState === 'b' ? 'b' : 'a';
+    container.classList.remove('morph-state-a', 'morph-state-b', 'morph-static', 'morph-v2', 'morphing');
+    container.classList.add('morph-clean');
+    container.classList.add(stateKey === 'b' ? 'morph-state-b' : 'morph-state-a');
+    textA.style.visibility = 'visible';
+    textB.style.visibility = 'visible';
+    container.style.visibility = 'visible';
+  }
+
+  function scheduleNext() {
+    if (destroyed || reduceMotion) return;
+    cycleTimer = window.setTimeout(function () {
+      if (destroyed) return;
+      setWords();
+      applyState(stateKey === 'a' ? 'b' : 'a');
+      scheduleNext();
+    }, holdMs + morphMs);
+  }
+
+  function restart() {
+    if (destroyed) return;
+    clearTimers();
+    setWords();
+    applyState('a');
+    scheduleNext();
+  }
+
+  var onVisibility = function () {
+    if (!document.hidden) restart();
+  };
+  var onResize = function () {
+    restart();
+  };
+
+  document.addEventListener('visibilitychange', onVisibility, { passive: true });
+  window.addEventListener('orientationchange', onResize, { passive: true });
+  window.addEventListener('resize', onResize, { passive: true });
+
+  setWords();
+  if (reduceMotion) {
+    applyState('a');
+    container.classList.add('morph-static');
+  } else {
+    restart();
+  }
+
+  homeMorphController = {
+    destroy: function () {
+      destroyed = true;
+      clearTimers();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('orientationchange', onResize);
+      window.removeEventListener('resize', onResize);
+      if (measureNode && measureNode.parentNode) measureNode.parentNode.removeChild(measureNode);
+      container.classList.remove('morph-clean', 'morph-state-a', 'morph-state-b', 'morph-static', 'morph-v2', 'morphing');
+    }
+  };
+}
+
+function renderCalendar() {
+
       var todayKey = toISODate(new Date());
       var grid = buildMonthGrid(state.currentMonth);
       var stats = getMonthStats(state.currentMonth);
-      return '<div class="top top-centered"><div class="title">Calendario</div></div>' +
+      var recordedDays = stats.workedDays + stats.ferie + stats.malattia + stats.permesso + (stats.festivitaPagata || 0) + stats.riposo;
+      return '<div class="top top-centered page-top"><div class="title">Calendario</div></div>' +
         '<div class="stack">' +
           '<div class="card"><div class="card-body compact">' +
             '<div class="month-head"><button class="icon" data-calendar-prev="1">' + icons.left + '</button><div class="large" style="font-weight:700;">' + formatMonthYear(state.currentMonth) + '</div><button class="icon" data-calendar-next="1">' + icons.right + '</button></div>' +
@@ -222,7 +330,7 @@ function renderPayslips() {
           '</div></div>' +
           '<div class="card"><div class="card-body"><div class="two">' +
             '<div class="mini center"><div class="big">' + formatDuration(stats.totalMinutes) + '</div><div class="small muted">Ore mese</div></div>' +
-            '<div class="mini center"><div class="big">' + stats.workedDays + '</div><div class="small muted">Giorni lavoro</div></div>' +
+            '<div class="mini center"><div class="big">' + recordedDays + '</div><div class="small muted">Giorni segnati</div></div>' +
           '</div></div></div>' +
           '<div class="card"><div class="card-body"><div class="section-title" style="margin-top:0">Legenda</div><div class="legend-grid">' +
             Object.keys(dayTypes).map(function (key) { return '<div class="legend-item"><span class="legend-dot" style="background:' + dayTypes[key].dot + '"></span><span>' + dayTypes[key].label + '</span></div>'; }).join('') +
@@ -274,10 +382,10 @@ function renderPayslips() {
         for (var i = 0; i < blockLength; i += 1) {
           var current = new Date(blockStart);
           current.setDate(blockStart.getDate() + i);
-          var entry = state.entries[toISODate(current)];
+          var entry = getEntryForDate(current);
           var breakdown = getBreakdown(entry);
           minutes += breakdown.total;
-          if (breakdown.total > 0 || (entry && entry.type && entry.type !== 'lavoro')) workedDays += entry ? 1 : 0;
+          if (entry) workedDays += 1;
         }
         blocks.push({
           label: blockStart.getDate() === blockEnd.getDate() ? String(blockStart.getDate()) : (blockStart.getDate() + '–' + blockEnd.getDate()),
@@ -309,6 +417,7 @@ function renderPayslips() {
           if (entry.type === 'ferie') meta = 'Fe';
           else if (entry.type === 'malattia') meta = 'Ma';
           else if (entry.type === 'permesso') meta = 'Pe';
+          else if (entry.type === 'festivita_pagata') meta = 'FP';
           else if (entry.type === 'riposo') meta = 'Ri';
         } else if (breakdown.total > 0) {
           var ratio = breakdown.total / targetMinutes;
@@ -333,7 +442,7 @@ function renderPayslips() {
       var weekBlocks = getMonthWeekBlocks(state.currentMonth);
       var activityCells = getMonthActivityCells(state.currentMonth);
       var monthDays = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 0).getDate();
-      var recordedDays = Math.min(monthDays, s.workedDays + s.ferie + s.malattia + s.permesso + s.riposo);
+      var recordedDays = Math.min(monthDays, s.workedDays + s.ferie + s.malattia + s.permesso + (s.festivitaPagata || 0) + s.riposo);
       var monthAverage = s.workedDays ? Math.round(s.totalMinutes / s.workedDays) : 0;
       var bestDayValue = focus.longest ? formatDuration(focus.longest.minutes) : '--';
       var bestDaySub = focus.longest ? ('il ' + formatShortDateLabel(focus.longest.key)) : 'nessun giorno ancora';
@@ -344,10 +453,11 @@ function renderPayslips() {
         { label:'Ferie', value:s.ferie, color:'#38bdf8' },
         { label:'Malattia', value:s.malattia, color:'#f59e0b' },
         { label:'Permesso', value:s.permesso, color:'#d946ef' },
+        { label:'Festivita', value:s.festivitaPagata || 0, color:'#fb7185' },
         { label:'Riposo', value:s.riposo, color:'#64748b' }
       ].filter(function (item) { return item.value > 0; });
       var maxWeekMinutes = weekBlocks.reduce(function (max, block) { return Math.max(max, block.minutes); }, 0);
-      return '<div class="top top-centered"><div class="title">Statistiche</div></div>' +
+      return '<div class="top top-centered page-top"><div class="title">Statistiche</div></div>' +
         '<div class="stack">' +
           '<div class="card"><div class="card-body compact"><div class="month-head"><button class="icon" data-stats-prev="1">' + icons.left + '</button><div class="large" style="font-weight:700;">' + formatMonthYear(state.currentMonth) + '</div><button class="icon" data-stats-next="1">' + icons.right + '</button></div></div></div>' +
           '<div class="card stats-overview"><div class="card-body">' +
@@ -374,6 +484,7 @@ function renderPayslips() {
             '<span class="stats-legend-chip"><span class="stats-legend-swatch" style="background:rgba(124,92,255,.2)"></span>giornata lavorata</span>' +
             '<span class="stats-legend-chip"><span class="stats-legend-swatch" style="background:rgba(56,189,248,.65)"></span>ferie</span>' +
             '<span class="stats-legend-chip"><span class="stats-legend-swatch" style="background:rgba(245,158,11,.65)"></span>malattia</span>' +
+            '<span class="stats-legend-chip"><span class="stats-legend-swatch" style="background:rgba(251,113,133,.65)"></span>festivita pagata</span>' +
             '<span class="stats-legend-chip"><span class="stats-legend-swatch" style="background:rgba(100,116,139,.65)"></span>riposo</span>' +
           '</div></div></div>' +
           '<div class="card"><div class="card-body"><div class="between"><div class="section-title" style="margin-top:0">Settimane del mese</div><div class="small muted">' + weekBlocks.length + ' blocchi</div></div><div class="stats-week-list">' +
@@ -395,18 +506,18 @@ function renderPayslips() {
     }
 
     function segmentsTotalDaysForStats(s) {
-      return s.workedDays + s.ferie + s.malattia + s.permesso + s.riposo;
+      return s.workedDays + s.ferie + s.malattia + s.permesso + (s.festivitaPagata || 0) + s.riposo;
     }
 
     function renderSettings() {
       var draftName = escapeHtml((state.settingsDraft.userName || '').trim() || 'Utente');
       var workdaysCount = normalizeWeekdayList(state.settingsDraft.workdays || []).length;
       var autoRestCount = normalizeWeekdayList(state.settingsDraft.autoRestDays || []).length;
-      return '<div class="top settings-top"><div class="settings-top-spacer"></div><div class="title">Impostazioni</div><div class="settings-top-action"><button class="ghost settings-save-btn" data-save-settings="1">Salva</button></div></div>' +
+      return '<div class="top settings-top settings-top-refined settings-top-centered"><div class="title">Impostazioni</div></div>' +
         '<div class="stack">' +
           '<div class="card settings-hero settings-hero-clean"><div class="card-body">' +
             '<div class="settings-hero-headline">Tutto sotto controllo</div>' +
-            '<div class="small muted settings-hero-subcopy">Qui sistemi nome, obiettivi, giorni lavorativi e riposi automatici. Per queste voci usa <strong style="color:#fff;">Salva</strong> in alto a destra.</div>' +
+            '<div class="small muted settings-hero-subcopy">Qui sistemi nome, obiettivi, giorni lavorativi e riposi automatici. Tutto si salva in automatico appena fai una modifica.</div>' +
             '<div class="settings-hero-grid">' +
               '<div class="settings-stat"><strong>' + draftName + '</strong><span class="tiny muted">Profilo</span></div>' +
               '<div class="settings-stat"><strong>' + state.settingsDraft.weeklyTarget + 'h</strong><span class="tiny muted">Target settimana</span></div>' +
@@ -489,9 +600,9 @@ function renderPayslips() {
               '</div>' +
               '<div class="settings-actions-grid">' +
                 '<button class="ghost" data-export-csv="1">Esporta Excel</button>' +
-                '<button class="ghost" data-export-report="1">Esporta report</button>' +
+                '<button class="ghost" data-export-report="1">Esporta PDF</button>' +
               '</div>' +
-              '<div class="settings-inline-note"><div class="chip">' + icons.check + '</div><div><div class="small" style="font-weight:700;">Salvataggio chiaro</div><div class="small muted">Profilo, obiettivi e giorni attivi si salvano con il pulsante in alto. Promemoria e blocco app invece si aggiornano subito.</div></div></div>' +
+              '<div class="settings-inline-note"><div class="chip">' + icons.check + '</div><div><div class="small" style="font-weight:700;">Salvataggio automatico</div><div class="small muted">Profilo, obiettivi, giorni attivi, riposi automatici, promemoria e blocco app si aggiornano subito.</div></div></div>' +
             '</div>' +
           '</div></div></div>' +
 
@@ -515,11 +626,12 @@ function renderOverlay() {
       var others = Object.entries(dayTypes).filter(function (pair) { return pair[0] !== d.type; });
       var isStateOnly = isStateOnlyType(d.type);
       var isMixed = isMixedType(d.type);
+      var holidayName = d.type === 'festivita_pagata' ? getHolidayDisplayName(d, date) : '';
       var summaryHtml = '';
       if (d.type === 'riposo') {
         summaryHtml = '<div class="hours-card"><div class="hours-stat"><div class="small muted">Riposo</div><div class="large">Ok</div></div></div>';
       } else if (isStateOnly) {
-        summaryHtml = '<div class="hours-card"><div class="three"><div class="hours-stat"><div class="small muted">Coperto</div><div id="editorSummaryCovered" class="large">' + formatHourValue(minutesToHours(breakdown.leave)) + '</div></div><div class="hours-stat"><div class="small muted">Tipo</div><div class="large">' + currentType.label + '</div></div><div class="hours-stat"><div class="small muted">Note</div><div class="large">' + (d.notes ? '1' : '0') + '</div></div></div></div>';
+        summaryHtml = '<div class="hours-card"><div class="three"><div class="hours-stat"><div class="small muted">Coperto</div><div id="editorSummaryCovered" class="large">' + formatHourValue(minutesToHours(breakdown.leave)) + '</div></div><div class="hours-stat"><div class="small muted">' + (holidayName ? 'Festivita' : 'Tipo') + '</div><div class="' + (holidayName ? 'editor-holiday-name' : 'large') + '">' + escapeHtml(holidayName || currentType.label) + '</div></div><div class="hours-stat"><div class="small muted">Note</div><div class="large">' + (d.notes ? '1' : '0') + '</div></div></div></div>';
       } else if (isMixed) {
         summaryHtml = '<div class="hours-card"><div class="four"><div class="hours-stat"><div class="small muted">Totale</div><div id="editorSummaryTotal" class="large">' + formatDuration(breakdown.total) + '</div></div><div class="hours-stat"><div class="small muted">Normali</div><div id="editorSummaryNormal" class="large">' + formatHourValue(minutesToHours(breakdown.normal)) + '</div></div><div class="hours-stat"><div class="small muted">Extra</div><div id="editorSummaryExtra" class="large">' + formatHourValue(minutesToHours(breakdown.overtime)) + '</div></div><div class="hours-stat"><div class="small muted">Ferie</div><div id="editorSummaryLeave" class="large">' + formatHourValue(minutesToHours(breakdown.leave)) + '</div></div></div></div>';
       } else {
@@ -540,14 +652,17 @@ function renderOverlay() {
         '</div></div>';
       }
 
-      return '<div class="overlay open"><div class="overlay-header"><button class="icon" data-close-editor="1">' + icons.x + '</button><div class="center"><div class="large" style="font-weight:700;">' + label + '</div><div class="small muted">' + date.getDate() + ' ' + monthNames[date.getMonth()] + ' ' + date.getFullYear() + '</div></div><button class="ghost" data-save-day="1">Salva</button></div>' +
-        '<div class="overlay-scroll"><div class="stack">' +
-        '<div><div class="type-picker-wrap"><div class="type-list"><button class="type-row" data-toggle-type-open="1"><div class="type-row-left"><div class="type-icon" style="background:' + typeIconBg(d.type) + '">' + typeIconSvg(d.type) + '</div><div><div class="type-main-label">' + currentType.label + '</div></div></div><span>' + icons.right + '</span></button>' +
-        (state.typeOpen ? '<div class="type-options">' + others.map(function (pair) { return '<button class="type-row" data-select-type="' + pair[0] + '"><div class="type-row-left"><div class="type-icon" style="background:' + typeIconBg(pair[0]) + '">' + typeIconSvg(pair[0]) + '</div><div class="type-secondary-label">' + pair[1].label + '</div></div><span>Scegli</span></button>'; }).join('') + '</div>' : '') + '</div></div></div>' +
-        dynamicSections +
-        '<div>' + summaryHtml + '</div>' +
-        '<div><button class="collapse-btn" data-toggle-notes-open="1"><div><div>Annotazioni giornata</div></div><span>' + icons.right + '</span></button><div class="collapse-panel ' + (state.notesOpen ? 'open' : '') + '"><textarea id="editorNotes" class="notes" placeholder="Scrivi qui eventuali note...">' + escapeHtml(d.notes) + '</textarea></div></div>' +
-        '<div><div class="editor-actions"><button class="ghost danger" data-clear-day="1">Cancella tutte le ore del giorno</button></div></div>' +
+      summaryHtml = summaryHtml.replace(/hours-card/g, 'hours-card editor-hours-card').replace(/hours-stat/g, 'hours-stat editor-hours-stat');
+      var holidayBadge = holidayName ? '<div class="editor-holiday-badge"><span class="editor-holiday-badge-icon">🎉</span><span>' + escapeHtml(holidayName) + '</span></div>' : '';
+
+      return '<div class="overlay open editor-overlay"><div class="overlay-header editor-header"><button class="icon editor-close" data-close-editor="1">' + icons.x + '</button><div class="editor-header-center"><div class="editor-header-day">' + label + '</div><div class="editor-header-date">' + date.getDate() + ' ' + monthNames[date.getMonth()] + ' ' + date.getFullYear() + '</div></div><button class="ghost editor-save-btn" data-save-day="1">Salva</button></div>' +
+        '<div class="overlay-scroll"><div class="stack editor-stack">' +
+        '<div class="editor-section editor-type-section"><div class="type-picker-wrap"><div class="type-list"><button class="type-row editor-type-row-main" data-toggle-type-open="1"><div class="type-row-left"><div class="type-icon" style="background:' + typeIconBg(d.type) + '">' + typeIconSvg(d.type) + '</div><div><div class="type-main-label">' + currentType.label + '</div>' + holidayBadge + '</div></div><span>' + icons.right + '</span></button>' +
+        (state.typeOpen ? '<div class="type-options">' + others.map(function (pair) { return '<button class="type-row editor-type-row-option" data-select-type="' + pair[0] + '"><div class="type-row-left"><div class="type-icon" style="background:' + typeIconBg(pair[0]) + '">' + typeIconSvg(pair[0]) + '</div><div class="type-secondary-label">' + pair[1].label + '</div></div><span class="editor-select-copy">Scegli</span></button>'; }).join('') + '</div>' : '') + '</div></div></div>' +
+        '<div class="editor-section editor-input-section">' + dynamicSections + '</div>' +
+        '<div class="editor-section editor-summary-section">' + summaryHtml + '</div>' +
+        '<div class="editor-section editor-notes-section"><button class="collapse-btn editor-collapse-btn" data-toggle-notes-open="1"><div><div>Annotazioni giornata</div></div><span>' + icons.right + '</span></button><div class="collapse-panel ' + (state.notesOpen ? 'open' : '') + '"><textarea id="editorNotes" class="notes" placeholder="Scrivi qui eventuali note...">' + escapeHtml(d.notes) + '</textarea></div></div>' +
+        '<div class="editor-section editor-danger-section"><div class="editor-actions"><button class="ghost danger editor-danger-btn" data-clear-day="1">Cancella tutte le ore del giorno</button></div></div>' +
         '</div></div></div>';
     }
 
@@ -556,12 +671,210 @@ function renderOverlay() {
       return '<div class="confirm-overlay open"><div class="confirm-card"><div class="confirm-title">Cancella giornata</div><div class="confirm-text">Vuoi cancellare tutte le ore e i dati di questo giorno?</div><div class="confirm-actions"><button class="ghost" data-close-confirm="1">Annulla</button><button class="ghost danger" data-confirm-clear="1">Cancella</button></div></div></div>';
     }
 
+    function renderPayslips() {
+      ensurePayslipDraft();
+      var draft = state.payslipDraft;
+      var currentStatus = getPayslipStatus(draft);
+      var completionScore = Math.max(0, Math.min(5, getPayslipCoreFieldScore(draft)));
+      var completionPercent = Math.round((completionScore / 5) * 100);
+      var missingFields = getPayslipMissingCoreFields(draft);
+      var helperText = state.payslipStatus || (missingFields.length ? ('Controlla ancora: ' + missingFields.join(', ') + '.') : 'Foto e campi pronti. Puoi salvare.');
+      var currentMonthLabel = getPayslipMonthLabel(draft);
+      var currentCompany = String(draft.company || '').trim() || 'Ditta da confermare';
+      var archive = (state.payslips || []).map(function (item) {
+        var status = getPayslipStatus(item);
+        return '<button class="paydesk-archive-card" data-open-payslip="' + item.id + '">' +
+          '<div class="paydesk-archive-thumb' + (item.imageData ? '' : ' empty') + '">' +
+            (item.imageData ? '<img src="' + item.imageData + '" alt="Anteprima ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
+          '</div>' +
+          '<div class="paydesk-archive-copy">' +
+            '<div class="paydesk-archive-topline"><div><div class="paydesk-archive-month">' + getPayslipMonthLabel(item) + '</div><div class="paydesk-archive-company">' + escapeHtml(item.company || 'Ditta da controllare') + '</div></div><span class="paydesk-badge paydesk-badge-' + status.tone + '">' + status.label + '</span></div>' +
+            '<div class="paydesk-archive-values"><div><span>Netto</span><strong>' + formatMoneyEuro(item.netto) + '</strong></div><div><span>Lordo</span><strong>' + formatMoneyEuro(item.lordo) + '</strong></div></div>' +
+          '</div>' +
+        '</button>';
+      }).join('');
+      return '<div class="top top-centered page-top"><div class="title">Buste paga</div></div>' +
+        '<div class="stack paydesk-stack">' +
+          '<div class="card paydesk-hero"><div class="card-body paydesk-hero-body">' +
+            '<div class="paydesk-hero-copy">' +
+              '<div class="paydesk-kicker">Foto + 5 dati</div>' +
+              '<div class="paydesk-title">Scatta la busta, controlla e salva</div>' +
+              '<div class="paydesk-copy">GestOre prova a leggere mese, anno, ditta, netto e lordo. Tu confermi i campi e tieni anche la foto nell\'archivio.</div>' +
+              '<div class="paydesk-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>' + (state.payslipBusy ? 'Lettura in corso...' : 'Scatta foto') + '</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Apri galleria</button></div>' +
+              '<div class="paydesk-tip-row"><span>Foto dritta</span><span>Buona luce</span><span>Busta intera</span></div>' +
+            '</div>' +
+            '<div class="paydesk-summary-card">' +
+              '<div class="paydesk-summary-label">Busta corrente</div>' +
+              '<div class="paydesk-summary-month" data-payslip-period-value>' + escapeHtml(currentMonthLabel) + '</div>' +
+              '<div class="paydesk-summary-company" data-payslip-company-value>' + escapeHtml(currentCompany) + '</div>' +
+              '<div class="paydesk-progress"><span data-payslip-progress-fill style="width:' + completionPercent + '%;"></span></div>' +
+              '<div class="paydesk-summary-meta"><span data-payslip-score-count>' + completionScore + '/5 dati</span><span>' + (state.payslips || []).length + ' archiviate</span></div>' +
+            '</div>' +
+          '</div></div>' +
+          '<div class="card paydesk-editor"><div class="card-body paydesk-editor-body">' +
+            '<div class="paydesk-head"><div><div class="section-title" style="margin:0;">Busta corrente</div><div class="small muted">Controlla i dati letti e salva tutto in un attimo.</div></div><button class="ghost mini-btn" data-reset-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Nuova</button></div>' +
+            '<div class="paydesk-assistant"><div class="paydesk-assistant-label">Assistente</div><div class="paydesk-assistant-text" data-payslip-guide-text>' + escapeHtml(helperText) + '</div></div>' +
+            '<div class="paydesk-editor-grid">' +
+              (draft.imageData
+                ? '<div class="paydesk-photo-panel"><div class="paydesk-photo-head"><div class="paydesk-photo-label">Foto salvata</div><div class="small muted">Resta dentro la busta per ritrovarla quando vuoi.</div></div><div class="paydesk-photo"><img src="' + draft.imageData + '" alt="Anteprima busta paga"></div><div class="paydesk-file-row"><span>Foto pronta</span>' + (draft.fileName ? '<span>' + escapeHtml(draft.fileName) + '</span>' : '') + '</div></div>'
+                : '<div class="paydesk-empty-panel"><div class="paydesk-empty-icon">' + icons.receipt + '</div><div class="paydesk-empty-title">Carica la tua busta</div><div class="paydesk-empty-copy">Scatta o scegli una foto e GestOre riempie i campi principali al posto tuo.</div><div class="paydesk-empty-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Scatta foto</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Apri galleria</button></div></div>') +
+              '<div class="paydesk-form-column">' +
+                '<div class="paydesk-insight-card">' +
+                  '<div class="paydesk-insight-head"><div><div class="paydesk-insight-label">Stato lettura</div><strong class="paydesk-insight-title">' + escapeHtml(currentMonthLabel) + '</strong></div><span class="paydesk-badge paydesk-badge-' + currentStatus.tone + '" data-payslip-status-label>' + currentStatus.label + '</span></div>' +
+                  '<div class="paydesk-progress"><span data-payslip-progress-fill style="width:' + completionPercent + '%;"></span></div>' +
+                  '<div class="paydesk-progress-copy" data-payslip-progress-copy>' + escapeHtml(missingFields.length ? ('Controlla ancora: ' + missingFields.join(', ') + '.') : 'Mese, anno, ditta, netto e lordo sono pronti.') + '</div>' +
+                  '<div class="paydesk-values">' +
+                    '<div class="paydesk-value-card"><span>Netto</span><strong data-payslip-netto-value>' + formatMoneyEuro(draft.netto) + '</strong></div>' +
+                    '<div class="paydesk-value-card"><span>Lordo</span><strong data-payslip-lordo-value>' + formatMoneyEuro(draft.lordo) + '</strong></div>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="paydesk-form-card">' +
+                  '<div class="paydesk-fields">' +
+                    '<label class="paydesk-field"><span>Mese</span><select id="payslipMonth">' + monthNames.map(function (name, idx) { return '<option value="' + (idx + 1) + '" ' + (Number(draft.month) === (idx + 1) ? 'selected' : '') + '>' + name + '</option>'; }).join('') + '</select></label>' +
+                    '<label class="paydesk-field"><span>Anno</span><input id="payslipYear" type="number" inputmode="numeric" value="' + escapeHtml(draft.year || new Date().getFullYear()) + '"></label>' +
+                    '<label class="paydesk-field paydesk-field-full"><span>Ditta</span><input id="payslipCompany" type="text" value="' + escapeHtml(draft.company || '') + '" placeholder="Nome azienda"></label>' +
+                    '<label class="paydesk-field"><span>Netto</span><input id="payslipNetto" type="text" inputmode="decimal" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '"></label>' +
+                    '<label class="paydesk-field"><span>Lordo</span><input id="payslipLordo" type="text" inputmode="decimal" value="' + escapeHtml(formatEditorDecimal(draft.lordo || 0)) + '"></label>' +
+                  '</div>' +
+                  '<div class="paydesk-form-actions"><button class="solid" data-save-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Salva busta</button>' + (draft.id ? '<button class="ghost danger" data-delete-payslip="' + draft.id + '">Elimina</button>' : '') + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div></div>' +
+          '<div class="card paydesk-archive"><div class="card-body paydesk-archive-body">' +
+            '<div class="paydesk-head"><div><div class="section-title" style="margin:0;">Archivio</div><div class="small muted">Apri una busta per rivedere foto e dati.</div></div><div class="small muted">' + (state.payslips || []).length + ' salvate</div></div>' +
+            ((state.payslips && state.payslips.length) ? '<div class="paydesk-archive-list">' + archive + '</div>' : '<div class="paydesk-empty-archive"><div class="small muted">Quando salvi una busta la ritrovi qui con foto, ditta, netto e lordo.</div></div>') +
+          '</div></div>' +
+        '</div><input id="payslipFileInput" type="file" accept="image/*" hidden>';
+    }
+
+    function renderSettings() {
+      var draftName = escapeHtml((state.settingsDraft.userName || '').trim() || 'Utente');
+      var workdaysCount = normalizeWeekdayList(state.settingsDraft.workdays || []).length;
+      var autoRestCount = normalizeWeekdayList(state.settingsDraft.autoRestDays || []).length;
+      var holidayHelper = escapeHtml(getHolidaySettingsHelperText(state.settingsDraft));
+      var reminderHelper = escapeHtml(getReminderHelperText());
+      var syncStatusMessage = escapeHtml(getSyncStatusMessage());
+      var exportMonthLabel = escapeHtml(monthNames[state.currentMonth.getMonth()]);
+      var exportYearLabel = escapeHtml(String(state.currentMonth.getFullYear()));
+      return '<div class="top settings-top settings-top-refined settings-top-centered"><div class="title">Impostazioni</div></div>' +
+        '<div class="stack">' +
+          '<div class="card settings-hero settings-hero-clean"><div class="card-body">' +
+            '<div class="settings-hero-headline">Tutto sotto controllo</div>' +
+            '<div class="small muted settings-hero-subcopy">Qui sistemi nome, obiettivi, giorni lavorativi, riposi automatici e promemoria. Se il server locale e disponibile, i dati restano anche sincronizzati.</div>' +
+            '<div class="settings-hero-grid">' +
+              '<div class="settings-stat"><strong>' + draftName + '</strong><span class="tiny muted">Profilo</span></div>' +
+              '<div class="settings-stat"><strong>' + state.settingsDraft.weeklyTarget + 'h</strong><span class="tiny muted">Target settimana</span></div>' +
+              '<div class="settings-stat"><strong>' + workdaysCount + '</strong><span class="tiny muted">Giorni attivi</span></div>' +
+              '<div class="settings-stat"><strong>' + autoRestCount + '</strong><span class="tiny muted">Riposi auto</span></div>' +
+            '</div>' +
+          '</div></div>' +
+          '<div><div class="section-title">Profilo</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-field">' +
+              '<div class="settings-field-head"><div class="chip">' + icons.home + '</div><div class="settings-field-copy"><div class="settings-label">Nome utente</div><div class="settings-name">Come vuoi comparire nell\'app</div></div></div>' +
+              '<input id="userNameInput" class="settings-input" type="text" maxlength="24" placeholder="Inserisci il tuo nome" value="' + escapeHtml(state.settingsDraft.userName || '') + '">' +
+              '<div class="settings-help">Nome mostrato nelle parti personalizzate dell\'app.</div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div><div class="section-title">Obiettivi</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-split">' +
+              '<div class="settings-field">' +
+                '<div class="settings-field-head"><div class="chip">' + icons.target + '</div><div class="settings-field-copy"><div class="settings-label">Settimana</div><div class="settings-name">Ore target</div></div></div>' +
+                '<input id="weeklyTargetInput" class="settings-input settings-target-input" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.weeklyTarget + '">' +
+                '<div class="settings-help">Quante ore vuoi raggiungere ogni settimana.</div>' +
+              '</div>' +
+              '<div class="settings-field">' +
+                '<div class="settings-field-head"><div class="chip">' + icons.activity + '</div><div class="settings-field-copy"><div class="settings-label">Giorno</div><div class="settings-name">Ore target</div></div></div>' +
+                '<input id="dailyTargetInput" class="settings-input settings-target-input" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.dailyTarget + '">' +
+                '<div class="settings-help">Valore usato per i confronti giornalieri.</div>' +
+              '</div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div><div class="section-title">Settimana lavorativa</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-field">' +
+              '<div class="settings-field-head"><div class="chip">' + icons.calendar + '</div><div class="settings-field-copy"><div class="settings-label">Giorni attivi</div><div class="settings-name">Tocca per attivare o disattivare</div></div></div>' +
+              '<div class="workdays">' +
+                workdayLabels.map(function (label, index) {
+                  var active = state.settingsDraft.workdays.indexOf(index) !== -1;
+                  return '<button class="day ' + (active ? 'active' : '') + '" data-toggle-workday="' + index + '">' + label + '</button>';
+                }).join('') +
+              '</div>' +
+              '<div class="settings-help settings-workdays-note">I giorni selezionati vengono usati per target e riepiloghi.</div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div><div class="section-title">Riposo automatico</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-field">' +
+              '<div class="settings-field-head"><div class="chip">R</div><div class="settings-field-copy"><div class="settings-label">Giorni di riposo</div><div class="settings-name">Per esempio domenica o sabato + domenica</div></div></div>' +
+              '<div class="workdays">' +
+                workdayLabels.map(function (label, index) {
+                  var active = normalizeWeekdayList(state.settingsDraft.autoRestDays || []).indexOf(index) !== -1;
+                  return '<button class="day ' + (active ? 'rest-active' : '') + '" data-toggle-auto-rest-day="' + index + '">' + label + '</button>';
+                }).join('') +
+              '</div>' +
+              '<div class="settings-help settings-workdays-note">Se il giorno e vuoto, viene mostrato automaticamente come riposo. I dati inseriti a mano hanno sempre la precedenza.</div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div><div class="section-title">Festivita automatiche</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-group">' +
+              '<div class="settings-field">' +
+                '<div class="between"><div class="row"><div class="chip">F</div><div><div class="settings-name">Conta ore anche nei weekend</div><div class="tiny muted">Se spento, sabato e domenica non coprono mai ore anche se li usi per straordinari</div></div></div><button class="toggle-btn ' + (state.settingsDraft.holidayHoursOnOffDays ? 'on' : '') + '" data-toggle-holiday-offdays="1"><span class="knob"></span></button></div>' +
+                '<div class="settings-help">' + holidayHelper + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div><div class="section-title">Promemoria</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-group">' +
+              '<div class="settings-field">' +
+                '<div class="between"><div class="row"><div class="chip">' + icons.bell + '</div><div><div class="settings-name">Promemoria locale</div><div class="tiny muted">Funziona mentre GestOre resta aperta</div></div></div><button class="toggle-btn ' + (state.settings.remindersEnabled ? 'on' : '') + '" data-toggle-reminders="1"><span class="knob"></span></button></div>' +
+              '</div>' +
+              '<div class="settings-split">' +
+                '<div class="settings-field">' +
+                  '<div class="settings-label">Orario</div>' +
+                  '<input id="reminderTimeInput" class="settings-input time" type="time" value="' + state.settings.reminderTime + '">' +
+                '</div>' +
+                '<div class="settings-field">' +
+                  '<div class="settings-label">Notifica</div>' +
+                  '<button class="solid" data-test-notification="1">Invia test</button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="settings-help">' + reminderHelper + '</div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div><div class="section-title">Dati e sicurezza</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-group">' +
+              '<div class="settings-field">' +
+                '<div class="between"><div class="row"><div class="chip">' + icons.lock + '</div><div><div class="settings-name">Schermata privacy</div><div class="tiny muted">Nasconde i dati quando riapri l\'app</div></div></div><button class="toggle-btn ' + (state.settings.lockApp ? 'on' : '') + '" data-toggle-lock="1"><span class="knob"></span></button></div>' +
+                '<div class="settings-help">Non usa un PIN: e un blocco rapido visivo utile quando lasci il telefono sul tavolo o riapri GestOre davanti ad altre persone.</div>' +
+              '</div>' +
+              '<div class="settings-actions-grid settings-actions-grid-pdf">' +
+                '<button class="ghost" data-export-csv="1">Esporta Excel</button>' +
+                '<button class="ghost" data-export-report="1">PDF ' + exportMonthLabel + '</button>' +
+                '<button class="ghost" data-export-report-year="1">PDF anno ' + exportYearLabel + '</button>' +
+              '</div>' +
+              '<div class="settings-inline-note"><div class="chip">' + icons.check + '</div><div><div class="small" style="font-weight:700;">Salvataggio automatico</div><div class="small muted">' + syncStatusMessage + '</div></div></div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div><div class="section-title">Info app</div><div class="card settings-card"><div class="card-body">' +
+            '<div class="settings-tile-grid">' +
+              '<div class="settings-mini-detail"><div><div class="settings-label">Versione</div><strong>' + state.settings.version + '</strong></div><span class="muted">Attiva</span></div>' +
+              '<div class="settings-mini-detail"><div><div class="settings-label">Nome app</div><strong>' + state.settings.appName + '</strong></div><span class="muted">GestOre</span></div>' +
+            '</div>' +
+          '</div></div></div>' +
+          '<div class="settings-footer-space"></div>' +
+        '</div>';
+    }
+
+    function renderPrivacyLock() {
+      if (!state.privacyLocked) return '';
+      return '<div class="privacy-lock-overlay"><div class="privacy-lock-card"><div class="privacy-lock-icon">' + icons.lock + '</div><div class="privacy-lock-title">GestOre nascosta</div><div class="privacy-lock-text">La schermata privacy e attiva. Tocca qui sotto per tornare all\'app.</div><div class="privacy-lock-meta">' + escapeHtml(getSyncStatusMessage()) + '</div><button class="solid privacy-lock-btn" data-unlock-app="1">Sblocca</button></div></div>';
+    }
+
     function renderNav() {
       var items = [
         { key: 'home', label: 'Home', icon: icons.home },
         { key: 'calendar', label: 'Calendario', icon: icons.calendar },
         { key: 'stats', label: 'Statistiche', icon: icons.activity },
-        { key: 'payslips', label: 'Buste', icon: icons.check },
+        { key: 'payslips', label: 'Buste', icon: icons.receipt },
         { key: 'settings', label: 'Impostazioni', icon: icons.settings }
       ];
       return '<div class="bottom-nav"><div class="nav-grid">' + items.map(function (i) {
@@ -572,13 +885,15 @@ function renderOverlay() {
     function render() {
       var app = document.getElementById('app');
       if (!app) return;
+      var switchClass = state.tabSwitchFx ? (' screen-switch screen-switch-' + (state.tabSwitchDir || 'forward')) : '';
       app.innerHTML =
-        '<section class="screen home-screen ' + (state.activeTab === 'home' ? 'active' : '') + '">' + renderHome() + '</section>' +
-        '<section class="screen ' + (state.activeTab === 'calendar' ? 'active' : '') + '">' + renderCalendar() + '</section>' +
-        '<section class="screen ' + (state.activeTab === 'stats' ? 'active' : '') + '">' + renderStats() + '</section>' +
-        '<section class="screen ' + (state.activeTab === 'payslips' ? 'active' : '') + '">' + renderPayslips() + '</section>' +
-        '<section class="screen ' + (state.activeTab === 'settings' ? 'active' : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal();
+        '<section class="screen home-screen ' + (state.activeTab === 'home' ? ('active' + switchClass) : '') + '">' + renderHome() + '</section>' +
+        '<section class="screen calendar-screen ' + (state.activeTab === 'calendar' ? ('active' + switchClass) : '') + '">' + renderCalendar() + '</section>' +
+        '<section class="screen stats-screen ' + (state.activeTab === 'stats' ? ('active' + switchClass) : '') + '">' + renderStats() + '</section>' +
+        '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
+        '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
+        renderNav() + renderOverlay() + renderConfirmModal() + renderPrivacyLock();
       bindEvents();
       initHomeTitleMorph();
+      state.tabSwitchFx = false;
     }

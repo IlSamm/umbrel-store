@@ -1,18 +1,18 @@
-manifestVersion: 1
+﻿manifestVersion: 1
 id: ilsamm-gestore
 name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.1.59"
+version: "1.1.60"
 port: 8080
 
 description: >-
-  GestOre è la tua app personale per gestire ore lavorate, straordinari,
+  GestOre Ã¨ la tua app personale per gestire ore lavorate, straordinari,
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iphone.
 
 releaseNotes: >-
-  Aggiornamento
+  Rifinitura stabile della navbar iPhone/PWA con safe area integrata.
 
 developer: IlSamm
 website: ""
@@ -30,3 +30,4 @@ defaultUsername: ""
 defaultPassword: ""
 submitter: IlSamm
 submission: ""
+

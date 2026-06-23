@@ -1,0 +1,906 @@
+/* GestOre Editor and Overlay UI */ 
+.overlay {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(108, 149, 255, 0.12), transparent 26%),
+    radial-gradient(circle at 86% 8%, rgba(151, 96, 255, 0.12), transparent 24%),
+    linear-gradient(180deg, #050916 0%, #070d20 100%);
+}
+
+.overlay-header {
+  padding: 18px 20px 16px;
+  background: rgba(5, 9, 22, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom-color: rgba(255,255,255,.05);
+}
+
+.overlay-scroll {
+  padding: 8px 16px 36px;
+}
+
+.overlay .type-row,
+.overlay .time-box,
+.overlay .sub-input-wrap,
+.overlay .hours-card,
+.overlay .collapse-btn {
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+  border-color: rgba(255,255,255,.06);
+}
+
+.overlay .notes,
+.payslip-field input,
+.payslip-field select,
+.payslip-textarea,
+.settings-input {
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.payslip-hero {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(124, 169, 255, 0.18), transparent 28%),
+    radial-gradient(circle at 88% 16%, rgba(162, 107, 255, 0.18), transparent 24%),
+    linear-gradient(180deg, rgba(18, 26, 60, 0.95), rgba(10, 17, 39, 0.98)) !important;
+}
+
+.payslip-hero-title {
+  font-size: 24px;
+  letter-spacing: -.04em;
+}
+
+@media (max-width: 390px) {
+  .title { font-size: 28px; }
+  .page-subtitle { max-width: 270px; }
+  .week-day-card { min-height: 136px; padding-inline: 8px; }
+  .cell { width: 42px; height: 50px; }
+  .legend-grid { grid-template-columns: 1fr; }
+}
+
+
+/* Restore animated Home title and remove added header subtitles */
+.home-top-refined .home-header-copy {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.home-top-refined .home-intro {
+  width: 100%;
+}
+.home-top-refined .home-morph-wrap {
+  min-height: 62px;
+}
+.home-top-refined .home-morph-title {
+  width: min(100%, 360px);
+  height: 46px;
+}
+.page-subtitle,
+.home-date-sub {
+  display: none !important;
+}
+
+/* Fix iPhone nested panel inside Home hero button */
+.btn.home-hero-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  text-align: inherit;
+}
+
+.btn.home-hero-btn:focus,
+.btn.home-hero-btn:active,
+.btn.home-hero-btn:hover {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+
+
+/* Editor overlay — Tech premium refresh — glow + Apple */
+.editor-overlay {
+  background:
+    radial-gradient(circle at 14% -2%, rgba(120, 180, 255, 0.22), transparent 30%),
+    radial-gradient(circle at 88% 6%, rgba(172, 111, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 52% 34%, rgba(86, 114, 255, 0.14), transparent 36%),
+    linear-gradient(180deg, #040814 0%, #071021 44%, #050916 100%) !important;
+}
+
+.editor-header {
+  position: sticky;
+  top: 0;
+  z-index: 24;
+  padding: calc(var(--safe-top) + 4px) 18px 8px;
+  background:
+    linear-gradient(180deg, rgba(8, 13, 28, 0.94), rgba(8, 14, 30, 0.72));
+  backdrop-filter: blur(28px) saturate(1.22);
+  -webkit-backdrop-filter: blur(28px) saturate(1.22);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 20px 38px rgba(1, 4, 14, .30);
+}
+
+.editor-header-center {
+  flex: 1;
+  text-align: center;
+}
+
+
+.editor-header-spacer {
+  flex: 1 1 auto;
+}
+
+.editor-date-section {
+  padding: 2px 4px 4px;
+}
+
+.editor-date-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.editor-date-section .editor-day-title {
+  font-size: clamp(20px, 5.8vw, 26px);
+  line-height: 1.02;
+  font-weight: 800 !important;
+  letter-spacing: -.055em;
+  color: #f8faff;
+  text-shadow: none;
+}
+
+.editor-date-section .editor-date-line {
+  margin-top: 0;
+  font-size: 12.5px;
+  color: rgba(230, 236, 255, .68) !important;
+}
+
+.editor-day-title {
+  font-size: clamp(18px, 5vw, 23px);
+  line-height: 1.02;
+  font-weight: 800 !important;
+  letter-spacing: -.05em;
+  color: #f8faff;
+  text-shadow: 0 4px 18px rgba(114, 146, 255, .08);
+}
+
+.editor-date-line {
+  margin-top: 4px;
+  font-size: 14px;
+  color: rgba(230, 236, 255, .68) !important;
+}
+
+.editor-date-lockup {
+  max-width: 100%;
+}
+
+.editor-date-section .editor-day-title {
+  margin: 0;
+}
+
+.editor-date-section .editor-date-line {
+  letter-spacing: .01em;
+}
+
+.editor-close,
+.editor-save-btn {
+  min-height: 46px;
+  min-width: 46px;
+  border-radius: 19px;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 14px 30px rgba(1, 4, 14, 0.24),
+    0 0 0 1px rgba(126, 151, 255, .03);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+}
+
+.editor-close {
+  color: #d2b8ff;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.032)) !important;
+}
+
+.editor-save-btn {
+  min-width: 76px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 760;
+  letter-spacing: -.02em;
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(150, 112, 255, .46), rgba(103, 170, 255, .40)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 18px 34px rgba(70, 85, 220, .28),
+    0 0 24px rgba(112, 139, 255, .16),
+    0 0 0 1px rgba(164, 141, 255, .10);
+}
+
+.editor-save-btn:hover,
+.editor-save-btn:focus-visible {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 20px 38px rgba(72, 89, 229, .32),
+    0 0 28px rgba(122, 152, 255, .22),
+    0 0 0 1px rgba(178, 157, 255, .14);
+}
+
+.editor-stack {
+  gap: 0 !important;
+  padding-top: 0;
+}
+
+.editor-section {
+  position: relative;
+}
+
+.editor-type-section .type-list,
+.editor-input-section,
+.editor-summary-section,
+.editor-notes-section,
+.editor-danger-section {
+  display: grid;
+  gap: 16px;
+}
+
+.editor-type-section .type-row,
+.editor-input-section .time-box,
+.editor-input-section .sub-input-wrap,
+.editor-summary-section .editor-hours-card,
+.editor-notes-section .editor-collapse-btn,
+.editor-notes-section .notes {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.072), rgba(255,255,255,.024)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    inset 0 -18px 36px rgba(10, 20, 52, .10),
+    0 22px 42px rgba(1, 5, 16, .24),
+    0 0 0 1px rgba(121, 108, 255, .05),
+    0 0 30px rgba(108, 120, 255, .08);
+  backdrop-filter: blur(22px) saturate(1.12);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
+}
+
+.editor-type-section .type-row::before,
+.editor-input-section .time-box::before,
+.editor-input-section .sub-input-wrap::before,
+.editor-summary-section .editor-hours-card::before,
+.editor-summary-section .editor-hours-stat::before,
+.editor-notes-section .editor-collapse-btn::before,
+.editor-notes-section .notes::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.12), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,.05), transparent 48%);
+  pointer-events: none;
+}
+
+.editor-type-section .type-row {
+  min-height: 98px;
+  padding: 18px 20px;
+  border-radius: 32px;
+}
+
+.editor-type-section {
+  margin-top: 0;
+}
+
+.editor-date-section + .editor-type-section {
+  margin-top: 8px !important;
+}
+
+.editor-type-row-main {
+  background:
+    radial-gradient(circle at 14% 22%, rgba(95, 221, 178, .08), transparent 22%),
+    radial-gradient(circle at 88% 14%, rgba(140, 102, 255, .14), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.028)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 24px 44px rgba(1, 6, 20, .28),
+    0 0 34px rgba(94, 117, 255, .11);
+}
+
+.editor-type-section .type-icon {
+  width: 66px;
+  height: 66px;
+  border-radius: 24px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 16px 28px rgba(2, 6, 22, .24),
+    0 0 18px rgba(86, 135, 255, .12);
+}
+
+.editor-type-section .type-icon svg {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.18));
+}
+
+.editor-type-section .type-main-label,
+.editor-type-section .type-secondary-label {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  color: #f8faff;
+}
+
+.editor-type-section .type-row > span {
+  color: rgba(236, 240, 255, .74);
+  font-weight: 700;
+}
+
+.editor-select-copy {
+  font-size: 13px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.editor-type-section .type-options {
+  top: calc(100% + 14px);
+  padding: 12px;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(10, 15, 34, .98), rgba(8, 12, 28, .96));
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow:
+    0 28px 52px rgba(1, 5, 16, .38),
+    0 0 30px rgba(110, 120, 255, .10),
+    0 0 0 1px rgba(143, 119, 255, .04);
+}
+
+.editor-input-section .hours-grid {
+  gap: 14px;
+}
+
+.editor-input-section .time-box,
+.editor-input-section .sub-input-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.editor-input-section .time-box {
+  min-height: 142px;
+  padding: 18px 18px 16px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(112, 170, 255, .09), transparent 34%),
+    radial-gradient(circle at 84% 10%, rgba(162, 108, 255, .10), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.024)) !important;
+}
+
+.editor-input-section .time-box .small.muted,
+.editor-input-section .sub-label {
+  margin-bottom: 16px;
+  font-size: 12px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: rgba(224, 231, 255, .58) !important;
+}
+
+.editor-input-section .time-field {
+  min-height: 60px;
+}
+
+.editor-input-section .time-input-big,
+.editor-input-section .time-placeholder {
+  font-size: clamp(38px, 8vw, 46px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -.065em;
+}
+
+.editor-input-section .time-input-big {
+  color: #fafbff;
+  text-shadow:
+    0 6px 22px rgba(118, 132, 255, .16),
+    0 0 18px rgba(110, 160, 255, .06);
+}
+
+.editor-input-section .time-placeholder {
+  color: rgba(226, 232, 255, .34);
+}
+
+.editor-input-section .sub-input-wrap {
+  min-height: 116px;
+  padding: 16px 16px 14px;
+  border-radius: 28px;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(109, 171, 255, .08), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,.072), rgba(255,255,255,.024)) !important;
+}
+
+.editor-input-section .sub-input {
+  font-size: clamp(34px, 7.2vw, 42px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -.055em;
+  color: #fafbff;
+  text-shadow:
+    0 6px 18px rgba(124, 131, 255, .14),
+    0 0 14px rgba(107, 160, 255, .05);
+}
+
+.editor-input-section .tiny-hint {
+  margin-top: 10px;
+  color: rgba(222, 229, 255, .46);
+}
+
+.editor-summary-section .editor-hours-card {
+  padding: 16px;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(123, 182, 255, .10), transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(172, 109, 255, .12), transparent 28%),
+    linear-gradient(180deg, rgba(32, 45, 105, .54), rgba(16, 22, 56, .50)) !important;
+  border-color: rgba(168, 151, 255, .12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -16px 32px rgba(10, 16, 48, .12),
+    0 20px 36px rgba(1, 5, 18, .28),
+    0 0 18px rgba(111, 115, 255, .06);
+}
+
+.editor-summary-section .editor-hours-card .three,
+.editor-summary-section .editor-hours-card .four {
+  gap: 16px;
+}
+
+.editor-summary-section .editor-hours-stat {
+  position: relative;
+  overflow: hidden;
+  min-height: 98px;
+  padding: 16px 12px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.025));
+  border: 1px solid rgba(255,255,255,.055);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 12px 22px rgba(1, 6, 18, .16),
+    0 0 10px rgba(108, 120, 255, .03);
+}
+
+.editor-summary-section .editor-hours-stat:first-child {
+  background:
+    linear-gradient(180deg, rgba(149, 114, 255, .15), rgba(104, 162, 255, .10)),
+    rgba(255,255,255,.02);
+  border-color: rgba(164, 147, 255, .14);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 16px 26px rgba(8, 12, 35, .20),
+    0 0 14px rgba(117, 123, 255, .08);
+}
+
+.editor-summary-section .editor-hours-stat .small.muted {
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 255, .60) !important;
+}
+
+.editor-summary-section .editor-hours-stat .large {
+  font-size: 24px;
+  line-height: 1.04;
+  letter-spacing: -.055em;
+  white-space: nowrap;
+  color: #fafbff;
+  text-shadow: 0 2px 8px rgba(112, 129, 255, .05);
+}
+
+.editor-summary-section .editor-hours-stat:first-child .large {
+  font-size: 27px;
+}
+
+.editor-notes-section .editor-collapse-btn {
+  min-height: 82px;
+  padding: 0 22px;
+  border-radius: 30px;
+}
+
+.editor-notes-section .editor-collapse-btn > div > div {
+  font-size: 18px;
+  font-weight: 760;
+  letter-spacing: -.03em;
+  color: #f7f9ff;
+}
+
+.editor-notes-section .collapse-panel {
+  margin-top: 12px;
+}
+
+.editor-notes-section .notes {
+  min-height: 148px;
+  border-radius: 31px;
+  padding: 18px 18px 20px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #f7f9ff;
+}
+
+.editor-notes-section .notes::placeholder {
+  color: rgba(218, 226, 255, .38);
+}
+
+.editor-danger-btn {
+  min-height: 64px;
+  border-radius: 26px !important;
+  font-size: 15px;
+  font-weight: 760;
+  letter-spacing: -.02em;
+  color: #ffc9d7 !important;
+  border: 1px solid rgba(255, 111, 154, .18) !important;
+  background:
+    linear-gradient(180deg, rgba(124, 28, 58, .26), rgba(69, 12, 33, .20)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 18px 34px rgba(33, 4, 16, .22),
+    0 0 22px rgba(255, 110, 153, .07),
+    0 0 0 1px rgba(255, 103, 146, .03);
+}
+
+.editor-danger-btn:hover,
+.editor-danger-btn:focus-visible {
+  color: #ffd8e1 !important;
+  border-color: rgba(255, 118, 160, .26) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 20px 38px rgba(36, 4, 16, .26),
+    0 0 26px rgba(255, 110, 153, .10),
+    0 0 0 1px rgba(255, 112, 154, .06);
+}
+
+@media (max-width: 390px) {
+  .editor-header {
+    padding-inline: 16px;
+  }
+
+  .editor-input-section .time-box,
+  .editor-input-section .sub-input-wrap {
+    border-radius: 31px;
+  }
+
+  .editor-input-section .time-input-big,
+  .editor-input-section .time-placeholder {
+    font-size: 38px;
+  }
+
+  .editor-input-section .sub-input {
+    font-size: 34px;
+  }
+
+  .editor-summary-section .editor-hours-stat .large {
+    font-size: 23px;
+  }
+
+  .editor-summary-section .editor-hours-stat:first-child .large {
+    font-size: 25px;
+  }
+}
+
+
+/* Bottom nav stability patch */
+
+
+
+@supports (padding: max(0px)) {
+}
+
+
+.home-morph-title.static-logo {
+  filter: none !important;
+}
+
+.home-morph-title.static-logo .home-morph-text {
+  filter: none !important;
+  transform: none !important;
+  text-shadow: 0 8px 22px rgba(0,0,0,.22);
+}
+
+@supports (-webkit-touch-callout: none) {
+  .splash-badge-logo {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  .splash-mark {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+}
+
+
+/* Home top compact spacing */
+.screen.home-screen {
+  padding-top: max(0px, calc(var(--safe-top) - 8px));
+}
+
+.home-top-refined {
+  margin-bottom: 8px;
+  padding-top: 0;
+}
+
+.home-top-refined .home-morph-wrap {
+  min-height: 46px;
+}
+
+.home-top-refined .home-morph-title {
+  width: min(100%, 332px);
+  height: 40px;
+}
+
+.home-morph-text {
+  font-size: clamp(22px, 6.6vw, 31px);
+}
+
+.home-hero {
+  margin-top: 0;
+}
+
+/* v28: bottom nav lower + more stable on phone */
+
+@supports (padding: max(0px)) {
+}
+
+@media (max-width: 390px) {
+}
+
+/* v29 — editor overlay cleanup on mobile */
+.overlay-scroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.overlay-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.editor-overlay {
+  background:
+    linear-gradient(180deg, #061022 0%, #071125 52%, #061022 100%) !important;
+}
+
+.editor-header {
+  padding: calc(var(--safe-top) + 5px) 14px 9px !important;
+  background:
+    linear-gradient(180deg, rgba(7, 16, 34, 0.96), rgba(7, 16, 34, 0.90)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 14px 30px rgba(1, 4, 14, .18) !important;
+}
+
+.editor-overlay .overlay-scroll {
+  padding: 10px 13px calc(24px + var(--safe-bottom)) !important;
+  background: transparent !important;
+}
+
+.editor-overlay .editor-stack {
+  gap: 14px !important;
+}
+
+@supports (padding: max(0px)) {
+  .editor-overlay .overlay-scroll {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+}
+
+
+/* v30 — editor date moved into header */
+.editor-header {
+  display: grid !important;
+  grid-template-columns: 46px minmax(0, 1fr) 76px;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-header-center {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.editor-header-day {
+  margin: 0;
+  font-size: clamp(18px, 5vw, 24px);
+  line-height: 1.02;
+  font-weight: 820;
+  letter-spacing: -.05em;
+  color: #f7faff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-header-date {
+  font-size: 12px;
+  line-height: 1.1;
+  letter-spacing: .01em;
+  color: rgba(228, 235, 255, .68);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-header-spacer,
+.editor-date-section {
+  display: none !important;
+}
+
+.editor-overlay .overlay-scroll {
+  padding-top: 10px !important;
+}
+
+@media (max-width: 420px) {
+  .editor-header {
+    grid-template-columns: 46px minmax(0, 1fr) 82px;
+    gap: 8px;
+  }
+
+  .editor-header-day {
+    font-size: clamp(17px, 6vw, 22px);
+  }
+
+  .editor-header-date {
+    font-size: 11.5px;
+  }
+}
+
+
+/* v31 — editor spacing tightened to avoid unnecessary scrolling */
+.editor-overlay .overlay-scroll {
+  padding-top: 8px !important;
+  padding-bottom: calc(18px + var(--safe-bottom)) !important;
+}
+
+.editor-overlay .editor-stack {
+  gap: 12px !important;
+}
+
+.editor-type-section .type-list,
+.editor-input-section,
+.editor-summary-section,
+.editor-notes-section,
+.editor-danger-section {
+  gap: 14px !important;
+}
+
+.editor-type-section .type-row {
+  min-height: 92px;
+  padding: 17px 18px;
+  border-radius: 28px;
+}
+
+.editor-type-section .type-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
+}
+
+.editor-type-section .type-main-label,
+.editor-type-section .type-secondary-label {
+  font-size: 19px;
+}
+
+.editor-input-section .hours-grid {
+  gap: 14px;
+}
+
+.editor-input-section .time-box {
+  min-height: 134px;
+  padding: 17px 16px 15px;
+  border-radius: 28px;
+}
+
+.editor-input-section .time-box .small.muted,
+.editor-input-section .sub-label {
+  margin-bottom: 13px;
+}
+
+.editor-input-section .time-field {
+  min-height: 54px;
+}
+
+.editor-input-section .sub-input-wrap {
+  min-height: 108px;
+  padding: 15px 15px 13px;
+  border-radius: 26px;
+}
+
+.editor-input-section .tiny-hint {
+  margin-top: 6px;
+}
+
+.editor-summary-section .editor-hours-card {
+  padding: 13px;
+  border-radius: 28px;
+}
+
+.editor-summary-section .editor-hours-card .three,
+.editor-summary-section .editor-hours-card .four {
+  gap: 12px;
+}
+
+.editor-summary-section .editor-hours-stat {
+  min-height: 92px;
+  padding: 15px 11px;
+  border-radius: 22px;
+}
+
+.editor-notes-section .editor-collapse-btn {
+  min-height: 78px;
+  padding: 0 22px;
+  border-radius: 28px;
+}
+
+.editor-danger-btn {
+  min-height: 60px;
+  border-radius: 24px !important;
+}
+
+@media (max-width: 420px) {
+  .editor-header {
+    padding-top: calc(var(--safe-top) + 3px) !important;
+    padding-bottom: 7px !important;
+  }
+
+  .editor-overlay .overlay-scroll {
+    padding-top: 8px !important;
+    padding-bottom: calc(18px + var(--safe-bottom)) !important;
+  }
+
+  .editor-type-section .type-row {
+    min-height: 88px;
+    padding: 15px 16px;
+  }
+
+  .editor-input-section .time-box {
+    min-height: 126px;
+    padding: 15px 14px 13px;
+  }
+
+  .editor-input-section .sub-input-wrap {
+    min-height: 102px;
+    padding: 13px 13px 11px;
+  }
+
+  .editor-summary-section .editor-hours-stat {
+    min-height: 86px;
+    padding: 13px 9px;
+  }
+
+  .editor-notes-section .editor-collapse-btn {
+    min-height: 68px;
+    padding: 0 18px;
+  }
+
+  .editor-danger-btn {
+    min-height: 54px;
+  }
+}
+
+

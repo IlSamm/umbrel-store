@@ -1,10 +1,10 @@
-{
+﻿{
   "name": "GestOre",
   "short_name": "GestOre",
-  "start_url": "/",
+  "start_url": "/?v=20260623f",
   "display": "standalone",
-  "background_color": "#0a1027",
-  "theme_color": "#0a1027",
+  "background_color": "#030711",
+  "theme_color": "#030711",
   "icons": [
     {
       "src": "assets/icons/icon-192.png",
@@ -18,3 +18,4 @@
     }
   ]
 }
+

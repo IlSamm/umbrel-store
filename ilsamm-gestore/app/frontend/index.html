@@ -1,62 +1,179 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="it">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="yes" name="mobile-web-app-capable"/>
-<meta content="black" name="apple-mobile-web-app-status-bar-style"/>
-<meta content="#0a1027" name="theme-color"/>
-<meta content="#0a1027" media="(prefers-color-scheme: light)" name="theme-color"/>
-<meta content="#0a1027" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="#030711" name="theme-color"/>
+<meta content="#030711" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="#030711" media="(prefers-color-scheme: dark)" name="theme-color"/>
 <meta content="dark" name="color-scheme"/>
 <title>GestOre iPhone</title>
 <meta name="application-name" content="GestOre"/>
-<link rel="manifest" href="site.webmanifest"/>
+<link rel="manifest" href="site.webmanifest?v=20260623f"/>
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png"/>
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png"/>
-
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260623f">
 </head>
 <body class="app-booting">
 <div class="error-box" id="errorBox"></div>
 
 
-<div aria-hidden="true" class="splash-screen" id="splashScreen">
-  <div class="splash-aura splash-aura-left"></div>
-  <div class="splash-aura splash-aura-right"></div>
-  <div class="splash-noise"></div>
-  <div class="splash-inner">
-    <div class="splash-badge">
-      <span class="splash-badge-ring"></span>
-      <span class="splash-badge-core">
-        <img class="splash-badge-logo" src="assets/icons/icon-192.png" alt="GestOre logo" loading="eager" decoding="async" fetchpriority="high"/>
-      </span>
+<div aria-hidden="true" class="go-splash-screen" id="splashScreen">
+  <div class="go-splash-aura"></div>
+  <div class="go-splash-inner">
+    <div class="go-clock" aria-hidden="true">
+      <div class="go-clock-halo"></div>
+      <div class="go-clock-track"></div>
+      <div class="go-clock-progress"></div>
+      <div class="go-clock-shell">
+        <div class="go-clock-face">
+          <div class="go-clock-ticks"></div>
+          <div class="go-clock-rotor go-clock-hour-rotor">
+            <span class="go-clock-needle go-clock-hour"></span>
+          </div>
+          <div class="go-clock-rotor go-clock-minute-rotor">
+            <span class="go-clock-needle go-clock-minute"></span>
+          </div>
+          <span class="go-clock-axis"></span>
+        </div>
+      </div>
     </div>
-
-    <svg class="splash-mark" viewBox="0 0 760 170" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <text x="50%" y="54%" text-anchor="middle"
-            class="splash-full-stroke"
-            style="font-size:104px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,'Segoe UI',sans-serif;letter-spacing:-4px;">GestOre</text>
-      <text x="50%" y="54%" text-anchor="middle"
-            class="splash-full-fill"
-            style="font-size:104px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,'Segoe UI',sans-serif;letter-spacing:-4px;">GestOre</text>
-      <text x="404" y="92" text-anchor="start"
-            class="splash-accent-fill-only"
-            style="font-size:104px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Inter,'Segoe UI',sans-serif;letter-spacing:-4px;">Ore</text>
-    </svg>
+    <div class="go-splash-wordmark" aria-label="GestOre"><span class="go-word-main">Gest</span><span class="go-word-accent">Ore</span></div>
   </div>
 </div>
+
 <div class="app" id="app"></div>
 
 
 
-  <script src="js/core.js"></script>
-  <script src="js/payslips.js"></script>
-  <script src="js/views.js"></script>
-  <script src="js/bindings.js"></script>
-  <script src="js/editor.js"></script>
+  <script>
+(function () {
+  var root = document.documentElement;
+  var body = document.body;
+  var lastTouchEnd = 0;
+  var KEYBOARD_THRESHOLD = 120;
+  var stableViewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+  var lastNonKeyboardHeight = stableViewportHeight;
+
+  function isEditable(el) {
+    if (!el) return false;
+    var tag = String(el.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || !!el.isContentEditable;
+  }
+
+  function preventDefaultIfCancelable(event) {
+    if (event && event.cancelable) event.preventDefault();
+  }
+
+  function resetWindowScroll() {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+
+  function scheduleViewportFix() {
+    applyViewportFix();
+    window.requestAnimationFrame(applyViewportFix);
+    window.setTimeout(applyViewportFix, 90);
+    window.setTimeout(applyViewportFix, 220);
+  }
+
+  function applyViewportFix() {
+    var vv = window.visualViewport;
+    var baseHeight = Math.max(
+      window.innerHeight || 0,
+      document.documentElement.clientHeight || 0
+    );
+    var visualHeight = vv ? Math.round(vv.height + vv.offsetTop) : baseHeight;
+    var bottomGap = 0;
+    var keyboardOpen = false;
+    if (vv) {
+      var rawBottomGap = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
+      bottomGap = rawBottomGap > 8 ? rawBottomGap : 0;
+      keyboardOpen = rawBottomGap > KEYBOARD_THRESHOLD;
+    }
+    if (keyboardOpen) {
+      stableViewportHeight = Math.max(stableViewportHeight || 0, lastNonKeyboardHeight || 0, baseHeight, visualHeight);
+    } else {
+      stableViewportHeight = Math.max(baseHeight, visualHeight, lastNonKeyboardHeight || 0);
+      lastNonKeyboardHeight = stableViewportHeight;
+    }
+    var layoutHeight = keyboardOpen ? (lastNonKeyboardHeight || stableViewportHeight || baseHeight) : stableViewportHeight;
+    root.style.setProperty('--app-vh', layoutHeight + 'px');
+    root.style.setProperty('--real-app-vh', layoutHeight + 'px');
+    root.style.setProperty('--visible-app-vh', visualHeight + 'px');
+    root.style.setProperty('--runtime-bottom-gap', Math.round(bottomGap) + 'px');
+    if (body) body.classList.toggle('keyboard-open', keyboardOpen || isEditable(document.activeElement));
+    if (!keyboardOpen) resetWindowScroll();
+  }
+
+  scheduleViewportFix();
+
+  window.addEventListener('resize', scheduleViewportFix, { passive: true });
+  window.addEventListener('orientationchange', function () {
+    stableViewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+    lastNonKeyboardHeight = stableViewportHeight;
+    scheduleViewportFix();
+    window.setTimeout(scheduleViewportFix, 320);
+  }, { passive: true });
+  window.addEventListener('pageshow', scheduleViewportFix, { passive: true });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) scheduleViewportFix();
+  }, { passive: true });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleViewportFix, { passive: true });
+    window.visualViewport.addEventListener('scroll', scheduleViewportFix, { passive: true });
+  }
+
+  document.addEventListener('focusin', function (event) {
+    if (body && isEditable(event.target)) body.classList.add('keyboard-open');
+    scheduleViewportFix();
+  }, true);
+
+  document.addEventListener('focusout', function () {
+    window.setTimeout(function () {
+      if (body && !isEditable(document.activeElement)) body.classList.remove('keyboard-open');
+      scheduleViewportFix();
+    }, 120);
+  }, true);
+
+  document.addEventListener('gesturestart', preventDefaultIfCancelable, { passive: false });
+  document.addEventListener('gesturechange', preventDefaultIfCancelable, { passive: false });
+  document.addEventListener('gestureend', preventDefaultIfCancelable, { passive: false });
+  document.addEventListener('touchstart', function (event) {
+    if (event.touches && event.touches.length > 1) preventDefaultIfCancelable(event);
+  }, { passive: false });
+  document.addEventListener('touchmove', function (event) {
+    if (event.touches && event.touches.length > 1) preventDefaultIfCancelable(event);
+  }, { passive: false });
+  document.addEventListener('touchend', function (event) {
+    var now = Date.now();
+    if (now - lastTouchEnd < 320) preventDefaultIfCancelable(event);
+    lastTouchEnd = now;
+  }, { passive: false });
+  window.addEventListener('wheel', function (event) {
+    if (event.ctrlKey) preventDefaultIfCancelable(event);
+  }, { passive: false });
+  window.addEventListener('keydown', function (event) {
+    var key = String(event.key || '');
+    if ((event.ctrlKey || event.metaKey) && (key === '+' || key === '=' || key === '-' || key === '_' || key === '0')) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+})();
+</script>
+
+<script src="js/core.js?v=20260623f"></script>
+<script src="js/payslips.js?v=20260623f"></script>
+<script src="js/views.js?v=20260623f"></script>
+<script src="js/bindings.js?v=20260623f"></script>
+<script src="js/editor.js?v=20260623f"></script>
 </body>
 </html>
+

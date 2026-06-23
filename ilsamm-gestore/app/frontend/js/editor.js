@@ -4,14 +4,23 @@ function openEditor(date) {
       state.editingDate = date;
       state.draft = Object.assign({}, current);
       delete state.draft.autoRest;
+      delete state.draft.autoHoliday;
       if (state.draft.leaveHours === undefined) state.draft.leaveHours = 0;
       if (state.draft.quantityHours === undefined) state.draft.quantityHours = 0;
+      if (state.draft.type === 'festivita_pagata' && (current.quantityHours === undefined || current.quantityHours === null || current.quantityHours === '')) state.draft.quantityHours = getAutoHolidayHours(date);
+      if (state.draft.overtimeManual === undefined) state.draft.overtimeManual = parseDecimalInput(state.draft.overtimeHours, 0) > 0;
+      if (!state.draft.overtimeManual) state.draft.overtimeHours = minutesToHours(getAutoOvertimeMinutes(state.draft));
       state.typeOpen = false;
       state.notesOpen = Boolean(current.notes);
       state.confirmClearOpen = false;
+      document.body.classList.add('editor-open');
       render();
     }
     function closeEditor() {
+      var activeEl = document.activeElement;
+      if (activeEl && typeof activeEl.blur === 'function') activeEl.blur();
+      document.body.classList.remove('editor-open');
+      document.body.classList.remove('keyboard-open');
       state.editingDate = null;
       state.draft = null;
       state.typeOpen = false;
@@ -26,6 +35,18 @@ function openEditor(date) {
       var hasValue = Boolean(normalizeTimeInputValue(input.value));
       box.classList.toggle('has-time', hasValue);
       box.classList.toggle('empty-time', !hasValue);
+    }
+    function syncDraftAutoOvertime(force) {
+      if (!state.draft) return;
+      if (isStateOnlyType(state.draft.type) || state.draft.type === 'riposo') {
+        state.draft.overtimeHours = 0;
+        state.draft.overtimeManual = false;
+      } else if (force || !state.draft.overtimeManual) {
+        state.draft.overtimeManual = false;
+        state.draft.overtimeHours = minutesToHours(getAutoOvertimeMinutes(state.draft));
+      }
+      var overtimeInput = document.getElementById('editorOvertimeHours');
+      if (overtimeInput) overtimeInput.value = formatEditorDecimal(state.draft.overtimeHours || 0);
     }
     function updateEditorSummaryUI() {
       if (!state.draft) return;
@@ -50,6 +71,7 @@ function openEditor(date) {
       state.typeOpen = false;
       state.notesOpen = false;
       state.confirmClearOpen = false;
+      document.body.classList.add('editor-open');
       render();
     }
     function saveEditor() {
@@ -60,14 +82,24 @@ function openEditor(date) {
         end: normalizeTimeInputValue(state.draft.end),
         breakHours: parseDecimalInput(state.draft.breakHours, 0),
         overtimeHours: parseDecimalInput(state.draft.overtimeHours, 0),
+        overtimeManual: Boolean(state.draft.overtimeManual),
         leaveHours: parseDecimalInput(state.draft.leaveHours, 0),
         quantityHours: parseDecimalInput(state.draft.quantityHours, 0)
       });
       delete sanitizedDraft.autoRest;
-      if (sanitizedDraft.type === 'riposo') { sanitizedDraft.start=''; sanitizedDraft.end=''; sanitizedDraft.breakHours=0; sanitizedDraft.overtimeHours=0; sanitizedDraft.leaveHours=0; sanitizedDraft.quantityHours=0; }
-      if (isStateOnlyType(sanitizedDraft.type)) { sanitizedDraft.start=''; sanitizedDraft.end=''; sanitizedDraft.breakHours=0; sanitizedDraft.overtimeHours=0; sanitizedDraft.leaveHours=0; }
+      delete sanitizedDraft.autoHoliday;
+      if (sanitizedDraft.type === 'riposo') { sanitizedDraft.start=''; sanitizedDraft.end=''; sanitizedDraft.breakHours=0; sanitizedDraft.overtimeHours=0; sanitizedDraft.overtimeManual=false; sanitizedDraft.leaveHours=0; sanitizedDraft.quantityHours=0; delete sanitizedDraft.holidayName; }
+      if (isStateOnlyType(sanitizedDraft.type)) { sanitizedDraft.start=''; sanitizedDraft.end=''; sanitizedDraft.breakHours=0; sanitizedDraft.overtimeHours=0; sanitizedDraft.overtimeManual=false; sanitizedDraft.leaveHours=0; }
       if (sanitizedDraft.type === 'lavoro') { sanitizedDraft.leaveHours=0; sanitizedDraft.quantityHours=0; }
       if (sanitizedDraft.type === 'lavoro_ferie') { sanitizedDraft.quantityHours=0; }
+      if (sanitizedDraft.type === 'festivita_pagata') {
+        if (!sanitizedDraft.holidayName) {
+          var holidayInfo = getItalianHolidayInfo(state.editingDate);
+          if (holidayInfo && holidayInfo.name) sanitizedDraft.holidayName = holidayInfo.name;
+        }
+      } else {
+        delete sanitizedDraft.holidayName;
+      }
 
       if (!hasMeaningfulDayData(sanitizedDraft)) {
         delete state.entries[key];
@@ -82,6 +114,7 @@ function openEditor(date) {
     if (failed.length) showError('Test falliti: ' + failed.map(function (t) { return t.name; }).join(', '));
 
     render();
+    initializeRuntimeServices();
 
     (function startSplashScreen() {
   var splash = document.getElementById('splashScreen');
@@ -91,8 +124,8 @@ function openEditor(date) {
     return;
   }
 
-  var minVisibleMs = 1760;
-  var fadeMs = 460;
+  var minVisibleMs = 1480;
+  var fadeMs = 500;
   var startedAt = Date.now();
   var closed = false;
   var closeTimer = null;
@@ -109,7 +142,7 @@ function openEditor(date) {
     });
     window.setTimeout(function () {
       body.classList.remove('app-booting');
-    }, 170);
+    }, 140);
     window.setTimeout(removeSplashNode, fadeMs + 120);
   }
 
@@ -135,33 +168,3 @@ function openEditor(date) {
     }
   }, { once: true });
 })();
-
-    (function preventIosZoom() {
-      var lastSingleTapTime = 0;
-
-      document.addEventListener('touchend', function (event) {
-        if ((event.changedTouches && event.changedTouches.length > 1) || (event.touches && event.touches.length > 0)) {
-          return;
-        }
-
-        if (event.target && event.target.closest && event.target.closest('input, textarea, select, option, [contenteditable="true"]')) {
-          lastSingleTapTime = 0;
-          return;
-        }
-
-        var now = Date.now();
-        if (now - lastSingleTapTime <= 300) {
-          event.preventDefault();
-          lastSingleTapTime = 0;
-          return;
-        }
-
-        lastSingleTapTime = now;
-      }, { passive: false });
-
-      ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (eventName) {
-        document.addEventListener(eventName, function (event) {
-          event.preventDefault();
-        }, { passive: false });
-      });
-    })();
