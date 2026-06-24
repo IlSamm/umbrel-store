@@ -142,6 +142,64 @@ function renderPayslips() {
           }).join('')
         : '<div class="chart-empty-note">Nessun giorno segnato per ora.</div>';
       monthSummarySub = monthRecordedDays ? (monthStats.overtimeMinutes > 0 ? (formatDuration(monthStats.overtimeMinutes) + ' extra · ' + monthRecordedDays + ' giorni') : (monthRecordedDays + ' giorni segnati')) : 'Nessun giorno salvato';
+      var todayDisplayMinutes = entry && isStateOnlyType(entry.type) ? breakdown.covered : breakdown.total;
+      var ordinaryDisplayMinutes = entry && isStateOnlyType(entry.type) ? breakdown.leave : breakdown.normal;
+      var ordinaryLabel = entry && isStateOnlyType(entry.type) ? 'Coperte' : 'Ordinarie';
+      var timeBadgeText = entry
+        ? (isStateOnlyType(entry.type) ? (type ? type.label : 'Segnato') : ((entry.start || '--:--') + ' - ' + (entry.end || '--:--')))
+        : 'Da compilare';
+      var dayPrimaryText = entry ? formatDuration(todayDisplayMinutes) : '--';
+      var ordinaryText = entry ? formatDuration(ordinaryDisplayMinutes) : '--';
+      var overtimeText = entry ? formatDuration(breakdown.overtime) : '--';
+      var breakText = entry
+        ? (isStateOnlyType(entry.type) ? (type ? type.label : 'Giornata') : (formatHourValue(entry.breakHours || 0) + ' pausa'))
+        : 'Pausa --';
+      var noteText = entry && entry.notes ? 'Nota presente' : 'Nessuna nota';
+      var weekPercentValue = Math.round(clampChartPercent(week.percent));
+      var weekProgressStyle = clampChartPercent(week.percent).toFixed(2) + '%';
+      var workdayIndexes = normalizeWeekdayList(state.settings.workdays || []);
+      var todayWeekIndex = mondayIndex(now.getDay());
+      var remainingWorkdays = workdayIndexes.filter(function (idx) { return idx > todayWeekIndex; }).length;
+      var weekMissingTitle = weekRemaining > 0 ? ('Ti mancano <span>' + formatDuration(weekRemaining) + '</span>') : 'Target completato';
+      var weekMissingSub = weekRemaining > 0 ? (remainingWorkdays + ' giorni rimasti') : 'Settimana in positivo';
+      var monthNormalValue = formatDuration(monthStats.normalMinutes || Math.max(0, monthStats.totalMinutes - (monthStats.overtimeMinutes || 0)));
+      var monthPermessoValue = (monthStats.permesso || 0) + ' gg';
+      var statDotColor = type ? type.dot : '#23dba0';
+
+      return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
+        '<div class="stack home-stack go-home-stack">' +
+          '<button class="go-card go-day-card" data-open-date="' + key + '">' +
+            '<div class="go-day-head"><div class="go-day-title">' + dayLabel + '</div><div class="go-time-pill"><span style="background:' + statDotColor + '"></span>' + timeBadgeText + '</div></div>' +
+            '<div class="go-day-body">' +
+              '<div class="go-day-total"><div class="go-label">Totale lavorato oggi</div><div class="go-total-number">' + dayPrimaryText + '</div></div>' +
+              '<div class="go-day-stats">' +
+                '<div class="go-stat-row"><span class="go-stat-icon go-stat-blue">' + icons.receipt + '</span><span><strong>' + ordinaryText + '</strong><em>' + ordinaryLabel + '</em></span></div>' +
+                '<div class="go-stat-row"><span class="go-stat-icon go-stat-violet">' + icons.activity + '</span><span><strong>' + overtimeText + '</strong><em>Straordinario</em></span></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="go-divider"></div>' +
+            '<div class="go-day-badges"><span class="go-soft-badge go-green"><i></i>' + breakText + '</span><span class="go-soft-badge go-violet"><i></i>' + noteText + '</span></div>' +
+          '</button>' +
+          '<section class="go-card go-analytics-card go-week-card">' +
+            '<div class="go-card-head"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ore e target</div></div><div class="go-card-badge">' + formatHourValue(state.settings.weeklyTarget) + ' target</div></div>' +
+            '<div class="go-week-layout">' +
+              '<div class="go-donut go-week-donut" style="background:' + weekChartBackground + ';"><div class="go-donut-inner"><strong>' + weekPercentValue + '%</strong><span>del target</span></div></div>' +
+              '<div class="go-week-copy"><div class="go-week-ratio"><strong>' + formatDuration(week.totalMinutes) + '</strong><span>/ ' + formatHourValue(state.settings.weeklyTarget) + '</span></div><div class="go-progress"><span style="width:' + weekProgressStyle + ';"></span></div><div class="go-missing-box"><span class="go-missing-icon">' + icons.target + '</span><div><strong>' + weekMissingTitle + '</strong><em>' + weekMissingSub + '</em></div></div></div>' +
+            '</div>' +
+          '</section>' +
+          '<section class="go-card go-analytics-card go-month-card">' +
+            '<div class="go-card-head"><div><div class="go-kicker">Mese</div><div class="go-card-title">Composizione</div></div><div class="go-card-badge">' + monthBadgeLabel + '</div></div>' +
+            '<div class="go-month-layout">' +
+              '<div class="go-donut go-month-donut" style="background:' + monthChartBackground + ';"><div class="go-donut-inner"><strong>' + formatDuration(monthStats.totalMinutes) + '</strong><span>Totali</span></div></div>' +
+              '<div class="go-month-list">' +
+                '<button class="go-month-row" data-tab="stats"><span><i class="go-row-dot go-row-blue"></i>Ordinarie</span><strong>' + monthNormalValue + '</strong>' + icons.right + '</button>' +
+                '<button class="go-month-row" data-tab="stats"><span><i class="go-row-dot go-row-violet"></i>Straordinarie</span><strong>' + formatDuration(monthStats.overtimeMinutes || 0) + '</strong>' + icons.right + '</button>' +
+                '<button class="go-month-row" data-tab="stats"><span><i class="go-row-dot go-row-green"></i>Permessi</span><strong>' + monthPermessoValue + '</strong>' + icons.right + '</button>' +
+              '</div>' +
+            '</div>' +
+            '<button class="go-detail-btn" data-tab="stats"><span>' + icons.activity + '</span>Vedi statistiche dettagliate' + icons.right + '</button>' +
+          '</section>' +
+        '</div>';
       headerMessage = '';
       return '<div class="top home-top gestore-static-top"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack">' +
