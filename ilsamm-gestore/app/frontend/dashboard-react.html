@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>GestOre Dashboard React</title>
+  <meta name="theme-color" content="#020817" />
+  <link rel="icon" href="data:," />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif']
+          },
+          boxShadow: {
+            glass: '0 24px 70px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.08)',
+            glow: '0 0 34px rgba(99, 102, 241, .28)'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body, #root { min-height: 100%; margin: 0; background: #020817; }
+    body { font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif; }
+    .glass {
+      background:
+        radial-gradient(circle at 10% 0%, rgba(90, 161, 255, .16), transparent 36%),
+        radial-gradient(circle at 100% 0%, rgba(142, 92, 255, .14), transparent 34%),
+        linear-gradient(180deg, rgba(13, 25, 56, .78), rgba(5, 11, 28, .86));
+      border: 1px solid rgba(130, 164, 255, .22);
+      box-shadow: 0 18px 48px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.065);
+      backdrop-filter: blur(24px) saturate(1.25);
+      -webkit-backdrop-filter: blur(24px) saturate(1.25);
+    }
+    .soft-pill {
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+    }
+    .donut-week {
+      background: conic-gradient(from -90deg, #60b8ff 0deg, #8d6bff 252deg, rgba(255,255,255,.10) 252deg 360deg);
+    }
+    .donut-month {
+      background: conic-gradient(from -90deg, #4faeff 0deg 208deg, #895cff 208deg 288deg, #24d59c 288deg 324deg, rgba(255,255,255,.10) 324deg 360deg);
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import React from 'https://esm.sh/react@18.2.0';
+    import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+    import htm from 'https://esm.sh/htm@3.1.1';
+    import {
+      Activity,
+      BarChart3,
+      Battery,
+      Briefcase,
+      Calendar,
+      ChevronRight,
+      Coffee,
+      FileText,
+      Home,
+      Hourglass,
+      Receipt,
+      Settings,
+      Signal,
+      Star,
+      Wifi
+    } from 'https://esm.sh/lucide-react?deps=react@18.2.0';
+
+    const html = htm.bind(React.createElement);
+
+    const cx = (...parts) => parts.filter(Boolean).join(' ');
+
+    function StatusIcon({ icon: Icon, tone = 'blue' }) {
+      const toneClass = tone === 'green'
+        ? 'from-emerald-400/24 to-emerald-500/10 text-emerald-300'
+        : tone === 'violet'
+          ? 'from-violet-400/26 to-violet-600/12 text-violet-300'
+          : 'from-blue-400/26 to-blue-600/12 text-blue-300';
+      return html`
+        <div className=${cx('grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-b shadow-glow', toneClass)}>
+          <${Icon} size=${20} strokeWidth=${2.35} />
+        </div>
+      `;
+    }
+
+    function Badge({ children, className = '' }) {
+      return html`
+        <div className=${cx('soft-pill inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-semibold text-slate-100/90', className)}>
+          ${children}
+        </div>
+      `;
+    }
+
+    function Donut({ type, children }) {
+      return html`
+        <div className=${cx('relative grid h-[96px] w-[96px] shrink-0 place-items-center rounded-full shadow-glow', type === 'month' ? 'donut-month' : 'donut-week')}>
+          <div className="absolute inset-[10px] rounded-full bg-[#040b1b] shadow-[inset_0_0_24px_rgba(0,0,0,.46)]"></div>
+          <div className="relative z-10 text-center">${children}</div>
+        </div>
+      `;
+    }
+
+    function TopStatus() {
+      return html`
+        <div className="relative flex items-center justify-between pt-3 text-white">
+          <div className="w-[58px] text-[20px] font-bold tracking-[-.04em]">09:32</div>
+          <div className="absolute left-1/2 top-2 flex h-[54px] w-[198px] -translate-x-1/2 items-center gap-3 rounded-full bg-black px-4 shadow-[0_0_0_1px_rgba(68,142,255,.38),0_0_28px_rgba(30,144,255,.24)]">
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-400/14 text-emerald-300">
+              <${Briefcase} size=${17} fill="currentColor" strokeWidth=${2.2} />
+            </div>
+            <div className="leading-tight">
+              <div className="text-[13px] font-bold text-emerald-300">In lavoro</div>
+              <div className="text-[13px] font-semibold text-white">7h 43m</div>
+            </div>
+            <div className="ml-auto h-8 w-8 rounded-full border border-emerald-400/20 bg-emerald-400/5 shadow-[inset_0_0_10px_rgba(16,185,129,.18)]"></div>
+          </div>
+          <div className="flex w-[76px] items-center justify-end gap-1.5 text-white">
+            <${Signal} size=${17} strokeWidth=${3} />
+            <${Wifi} size=${18} strokeWidth=${3} />
+            <${Battery} size=${22} strokeWidth=${2.5} />
+          </div>
+        </div>
+      `;
+    }
+
+    function Logo() {
+      return html`
+        <div className="mt-[40px] text-center text-[40px] font-black leading-none tracking-[-.07em]">
+          <span className="text-white drop-shadow-[0_8px_22px_rgba(0,0,0,.34)]">Gest</span>
+          <span className="bg-gradient-to-br from-[#78b7ff] via-[#5e91ff] to-[#9ad8ff] bg-clip-text text-transparent drop-shadow-[0_0_22px_rgba(88,151,255,.28)]">Ore</span>
+        </div>
+      `;
+    }
+
+    function DayCard() {
+      return html`
+        <section className="glass mt-5 rounded-[30px] p-4">
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="whitespace-nowrap text-[23px] font-black tracking-[-.04em] text-white">Mercoledì 24</h1>
+            <${Badge} className="mt-0.5 px-3 py-1.5 text-[12px]">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,.82)]"></span>
+              <span>08:00 – 19:00</span>
+            </${Badge}>
+          </div>
+
+          <div className="mt-5 grid grid-cols-[1fr_auto] gap-4">
+            <div>
+              <div className="text-[14px] font-medium text-slate-300">Totale lavorato oggi</div>
+              <div className="mt-2 text-[45px] font-black leading-none tracking-[-.075em] text-white">9h 0m</div>
+            </div>
+            <div className="flex min-w-[112px] flex-col gap-3 pt-1">
+              <div className="flex items-center gap-3">
+                <${StatusIcon} icon=${Briefcase} />
+                <div>
+                  <div className="text-[18px] font-extrabold leading-none text-white">8h 0m</div>
+                  <div className="mt-1 text-[13px] text-slate-300">Ordinarie</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <${StatusIcon} icon=${Star} tone="violet" />
+                <div>
+                  <div className="text-[18px] font-extrabold leading-none text-white">1h 0m</div>
+                  <div className="mt-1 text-[13px] text-slate-300">Straordinario</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent"></div>
+          <div className="grid grid-cols-2 gap-3">
+            <${Badge} className="justify-center rounded-2xl py-2.5">
+              <${Coffee} size=${19} className="text-emerald-300" />
+              <span><b>2h</b> pausa</span>
+            </${Badge}>
+            <${Badge} className="justify-center rounded-2xl py-2.5">
+              <${FileText} size=${18} className="text-violet-300" />
+              <span>Nessuna nota</span>
+            </${Badge}>
+          </div>
+        </section>
+      `;
+    }
+
+    function WeekCard() {
+      return html`
+        <section className="glass mt-4 rounded-[30px] p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-[13px] font-extrabold uppercase tracking-[.12em] text-violet-300">Settimana</div>
+              <h2 className="mt-1 text-[22px] font-black tracking-[-.04em] text-white">Ore e target</h2>
+            </div>
+            <${Badge} className="px-3 py-1.5 text-[13px]">40h target</${Badge}>
+          </div>
+
+          <div className="mt-5 flex items-center gap-5">
+            <${Donut}>
+              <div className="text-[27px] font-black leading-none tracking-[-.05em] text-white">70%</div>
+              <div className="mt-1 text-[13px] text-slate-300">del target</div>
+            </${Donut}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[30px] font-black leading-none tracking-[-.06em] text-white">
+                28h <span className="text-[24px] text-slate-500">/ 40h</span>
+              </div>
+              <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/8">
+                <div className="h-full w-[70%] rounded-full bg-gradient-to-r from-sky-400 to-violet-500 shadow-[0_0_18px_rgba(117,128,255,.48)]"></div>
+              </div>
+              <div className="soft-pill mt-4 flex items-center gap-3 rounded-2xl px-3 py-2.5">
+                <${Hourglass} size=${23} className="shrink-0 text-violet-300" />
+                <div>
+                  <div className="text-[14px] font-extrabold text-white">Ti mancano <span className="text-violet-300">12h</span></div>
+                  <div className="mt-0.5 text-[13px] text-slate-300">4 giorni rimasti</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function MonthCard() {
+      const rows = [
+        ['bg-sky-400', 'Ordinarie', '96h 0m'],
+        ['bg-violet-400', 'Straordinarie', '16h 0m'],
+        ['bg-emerald-400', 'Permessi', '8h 0m']
+      ];
+
+      return html`
+        <section className="glass mt-4 rounded-[30px] p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-[13px] font-extrabold uppercase tracking-[.12em] text-violet-300">Mese</div>
+              <h2 className="mt-1 text-[22px] font-black tracking-[-.04em] text-white">Composizione</h2>
+            </div>
+            <${Badge} className="px-3 py-1.5 text-[13px]">24 gg</${Badge}>
+          </div>
+
+          <div className="mt-5 flex items-center gap-4">
+            <${Donut} type="month">
+              <div className="text-[18px] font-black leading-none tracking-[-.05em] text-white">120h 0m</div>
+              <div className="mt-2 text-[13px] text-slate-300">Totali</div>
+            </${Donut}>
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              ${rows.map(([dot, label, value]) => html`
+                <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3">
+                  <span className=${cx('h-3 w-3 rounded-full shadow-[0_0_16px_rgba(96,165,250,.4)]', dot)}></span>
+                  <span className="text-[14px] font-medium text-white">${label}</span>
+                  <span className="text-[14px] font-semibold text-slate-100">${value}</span>
+                  <${ChevronRight} size=${18} className="text-slate-500" />
+                </div>
+              `)}
+            </div>
+          </div>
+
+          <button className="soft-pill mt-5 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left">
+            <span className="flex items-center gap-3">
+              <${BarChart3} size=${20} className="text-white" />
+              <span className="text-[15px] font-extrabold text-white">Vedi statistiche dettagliate</span>
+            </span>
+            <${ChevronRight} size=${20} className="text-slate-400" />
+          </button>
+        </section>
+      `;
+    }
+
+    function BottomNav() {
+      const items = [
+        [Home, 'Home', true],
+        [Calendar, 'Calendario'],
+        [Activity, 'Statistiche'],
+        [Receipt, 'Buste'],
+        [Settings, 'Impostazioni']
+      ];
+
+      return html`
+        <nav className="absolute bottom-8 left-4 right-4 z-20 rounded-[31px] border border-white/10 bg-[#080d20]/78 p-2 shadow-glass backdrop-blur-2xl">
+          <div className="grid grid-cols-5 gap-1">
+            ${items.map(([Icon, label, active]) => html`
+              <button className=${cx('flex h-[58px] flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-bold', active ? 'bg-gradient-to-br from-violet-500/42 to-blue-500/26 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_10px_24px_rgba(80,70,220,.22)]' : 'text-slate-500')}>
+                <${Icon} size=${21} strokeWidth=${active ? 2.7 : 2.3} />
+                <span>${label}</span>
+              </button>
+            `)}
+          </div>
+        </nav>
+      `;
+    }
+
+    function App() {
+      return html`
+        <main className="min-h-screen bg-[#020817] text-white">
+          <div className="mx-auto flex min-h-screen w-full max-w-[430px] items-start justify-center bg-black/40 sm:py-6">
+            <div className="relative h-[852px] w-full max-w-[393px] overflow-hidden bg-[radial-gradient(circle_at_50%_-5%,rgba(40,126,210,.24),transparent_34%),radial-gradient(circle_at_0%_22%,rgba(96,165,250,.18),transparent_30%),linear-gradient(180deg,#05142b_0%,#061126_48%,#020817_100%)] px-5 pt-3 shadow-[0_0_80px_rgba(0,0,0,.58)]">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(68,123,255,.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,.035),transparent_16%,transparent_78%,rgba(0,0,0,.22))]"></div>
+              <div className="no-scrollbar relative z-10 h-full overflow-y-auto pb-[124px]">
+                <${TopStatus} />
+                <${Logo} />
+                <${DayCard} />
+                <${WeekCard} />
+                <${MonthCard} />
+              </div>
+              <${BottomNav} />
+              <div className="absolute bottom-2 left-1/2 z-30 h-1.5 w-[140px] -translate-x-1/2 rounded-full bg-white/90"></div>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    createRoot(document.getElementById('root')).render(html`<${App} />`);
+  </script>
+</body>
+</html>
