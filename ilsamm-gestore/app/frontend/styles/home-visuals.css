@@ -5360,4 +5360,325 @@ html, body, .app, .screen, .screen.active, .screen.home-screen, .screen.home-scr
   }
 }
 
+/* v92 - compact iPhone sizing pass: stop clipped labels and broken numbers */
+.screen.home-screen .go-home-logo {
+  min-height: 64px !important;
+  padding: 8px 16px 4px !important;
+  margin-bottom: 8px !important;
+}
+
+.screen.home-screen .go-home-logo .gestore-static-title {
+  font-size: clamp(38px, 10.6vw, 48px) !important;
+  letter-spacing: -.068em !important;
+}
+
+.screen.home-screen .go-home-stack {
+  gap: 14px !important;
+}
+
+.screen.home-screen .go-card {
+  border-radius: 28px !important;
+}
+
+.screen.home-screen .go-day-card {
+  min-height: 0 !important;
+  padding: 22px 18px 20px !important;
+}
+
+.screen.home-screen .go-day-head,
+.screen.home-screen .go-card-head {
+  align-items: center !important;
+  gap: 9px !important;
+}
+
+.screen.home-screen .go-day-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  font-size: clamp(28px, 7vw, 32px) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.screen.home-screen .go-time-pill {
+  max-width: 43% !important;
+  min-height: 36px !important;
+  padding: 7px 11px !important;
+  gap: 8px !important;
+  font-size: 14.5px !important;
+}
+
+.screen.home-screen .go-time-pill span {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.screen.home-screen .go-day-body {
+  grid-template-columns: minmax(0, 1fr) 124px !important;
+  gap: 12px !important;
+  margin-top: 34px !important;
+}
+
+.screen.home-screen .go-label {
+  font-size: 15px !important;
+}
+
+.screen.home-screen .go-total-number {
+  margin-top: 10px !important;
+  font-size: clamp(56px, 15.6vw, 70px) !important;
+  letter-spacing: -.082em !important;
+}
+
+.screen.home-screen .go-day-stats {
+  gap: 13px !important;
+  padding-bottom: 2px !important;
+}
+
+.screen.home-screen .go-stat-row {
+  grid-template-columns: 40px minmax(0, 1fr) !important;
+  gap: 10px !important;
+}
+
+.screen.home-screen .go-stat-icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 15px !important;
+}
+
+.screen.home-screen .go-stat-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.screen.home-screen .go-stat-row strong {
+  font-size: 22px !important;
+  line-height: 1.02 !important;
+  white-space: nowrap !important;
+}
+
+.screen.home-screen .go-stat-row em {
+  max-width: 100% !important;
+  font-size: 14px !important;
+  line-height: 1.05 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.screen.home-screen .go-divider {
+  margin: 22px 0 14px !important;
+}
+
+.screen.home-screen .go-day-badges {
+  gap: 12px !important;
+}
+
+.screen.home-screen .go-soft-badge {
+  min-height: 44px !important;
+  padding: 10px 12px !important;
+  gap: 10px !important;
+  font-size: 15px !important;
+}
+
+.screen.home-screen .go-analytics-card {
+  padding: 20px 18px !important;
+}
+
+.screen.home-screen .go-kicker {
+  margin-bottom: 7px !important;
+  font-size: 13px !important;
+}
+
+.screen.home-screen .go-card-title {
+  font-size: 23px !important;
+}
+
+.screen.home-screen .go-card-badge {
+  max-width: 46% !important;
+  min-height: 34px !important;
+  padding: 7px 12px !important;
+  font-size: 14px !important;
+}
+
+.screen.home-screen .go-week-layout,
+.screen.home-screen .go-month-layout {
+  grid-template-columns: 112px minmax(0, 1fr) !important;
+  gap: 16px !important;
+  margin-top: 22px !important;
+}
+
+.screen.home-screen .go-donut {
+  width: 112px !important;
+  height: 112px !important;
+}
+
+.screen.home-screen .go-donut::after {
+  inset: 13px !important;
+}
+
+.screen.home-screen .go-donut-inner strong {
+  font-size: 26px !important;
+}
+
+.screen.home-screen .go-donut-inner span {
+  font-size: 13px !important;
+}
+
+.screen.home-screen .go-week-copy {
+  gap: 12px !important;
+}
+
+.screen.home-screen .go-week-ratio {
+  display: flex !important;
+  align-items: baseline !important;
+  flex-wrap: nowrap !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+.screen.home-screen .go-week-ratio strong,
+.screen.home-screen .go-week-ratio span {
+  white-space: nowrap !important;
+}
+
+.screen.home-screen .go-week-ratio strong {
+  font-size: 34px !important;
+  line-height: .92 !important;
+}
+
+.screen.home-screen .go-week-ratio span {
+  font-size: 22px !important;
+}
+
+.screen.home-screen .go-progress {
+  height: 10px !important;
+}
+
+.screen.home-screen .go-missing-box {
+  grid-template-columns: 30px minmax(0, 1fr) !important;
+  min-height: 62px !important;
+  gap: 12px !important;
+  padding: 12px 13px !important;
+  border-radius: 18px !important;
+}
+
+.screen.home-screen .go-missing-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.screen.home-screen .go-missing-box strong {
+  font-size: 15px !important;
+  line-height: 1.12 !important;
+}
+
+.screen.home-screen .go-missing-box strong span {
+  white-space: nowrap !important;
+}
+
+.screen.home-screen .go-missing-box em {
+  font-size: 14px !important;
+}
+
+.screen.home-screen .go-month-donut .go-donut-inner strong {
+  font-size: 18px !important;
+}
+
+.screen.home-screen .go-month-list {
+  gap: 11px !important;
+}
+
+.screen.home-screen .go-month-row {
+  grid-template-columns: minmax(0, 1fr) auto 16px !important;
+  gap: 8px !important;
+}
+
+.screen.home-screen .go-month-row span,
+.screen.home-screen .go-month-row strong {
+  font-size: 15px !important;
+}
+
+.screen.home-screen .go-detail-btn {
+  min-height: 48px !important;
+  margin-top: 18px !important;
+  padding: 10px 14px !important;
+  grid-template-columns: 28px minmax(0, 1fr) 18px !important;
+  gap: 10px !important;
+  font-size: 15px !important;
+}
+
+@media (max-width: 390px) {
+  .screen.home-screen,
+  .screen.home-screen.active {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .screen.home-screen .go-day-card {
+    padding: 20px 16px 18px !important;
+  }
+
+  .screen.home-screen .go-day-body {
+    grid-template-columns: minmax(0, 1fr) 120px !important;
+    gap: 10px !important;
+  }
+
+  .screen.home-screen .go-day-title {
+    font-size: clamp(26px, 6.7vw, 30px) !important;
+  }
+
+  .screen.home-screen .go-time-pill {
+    padding: 7px 10px !important;
+    font-size: 14px !important;
+  }
+
+  .screen.home-screen .go-total-number {
+    font-size: clamp(52px, 15vw, 64px) !important;
+  }
+
+  .screen.home-screen .go-stat-row {
+    grid-template-columns: 36px minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .screen.home-screen .go-stat-icon {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .screen.home-screen .go-stat-row strong {
+    font-size: 20px !important;
+  }
+
+  .screen.home-screen .go-stat-row em {
+    font-size: 13px !important;
+  }
+
+  .screen.home-screen .go-analytics-card {
+    padding: 18px 16px !important;
+  }
+
+  .screen.home-screen .go-week-layout,
+  .screen.home-screen .go-month-layout {
+    grid-template-columns: 104px minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  .screen.home-screen .go-donut {
+    width: 104px !important;
+    height: 104px !important;
+  }
+
+  .screen.home-screen .go-week-ratio strong {
+    font-size: 30px !important;
+  }
+
+  .screen.home-screen .go-week-ratio span {
+    font-size: 19px !important;
+  }
+}
+
 
