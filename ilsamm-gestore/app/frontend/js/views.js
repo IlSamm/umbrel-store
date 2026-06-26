@@ -165,20 +165,41 @@ function renderPayslips() {
       var monthNormalValue = formatDuration(monthStats.normalMinutes || Math.max(0, monthStats.totalMinutes - (monthStats.overtimeMinutes || 0)));
       var monthPermessoValue = (monthStats.permesso || 0) + ' gg';
       var statDotColor = type ? type.dot : '#23dba0';
+      var scheduleStart = entry && entry.start ? entry.start : '--:--';
+      var scheduleEnd = entry && entry.end ? entry.end : '--:--';
+      var dayProgressStyle = clampChartPercent(entry ? heroPercent : 0).toFixed(2) + '%';
+      var dayTargetCopy = 'lavorate su ' + formatHourValue(state.settings.dailyTarget) + ' previste';
+      if (!entry) dayTargetCopy = 'tocca per inserire la giornata';
+      if (entry && isStateOnlyType(entry.type)) dayTargetCopy = type.label + ' segnata';
+      var dayStatusText = !entry ? 'Da compilare' : (isStateOnlyType(entry.type) ? type.label : (todayRemaining > 0 ? 'Turno in corso' : 'Turno completato'));
+      var yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      var yesterdayBreakdown = getBreakdown(getEntryForDate(yesterday));
+      var yesterdayTotal = yesterdayBreakdown.total || yesterdayBreakdown.covered || 0;
+      var dayDeltaMinutes = todayDisplayMinutes - yesterdayTotal;
+      var dayDeltaText = entry && yesterdayTotal
+        ? ((dayDeltaMinutes >= 0 ? '+' : '-') + formatDuration(Math.abs(dayDeltaMinutes)) + ' vs ieri')
+        : (entry ? 'Giornata aggiornata' : 'Registra oggi');
 
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
-          '<button class="go-card go-day-card" data-open-date="' + key + '">' +
-            '<div class="go-day-head"><div class="go-day-title">' + dayLabel + '</div><div class="go-time-pill"><span style="background:' + statDotColor + '"></span>' + timeBadgeText + '</div></div>' +
+          '<button class="go-card go-day-card go-day-card-v2" data-open-date="' + key + '">' +
+            '<div class="go-day-head"><div><div class="go-kicker go-day-kicker">Oggi</div><div class="go-day-title">' + dayLabel + '</div></div><div class="go-time-pill"><span class="go-pill-icon">' + icons.clock + '</span>' + timeBadgeText + '</div></div>' +
             '<div class="go-day-body">' +
-              '<div class="go-day-total"><div class="go-label">Totale lavorato oggi</div><div class="go-total-number">' + dayPrimaryText + '</div></div>' +
+              '<div class="go-day-total">' +
+                '<div class="go-label">Totale lavorato oggi</div>' +
+                '<div class="go-total-number">' + dayPrimaryText + '</div>' +
+                '<div class="go-day-target-copy">' + dayTargetCopy + '</div>' +
+                '<div class="go-day-range"><span>' + scheduleStart + '</span><span>' + scheduleEnd + '</span></div>' +
+                '<div class="go-day-timeline"><span style="width:' + dayProgressStyle + ';"></span></div>' +
+                '<div class="go-day-insights"><span>' + icons.check + dayStatusText + '</span><span class="go-delta">' + icons.arrowUp + dayDeltaText + '</span></div>' +
+              '</div>' +
               '<div class="go-day-stats">' +
-                '<div class="go-stat-row"><span class="go-stat-icon go-stat-blue">' + icons.receipt + '</span><span><strong>' + ordinaryText + '</strong><em>' + ordinaryLabel + '</em></span></div>' +
-                '<div class="go-stat-row"><span class="go-stat-icon go-stat-violet">' + icons.activity + '</span><span><strong>' + overtimeText + '</strong><em>Straordinario</em></span></div>' +
+                '<div class="go-stat-row"><span class="go-stat-icon go-stat-blue">' + icons.clock + '</span><span><strong>' + ordinaryText + '</strong><em>' + ordinaryLabel + '</em></span></div>' +
+                '<div class="go-stat-row"><span class="go-stat-icon go-stat-violet">' + icons.activity + '</span><span><strong>' + overtimeText + '</strong><em>Straordinarie</em></span></div>' +
               '</div>' +
             '</div>' +
-            '<div class="go-divider"></div>' +
-            '<div class="go-day-badges"><span class="go-soft-badge go-green"><i></i>' + breakText + '</span><span class="go-soft-badge go-violet"><i></i>' + noteText + '</span></div>' +
+            '<div class="go-day-badges"><span class="go-soft-badge go-green">' + icons.coffee + '<i></i>' + breakText + '</span><span class="go-soft-badge go-violet">' + icons.note + '<i></i>' + noteText + '</span></div>' +
           '</button>' +
           '<section class="go-card go-analytics-card go-week-card">' +
             '<div class="go-card-head"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ore e target</div></div><div class="go-card-badge">' + formatHourValue(state.settings.weeklyTarget) + ' target</div></div>' +
@@ -700,27 +721,27 @@ function renderOverlay() {
       if (d.type === 'riposo') {
         dynamicSections += '<div><div class="hours-card"><div class="hours-stat"><div class="large">😴</div><div class="small muted" style="margin-top:8px;">Per il riposo non servono orari o quantità.</div></div></div></div>';
       } else if (isStateOnly) {
-        dynamicSections += '<div><div class="hours-grid"><div class="sub-input-wrap" style="grid-column:1/-1;"><div class="sub-label">' + getEditorQuantityLabel(d.type) + '</div><input id="editorQuantityHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.quantityHours || 0) + '"><div class="tiny-hint">' + getEditorQuantityHint(d.type) + '</div></div></div></div>';
+        dynamicSections += '<div><div class="hours-grid"><div class="sub-input-wrap editor-wide-input" style="grid-column:1/-1;"><div class="editor-card-icon editor-icon-blue">' + icons.clock + '</div><div class="sub-label">' + getEditorQuantityLabel(d.type) + '</div><input id="editorQuantityHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.quantityHours || 0) + '"><div class="tiny-hint">' + getEditorQuantityHint(d.type) + '</div></div></div></div>';
       } else {
-        dynamicSections += '<div><div class="hours-grid"><div class="time-box ' + (normalizeTimeInputValue(d.start || '') ? 'has-time' : 'empty-time') + '"><div class="small muted">Entrata</div><div class="time-field"><input id="editorStart" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.start || '') + '"><div class="time-placeholder" aria-hidden="true">-- : --</div></div></div><div class="time-box ' + (normalizeTimeInputValue(d.end || '') ? 'has-time' : 'empty-time') + '"><div class="small muted">Uscita</div><div class="time-field"><input id="editorEnd" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.end || '') + '"><div class="time-placeholder" aria-hidden="true">-- : --</div></div></div></div></div>';
+        dynamicSections += '<div><div class="hours-grid editor-time-grid"><div class="time-box editor-time-card ' + (normalizeTimeInputValue(d.start || '') ? 'has-time' : 'empty-time') + '"><div class="editor-card-icon editor-icon-blue">' + icons.right + '</div><div class="small muted">Entrata</div><div class="time-field"><input id="editorStart" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.start || '') + '"><div class="time-placeholder" aria-hidden="true">-- : --</div></div></div><div class="time-box editor-time-card ' + (normalizeTimeInputValue(d.end || '') ? 'has-time' : 'empty-time') + '"><div class="editor-card-icon editor-icon-violet">' + icons.left + '</div><div class="small muted">Uscita</div><div class="time-field"><input id="editorEnd" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.end || '') + '"><div class="time-placeholder" aria-hidden="true">-- : --</div></div></div></div></div>';
         dynamicSections += '<div><div class="hours-grid">' +
-          '<div class="sub-input-wrap"><div class="sub-label">Pausa (ore)</div><input id="editorBreakHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.breakHours || 0) + '"></div>' +
-          (isMixed ? '<div class="sub-input-wrap"><div class="sub-label">Ore ferie</div><input id="editorLeaveHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.leaveHours || 0) + '"></div>' : '') +
-          '<div class="sub-input-wrap"><div class="sub-label">Straordinarie</div><input id="editorOvertimeHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.overtimeHours || 0) + '"></div>' +
+          '<div class="sub-input-wrap editor-number-card"><div class="editor-card-icon editor-icon-green">' + icons.coffee + '</div><div class="sub-label">Pausa</div><input id="editorBreakHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.breakHours || 0) + '"></div>' +
+          (isMixed ? '<div class="sub-input-wrap editor-number-card"><div class="editor-card-icon editor-icon-blue">' + icons.calendar + '</div><div class="sub-label">Ore ferie</div><input id="editorLeaveHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.leaveHours || 0) + '"></div>' : '') +
+          '<div class="sub-input-wrap editor-number-card"><div class="editor-card-icon editor-icon-blue">' + icons.star + '</div><div class="sub-label">Extra</div><input id="editorOvertimeHours" class="sub-input textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.overtimeHours || 0) + '"></div>' +
         '</div></div>';
       }
 
       summaryHtml = summaryHtml.replace(/hours-card/g, 'hours-card editor-hours-card').replace(/hours-stat/g, 'hours-stat editor-hours-stat');
       var holidayBadge = holidayName ? '<div class="editor-holiday-badge"><span class="editor-holiday-badge-icon">🎉</span><span>' + escapeHtml(holidayName) + '</span></div>' : '';
 
-      return '<div class="overlay open editor-overlay"><div class="overlay-header editor-header"><button class="icon editor-close" data-close-editor="1">' + icons.x + '</button><div class="editor-header-center"><div class="editor-header-day">' + label + '</div><div class="editor-header-date">' + date.getDate() + ' ' + monthNames[date.getMonth()] + ' ' + date.getFullYear() + '</div></div><button class="ghost editor-save-btn" data-save-day="1">Salva</button></div>' +
+      return '<div class="overlay open editor-overlay editor-overlay-v2"><div class="overlay-header editor-header"><button class="icon editor-close" data-close-editor="1">' + icons.x + '</button><div class="editor-header-center"><div class="editor-header-day">' + label + '</div><div class="editor-header-date">' + date.getDate() + ' ' + monthNames[date.getMonth()] + ' ' + date.getFullYear() + '</div></div><button class="ghost editor-save-btn" data-save-day="1">Salva</button></div>' +
         '<div class="overlay-scroll"><div class="stack editor-stack">' +
         '<div class="editor-section editor-type-section"><div class="type-picker-wrap"><div class="type-list"><button class="type-row editor-type-row-main" data-toggle-type-open="1"><div class="type-row-left"><div class="type-icon" style="background:' + typeIconBg(d.type) + '">' + typeIconSvg(d.type) + '</div><div><div class="type-main-label">' + currentType.label + '</div>' + holidayBadge + '</div></div><span>' + icons.right + '</span></button>' +
         (state.typeOpen ? '<div class="type-options">' + others.map(function (pair) { return '<button class="type-row editor-type-row-option" data-select-type="' + pair[0] + '"><div class="type-row-left"><div class="type-icon" style="background:' + typeIconBg(pair[0]) + '">' + typeIconSvg(pair[0]) + '</div><div class="type-secondary-label">' + pair[1].label + '</div></div><span class="editor-select-copy">Scegli</span></button>'; }).join('') + '</div>' : '') + '</div></div></div>' +
         '<div class="editor-section editor-input-section">' + dynamicSections + '</div>' +
         '<div class="editor-section editor-summary-section">' + summaryHtml + '</div>' +
-        '<div class="editor-section editor-notes-section"><button class="collapse-btn editor-collapse-btn" data-toggle-notes-open="1"><div><div>Annotazioni giornata</div></div><span>' + icons.right + '</span></button><div class="collapse-panel ' + (state.notesOpen ? 'open' : '') + '"><textarea id="editorNotes" class="notes" placeholder="Scrivi qui eventuali note...">' + escapeHtml(d.notes) + '</textarea></div></div>' +
-        '<div class="editor-section editor-danger-section"><div class="editor-actions"><button class="ghost danger editor-danger-btn" data-clear-day="1">Cancella tutte le ore del giorno</button></div></div>' +
+        '<div class="editor-section editor-notes-section"><button class="collapse-btn editor-collapse-btn" data-toggle-notes-open="1"><div class="editor-notes-title"><span class="editor-card-icon editor-icon-blue">' + icons.note + '</span><div>Annotazioni</div></div><span>' + icons.right + '</span></button><div class="collapse-panel ' + (state.notesOpen ? 'open' : '') + '"><textarea id="editorNotes" class="notes" placeholder="Aggiungi una nota...">' + escapeHtml(d.notes) + '</textarea></div></div>' +
+        '<div class="editor-section editor-danger-section"><div class="editor-actions"><button class="ghost danger editor-danger-btn" data-clear-day="1">' + icons.trash + 'Cancella giornata</button></div></div>' +
         '</div></div></div>';
     }
 
