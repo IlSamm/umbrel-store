@@ -1321,4 +1321,124 @@
   }
 }
 
+/* v94 - softer editor proportions and borders */
+.editor-overlay-v2 .type-row,
+.editor-overlay-v2 .time-box,
+.editor-overlay-v2 .sub-input-wrap,
+.editor-overlay-v2 .editor-hours-card,
+.editor-overlay-v2 .editor-collapse-btn,
+.editor-overlay-v2 .notes {
+  border-width: 1px !important;
+  border-color: rgba(139, 169, 230, .14) !important;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(88, 150, 255, .105), transparent 32%),
+    radial-gradient(circle at 88% 8%, rgba(135, 98, 255, .095), transparent 30%),
+    linear-gradient(180deg, rgba(18, 34, 70, .50), rgba(5, 13, 31, .82)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .055),
+    0 16px 34px rgba(0, 0, 0, .22) !important;
+}
+
+.editor-overlay-v2 .type-row::before,
+.editor-overlay-v2 .time-box::before,
+.editor-overlay-v2 .sub-input-wrap::before,
+.editor-overlay-v2 .editor-hours-card::before,
+.editor-overlay-v2 .editor-hours-stat::before,
+.editor-overlay-v2 .editor-collapse-btn::before,
+.editor-overlay-v2 .notes::before {
+  opacity: .44 !important;
+}
+
+.editor-overlay-v2 .editor-card-icon {
+  border-color: rgba(130, 170, 255, .16) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .07),
+    0 10px 20px rgba(0, 0, 0, .15) !important;
+}
+
+.editor-overlay-v2 .editor-close,
+.editor-overlay-v2 .editor-save-btn {
+  border-width: 1px !important;
+}
+
+@media (max-width: 430px) {
+  .editor-overlay-v2 .editor-header {
+    padding: calc(var(--safe-top) + 16px) 20px 14px !important;
+  }
+
+  .editor-overlay-v2 .overlay-scroll {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    padding-top: 12px !important;
+  }
+
+  .editor-overlay-v2 .editor-stack {
+    gap: 15px !important;
+  }
+
+  .editor-overlay-v2 .editor-type-row-main {
+    min-height: 94px !important;
+    padding: 16px 18px !important;
+    border-radius: 27px !important;
+  }
+
+  .editor-overlay-v2 .type-icon {
+    width: 58px !important;
+    height: 58px !important;
+    border-radius: 21px !important;
+  }
+
+  .editor-overlay-v2 .type-main-label {
+    font-size: 26px !important;
+  }
+
+  .editor-overlay-v2 .time-box,
+  .editor-overlay-v2 .sub-input-wrap {
+    min-height: 108px !important;
+    padding: 17px 14px 15px !important;
+    border-radius: 25px !important;
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+  }
+
+  .editor-overlay-v2 .hours-grid {
+    gap: 14px !important;
+  }
+
+  .editor-overlay-v2 .time-box .small.muted,
+  .editor-overlay-v2 .sub-label {
+    margin-bottom: 10px !important;
+    font-size: 12.5px !important;
+  }
+
+  .editor-overlay-v2 .time-input-big,
+  .editor-overlay-v2 .time-placeholder {
+    font-size: clamp(30px, 7.5vw, 38px) !important;
+    letter-spacing: -.06em !important;
+  }
+
+  .editor-overlay-v2 .sub-input {
+    font-size: clamp(36px, 9vw, 48px) !important;
+  }
+
+  .editor-overlay-v2 .editor-summary-section .editor-hours-card {
+    padding: 12px !important;
+    border-radius: 26px !important;
+  }
+
+  .editor-overlay-v2 .editor-hours-stat {
+    min-height: 72px !important;
+    border-radius: 19px !important;
+  }
+
+  .editor-overlay-v2 .editor-hours-stat .large {
+    font-size: clamp(24px, 6.4vw, 32px) !important;
+  }
+
+  .editor-overlay-v2 .editor-collapse-btn {
+    min-height: 82px !important;
+    padding: 16px 20px !important;
+    border-radius: 27px !important;
+  }
+}
+
 
