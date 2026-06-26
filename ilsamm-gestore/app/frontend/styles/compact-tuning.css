@@ -1,0 +1,333 @@
+/* Final compact scale pass. Imported last on purpose. */
+@media (max-width: 430px) {
+  .screen.home-screen,
+  .screen.home-screen.active {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .screen.home-screen .go-home-logo {
+    min-height: 42px !important;
+    padding-top: 0 !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .screen.home-screen .go-home-logo .gestore-static-title {
+    min-height: 38px !important;
+    max-width: calc(100vw - 72px) !important;
+    padding: 0 8px 4px !important;
+    font-size: clamp(30px, 8.2vw, 35px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: -.048em !important;
+  }
+
+  .screen.home-screen .go-home-stack {
+    gap: 10px !important;
+  }
+
+  .screen.home-screen .go-card {
+    border-radius: 22px !important;
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, .22),
+      inset 0 1px 0 rgba(255, 255, 255, .045),
+      inset 0 -12px 24px rgba(2, 7, 20, .16) !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 {
+    padding: 13px 14px 12px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-day-head {
+    gap: 8px !important;
+  }
+
+  .screen.home-screen .go-day-kicker {
+    margin-bottom: 3px !important;
+    font-size: 10px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-day-title {
+    max-width: calc(100% - 126px) !important;
+    font-size: clamp(22px, 5.9vw, 26px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-time-pill {
+    min-width: 112px !important;
+    max-width: 122px !important;
+    min-height: 30px !important;
+    padding: 4px 8px !important;
+    gap: 6px !important;
+    font-size: 11.4px !important;
+  }
+
+  .screen.home-screen .go-time-pill .go-pill-icon {
+    width: 18px !important;
+    height: 18px !important;
+    flex: 0 0 18px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-day-body {
+    grid-template-columns: minmax(0, 1fr) 126px !important;
+    gap: 8px !important;
+    margin-top: 15px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-day-body::after {
+    left: calc(100% - 134px) !important;
+    opacity: .38 !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-label {
+    font-size: 12px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-total-number {
+    max-width: 188px !important;
+    min-height: 48px !important;
+    margin-top: 4px !important;
+    font-size: clamp(41px, 11.7vw, 46px) !important;
+    line-height: 1.02 !important;
+    letter-spacing: -.052em !important;
+  }
+
+  .screen.home-screen .go-day-target-copy {
+    margin-top: 4px !important;
+    font-size: 11.8px !important;
+  }
+
+  .screen.home-screen .go-day-range {
+    margin-top: 10px !important;
+    font-size: 11.8px !important;
+  }
+
+  .screen.home-screen .go-day-timeline {
+    height: 4px !important;
+    margin-top: 5px !important;
+  }
+
+  .screen.home-screen .go-day-insights {
+    margin-top: 8px !important;
+    gap: 6px !important;
+    font-size: 11.8px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-day-stats {
+    gap: 12px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-stat-row {
+    grid-template-columns: 28px minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-stat-icon {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-stat-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-stat-row strong {
+    font-size: 18px !important;
+    line-height: 1.08 !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-stat-row em {
+    font-size: 11.2px !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-day-badges {
+    margin-top: 10px !important;
+    gap: 8px !important;
+  }
+
+  .screen.home-screen .go-day-card-v2 .go-soft-badge {
+    min-height: 35px !important;
+    padding: 6px 8px !important;
+    border-radius: 15px !important;
+    gap: 7px !important;
+    font-size: 11.5px !important;
+  }
+
+  .screen.home-screen .go-week-card,
+  .screen.home-screen .go-month-card {
+    padding: 13px 14px !important;
+  }
+
+  .screen.home-screen .go-kicker {
+    margin-bottom: 3px !important;
+    font-size: 10.8px !important;
+  }
+
+  .screen.home-screen .go-card-title {
+    font-size: 17.5px !important;
+  }
+
+  .screen.home-screen .go-card-badge {
+    min-height: 28px !important;
+    padding: 4px 9px !important;
+    font-size: 11.8px !important;
+  }
+
+  .screen.home-screen .go-week-card .go-week-layout,
+  .screen.home-screen .go-month-layout {
+    grid-template-columns: 82px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    margin-top: 12px !important;
+  }
+
+  .screen.home-screen .go-week-card .go-donut,
+  .screen.home-screen .go-month-card .go-donut {
+    width: 82px !important;
+    height: 82px !important;
+  }
+
+  .editor-overlay-v2 .editor-header {
+    padding: calc(var(--safe-top) + 10px) 18px 8px !important;
+  }
+
+  .editor-overlay-v2 .editor-header-day {
+    min-height: 35px !important;
+    font-size: clamp(28px, 7.6vw, 34px) !important;
+    line-height: 1.04 !important;
+  }
+
+  .editor-overlay-v2 .editor-header-date {
+    margin-top: 2px !important;
+    font-size: clamp(14px, 3.65vw, 16px) !important;
+  }
+
+  .editor-overlay-v2 .editor-close {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+  }
+
+  .editor-overlay-v2 .editor-save-btn {
+    min-height: 44px !important;
+    min-width: 64px !important;
+    padding: 0 14px !important;
+    border-radius: 17px !important;
+    font-size: 15px !important;
+  }
+
+  .editor-overlay-v2 .overlay-scroll {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    padding-top: 8px !important;
+  }
+
+  .editor-overlay-v2 .editor-stack,
+  .editor-overlay-v2 .type-picker-wrap,
+  .editor-overlay-v2 .type-list,
+  .editor-overlay-v2 .editor-input-section,
+  .editor-overlay-v2 .editor-summary-section,
+  .editor-overlay-v2 .editor-notes-section,
+  .editor-overlay-v2 .editor-danger-section {
+    gap: 11px !important;
+  }
+
+  .editor-overlay-v2 .editor-type-row-main {
+    min-height: 76px !important;
+    padding: 12px 15px !important;
+    border-radius: 23px !important;
+  }
+
+  .editor-overlay-v2 .type-icon {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 17px !important;
+  }
+
+  .editor-overlay-v2 .type-main-label {
+    min-height: 29px !important;
+    font-size: clamp(22px, 5.9vw, 26px) !important;
+  }
+
+  .editor-overlay-v2 .hours-grid {
+    gap: 10px !important;
+  }
+
+  .editor-overlay-v2 .time-box,
+  .editor-overlay-v2 .sub-input-wrap {
+    min-height: 82px !important;
+    padding: 12px 8px 10px !important;
+    border-radius: 21px !important;
+    grid-template-columns: 31px minmax(0, 1fr) !important;
+    column-gap: 5px !important;
+  }
+
+  .editor-overlay-v2 .editor-card-icon {
+    width: 31px !important;
+    height: 31px !important;
+    border-radius: 14px !important;
+  }
+
+  .editor-overlay-v2 .editor-card-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .editor-overlay-v2 .time-box .small.muted,
+  .editor-overlay-v2 .sub-label {
+    margin-bottom: 5px !important;
+    font-size: 10.8px !important;
+  }
+
+  .editor-overlay-v2 .time-input-big,
+  .editor-overlay-v2 .time-placeholder {
+    min-width: 0 !important;
+    min-height: 36px !important;
+    font-size: clamp(24px, 6.25vw, 27px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .editor-overlay-v2 .sub-input {
+    min-height: 36px !important;
+    font-size: clamp(29px, 7.5vw, 35px) !important;
+  }
+
+  .editor-overlay-v2 .editor-summary-section .editor-hours-card {
+    padding: 9px !important;
+    border-radius: 22px !important;
+  }
+
+  .editor-overlay-v2 .editor-hours-stat {
+    min-height: 58px !important;
+    border-radius: 16px !important;
+  }
+
+  .editor-overlay-v2 .editor-hours-stat .small {
+    font-size: 10px !important;
+  }
+
+  .editor-overlay-v2 .editor-hours-stat .large {
+    min-height: 25px !important;
+    font-size: clamp(20px, 5.4vw, 26px) !important;
+  }
+
+  .editor-overlay-v2 .editor-collapse-btn {
+    min-height: 66px !important;
+    padding: 13px 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .editor-overlay-v2 .editor-collapse-btn .title {
+    font-size: 18px !important;
+  }
+
+  .editor-overlay-v2 .editor-danger-btn {
+    min-height: 54px !important;
+    border-radius: 21px !important;
+    font-size: 18px !important;
+  }
+}
