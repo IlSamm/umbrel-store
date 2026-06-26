@@ -1,229 +1,384 @@
 /* Final compact scale pass. Imported last on purpose. */
 @media (max-width: 430px) {
+  html,
+  body {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  #app,
+  #app.app,
+  .app {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .screen,
+  .screen.active {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
   .screen.home-screen,
   .screen.home-screen.active {
-    padding-left: 14px !important;
-    padding-right: 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
 
   .screen.home-screen .go-home-logo {
-    min-height: 42px !important;
+    min-height: 32px !important;
     padding-top: 0 !important;
-    padding-bottom: 2px !important;
-    margin-bottom: 2px !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
   }
 
   .screen.home-screen .go-home-logo .gestore-static-title {
-    min-height: 38px !important;
-    max-width: calc(100vw - 72px) !important;
-    padding: 0 8px 4px !important;
-    font-size: clamp(30px, 8.2vw, 35px) !important;
-    line-height: 1.08 !important;
-    letter-spacing: -.048em !important;
+    min-height: 30px !important;
+    max-width: calc(100vw - 96px) !important;
+    padding: 0 6px 2px !important;
+    font-size: clamp(25px, 7.1vw, 30px) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -.04em !important;
   }
 
   .screen.home-screen .go-home-stack {
-    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
   }
 
   .screen.home-screen .go-card {
-    border-radius: 22px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 18px !important;
     box-shadow:
-      0 12px 28px rgba(0, 0, 0, .22),
+      0 9px 22px rgba(0, 0, 0, .20),
       inset 0 1px 0 rgba(255, 255, 255, .045),
-      inset 0 -12px 24px rgba(2, 7, 20, .16) !important;
+      inset 0 -9px 18px rgba(2, 7, 20, .15) !important;
   }
 
   .screen.home-screen .go-day-card-v2 {
-    padding: 13px 14px 12px !important;
+    padding: 10px 11px 10px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-head {
-    gap: 8px !important;
+    gap: 6px !important;
   }
 
   .screen.home-screen .go-day-kicker {
-    margin-bottom: 3px !important;
-    font-size: 10px !important;
+    margin-bottom: 2px !important;
+    font-size: 9px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-title {
-    max-width: calc(100% - 126px) !important;
-    font-size: clamp(22px, 5.9vw, 26px) !important;
-    line-height: 1.08 !important;
+    max-width: calc(100% - 114px) !important;
+    font-size: clamp(19px, 5.25vw, 23px) !important;
+    line-height: 1.04 !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-time-pill {
-    min-width: 112px !important;
-    max-width: 122px !important;
-    min-height: 30px !important;
-    padding: 4px 8px !important;
-    gap: 6px !important;
-    font-size: 11.4px !important;
+    min-width: 101px !important;
+    max-width: 112px !important;
+    min-height: 26px !important;
+    padding: 3px 7px !important;
+    gap: 5px !important;
+    font-size: 10.2px !important;
   }
 
   .screen.home-screen .go-time-pill .go-pill-icon {
-    width: 18px !important;
-    height: 18px !important;
-    flex: 0 0 18px !important;
+    width: 15px !important;
+    height: 15px !important;
+    flex: 0 0 15px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-body {
-    grid-template-columns: minmax(0, 1fr) 126px !important;
-    gap: 8px !important;
-    margin-top: 15px !important;
+    grid-template-columns: minmax(0, 1fr) 118px !important;
+    gap: 6px !important;
+    margin-top: 10px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-body::after {
-    left: calc(100% - 134px) !important;
-    opacity: .38 !important;
+    left: calc(100% - 124px) !important;
+    opacity: .30 !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-label {
-    font-size: 12px !important;
+    font-size: 10.8px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-total-number {
-    max-width: 188px !important;
-    min-height: 48px !important;
-    margin-top: 4px !important;
-    font-size: clamp(41px, 11.7vw, 46px) !important;
-    line-height: 1.02 !important;
-    letter-spacing: -.052em !important;
+    max-width: 170px !important;
+    min-height: 40px !important;
+    margin-top: 2px !important;
+    font-size: clamp(34px, 10vw, 39px) !important;
+    line-height: 1.0 !important;
+    letter-spacing: -.045em !important;
   }
 
   .screen.home-screen .go-day-target-copy {
-    margin-top: 4px !important;
-    font-size: 11.8px !important;
+    margin-top: 2px !important;
+    font-size: 10.6px !important;
   }
 
   .screen.home-screen .go-day-range {
-    margin-top: 10px !important;
-    font-size: 11.8px !important;
+    margin-top: 7px !important;
+    font-size: 10.6px !important;
   }
 
   .screen.home-screen .go-day-timeline {
-    height: 4px !important;
-    margin-top: 5px !important;
+    height: 3px !important;
+    margin-top: 4px !important;
   }
 
   .screen.home-screen .go-day-insights {
-    margin-top: 8px !important;
-    gap: 6px !important;
-    font-size: 11.8px !important;
+    margin-top: 6px !important;
+    gap: 5px !important;
+    font-size: 10.6px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-stats {
-    gap: 12px !important;
+    gap: 9px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-row {
-    grid-template-columns: 28px minmax(0, 1fr) !important;
-    gap: 6px !important;
+    grid-template-columns: 24px minmax(0, 1fr) !important;
+    gap: 5px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-icon {
-    width: 28px !important;
-    height: 28px !important;
+    width: 24px !important;
+    height: 24px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-icon svg {
-    width: 16px !important;
-    height: 16px !important;
+    width: 14px !important;
+    height: 14px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-row strong {
-    font-size: 18px !important;
-    line-height: 1.08 !important;
+    font-size: 15.5px !important;
+    line-height: 1.04 !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-row em {
-    font-size: 11.2px !important;
-    line-height: 1.15 !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
     white-space: nowrap !important;
     overflow: visible !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-badges {
-    margin-top: 10px !important;
-    gap: 8px !important;
+    margin-top: 7px !important;
+    gap: 6px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-soft-badge {
-    min-height: 35px !important;
-    padding: 6px 8px !important;
-    border-radius: 15px !important;
-    gap: 7px !important;
-    font-size: 11.5px !important;
+    min-height: 30px !important;
+    padding: 5px 7px !important;
+    border-radius: 13px !important;
+    gap: 5px !important;
+    font-size: 10px !important;
   }
 
   .screen.home-screen .go-week-card,
   .screen.home-screen .go-month-card {
-    padding: 13px 14px !important;
+    padding: 10px 11px !important;
   }
 
   .screen.home-screen .go-kicker {
-    margin-bottom: 3px !important;
-    font-size: 10.8px !important;
+    margin-bottom: 2px !important;
+    font-size: 9.6px !important;
   }
 
   .screen.home-screen .go-card-title {
-    font-size: 17.5px !important;
+    font-size: 15.8px !important;
   }
 
   .screen.home-screen .go-card-badge {
-    min-height: 28px !important;
-    padding: 4px 9px !important;
-    font-size: 11.8px !important;
+    min-height: 24px !important;
+    padding: 3px 8px !important;
+    font-size: 10.6px !important;
   }
 
   .screen.home-screen .go-week-card .go-week-layout,
   .screen.home-screen .go-month-layout {
-    grid-template-columns: 82px minmax(0, 1fr) !important;
+    grid-template-columns: 78px minmax(0, 1fr) !important;
     gap: 12px !important;
-    margin-top: 12px !important;
+    margin-top: 8px !important;
   }
 
   .screen.home-screen .go-week-card .go-donut,
   .screen.home-screen .go-month-card .go-donut {
-    width: 82px !important;
-    height: 82px !important;
+    width: 78px !important;
+    height: 78px !important;
+  }
+
+  .screen.home-screen .go-donut::after {
+    inset: 9px !important;
+  }
+
+  .screen.home-screen .go-donut-inner strong {
+    max-width: 58px !important;
+    font-size: 19px !important;
+    line-height: .98 !important;
+    letter-spacing: -.055em !important;
+  }
+
+  .screen.home-screen .go-month-donut .go-donut-inner strong {
+    max-width: 62px !important;
+    font-size: 14.5px !important;
+    letter-spacing: -.045em !important;
+  }
+
+  .screen.home-screen .go-donut-inner span {
+    margin-top: 2px !important;
+    font-size: 9px !important;
+    line-height: 1.05 !important;
+  }
+
+  .screen.home-screen .go-week-copy {
+    gap: 8px !important;
+  }
+
+  .screen.home-screen .go-week-ratio {
+    gap: 4px !important;
+  }
+
+  .screen.home-screen .go-week-ratio strong {
+    font-size: clamp(24px, 8vw, 31px) !important;
+    line-height: .95 !important;
+  }
+
+  .screen.home-screen .go-week-ratio span {
+    font-size: clamp(17px, 5.4vw, 22px) !important;
+    line-height: 1 !important;
+  }
+
+  .screen.home-screen .go-progress {
+    height: 5px !important;
+  }
+
+  .screen.home-screen .go-missing-box {
+    grid-template-columns: 24px minmax(0, 1fr) !important;
+    min-height: 44px !important;
+    padding: 7px 9px !important;
+    border-radius: 14px !important;
+    gap: 8px !important;
+  }
+
+  .screen.home-screen .go-missing-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .screen.home-screen .go-missing-box strong {
+    font-size: 13px !important;
+    line-height: 1.05 !important;
+  }
+
+  .screen.home-screen .go-missing-box em {
+    margin-top: 2px !important;
+    font-size: 12px !important;
+    line-height: 1.05 !important;
+  }
+
+  .screen.home-screen .go-month-list {
+    gap: 7px !important;
+  }
+
+  .screen.home-screen .go-month-row {
+    grid-template-columns: minmax(0, 1fr) auto 14px !important;
+    min-height: 26px !important;
+    gap: 6px !important;
+  }
+
+  .screen.home-screen .go-month-row span {
+    gap: 7px !important;
+    font-size: 12.8px !important;
+    white-space: nowrap !important;
+  }
+
+  .screen.home-screen .go-month-row strong {
+    font-size: 12.8px !important;
+  }
+
+  .screen.home-screen .go-row-dot {
+    width: 8px !important;
+    height: 8px !important;
+    flex: 0 0 8px !important;
+  }
+
+  .screen.home-screen .go-month-row svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .screen.home-screen .go-detail-btn {
+    grid-template-columns: 22px minmax(0, 1fr) 14px !important;
+    min-height: 36px !important;
+    margin-top: 10px !important;
+    padding: 7px 10px !important;
+    gap: 7px !important;
+    font-size: 12.8px !important;
+  }
+
+  .screen.home-screen .go-detail-btn span svg,
+  .screen.home-screen .go-detail-btn > svg {
+    width: 14px !important;
+    height: 14px !important;
   }
 
   .editor-overlay-v2 .editor-header {
-    padding: calc(var(--safe-top) + 10px) 18px 8px !important;
+    padding: calc(var(--safe-top) + 7px) 16px 6px !important;
   }
 
   .editor-overlay-v2 .editor-header-day {
-    min-height: 35px !important;
-    font-size: clamp(28px, 7.6vw, 34px) !important;
-    line-height: 1.04 !important;
+    min-height: 30px !important;
+    font-size: clamp(24px, 6.75vw, 30px) !important;
+    line-height: 1.0 !important;
   }
 
   .editor-overlay-v2 .editor-header-date {
-    margin-top: 2px !important;
-    font-size: clamp(14px, 3.65vw, 16px) !important;
+    margin-top: 1px !important;
+    font-size: clamp(12.5px, 3.25vw, 14.5px) !important;
   }
 
   .editor-overlay-v2 .editor-close {
-    width: 46px !important;
-    height: 46px !important;
-    min-width: 46px !important;
-    min-height: 46px !important;
+    width: 39px !important;
+    height: 39px !important;
+    min-width: 39px !important;
+    min-height: 39px !important;
   }
 
   .editor-overlay-v2 .editor-save-btn {
-    min-height: 44px !important;
-    min-width: 64px !important;
-    padding: 0 14px !important;
-    border-radius: 17px !important;
-    font-size: 15px !important;
+    min-height: 39px !important;
+    min-width: 58px !important;
+    padding: 0 12px !important;
+    border-radius: 15px !important;
+    font-size: 13.5px !important;
   }
 
   .editor-overlay-v2 .overlay-scroll {
-    padding-left: 18px !important;
-    padding-right: 18px !important;
-    padding-top: 8px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 6px !important;
   }
 
   .editor-overlay-v2 .editor-stack,
@@ -233,101 +388,101 @@
   .editor-overlay-v2 .editor-summary-section,
   .editor-overlay-v2 .editor-notes-section,
   .editor-overlay-v2 .editor-danger-section {
-    gap: 11px !important;
+    gap: 8px !important;
   }
 
   .editor-overlay-v2 .editor-type-row-main {
-    min-height: 76px !important;
-    padding: 12px 15px !important;
-    border-radius: 23px !important;
+    min-height: 62px !important;
+    padding: 9px 13px !important;
+    border-radius: 18px !important;
   }
 
   .editor-overlay-v2 .type-icon {
-    width: 48px !important;
-    height: 48px !important;
-    border-radius: 17px !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 14px !important;
   }
 
   .editor-overlay-v2 .type-main-label {
-    min-height: 29px !important;
-    font-size: clamp(22px, 5.9vw, 26px) !important;
+    min-height: 24px !important;
+    font-size: clamp(19px, 5.1vw, 23px) !important;
   }
 
   .editor-overlay-v2 .hours-grid {
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   .editor-overlay-v2 .time-box,
   .editor-overlay-v2 .sub-input-wrap {
-    min-height: 82px !important;
-    padding: 12px 8px 10px !important;
-    border-radius: 21px !important;
-    grid-template-columns: 31px minmax(0, 1fr) !important;
-    column-gap: 5px !important;
+    min-height: 68px !important;
+    padding: 9px 7px 8px !important;
+    border-radius: 17px !important;
+    grid-template-columns: 25px minmax(0, 1fr) !important;
+    column-gap: 4px !important;
   }
 
   .editor-overlay-v2 .editor-card-icon {
-    width: 31px !important;
-    height: 31px !important;
-    border-radius: 14px !important;
+    width: 25px !important;
+    height: 25px !important;
+    border-radius: 11px !important;
   }
 
   .editor-overlay-v2 .editor-card-icon svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 15px !important;
+    height: 15px !important;
   }
 
   .editor-overlay-v2 .time-box .small.muted,
   .editor-overlay-v2 .sub-label {
-    margin-bottom: 5px !important;
-    font-size: 10.8px !important;
+    margin-bottom: 3px !important;
+    font-size: 9.5px !important;
   }
 
   .editor-overlay-v2 .time-input-big,
   .editor-overlay-v2 .time-placeholder {
     min-width: 0 !important;
-    min-height: 36px !important;
-    font-size: clamp(24px, 6.25vw, 27px) !important;
-    line-height: 1.05 !important;
+    min-height: 29px !important;
+    font-size: clamp(20px, 5.35vw, 23px) !important;
+    line-height: 1.0 !important;
   }
 
   .editor-overlay-v2 .sub-input {
-    min-height: 36px !important;
-    font-size: clamp(29px, 7.5vw, 35px) !important;
+    min-height: 29px !important;
+    font-size: clamp(24px, 6.4vw, 30px) !important;
   }
 
   .editor-overlay-v2 .editor-summary-section .editor-hours-card {
-    padding: 9px !important;
-    border-radius: 22px !important;
+    padding: 7px !important;
+    border-radius: 18px !important;
   }
 
   .editor-overlay-v2 .editor-hours-stat {
-    min-height: 58px !important;
-    border-radius: 16px !important;
+    min-height: 48px !important;
+    border-radius: 14px !important;
   }
 
   .editor-overlay-v2 .editor-hours-stat .small {
-    font-size: 10px !important;
+    font-size: 9px !important;
   }
 
   .editor-overlay-v2 .editor-hours-stat .large {
-    min-height: 25px !important;
-    font-size: clamp(20px, 5.4vw, 26px) !important;
+    min-height: 21px !important;
+    font-size: clamp(17px, 4.7vw, 22px) !important;
   }
 
   .editor-overlay-v2 .editor-collapse-btn {
-    min-height: 66px !important;
-    padding: 13px 16px !important;
-    border-radius: 22px !important;
+    min-height: 54px !important;
+    padding: 10px 14px !important;
+    border-radius: 18px !important;
   }
 
   .editor-overlay-v2 .editor-collapse-btn .title {
-    font-size: 18px !important;
+    font-size: 15.5px !important;
   }
 
   .editor-overlay-v2 .editor-danger-btn {
-    min-height: 54px !important;
-    border-radius: 21px !important;
-    font-size: 18px !important;
+    min-height: 44px !important;
+    border-radius: 17px !important;
+    font-size: 15.5px !important;
   }
 }
