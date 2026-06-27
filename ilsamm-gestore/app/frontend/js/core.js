@@ -47,7 +47,8 @@ var errorBox = document.getElementById('errorBox');
       autoRestDays: [],
       holidayHoursOnOffDays: false,
       weekdayMode: 'monday',
-      version: '1.1.79',
+      version: '1.1.80',
+      build: '20260628a',
       appName: 'GestOre'
     };
 
@@ -226,6 +227,7 @@ var errorBox = document.getElementById('errorBox');
       merged.holidayHoursOnOffDays = Boolean(merged.holidayHoursOnOffDays);
       merged.weekdayMode = defaultSettings.weekdayMode;
       merged.version = defaultSettings.version;
+      merged.build = defaultSettings.build;
       return merged;
     }
     function getAutoRestDays(source) {

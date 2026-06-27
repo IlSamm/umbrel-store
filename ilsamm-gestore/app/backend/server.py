@@ -19,6 +19,8 @@ DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
 DATA_DIR = Path(os.environ.get("GESTORE_DATA_DIR", str(DEFAULT_DATA_DIR))).resolve()
 DB_PATH = DATA_DIR / "gestore_data.sqlite3"
 PROFILE_ID = "default"
+BUILD_VERSION = "1.1.80"
+BUILD_CACHE = "20260628a"
 
 DEFAULT_SNAPSHOT = {
     "entries": {},
@@ -180,6 +182,15 @@ class GestOreHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/build":
+            self._send_json({
+                "ok": True,
+                "app": "GestOre",
+                "version": BUILD_VERSION,
+                "cache": BUILD_CACHE,
+                "ts": int(time.time() * 1000),
+            })
+            return
         if parsed.path == "/api/ping":
             self._send_json({"ok": True, "ts": int(time.time() * 1000)})
             return

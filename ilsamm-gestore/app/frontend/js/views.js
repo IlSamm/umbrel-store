@@ -688,6 +688,7 @@ function renderCalendar() {
           '<div><div class="section-title">Info app</div><div class="card settings-card"><div class="card-body">' +
             '<div class="settings-tile-grid">' +
               '<div class="settings-mini-detail"><div><div class="settings-label">Versione</div><strong>' + state.settings.version + '</strong></div><span class="muted">Attiva</span></div>' +
+              '<div class="settings-mini-detail"><div><div class="settings-label">Build</div><strong>' + (state.settings.build || 'n/d') + '</strong></div><span class="muted">Cache</span></div>' +
               '<div class="settings-mini-detail"><div><div class="settings-label">Nome app</div><strong>' + state.settings.appName + '</strong></div><span class="muted">GestOre</span></div>' +
             '</div>' +
           '</div></div></div>' +
