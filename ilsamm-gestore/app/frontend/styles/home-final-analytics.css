@@ -1,5 +1,5 @@
 /* Home analytics: week and month cards under the main day card. */
-@media (max-width: 430px) {
+@media (max-width: 560px) {
   .screen.home-screen .go-week-card,
   .screen.home-screen .go-month-card {
     padding: 12px !important;

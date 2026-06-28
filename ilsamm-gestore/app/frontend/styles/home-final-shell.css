@@ -1,7 +1,7 @@
 /* Home shell: screen rail, logo, generic card width and bottom nav width. */
-@media (max-width: 430px) {
+@media (max-width: 560px) {
   :root {
-    --home-rail: min(350px, calc(100vw - 36px));
+    --home-rail: min(430px, calc(100vw - 36px));
     --home-card-radius: 23px;
   }
 
@@ -23,7 +23,7 @@
 
   .screen.home-screen .go-home-logo .gestore-static-title {
     min-height: 30px !important;
-    max-width: calc(var(--home-rail) - 70px) !important;
+    max-width: calc(var(--home-rail) - 44px) !important;
     padding: 0 10px 4px !important;
     font-size: clamp(26px, 7.2vw, 30px) !important;
     line-height: 1.04 !important;
@@ -50,5 +50,11 @@
   #app > .bottom-nav {
     width: var(--home-rail) !important;
     max-width: var(--home-rail) !important;
+  }
+}
+
+@media (max-width: 430px) {
+  :root {
+    --home-rail: min(350px, calc(100vw - 36px));
   }
 }
