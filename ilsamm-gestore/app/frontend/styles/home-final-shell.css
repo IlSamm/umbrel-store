@@ -1,0 +1,54 @@
+/* Home shell: screen rail, logo, generic card width and bottom nav width. */
+@media (max-width: 430px) {
+  :root {
+    --home-rail: min(350px, calc(100vw - 36px));
+    --home-card-radius: 23px;
+  }
+
+  .screen.home-screen,
+  .screen.home-screen.active {
+    padding-top: max(0px, calc(var(--safe-top) - 18px)) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: calc(94px + var(--safe-bottom)) !important;
+  }
+
+  .screen.home-screen .go-home-logo {
+    width: var(--home-rail) !important;
+    max-width: var(--home-rail) !important;
+    min-height: 30px !important;
+    margin: 0 auto 3px !important;
+    padding: 0 !important;
+  }
+
+  .screen.home-screen .go-home-logo .gestore-static-title {
+    min-height: 30px !important;
+    max-width: calc(var(--home-rail) - 70px) !important;
+    padding: 0 10px 4px !important;
+    font-size: clamp(26px, 7.2vw, 30px) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -.052em !important;
+  }
+
+  .screen.home-screen .go-home-stack,
+  .screen.home-screen .go-card {
+    width: var(--home-rail) !important;
+    max-width: var(--home-rail) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .screen.home-screen .go-home-stack {
+    gap: 8px !important;
+  }
+
+  .screen.home-screen .go-card {
+    border-radius: var(--home-card-radius) !important;
+  }
+
+  .bottom-nav,
+  #app > .bottom-nav {
+    width: var(--home-rail) !important;
+    max-width: var(--home-rail) !important;
+  }
+}
