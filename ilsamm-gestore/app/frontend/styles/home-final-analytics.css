@@ -2,20 +2,31 @@
 @media (max-width: 430px) {
   .screen.home-screen .go-week-card,
   .screen.home-screen .go-month-card {
-    padding: 14px !important;
+    padding: 12px !important;
   }
 
   .screen.home-screen .go-week-card .go-week-layout,
   .screen.home-screen .go-month-layout {
-    grid-template-columns: 88px minmax(0, 1fr) !important;
-    gap: 13px !important;
-    margin-top: 12px !important;
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+    gap: 11px !important;
+    margin-top: 10px !important;
   }
 
   .screen.home-screen .go-week-card .go-donut,
   .screen.home-screen .go-month-card .go-donut {
-    width: 88px !important;
-    height: 88px !important;
+    width: 76px !important;
+    height: 76px !important;
+  }
+
+  .screen.home-screen .go-card-title {
+    font-size: 15.5px !important;
+    line-height: 1.08 !important;
+  }
+
+  .screen.home-screen .go-card-badge {
+    min-height: 27px !important;
+    padding: 5px 9px !important;
+    font-size: 10.6px !important;
   }
 
   .screen.home-screen .go-week-card .go-week-ratio {
@@ -27,18 +38,34 @@
   }
 
   .screen.home-screen .go-week-card .go-week-ratio strong {
-    font-size: clamp(27px, 7.1vw, 31px) !important;
-    line-height: 1.02 !important;
+    font-size: clamp(20px, 5.7vw, 23px) !important;
+    line-height: 1.18 !important;
   }
 
   .screen.home-screen .go-week-card .go-week-ratio span {
-    font-size: clamp(15px, 4vw, 18px) !important;
+    font-size: clamp(12px, 3.4vw, 14px) !important;
     line-height: 1.1 !important;
   }
 
+  .screen.home-screen .go-progress {
+    height: 5px !important;
+    margin-top: 7px !important;
+  }
+
   .screen.home-screen .go-missing-box {
-    min-height: 46px !important;
-    padding: 8px 10px !important;
-    border-radius: 16px !important;
+    min-height: 42px !important;
+    margin-top: 8px !important;
+    padding: 7px 9px !important;
+    border-radius: 14px !important;
+  }
+
+  .screen.home-screen .go-missing-box strong {
+    font-size: 11px !important;
+    line-height: 1.16 !important;
+  }
+
+  .screen.home-screen .go-missing-box em {
+    font-size: 10px !important;
+    line-height: 1.16 !important;
   }
 }
