@@ -184,9 +184,9 @@ function renderPayslips() {
         ? ((dayDeltaMinutes >= 0 ? '+' : '-') + formatDuration(Math.abs(dayDeltaMinutes)) + ' vs ieri')
         : (entry ? 'Giornata aggiornata' : 'Registra oggi'));
       var dayDeltaHtml = isRestDay ? '' : '<span class="go-delta">' + icons.arrowUp + dayDeltaText + '</span>';
-      var dayStatsHtml = isRestDay ? '' : '<div class="go-day-stats">' +
-                '<div class="go-stat-row"><span class="go-stat-icon go-stat-blue">' + icons.clock + '</span><span><strong>' + ordinaryText + '</strong><em>' + ordinaryLabel + '</em></span></div>' +
-                '<div class="go-stat-row"><span class="go-stat-icon go-stat-violet">' + icons.activity + '</span><span><strong>' + overtimeText + '</strong><em>Straordinarie</em></span></div>' +
+      var dayMetricsHtml = isRestDay ? '' : '<div class="go-day-metrics">' +
+                '<div class="go-day-metric go-metric-blue"><span class="go-stat-icon">' + icons.clock + '</span><span><strong>' + ordinaryText + '</strong><em>' + ordinaryLabel + '</em></span></div>' +
+                '<div class="go-day-metric go-metric-violet"><span class="go-stat-icon">' + icons.activity + '</span><span><strong>' + overtimeText + '</strong><em>Straordinarie</em></span></div>' +
               '</div>';
 
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
@@ -200,9 +200,9 @@ function renderPayslips() {
                 '<div class="go-day-target-copy">' + dayTargetCopy + '</div>' +
                 '<div class="go-day-range"><span>' + scheduleStart + '</span><span>' + scheduleEnd + '</span></div>' +
                 '<div class="go-day-timeline"><span style="width:' + dayProgressStyle + ';"></span></div>' +
+                dayMetricsHtml +
                 '<div class="go-day-insights"><span>' + icons.check + dayStatusText + '</span>' + dayDeltaHtml + '</div>' +
               '</div>' +
-              dayStatsHtml +
             '</div>' +
             '<div class="go-day-badges"><span class="go-soft-badge go-green">' + icons.coffee + '<i></i>' + breakText + '</span><span class="go-soft-badge go-violet">' + icons.note + '<i></i>' + noteText + '</span></div>' +
           '</button>' +
