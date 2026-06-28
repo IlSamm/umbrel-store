@@ -170,7 +170,7 @@ function renderPayslips() {
       var dayProgressStyle = clampChartPercent(entry ? heroPercent : 0).toFixed(2) + '%';
       var dayTargetCopy = 'lavorate su ' + formatHourValue(state.settings.dailyTarget) + ' previste';
       if (!entry) dayTargetCopy = 'tocca per inserire la giornata';
-      if (entry && isStateOnlyType(entry.type)) dayTargetCopy = type.label + ' segnata';
+      if (entry && isStateOnlyType(entry.type)) dayTargetCopy = 'Giornata segnata';
       var dayStatusText = !entry ? 'Da compilare' : (isStateOnlyType(entry.type) ? type.label : (todayRemaining > 0 ? 'Turno in corso' : 'Turno completato'));
       var yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
