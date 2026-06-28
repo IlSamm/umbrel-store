@@ -63,6 +63,10 @@ function renderPayslips() {
         if (!Number.isFinite(safe)) return 0;
         return Math.max(0, Math.min(100, safe));
       };
+      var formatDurationPadded = function (minutes) {
+        var total = Math.max(0, Math.round(Number(minutes) || 0));
+        return Math.floor(total / 60) + 'h ' + pad(total % 60) + 'm';
+      };
       var buildProgressChartBackground = function (value, startColor, endColor, trackColor) {
         var safe = clampChartPercent(value);
         var sweep = (safe / 100) * 360;
@@ -149,13 +153,18 @@ function renderPayslips() {
         ? (isStateOnlyType(entry.type) ? (type ? type.label : 'Segnato') : ((entry.start || '--:--') + ' - ' + (entry.end || '--:--')))
         : 'Da compilare';
       var isRestDay = entry && entry.type === 'riposo';
-      var dayPrimaryText = isRestDay ? 'Riposo' : (entry ? formatDuration(todayDisplayMinutes) : '--');
-      var ordinaryText = entry ? formatDuration(ordinaryDisplayMinutes) : '--';
-      var overtimeText = entry ? formatDuration(breakdown.overtime) : '--';
+      var dayPrimaryText = entry ? formatDurationPadded(todayDisplayMinutes) : '--';
+      var ordinaryText = entry ? formatDurationPadded(ordinaryDisplayMinutes) : '--';
+      var overtimeText = entry ? formatDurationPadded(breakdown.overtime) : '--';
+      var pauseMinutes = entry ? Math.round(parseDecimalInput(entry.breakHours || 0, 0) * 60) : 0;
+      var pauseText = entry ? formatDurationPadded(pauseMinutes) : '--';
       var breakText = entry
         ? (isStateOnlyType(entry.type) ? (type ? type.label : 'Giornata') : (formatHourValue(entry.breakHours || 0) + ' pausa'))
         : 'Pausa --';
       var noteText = entry && entry.notes ? 'Nota presente' : 'Nessuna nota';
+      var noteSubText = entry && entry.notes ? 'Apri annotazione' : 'Aggiungi nota';
+      var pauseSubText = pauseMinutes > 0 ? 'Pausa registrata' : 'Nessuna pausa';
+      var pauseCardTitle = entry && !isStateOnlyType(entry.type) ? (formatHourValue(entry.breakHours || 0) + ' Pausa') : breakText;
       var weekPercentValue = Math.round(clampChartPercent(week.percent));
       var weekProgressStyle = clampChartPercent(week.percent).toFixed(2) + '%';
       var workdayIndexes = normalizeWeekdayList(state.settings.workdays || []);
@@ -170,41 +179,59 @@ function renderPayslips() {
       var scheduleEnd = entry && entry.end ? entry.end : '--:--';
       var dayProgressStyle = clampChartPercent(entry ? heroPercent : 0).toFixed(2) + '%';
       var dayMainLabel = isRestDay ? 'Giornata di riposo' : 'Totale lavorato oggi';
-      var dayTargetCopy = 'lavorate su ' + formatHourValue(state.settings.dailyTarget) + ' previste';
+      var targetDurationText = formatDurationPadded(todayTargetMinutes);
+      var dayTargetCopy = 'su <strong>' + formatHourValue(state.settings.dailyTarget) + '</strong> previste';
       if (!entry) dayTargetCopy = 'tocca per inserire la giornata';
       if (entry && isStateOnlyType(entry.type)) dayTargetCopy = 'Giornata segnata';
       if (isRestDay) dayTargetCopy = 'Nessun turno previsto';
       var dayStatusText = !entry ? 'Da compilare' : (isStateOnlyType(entry.type) ? type.label : (todayRemaining > 0 ? 'Turno in corso' : 'Turno completato'));
+      var dayStatusClass = !entry ? 'is-empty' : (isRestDay ? 'is-neutral' : (todayRemaining > 0 ? 'is-progress' : 'is-complete'));
       var yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       var yesterdayBreakdown = getBreakdown(getEntryForDate(yesterday));
       var yesterdayTotal = yesterdayBreakdown.total || yesterdayBreakdown.covered || 0;
       var dayDeltaMinutes = todayDisplayMinutes - yesterdayTotal;
       var dayDeltaText = isRestDay ? 'Nessun turno previsto' : (entry && yesterdayTotal
-        ? ((dayDeltaMinutes >= 0 ? '+' : '-') + formatDuration(Math.abs(dayDeltaMinutes)) + ' vs ieri')
+        ? ((dayDeltaMinutes >= 0 ? '+' : '-') + formatDurationPadded(Math.abs(dayDeltaMinutes)) + ' rispetto a ieri')
         : (entry ? 'Giornata aggiornata' : 'Registra oggi'));
-      var dayDeltaHtml = isRestDay ? '' : '<span class="go-delta">' + icons.arrowUp + dayDeltaText + '</span>';
-      var dayMetricsHtml = isRestDay ? '' : '<div class="go-day-metrics">' +
-                '<div class="go-day-metric go-metric-blue"><span class="go-stat-icon">' + icons.clock + '</span><span><strong>' + ordinaryText + '</strong><em>' + ordinaryLabel + '</em></span></div>' +
-                '<div class="go-day-metric go-metric-violet"><span class="go-stat-icon">' + icons.activity + '</span><span><strong>' + overtimeText + '</strong><em>Straordinarie</em></span></div>' +
-              '</div>';
+      var comparisonSubText = !entry ? 'Tocca per iniziare' : (isRestDay ? 'Giornata senza turno' : (dayDeltaMinutes > 0 ? 'Ottimo lavoro!' : (dayDeltaMinutes < 0 ? 'Giornata piu leggera' : 'In linea con ieri')));
+      var fullDateLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+      var progressEndLabel = entry ? formatDurationPadded(todayDisplayMinutes) : '--';
+      var timeCardHtml = '<div class="go-time-card">' +
+          '<div class="go-time-point go-time-start"><span class="go-round-icon">' + icons.clock + '</span><strong>' + scheduleStart + '</strong><em>Inizio</em></div>' +
+          '<div class="go-time-route"><span></span>' + icons.right + '<span></span></div>' +
+          '<div class="go-time-point go-time-end"><span class="go-round-icon">' + icons.clock + '</span><strong>' + scheduleEnd + '</strong><em>Fine</em></div>' +
+        '</div>';
+      var comparisonHtml = '<div class="go-comparison-card ' + (dayDeltaMinutes >= 0 ? 'is-positive' : 'is-negative') + '">' +
+          '<span class="go-round-icon">' + icons.arrowUp + '</span><div><strong>' + dayDeltaText + '</strong><em>' + comparisonSubText + '</em></div><span class="go-compare-arrow">' + icons.arrowUp + '</span>' +
+        '</div>';
+      var bottomInfoHtml = '<div class="go-bottom-info-grid">' +
+          '<div class="go-bottom-info-card go-bottom-pause"><span class="go-round-icon">' + icons.coffee + '</span><div><strong>' + pauseCardTitle + '</strong><em>' + pauseSubText + '</em></div>' + icons.right + '</div>' +
+          '<div class="go-bottom-info-card go-bottom-note"><span class="go-round-icon">' + icons.note + '</span><div><strong>' + noteText + '</strong><em>' + noteSubText + '</em></div>' + icons.right + '</div>' +
+        '</div>';
 
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
           '<button class="go-card go-day-card go-day-card-v2' + (isRestDay ? ' is-rest-summary' : '') + '" data-open-date="' + key + '">' +
-            '<div class="go-day-head"><div><div class="go-kicker go-day-kicker">Oggi</div><div class="go-day-title">' + dayLabel + '</div></div><div class="go-time-pill"><span class="go-pill-icon">' + icons.clock + '</span>' + timeBadgeText + '</div></div>' +
-            '<div class="go-day-body">' +
-              '<div class="go-day-total">' +
+            '<div class="go-day-head"><div><div class="go-kicker go-day-kicker"><span class="go-kicker-icon">' + icons.calendar + '</span>Oggi</div><div class="go-day-title">' + dayLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div><div class="go-time-pill"><span class="go-pill-icon">' + icons.clock + '</span>' + timeBadgeText + '</div></div>' +
+            '<div class="go-worked-panel">' +
+              '<div class="go-worked-main">' +
                 '<div class="go-label">' + dayMainLabel + '</div>' +
                 '<div class="go-total-number">' + dayPrimaryText + '</div>' +
                 '<div class="go-day-target-copy">' + dayTargetCopy + '</div>' +
-                '<div class="go-day-range"><span>' + scheduleStart + '</span><span>' + scheduleEnd + '</span></div>' +
                 '<div class="go-day-timeline"><span style="width:' + dayProgressStyle + ';"></span></div>' +
-                dayMetricsHtml +
-                '<div class="go-day-insights"><span>' + icons.check + dayStatusText + '</span>' + dayDeltaHtml + '</div>' +
+                '<div class="go-progress-captions"><span><strong>' + targetDurationText + '</strong><em>Previsto</em></span><span><strong>' + progressEndLabel + '</strong><em>Lavorato</em></span></div>' +
+                '<div class="go-status-pill ' + dayStatusClass + '"><span>' + icons.check + '</span><strong>' + dayStatusText + '</strong>' + icons.right + '</div>' +
+              '</div>' +
+              '<div class="go-stat-column">' +
+                '<div class="go-stat-row go-stat-blue"><span class="go-stat-icon">' + icons.briefcase + '</span><span><em>' + ordinaryLabel.replace('Ordinarie', 'Ordinario') + '</em><strong>' + ordinaryText + '</strong></span></div>' +
+                '<div class="go-stat-row go-stat-violet"><span class="go-stat-icon">' + icons.activity + '</span><span><em>Straordinario</em><strong>' + overtimeText + '</strong></span></div>' +
+                '<div class="go-stat-row go-stat-orange"><span class="go-stat-icon">' + icons.coffee + '</span><span><em>Pausa</em><strong>' + pauseText + '</strong></span></div>' +
               '</div>' +
             '</div>' +
-            '<div class="go-day-badges"><span class="go-soft-badge go-green">' + icons.coffee + '<i></i>' + breakText + '</span><span class="go-soft-badge go-violet">' + icons.note + '<i></i>' + noteText + '</span></div>' +
+            timeCardHtml +
+            comparisonHtml +
+            bottomInfoHtml +
           '</button>' +
           '<section class="go-card go-analytics-card go-week-card">' +
             '<div class="go-card-head"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ore e target</div></div><div class="go-card-badge">' + formatHourValue(state.settings.weeklyTarget) + ' target</div></div>' +
