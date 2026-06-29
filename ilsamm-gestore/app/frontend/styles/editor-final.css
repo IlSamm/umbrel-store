@@ -1,8 +1,8 @@
 /* Final editor layer: natural iPhone-style day editor. */
 @media (max-width: 560px) {
   .editor-overlay-v2 {
-    --editor-rail: min(366px, calc(100vw - 24px));
-    --editor-gap: 14px;
+    --editor-rail: min(344px, calc(100vw - 38px));
+    --editor-gap: 12px;
     --editor-radius-lg: 24px;
     --editor-radius-md: 19px;
     color: #f8fbff !important;
@@ -17,7 +17,7 @@
     top: 0 !important;
     z-index: 30 !important;
     display: grid !important;
-    grid-template-columns: 52px minmax(0, 1fr) 88px !important;
+    grid-template-columns: 48px minmax(0, 1fr) 82px !important;
     align-items: center !important;
     gap: 10px !important;
     width: var(--editor-rail) !important;
@@ -39,7 +39,7 @@
   .editor-overlay-v2 .editor-header-day {
     overflow: hidden !important;
     color: #fff !important;
-    font-size: clamp(30px, 8.8vw, 36px) !important;
+    font-size: clamp(28px, 8.1vw, 33px) !important;
     line-height: 1.14 !important;
     font-weight: 900 !important;
     letter-spacing: -.06em !important;
@@ -51,7 +51,7 @@
   .editor-overlay-v2 .editor-header-date {
     margin-top: 2px !important;
     color: rgba(226, 233, 255, .64) !important;
-    font-size: 15.5px !important;
+    font-size: 14.5px !important;
     line-height: 1.05 !important;
     font-weight: 620 !important;
     letter-spacing: -.02em !important;
@@ -59,11 +59,11 @@
 
   .editor-overlay-v2 .editor-close,
   .editor-overlay-v2 .editor-save-btn {
-    min-height: 52px !important;
-    height: 52px !important;
+    min-height: 48px !important;
+    height: 48px !important;
     margin: 0 !important;
     border: 1px solid rgba(174, 191, 255, .17) !important;
-    border-radius: 20px !important;
+    border-radius: 18px !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, .08),
       0 14px 28px rgba(0, 0, 0, .24) !important;
@@ -73,25 +73,25 @@
 
   .editor-overlay-v2 .editor-close {
     justify-self: start !important;
-    width: 52px !important;
-    min-width: 52px !important;
+    width: 48px !important;
+    min-width: 48px !important;
     padding: 0 !important;
     color: rgba(245, 248, 255, .86) !important;
     background: rgba(255, 255, 255, .035) !important;
   }
 
   .editor-overlay-v2 .editor-close svg {
-    width: 24px !important;
-    height: 24px !important;
+    width: 23px !important;
+    height: 23px !important;
   }
 
   .editor-overlay-v2 .editor-save-btn {
     justify-self: end !important;
-    width: 88px !important;
-    min-width: 88px !important;
+    width: 82px !important;
+    min-width: 82px !important;
     padding: 0 14px !important;
     color: #fff !important;
-    font-size: 16.5px !important;
+    font-size: 15.5px !important;
     font-weight: 840 !important;
     letter-spacing: -.03em !important;
     background:
@@ -108,7 +108,7 @@
     height: auto !important;
     min-height: 0 !important;
     margin: 0 !important;
-    padding: 0 0 calc(var(--safe-bottom) + 42px) !important;
+    padding: 0 0 calc(var(--safe-bottom) + 36px) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
@@ -123,7 +123,7 @@
     width: var(--editor-rail) !important;
     max-width: var(--editor-rail) !important;
     margin: 0 auto !important;
-    padding: 0 0 30px !important;
+    padding: 0 0 28px !important;
     gap: var(--editor-gap) !important;
   }
 
@@ -159,37 +159,37 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) 18px !important;
     align-items: center !important;
-    min-height: 96px !important;
-    padding: 14px 17px !important;
+    min-height: 84px !important;
+    padding: 12px 15px !important;
     border-radius: var(--editor-radius-lg) !important;
   }
 
   .editor-overlay-v2 .type-row-left {
     display: flex !important;
     align-items: center !important;
-    gap: 17px !important;
+    gap: 14px !important;
     min-width: 0 !important;
   }
 
   .editor-overlay-v2 .type-icon {
-    width: 62px !important;
-    height: 62px !important;
-    flex: 0 0 62px !important;
-    border-radius: 20px !important;
+    width: 54px !important;
+    height: 54px !important;
+    flex: 0 0 54px !important;
+    border-radius: 18px !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, .16),
       0 12px 24px rgba(0, 0, 0, .20) !important;
   }
 
   .editor-overlay-v2 .type-icon svg {
-    width: 32px !important;
-    height: 32px !important;
+    width: 28px !important;
+    height: 28px !important;
   }
 
   .editor-overlay-v2 .type-main-label {
     overflow: hidden !important;
     color: #fff !important;
-    font-size: clamp(30px, 8vw, 35px) !important;
+    font-size: clamp(27px, 7.4vw, 31px) !important;
     line-height: 1.02 !important;
     font-weight: 900 !important;
     letter-spacing: -.06em !important;
@@ -248,16 +248,16 @@
   .editor-overlay-v2 .sub-input-wrap {
     position: relative !important;
     display: grid !important;
-    grid-template-columns: 46px minmax(0, 1fr) !important;
-    grid-template-rows: 34px minmax(0, 1fr) !important;
+    grid-template-columns: 42px minmax(0, 1fr) !important;
+    grid-template-rows: 30px minmax(0, 1fr) !important;
     grid-template-areas:
       "icon label"
       "icon value" !important;
     align-items: center !important;
     min-width: 0 !important;
-    min-height: 120px !important;
-    height: 120px !important;
-    padding: 15px 13px !important;
+    min-height: 104px !important;
+    height: 104px !important;
+    padding: 12px 11px !important;
     border-radius: var(--editor-radius-lg) !important;
     overflow: hidden !important;
   }
@@ -266,8 +266,8 @@
     grid-area: icon !important;
     align-self: center !important;
     justify-self: start !important;
-    width: 46px !important;
-    height: 46px !important;
+    width: 40px !important;
+    height: 40px !important;
     border-radius: 999px !important;
     font-size: 24px !important;
     box-shadow:
@@ -276,8 +276,8 @@
   }
 
   .editor-overlay-v2 .editor-card-icon svg {
-    width: 24px !important;
-    height: 24px !important;
+    width: 22px !important;
+    height: 22px !important;
   }
 
   .editor-overlay-v2 .time-box .small.muted,
@@ -288,10 +288,10 @@
     min-width: 0 !important;
     overflow: hidden !important;
     color: #88aaff !important;
-    font-size: 12px !important;
+    font-size: 10.8px !important;
     line-height: 1 !important;
     font-weight: 850 !important;
-    letter-spacing: .24em !important;
+    letter-spacing: .19em !important;
     text-align: right !important;
     text-overflow: ellipsis !important;
     text-transform: uppercase !important;
@@ -315,16 +315,16 @@
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
-    height: 42px !important;
-    min-height: 42px !important;
+    height: 38px !important;
+    min-height: 38px !important;
     padding: 0 !important;
     overflow: visible !important;
     border: 0 !important;
     color: #fff !important;
     background: transparent !important;
     box-shadow: none !important;
-    font-size: clamp(30px, 8vw, 34px) !important;
-    line-height: 42px !important;
+    font-size: clamp(27px, 7.2vw, 31px) !important;
+    line-height: 38px !important;
     font-weight: 900 !important;
     letter-spacing: -.06em !important;
     text-align: right !important;
@@ -332,24 +332,24 @@
   }
 
   .editor-overlay-v2 .time-box {
-    grid-template-columns: 40px minmax(0, 1fr) !important;
-    padding-left: 11px !important;
-    padding-right: 11px !important;
+    grid-template-columns: 36px minmax(0, 1fr) !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   .editor-overlay-v2 .time-box .editor-card-icon {
-    width: 40px !important;
-    height: 40px !important;
+    width: 36px !important;
+    height: 36px !important;
   }
 
   .editor-overlay-v2 .time-box .small.muted {
-    font-size: 11.5px !important;
-    letter-spacing: .18em !important;
+    font-size: 10.4px !important;
+    letter-spacing: .14em !important;
   }
 
   .editor-overlay-v2 .time-box .time-input-big,
   .editor-overlay-v2 .time-box .time-placeholder {
-    font-size: clamp(26px, 7vw, 29px) !important;
+    font-size: clamp(24px, 6.5vw, 27px) !important;
     letter-spacing: -.07em !important;
   }
 
@@ -386,7 +386,7 @@
   }
 
   .editor-overlay-v2 .editor-summary-section .editor-hours-card {
-    padding: 11px !important;
+    padding: 9px !important;
     border-radius: var(--editor-radius-lg) !important;
   }
 
@@ -394,7 +394,7 @@
   .editor-overlay-v2 .editor-hours-card .four {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   .editor-overlay-v2 .editor-hours-stat {
@@ -402,10 +402,10 @@
     align-content: center !important;
     justify-items: center !important;
     min-width: 0 !important;
-    min-height: 74px !important;
-    padding: 10px 7px !important;
+    min-height: 64px !important;
+    padding: 8px 6px !important;
     border: 1px solid rgba(143, 162, 219, .13) !important;
-    border-radius: 18px !important;
+    border-radius: 16px !important;
     background:
       radial-gradient(circle at 18% 0%, rgba(255, 255, 255, .075), transparent 34%),
       rgba(255, 255, 255, .033) !important;
@@ -421,10 +421,10 @@
   .editor-overlay-v2 .editor-hours-stat .small {
     overflow: hidden !important;
     color: rgba(180, 202, 255, .75) !important;
-    font-size: 10.5px !important;
+    font-size: 9.8px !important;
     line-height: 1 !important;
     font-weight: 800 !important;
-    letter-spacing: .17em !important;
+    letter-spacing: .13em !important;
     text-align: center !important;
     text-overflow: ellipsis !important;
     text-transform: uppercase !important;
@@ -432,10 +432,10 @@
   }
 
   .editor-overlay-v2 .editor-hours-stat .large {
-    margin-top: 6px !important;
+    margin-top: 5px !important;
     overflow: visible !important;
     color: #fff !important;
-    font-size: clamp(22px, 6.2vw, 27px) !important;
+    font-size: clamp(20px, 5.6vw, 24px) !important;
     line-height: 1.02 !important;
     font-weight: 900 !important;
     letter-spacing: -.055em !important;
@@ -447,15 +447,15 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) 18px !important;
     align-items: center !important;
-    min-height: 78px !important;
-    padding: 14px 17px !important;
+    min-height: 68px !important;
+    padding: 12px 15px !important;
     border-radius: var(--editor-radius-lg) !important;
   }
 
   .editor-overlay-v2 .editor-notes-title {
     display: flex !important;
     align-items: center !important;
-    gap: 15px !important;
+    gap: 12px !important;
     min-width: 0 !important;
   }
 
@@ -463,7 +463,7 @@
   .editor-overlay-v2 .editor-notes-title > div {
     overflow: hidden !important;
     color: #fff !important;
-    font-size: 17px !important;
+    font-size: 15.8px !important;
     line-height: 1.1 !important;
     font-weight: 820 !important;
     letter-spacing: -.03em !important;
@@ -472,7 +472,7 @@
   }
 
   .editor-overlay-v2 .editor-notes-section .collapse-panel {
-    margin-top: 10px !important;
+    margin-top: 8px !important;
   }
 
   .editor-overlay-v2 .editor-notes-section .collapse-panel.open {
@@ -480,98 +480,98 @@
   }
 
   .editor-overlay-v2 .notes {
-    min-height: 122px !important;
-    padding: 15px 16px !important;
-    border-radius: 22px !important;
+    min-height: 100px !important;
+    padding: 13px 14px !important;
+    border-radius: 19px !important;
     color: #fff !important;
-    font-size: 16.5px !important;
+    font-size: 15.5px !important;
     line-height: 1.3 !important;
   }
 
   .editor-overlay-v2 .editor-danger-btn {
-    min-height: 60px !important;
+    min-height: 54px !important;
     margin-top: 0 !important;
-    border-radius: 22px !important;
-    font-size: 15.5px !important;
+    border-radius: 19px !important;
+    font-size: 14.8px !important;
     font-weight: 820 !important;
   }
 }
 
 @media (max-width: 374px) {
   .editor-overlay-v2 {
-    --editor-rail: min(348px, calc(100vw - 22px));
-    --editor-gap: 12px;
+    --editor-rail: min(328px, calc(100vw - 34px));
+    --editor-gap: 10px;
   }
 
   .editor-overlay-v2 .editor-header {
-    grid-template-columns: 52px minmax(0, 1fr) 82px !important;
+    grid-template-columns: 44px minmax(0, 1fr) 76px !important;
     gap: 8px !important;
   }
 
   .editor-overlay-v2 .editor-close,
   .editor-overlay-v2 .editor-save-btn {
-    min-height: 52px !important;
-    height: 52px !important;
-    border-radius: 20px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    border-radius: 17px !important;
   }
 
   .editor-overlay-v2 .editor-close {
-    width: 52px !important;
-    min-width: 52px !important;
+    width: 44px !important;
+    min-width: 44px !important;
   }
 
   .editor-overlay-v2 .editor-save-btn {
-    width: 82px !important;
-    min-width: 82px !important;
-    font-size: 15.5px !important;
+    width: 76px !important;
+    min-width: 76px !important;
+    font-size: 14.5px !important;
   }
 
   .editor-overlay-v2 .editor-header-day {
-    font-size: clamp(30px, 9vw, 35px) !important;
+    font-size: clamp(26px, 7.8vw, 30px) !important;
   }
 
   .editor-overlay-v2 .type-icon {
-    width: 58px !important;
-    height: 58px !important;
-    flex-basis: 58px !important;
+    width: 50px !important;
+    height: 50px !important;
+    flex-basis: 50px !important;
   }
 
   .editor-overlay-v2 .type-row-left {
-    gap: 17px !important;
+    gap: 12px !important;
   }
 
   .editor-overlay-v2 .time-box,
   .editor-overlay-v2 .sub-input-wrap {
-    grid-template-columns: 44px minmax(0, 1fr) !important;
-    min-height: 116px !important;
-    height: 116px !important;
-    padding: 14px 11px !important;
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+    min-height: 98px !important;
+    height: 98px !important;
+    padding: 11px 9px !important;
   }
 
   .editor-overlay-v2 .editor-card-icon {
-    width: 44px !important;
-    height: 44px !important;
+    width: 38px !important;
+    height: 38px !important;
   }
 
   .editor-overlay-v2 .time-input-big,
   .editor-overlay-v2 .time-placeholder,
   .editor-overlay-v2 .sub-input {
-    font-size: clamp(28px, 7.8vw, 31px) !important;
+    font-size: clamp(25px, 7vw, 28px) !important;
   }
 
   .editor-overlay-v2 .time-box {
-    grid-template-columns: 40px minmax(0, 1fr) !important;
-    padding-left: 10px !important;
-    padding-right: 10px !important;
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+    padding-left: 9px !important;
+    padding-right: 9px !important;
   }
 
   .editor-overlay-v2 .time-box .editor-card-icon {
-    width: 40px !important;
-    height: 40px !important;
+    width: 34px !important;
+    height: 34px !important;
   }
 
   .editor-overlay-v2 .time-box .time-input-big,
   .editor-overlay-v2 .time-box .time-placeholder {
-    font-size: clamp(24px, 6.8vw, 27px) !important;
+    font-size: clamp(22px, 6.4vw, 25px) !important;
   }
 }
