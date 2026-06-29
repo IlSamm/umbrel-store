@@ -184,12 +184,6 @@ function renderPayslips() {
       var dayStatusClass = !entry ? 'is-empty' : (isRestDay ? 'is-neutral' : (todayRemaining > 0 ? 'is-progress' : 'is-complete'));
       var fullDateLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
       var progressEndLabel = entry ? formatDurationPadded(todayDisplayMinutes) : '--';
-      var timeCardHtml = '<div class="go-time-card">' +
-          '<div class="go-time-point go-time-start"><span class="go-round-icon">' + icons.clock + '</span><strong>' + scheduleStart + '</strong><em>Inizio</em></div>' +
-          '<div class="go-time-route"><span></span>' + icons.right + '<span></span></div>' +
-          '<div class="go-time-point go-time-end"><span class="go-round-icon">' + icons.clock + '</span><strong>' + scheduleEnd + '</strong><em>Fine</em></div>' +
-        '</div>';
-
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
           '<button class="go-card go-day-card go-day-card-v2' + (isRestDay ? ' is-rest-summary' : '') + '" data-open-date="' + key + '">' +
@@ -209,7 +203,6 @@ function renderPayslips() {
                 '<div class="go-stat-row go-stat-orange"><span class="go-stat-icon">' + icons.coffee + '</span><span><em>Pausa</em><strong>' + pauseText + '</strong></span></div>' +
               '</div>' +
             '</div>' +
-            timeCardHtml +
           '</button>' +
           '<section class="go-card go-analytics-card go-week-card">' +
             '<div class="go-card-head"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ore e target</div></div><div class="go-card-badge">' + formatHourValue(state.settings.weeklyTarget) + ' target</div></div>' +

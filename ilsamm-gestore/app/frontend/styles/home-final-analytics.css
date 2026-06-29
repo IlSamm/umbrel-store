@@ -14,8 +14,75 @@
 
   .screen.home-screen .go-week-card .go-donut,
   .screen.home-screen .go-month-card .go-donut {
+    position: relative !important;
+    display: grid !important;
+    place-items: center !important;
     width: 76px !important;
     height: 76px !important;
+    min-width: 76px !important;
+    overflow: visible !important;
+  }
+
+  .screen.home-screen .go-donut::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: 14px !important;
+    z-index: 0 !important;
+    border-radius: 999px !important;
+    background: radial-gradient(circle at 50% 48%, rgba(4, 9, 22, .98), rgba(3, 7, 17, .96)) !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, .035),
+      0 6px 16px rgba(0, 0, 0, .18) !important;
+  }
+
+  .screen.home-screen .go-donut-inner {
+    position: absolute !important;
+    inset: 14px !important;
+    z-index: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    text-align: center !important;
+    border-radius: 999px !important;
+    pointer-events: none !important;
+  }
+
+  .screen.home-screen .go-donut-inner strong {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    color: #fff !important;
+    font-size: clamp(17px, 4.6vw, 19px) !important;
+    line-height: 1.12 !important;
+    font-weight: 950 !important;
+    letter-spacing: -.07em !important;
+    text-align: center !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+  }
+
+  .screen.home-screen .go-month-donut .go-donut-inner strong {
+    font-size: clamp(11.5px, 3.25vw, 13.2px) !important;
+    letter-spacing: -.075em !important;
+  }
+
+  .screen.home-screen .go-donut-inner span {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 3px !important;
+    overflow: hidden !important;
+    color: rgba(219, 228, 255, .66) !important;
+    font-size: 9.4px !important;
+    line-height: 1 !important;
+    font-weight: 650 !important;
+    text-align: center !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
   }
 
   .screen.home-screen .go-card-title {
