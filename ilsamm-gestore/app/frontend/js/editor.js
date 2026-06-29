@@ -24,7 +24,7 @@ function openEditor(date) {
       state.editingDate = null;
       state.draft = null;
       state.typeOpen = false;
-      state.notesOpen = true;
+      state.notesOpen = false;
       state.confirmClearOpen = false;
       render();
     }
@@ -69,7 +69,7 @@ function openEditor(date) {
       saveEntries();
       state.draft = makeEmptyDayDraft();
       state.typeOpen = false;
-      state.notesOpen = false;
+      state.notesOpen = true;
       state.confirmClearOpen = false;
       document.body.classList.add('editor-open');
       render();
