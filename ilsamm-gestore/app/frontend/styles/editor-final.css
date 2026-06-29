@@ -302,7 +302,7 @@
 
   .editor-overlay-v2 .time-field {
     grid-area: value !important;
-    align-self: end !important;
+    align-self: center !important;
     min-width: 0 !important;
   }
 
@@ -343,7 +343,7 @@
 
   .editor-overlay-v2 .sub-input {
     grid-area: value !important;
-    align-self: end !important;
+    align-self: center !important;
   }
 
   .editor-overlay-v2 .tiny-hint {
@@ -440,8 +440,12 @@
     margin-top: 8px !important;
   }
 
+  .editor-overlay-v2 .editor-notes-section .collapse-panel.open {
+    display: block !important;
+  }
+
   .editor-overlay-v2 .notes {
-    min-height: 108px !important;
+    min-height: 116px !important;
     padding: 14px 15px !important;
     border-radius: 20px !important;
     color: #fff !important;
