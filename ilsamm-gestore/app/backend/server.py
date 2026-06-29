@@ -19,8 +19,8 @@ DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
 DATA_DIR = Path(os.environ.get("GESTORE_DATA_DIR", str(DEFAULT_DATA_DIR))).resolve()
 DB_PATH = DATA_DIR / "gestore_data.sqlite3"
 PROFILE_ID = "default"
-BUILD_VERSION = "1.1.96"
-BUILD_CACHE = "20260629h"
+BUILD_VERSION = "1.1.97"
+BUILD_CACHE = "20260629i"
 
 DEFAULT_SNAPSHOT = {
     "entries": {},
