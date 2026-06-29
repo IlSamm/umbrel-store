@@ -161,10 +161,6 @@ function renderPayslips() {
       var breakText = entry
         ? (isStateOnlyType(entry.type) ? (type ? type.label : 'Giornata') : (formatHourValue(entry.breakHours || 0) + ' pausa'))
         : 'Pausa --';
-      var noteText = entry && entry.notes ? 'Nota presente' : 'Nessuna nota';
-      var noteSubText = entry && entry.notes ? 'Apri annotazione' : 'Aggiungi nota';
-      var pauseSubText = pauseMinutes > 0 ? 'Pausa registrata' : 'Nessuna pausa';
-      var pauseCardTitle = entry && !isStateOnlyType(entry.type) ? (formatHourValue(entry.breakHours || 0) + ' Pausa') : breakText;
       var weekPercentValue = Math.round(clampChartPercent(week.percent));
       var weekProgressStyle = clampChartPercent(week.percent).toFixed(2) + '%';
       var workdayIndexes = normalizeWeekdayList(state.settings.workdays || []);
@@ -186,28 +182,12 @@ function renderPayslips() {
       if (isRestDay) dayTargetCopy = 'Nessun turno previsto';
       var dayStatusText = !entry ? 'Da compilare' : (isStateOnlyType(entry.type) ? type.label : (todayRemaining > 0 ? 'Turno in corso' : 'Turno completato'));
       var dayStatusClass = !entry ? 'is-empty' : (isRestDay ? 'is-neutral' : (todayRemaining > 0 ? 'is-progress' : 'is-complete'));
-      var yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      var yesterdayBreakdown = getBreakdown(getEntryForDate(yesterday));
-      var yesterdayTotal = yesterdayBreakdown.total || yesterdayBreakdown.covered || 0;
-      var dayDeltaMinutes = todayDisplayMinutes - yesterdayTotal;
-      var dayDeltaText = isRestDay ? 'Nessun turno previsto' : (entry && yesterdayTotal
-        ? ((dayDeltaMinutes >= 0 ? '+' : '-') + formatDurationPadded(Math.abs(dayDeltaMinutes)) + ' rispetto a ieri')
-        : (entry ? 'Giornata aggiornata' : 'Registra oggi'));
-      var comparisonSubText = !entry ? 'Tocca per iniziare' : (isRestDay ? 'Giornata senza turno' : (dayDeltaMinutes > 0 ? 'Ottimo lavoro!' : (dayDeltaMinutes < 0 ? 'Giornata piu leggera' : 'In linea con ieri')));
       var fullDateLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
       var progressEndLabel = entry ? formatDurationPadded(todayDisplayMinutes) : '--';
       var timeCardHtml = '<div class="go-time-card">' +
           '<div class="go-time-point go-time-start"><span class="go-round-icon">' + icons.clock + '</span><strong>' + scheduleStart + '</strong><em>Inizio</em></div>' +
           '<div class="go-time-route"><span></span>' + icons.right + '<span></span></div>' +
           '<div class="go-time-point go-time-end"><span class="go-round-icon">' + icons.clock + '</span><strong>' + scheduleEnd + '</strong><em>Fine</em></div>' +
-        '</div>';
-      var comparisonHtml = '<div class="go-comparison-card ' + (dayDeltaMinutes >= 0 ? 'is-positive' : 'is-negative') + '">' +
-          '<span class="go-round-icon">' + icons.arrowUp + '</span><div><strong>' + dayDeltaText + '</strong><em>' + comparisonSubText + '</em></div><span class="go-compare-arrow">' + icons.arrowUp + '</span>' +
-        '</div>';
-      var bottomInfoHtml = '<div class="go-bottom-info-grid">' +
-          '<div class="go-bottom-info-card go-bottom-pause"><span class="go-round-icon">' + icons.coffee + '</span><div><strong>' + pauseCardTitle + '</strong><em>' + pauseSubText + '</em></div>' + icons.right + '</div>' +
-          '<div class="go-bottom-info-card go-bottom-note"><span class="go-round-icon">' + icons.note + '</span><div><strong>' + noteText + '</strong><em>' + noteSubText + '</em></div>' + icons.right + '</div>' +
         '</div>';
 
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
@@ -230,8 +210,6 @@ function renderPayslips() {
               '</div>' +
             '</div>' +
             timeCardHtml +
-            comparisonHtml +
-            bottomInfoHtml +
           '</button>' +
           '<section class="go-card go-analytics-card go-week-card">' +
             '<div class="go-card-head"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ore e target</div></div><div class="go-card-badge">' + formatHourValue(state.settings.weeklyTarget) + ' target</div></div>' +

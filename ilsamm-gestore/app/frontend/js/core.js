@@ -47,8 +47,8 @@ var errorBox = document.getElementById('errorBox');
       autoRestDays: [],
       holidayHoursOnOffDays: false,
       weekdayMode: 'monday',
-      version: '1.1.88',
-      build: '20260628i',
+      version: '1.1.89',
+      build: '20260629a',
       appName: 'GestOre'
     };
 
