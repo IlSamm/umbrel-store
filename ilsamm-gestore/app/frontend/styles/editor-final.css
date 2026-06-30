@@ -1,11 +1,11 @@
 /* Phone-sized editor layer. Keep this file focused on the day editor only. */
 @media (max-width: 560px) {
   .editor-overlay-v2 {
-    --editor-rail: min(384px, calc(100vw - 26px));
-    --editor-gap: 13px;
-    --editor-radius-xl: 26px;
-    --editor-radius-lg: 22px;
-    --editor-radius-md: 19px;
+    --editor-rail: min(390px, calc(100vw - 14px));
+    --editor-gap: 11px;
+    --editor-radius-xl: 22px;
+    --editor-radius-lg: 19px;
+    --editor-radius-md: 17px;
     inset: 0 !important;
     display: flex !important;
     flex-direction: column !important;
@@ -68,7 +68,7 @@
     height: 54px !important;
     margin: 0 !important;
     border: 1px solid rgba(174, 191, 255, .18) !important;
-    border-radius: 21px !important;
+    border-radius: 18px !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, .09),
       0 14px 28px rgba(0, 0, 0, .24) !important;
@@ -154,13 +154,13 @@
   .editor-overlay-v2 .editor-hours-card,
   .editor-overlay-v2 .editor-collapse-btn,
   .editor-overlay-v2 .notes {
-    border: 1px solid rgba(142, 164, 232, .20) !important;
+    border: 1px solid rgba(147, 169, 230, .14) !important;
     background:
-      radial-gradient(circle at 18% 0%, rgba(255, 255, 255, .07), transparent 35%),
-      linear-gradient(180deg, rgba(27, 41, 76, .70), rgba(7, 14, 31, .88)) !important;
+      radial-gradient(circle at 18% 0%, rgba(255, 255, 255, .055), transparent 34%),
+      linear-gradient(180deg, rgba(25, 38, 72, .66), rgba(7, 14, 31, .90)) !important;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, .07),
-      0 14px 28px rgba(0, 0, 0, .20) !important;
+      inset 0 1px 0 rgba(255, 255, 255, .05),
+      0 10px 22px rgba(0, 0, 0, .18) !important;
   }
 
   .editor-overlay-v2 .editor-type-row-main {
@@ -183,7 +183,7 @@
     width: 66px !important;
     height: 66px !important;
     flex: 0 0 66px !important;
-    border-radius: 22px !important;
+    border-radius: 18px !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, .16),
       0 12px 24px rgba(0, 0, 0, .20) !important;
@@ -408,7 +408,7 @@
     min-height: 74px !important;
     padding: 10px 6px !important;
     border: 1px solid rgba(143, 162, 219, .13) !important;
-    border-radius: 18px !important;
+    border-radius: 15px !important;
     background:
       radial-gradient(circle at 18% 0%, rgba(255, 255, 255, .075), transparent 34%),
       rgba(255, 255, 255, .033) !important;
@@ -485,7 +485,7 @@
   .editor-overlay-v2 .notes {
     min-height: 104px !important;
     padding: 13px 15px !important;
-    border-radius: 20px !important;
+    border-radius: 17px !important;
     color: #fff !important;
     font-size: 15.5px !important;
     line-height: 1.3 !important;
@@ -494,7 +494,7 @@
   .editor-overlay-v2 .editor-danger-btn {
     min-height: 58px !important;
     margin-top: 0 !important;
-    border-radius: 21px !important;
+    border-radius: 17px !important;
     font-size: 15px !important;
     font-weight: 820 !important;
   }
@@ -502,8 +502,8 @@
 
 @media (max-width: 374px) {
   .editor-overlay-v2 {
-    --editor-rail: min(354px, calc(100vw - 24px));
-    --editor-gap: 11px;
+    --editor-rail: min(370px, calc(100vw - 14px));
+    --editor-gap: 10px;
   }
 
   .editor-overlay-v2 .editor-header {
