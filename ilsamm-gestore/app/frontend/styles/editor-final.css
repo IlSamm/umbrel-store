@@ -748,11 +748,7 @@
     font-weight: 820 !important;
   }
 
-  .editor-overlay-v2 .editor-notes-section {
-    margin-top: auto !important;
-    padding-top: clamp(14px, 3.5vh, 34px) !important;
-  }
-
+  .editor-overlay-v2 .editor-notes-section,
   .editor-overlay-v2 .editor-danger-section {
     margin-top: 0 !important;
     padding-top: 0 !important;
