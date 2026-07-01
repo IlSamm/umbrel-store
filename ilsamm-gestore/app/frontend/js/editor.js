@@ -11,7 +11,7 @@ function openEditor(date) {
       if (state.draft.overtimeManual === undefined) state.draft.overtimeManual = parseDecimalInput(state.draft.overtimeHours, 0) > 0;
       if (!state.draft.overtimeManual) state.draft.overtimeHours = minutesToHours(getAutoOvertimeMinutes(state.draft));
       state.typeOpen = false;
-      state.notesOpen = true;
+      state.notesOpen = Boolean((state.draft.notes || '').trim());
       state.confirmClearOpen = false;
       document.body.classList.add('editor-open');
       render();
@@ -69,7 +69,7 @@ function openEditor(date) {
       saveEntries();
       state.draft = makeEmptyDayDraft();
       state.typeOpen = false;
-      state.notesOpen = true;
+      state.notesOpen = false;
       state.confirmClearOpen = false;
       document.body.classList.add('editor-open');
       render();
