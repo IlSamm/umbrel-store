@@ -1,7 +1,16 @@
 /* Phone-sized editor layer. Keep this file focused on the day editor only. */
 @media (max-width: 560px) {
+  body.editor-open #app,
+  body.editor-open #app.app,
+  body.editor-open .app {
+    width: 100vw !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
   .editor-overlay-v2 {
-    --editor-rail: min(386px, calc(100vw - 18px));
+    --editor-rail: min(430px, calc(100vw - 14px));
     --editor-gap: 10px;
     --editor-radius-xl: 21px;
     --editor-radius-lg: 18px;
@@ -9,7 +18,9 @@
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
+    min-width: 100vw !important;
     max-width: none !important;
+    height: 100dvh !important;
     min-height: 100dvh !important;
     margin: 0 !important;
     display: flex !important;
@@ -724,7 +735,7 @@
 
 @media (max-width: 374px) {
   .editor-overlay-v2 {
-    --editor-rail: min(370px, calc(100vw - 14px));
+    --editor-rail: min(370px, calc(100vw - 12px));
     --editor-gap: 10px;
   }
 
