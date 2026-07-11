@@ -160,6 +160,7 @@
   .editor-overlay-v2 .editor-stack {
     display: flex !important;
     flex-direction: column !important;
+    justify-content: space-between !important;
     width: var(--editor-rail) !important;
     max-width: var(--editor-rail) !important;
     margin: 0 auto !important;
