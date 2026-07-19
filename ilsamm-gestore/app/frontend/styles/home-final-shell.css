@@ -1,8 +1,8 @@
 /* Home shell: screen rail, logo, generic card width and bottom nav width. */
 @media (max-width: 560px) {
   :root {
-    --home-rail: min(430px, calc(100vw - 36px));
-    --home-card-radius: 23px;
+    --home-rail: min(390px, calc(100vw - 24px));
+    --home-card-radius: 24px;
   }
 
   .screen.home-screen,
@@ -28,16 +28,16 @@
   .screen.home-screen .go-home-logo {
     width: var(--home-rail) !important;
     max-width: var(--home-rail) !important;
-    min-height: 30px !important;
-    margin: 0 auto 3px !important;
+    min-height: 34px !important;
+    margin: 0 auto 6px !important;
     padding: 0 !important;
   }
 
   .screen.home-screen .go-home-logo .gestore-static-title {
-    min-height: 30px !important;
-    max-width: calc(var(--home-rail) - 44px) !important;
-    padding: 0 10px 4px !important;
-    font-size: clamp(26px, 7.2vw, 30px) !important;
+    min-height: 34px !important;
+    max-width: calc(var(--home-rail) - 32px) !important;
+    padding: 0 8px 4px !important;
+    font-size: clamp(28px, 7.7vw, 32px) !important;
     line-height: 1.04 !important;
     letter-spacing: -.052em !important;
   }
@@ -51,7 +51,7 @@
   }
 
   .screen.home-screen .go-home-stack {
-    gap: 8px !important;
+    gap: 11px !important;
   }
 
   .screen.home-screen .go-card {
@@ -67,6 +67,12 @@
 
 @media (max-width: 430px) {
   :root {
-    --home-rail: min(350px, calc(100vw - 36px));
+    --home-rail: min(390px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 374px) {
+  :root {
+    --home-rail: calc(100vw - 20px);
   }
 }

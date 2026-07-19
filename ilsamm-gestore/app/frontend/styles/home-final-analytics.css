@@ -2,13 +2,21 @@
 @media (max-width: 560px) {
   .screen.home-screen .go-week-card,
   .screen.home-screen .go-month-card {
-    padding: 12px !important;
+    padding: 13px !important;
+    border: 1px solid rgba(117, 141, 220, .22) !important;
+    border-radius: 23px !important;
+    background:
+      radial-gradient(circle at 92% 0%, rgba(103, 87, 211, .16), transparent 38%),
+      linear-gradient(155deg, rgba(23, 36, 70, .94), rgba(7, 15, 32, .98) 72%) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .055),
+      0 14px 32px rgba(0, 0, 0, .22) !important;
   }
 
   .screen.home-screen .go-week-card .go-week-layout,
   .screen.home-screen .go-month-layout {
-    grid-template-columns: 76px minmax(0, 1fr) !important;
-    gap: 11px !important;
+    grid-template-columns: 82px minmax(0, 1fr) !important;
+    gap: 12px !important;
     margin-top: 10px !important;
   }
 
@@ -17,9 +25,9 @@
     position: relative !important;
     display: grid !important;
     place-items: center !important;
-    width: 76px !important;
-    height: 76px !important;
-    min-width: 76px !important;
+    width: 82px !important;
+    height: 82px !important;
+    min-width: 82px !important;
     overflow: visible !important;
   }
 
@@ -56,7 +64,7 @@
     max-width: 100% !important;
     overflow: visible !important;
     color: #fff !important;
-    font-size: clamp(17px, 4.6vw, 19px) !important;
+    font-size: clamp(18px, 4.9vw, 20px) !important;
     line-height: 1.12 !important;
     font-weight: 950 !important;
     letter-spacing: -.07em !important;
@@ -66,7 +74,7 @@
   }
 
   .screen.home-screen .go-month-donut .go-donut-inner strong {
-    font-size: clamp(11.5px, 3.25vw, 13.2px) !important;
+    font-size: clamp(12px, 3.35vw, 13.5px) !important;
     letter-spacing: -.075em !important;
   }
 
@@ -86,12 +94,12 @@
   }
 
   .screen.home-screen .go-card-title {
-    font-size: 15.5px !important;
+    font-size: 16px !important;
     line-height: 1.08 !important;
   }
 
   .screen.home-screen .go-card-badge {
-    min-height: 27px !important;
+    min-height: 28px !important;
     padding: 5px 9px !important;
     font-size: 10.6px !important;
   }
@@ -105,12 +113,12 @@
   }
 
   .screen.home-screen .go-week-card .go-week-ratio strong {
-    font-size: clamp(20px, 5.7vw, 23px) !important;
+    font-size: clamp(22px, 6vw, 25px) !important;
     line-height: 1.18 !important;
   }
 
   .screen.home-screen .go-week-card .go-week-ratio span {
-    font-size: clamp(12px, 3.4vw, 14px) !important;
+    font-size: clamp(13px, 3.6vw, 15px) !important;
     line-height: 1.1 !important;
   }
 
@@ -120,19 +128,70 @@
   }
 
   .screen.home-screen .go-missing-box {
-    min-height: 42px !important;
+    min-height: 44px !important;
     margin-top: 8px !important;
     padding: 7px 9px !important;
     border-radius: 14px !important;
   }
 
   .screen.home-screen .go-missing-box strong {
-    font-size: 11px !important;
+    font-size: 11.8px !important;
     line-height: 1.16 !important;
   }
 
   .screen.home-screen .go-missing-box em {
-    font-size: 10px !important;
+    font-size: 10.4px !important;
     line-height: 1.16 !important;
+  }
+
+  .screen.home-screen .go-card-head {
+    align-items: center !important;
+  }
+
+  .screen.home-screen .go-card-head .go-kicker {
+    font-size: 10px !important;
+    letter-spacing: .19em !important;
+  }
+
+  .screen.home-screen .go-month-list {
+    gap: 7px !important;
+  }
+
+  .screen.home-screen .go-month-row {
+    grid-template-columns: minmax(0, 1fr) auto 14px !important;
+    min-height: 27px !important;
+    gap: 7px !important;
+  }
+
+  .screen.home-screen .go-month-row span,
+  .screen.home-screen .go-month-row strong {
+    font-size: 12.6px !important;
+    line-height: 1.1 !important;
+  }
+
+  .screen.home-screen .go-row-dot {
+    width: 8px !important;
+    height: 8px !important;
+    flex: 0 0 8px !important;
+  }
+
+  .screen.home-screen .go-month-row svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .screen.home-screen .go-detail-btn {
+    grid-template-columns: 22px minmax(0, 1fr) 14px !important;
+    min-height: 38px !important;
+    margin-top: 10px !important;
+    padding: 7px 10px !important;
+    border-radius: 14px !important;
+    font-size: 12.4px !important;
+  }
+
+  .screen.home-screen .go-detail-btn span svg,
+  .screen.home-screen .go-detail-btn > svg {
+    width: 14px !important;
+    height: 14px !important;
   }
 }

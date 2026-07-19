@@ -2,11 +2,11 @@
 @media (max-width: 560px) {
   .screen.home-screen .go-day-card-v2 {
     display: block !important;
-    padding: 14px !important;
+    padding: 15px !important;
     text-align: left !important;
     color: #f8fbff !important;
     border: 1px solid rgba(117, 141, 220, .28) !important;
-    border-radius: 28px !important;
+    border-radius: 26px !important;
     background:
       radial-gradient(circle at 88% 6%, rgba(105, 86, 214, .20), transparent 36%),
       linear-gradient(155deg, rgba(23, 35, 68, .96) 0%, rgba(10, 18, 36, .98) 46%, rgba(6, 12, 25, .99) 100%) !important;
@@ -28,7 +28,7 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
     align-items: start !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-head > div:first-child {
@@ -60,7 +60,7 @@
     display: block !important;
     max-width: 100% !important;
     color: #fff !important;
-    font-size: clamp(24px, 6.65vw, 28px) !important;
+    font-size: clamp(24px, 6.55vw, 27px) !important;
     line-height: 1.03 !important;
     font-weight: 950 !important;
     letter-spacing: -.055em !important;
@@ -81,9 +81,9 @@
     justify-content: center !important;
     gap: 8px !important;
     min-height: 38px !important;
-    min-width: 125px !important;
-    max-width: 148px !important;
-    padding: 7px 12px !important;
+    min-width: 128px !important;
+    max-width: 146px !important;
+    padding: 7px 11px !important;
     border: 1px solid rgba(164, 175, 222, .18) !important;
     border-radius: 999px !important;
     color: #f8fbff !important;
@@ -109,12 +109,12 @@
 
   .screen.home-screen .go-worked-panel {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 138px !important;
-    gap: 12px !important;
-    margin-top: 18px !important;
-    padding: 14px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(112px, .72fr) !important;
+    gap: 10px !important;
+    margin-top: 14px !important;
+    padding: 13px !important;
     border: 1px solid rgba(132, 151, 207, .12) !important;
-    border-radius: 22px !important;
+    border-radius: 21px !important;
     background:
       linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.018)),
       rgba(5, 12, 28, .30) !important;
@@ -123,7 +123,7 @@
 
   .screen.home-screen .go-worked-main {
     min-width: 0 !important;
-    padding-right: 12px !important;
+    padding-right: 10px !important;
     border-right: 1px solid rgba(154, 170, 218, .16) !important;
   }
 
@@ -140,8 +140,8 @@
     max-width: 100% !important;
     margin-top: 9px !important;
     color: #fff !important;
-    font-size: clamp(40px, 11.2vw, 46px) !important;
-    line-height: .92 !important;
+    font-size: clamp(41px, 11vw, 46px) !important;
+    line-height: .94 !important;
     font-weight: 950 !important;
     letter-spacing: -.075em !important;
     white-space: nowrap !important;
@@ -161,8 +161,8 @@
   }
 
   .screen.home-screen .go-day-timeline {
-    height: 9px !important;
-    margin-top: 16px !important;
+    height: 8px !important;
+    margin-top: 14px !important;
     overflow: hidden !important;
     border-radius: 999px !important;
     background: rgba(77, 91, 135, .30) !important;
@@ -215,7 +215,7 @@
     align-items: center !important;
     gap: 6px !important;
     min-height: 39px !important;
-    margin-top: 14px !important;
+    margin-top: 12px !important;
     padding: 5px 18px 5px 6px !important;
     border: 1px solid rgba(145, 164, 215, .14) !important;
     border-radius: 16px !important;
@@ -557,18 +557,18 @@
 
   .screen.home-screen .go-day-card-v2 .go-stat-row {
     display: grid !important;
-    grid-template-columns: 32px minmax(0, 1fr) !important;
+    grid-template-columns: 34px minmax(0, 1fr) !important;
     align-items: center !important;
     gap: 8px !important;
     min-width: 0 !important;
-    padding: 8px 0 !important;
+    padding: 7px 0 !important;
     border-bottom: 1px solid rgba(150, 166, 212, .13) !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-icon {
-    width: 32px !important;
-    height: 32px !important;
-    flex: 0 0 32px !important;
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px !important;
     border-radius: 999px !important;
     font-size: 16px !important;
   }
@@ -581,7 +581,7 @@
     display: block !important;
     overflow: hidden !important;
     color: rgba(219, 228, 255, .58) !important;
-    font-size: 10.2px !important;
+    font-size: 10.5px !important;
     line-height: 1.05 !important;
     font-style: normal !important;
     font-weight: 650 !important;
@@ -594,7 +594,7 @@
     margin-top: 3px !important;
     overflow: visible !important;
     color: #fff !important;
-    font-size: 15.6px !important;
+    font-size: 16.4px !important;
     line-height: 1.02 !important;
     font-weight: 950 !important;
     letter-spacing: -.035em !important;
@@ -605,11 +605,11 @@
 
 @media (max-width: 430px) {
   .screen.home-screen .go-worked-panel {
-    grid-template-columns: minmax(0, 1fr) 110px !important;
+    grid-template-columns: minmax(0, 1fr) 114px !important;
   }
 
   .screen.home-screen .go-day-card-v2.is-rest-summary .go-worked-panel {
-    grid-template-columns: minmax(0, 1fr) 106px !important;
+    grid-template-columns: minmax(0, 1fr) 110px !important;
   }
 }
 
@@ -631,7 +631,7 @@
   }
 
   .screen.home-screen .go-worked-panel {
-    grid-template-columns: minmax(0, 1fr) 101px !important;
+    grid-template-columns: minmax(0, 1fr) 104px !important;
     gap: 10px !important;
     padding: 12px !important;
   }
