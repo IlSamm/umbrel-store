@@ -28,18 +28,26 @@
   .screen.home-screen .go-home-logo {
     width: var(--home-rail) !important;
     max-width: var(--home-rail) !important;
-    min-height: 34px !important;
-    margin: 0 auto 6px !important;
+    min-height: 56px !important;
+    margin: 0 auto 5px !important;
     padding: 0 !important;
+    overflow: visible !important;
   }
 
   .screen.home-screen .go-home-logo .gestore-static-title {
-    min-height: 34px !important;
-    max-width: calc(var(--home-rail) - 32px) !important;
-    padding: 0 8px 4px !important;
-    font-size: clamp(28px, 7.7vw, 32px) !important;
-    line-height: 1.04 !important;
-    letter-spacing: -.052em !important;
+    min-height: 55px !important;
+    max-width: calc(var(--home-rail) - 20px) !important;
+    padding: 0 10px 4px !important;
+    overflow: visible !important;
+    font-size: clamp(46px, 12.8vw, 52px) !important;
+    line-height: 1.03 !important;
+    font-weight: 830 !important;
+    letter-spacing: -.058em !important;
+  }
+
+  .screen.home-screen .go-home-logo .gestore-static-title::after {
+    width: min(126px, 64%) !important;
+    opacity: .52 !important;
   }
 
   .screen.home-screen .go-home-stack,
