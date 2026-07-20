@@ -148,7 +148,7 @@ function renderPayslips() {
       monthSummarySub = monthRecordedDays ? (monthStats.overtimeMinutes > 0 ? (formatDuration(monthStats.overtimeMinutes) + ' extra · ' + monthRecordedDays + ' giorni') : (monthRecordedDays + ' giorni segnati')) : 'Nessun giorno salvato';
       var todayDisplayMinutes = entry && isStateOnlyType(entry.type) ? breakdown.covered : breakdown.total;
       var ordinaryDisplayMinutes = entry && isStateOnlyType(entry.type) ? breakdown.leave : breakdown.normal;
-      var ordinaryLabel = entry && isStateOnlyType(entry.type) ? 'Coperte' : 'Ordinarie';
+      var ordinaryLabel = entry && isStateOnlyType(entry.type) ? 'Coperte' : 'Normali';
       var timeBadgeText = entry
         ? (isStateOnlyType(entry.type) ? (type ? type.label : 'Segnato') : ((entry.start || '--:--') + ' - ' + (entry.end || '--:--')))
         : '';
@@ -184,12 +184,13 @@ function renderPayslips() {
       if (entry && isStateOnlyType(entry.type)) dayTargetCopy = 'Giornata segnata';
       if (isRestDay) dayTargetCopy = 'Nessun turno previsto';
       var daySummaryClass = !entry ? ' is-empty-summary' : (isRestDay ? ' is-rest-summary' : ' is-work-summary');
+      var dayTitleLabel = dayLabel.replace(/\s+\d+\s*$/, '');
       var fullDateLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
       var progressEndLabel = entry ? formatDurationPadded(todayDisplayMinutes) : '0h 00m';
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
           '<button class="go-card go-day-card go-day-card-v2' + daySummaryClass + '" data-open-date="' + key + '">' +
-            '<div class="go-day-head"><div><div class="go-kicker go-day-kicker"><span class="go-kicker-icon">' + icons.calendar + '</span>Oggi</div><div class="go-day-title">' + dayLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div>' + timeBadgeHtml + '</div>' +
+            '<div class="go-day-head"><div><div class="go-kicker go-day-kicker"><span class="go-kicker-icon">' + icons.calendar + '</span>Oggi</div><div class="go-day-title">' + dayTitleLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div>' + timeBadgeHtml + '</div>' +
             '<div class="go-hero-core">' +
               '<div class="go-label">' + dayMainLabel + '</div>' +
               '<div class="go-total-number">' + dayPrimaryText + '</div>' +

@@ -13,9 +13,11 @@ var errorBox = document.getElementById('errorBox');
     var ENTRY_BACKUP_KEYS = ['gestore-entries-backup-v1', 'gestore-entries-backup-v2'];
     var SETTINGS_BACKUP_KEYS = ['gestore-settings-backup-v1', 'gestore-settings-backup-v2'];
     var STORAGE_SAFETY_BUNDLE = 'gestore-safety-bundle-v1';
+    var STORAGE_ENTRIES_CLEARED_AT = 'gestore-entries-cleared-at-v1';
     var serverSyncTimer = 0;
     var serverSyncInFlight = false;
     var serverSyncReady = false;
+    var serverSyncAllowEmptyEntries = false;
     var runtimeServicesStarted = false;
     var reminderTimer = 0;
     var reminderLastSentKey = '';
@@ -47,8 +49,8 @@ var errorBox = document.getElementById('errorBox');
       autoRestDays: [],
       holidayHoursOnOffDays: false,
       weekdayMode: 'monday',
-      version: '1.1.108',
-      build: '20260720b',
+      version: '1.1.109',
+      build: '20260720c',
       appName: 'GestOre'
     };
 
@@ -102,6 +104,48 @@ var errorBox = document.getElementById('errorBox');
         return null;
       }
     }
+    function normalizeEntryMap(value) {
+      return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    }
+    function countEntryMap(value) {
+      return Object.keys(normalizeEntryMap(value)).length;
+    }
+    function loadEntriesWithRecovery() {
+      var primary = readParsedStorage(STORAGE_ENTRIES);
+      var primaryEntries = normalizeEntryMap(primary && primary.parsed);
+      if (countEntryMap(primaryEntries) > 0) return primaryEntries;
+
+      var explicitlyClearedAt = 0;
+      try { explicitlyClearedAt = Math.max(0, Number(localStorage.getItem(STORAGE_ENTRIES_CLEARED_AT) || 0) || 0); }
+      catch (err) {}
+      if (primary && explicitlyClearedAt > 0) return primaryEntries;
+
+      var bestEntries = primaryEntries;
+      var bestCount = 0;
+      var seenKeys = {};
+      var recoveryKeys = ENTRY_BACKUP_KEYS.concat(LEGACY_ENTRY_KEYS);
+      for (var i = 0; i < recoveryKeys.length; i += 1) {
+        var key = recoveryKeys[i];
+        if (!key || key === STORAGE_ENTRIES || seenKeys[key]) continue;
+        seenKeys[key] = true;
+        var candidate = readParsedStorage(key);
+        var candidateEntries = normalizeEntryMap(candidate && candidate.parsed);
+        var candidateCount = countEntryMap(candidateEntries);
+        if (candidateCount > bestCount) {
+          bestEntries = candidateEntries;
+          bestCount = candidateCount;
+        }
+      }
+
+      var safetyBundle = readParsedStorage(STORAGE_SAFETY_BUNDLE);
+      var bundledEntries = normalizeEntryMap(safetyBundle && safetyBundle.parsed && safetyBundle.parsed.entries);
+      if (countEntryMap(bundledEntries) > bestCount) bestEntries = bundledEntries;
+
+      if (countEntryMap(bestEntries) > 0) {
+        try { localStorage.setItem(STORAGE_ENTRIES, JSON.stringify(bestEntries)); } catch (err) {}
+      }
+      return bestEntries;
+    }
     function persistJson(primaryKey, backupKeys, value) {
       var raw = JSON.stringify(value);
       try { localStorage.setItem(primaryKey, raw); } catch (err) {}
@@ -111,7 +155,20 @@ var errorBox = document.getElementById('errorBox');
         }
       }
     }
-    function persistEntriesLocally() { persistJson(STORAGE_ENTRIES, ENTRY_BACKUP_KEYS, state.entries); }
+    function persistEntriesLocally(options) {
+      var entries = normalizeEntryMap(state && state.entries);
+      var raw = JSON.stringify(entries);
+      var hasEntries = countEntryMap(entries) > 0;
+      try { localStorage.setItem(STORAGE_ENTRIES, raw); } catch (err) {}
+      if (hasEntries) {
+        for (var i = 0; i < ENTRY_BACKUP_KEYS.length; i += 1) {
+          try { localStorage.setItem(ENTRY_BACKUP_KEYS[i], raw); } catch (err) {}
+        }
+        try { localStorage.removeItem(STORAGE_ENTRIES_CLEARED_AT); } catch (err) {}
+      } else if (options && options.explicitEmpty === true) {
+        try { localStorage.setItem(STORAGE_ENTRIES_CLEARED_AT, String(Date.now())); } catch (err) {}
+      }
+    }
     function persistSettingsLocally() { persistJson(STORAGE_SETTINGS, SETTINGS_BACKUP_KEYS, state.settings); }
     function persistPayslipsLocally() {
       try { localStorage.setItem(STORAGE_PAYSLIPS, JSON.stringify(state.payslips || [])); } catch (err) {}
@@ -187,7 +244,13 @@ var errorBox = document.getElementById('errorBox');
         return fallback;
       }
     }
-    function saveEntries() { persistEntriesLocally(); saveSafetyBundle(); queueServerSync(); }
+    function saveEntries() {
+      var isExplicitlyEmpty = countEntryMap(state && state.entries) === 0;
+      persistEntriesLocally({ explicitEmpty: isExplicitlyEmpty });
+      if (isExplicitlyEmpty) serverSyncAllowEmptyEntries = true;
+      saveSafetyBundle();
+      queueServerSync();
+    }
     function saveSettings() {
       if (state && state.settings) {
         state.settings = normalizeRuntimeSettings(state.settings);
@@ -1056,12 +1119,14 @@ var errorBox = document.getElementById('errorBox');
         normalized.payslips.length > 0 ||
         !areSettingsEffectivelyDefault(normalized.settings || {});
     }
-    function buildStateSnapshot() {
+    function buildStateSnapshot(options) {
+      var opts = options || {};
       return {
         entries: state && state.entries && typeof state.entries === 'object' ? state.entries : {},
         settings: state && state.settings && typeof state.settings === 'object' ? normalizeRuntimeSettings(state.settings) : {},
         payslips: state && Array.isArray(state.payslips) ? state.payslips : [],
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
+        allowEmptyEntries: opts.allowEmptyEntries === true
       };
     }
     function applySnapshotLocally(snapshot, options) {
@@ -1104,8 +1169,10 @@ var errorBox = document.getElementById('errorBox');
       if (!serverSyncReady || serverSyncInFlight || !window.fetch) return;
       serverSyncInFlight = true;
       try {
-        var saved = await pushSnapshotToServer(buildStateSnapshot());
+        var allowEmptyEntries = serverSyncAllowEmptyEntries;
+        var saved = await pushSnapshotToServer(buildStateSnapshot({ allowEmptyEntries: allowEmptyEntries }));
         applySnapshotLocally(saved, { preserveLockState: true });
+        if (allowEmptyEntries) serverSyncAllowEmptyEntries = false;
         setSyncStatus('Server locale attivo', Date.now());
       } catch (err) {
         setSyncStatus('Solo sul dispositivo', 0);
@@ -1136,7 +1203,34 @@ var errorBox = document.getElementById('errorBox');
         var localTimestamp = getLocalBundleTimestamp();
         var localHasData = hasMeaningfulSnapshotData(localSnapshot);
         var serverHasData = hasMeaningfulSnapshotData(serverSnapshot);
-        if (serverHasData && (!localHasData || serverSnapshot.updatedAt > localTimestamp)) {
+        var localEntryCount = countEntryMap(localSnapshot.entries);
+        var serverEntryCount = countEntryMap(serverSnapshot.entries);
+        if (serverEntryCount > 0 && localEntryCount === 0) {
+          applySnapshotLocally(serverSnapshot);
+          setSyncStatus('Dati ripristinati dal server', Date.now());
+        } else if (serverEntryCount > 0 && localEntryCount > 0) {
+          var serverIsNewer = serverSnapshot.updatedAt > localTimestamp;
+          var preferredSnapshot = serverIsNewer ? serverSnapshot : localSnapshot;
+          var mergedEntries = serverIsNewer
+            ? Object.assign({}, localSnapshot.entries, serverSnapshot.entries)
+            : Object.assign({}, serverSnapshot.entries, localSnapshot.entries);
+          var mergedSnapshot = {
+            entries: mergedEntries,
+            settings: preferredSnapshot.settings,
+            payslips: preferredSnapshot.payslips.length
+              ? preferredSnapshot.payslips
+              : (serverIsNewer ? localSnapshot.payslips : serverSnapshot.payslips),
+            updatedAt: Date.now()
+          };
+          applySnapshotLocally(mergedSnapshot);
+          var mergedSaved = await pushSnapshotToServer(buildStateSnapshot());
+          applySnapshotLocally(mergedSaved, { preserveLockState: true });
+          setSyncStatus('Dati verificati e sincronizzati', Date.now());
+        } else if (localEntryCount > 0 && serverEntryCount === 0) {
+          var restoredServer = await pushSnapshotToServer(localSnapshot);
+          applySnapshotLocally(restoredServer, { preserveLockState: true });
+          setSyncStatus('Dati recuperati dal dispositivo', Date.now());
+        } else if (serverHasData && (!localHasData || serverSnapshot.updatedAt > localTimestamp)) {
           applySnapshotLocally(serverSnapshot);
           setSyncStatus('Dati ripristinati dal server', Date.now());
         } else if (localHasData) {

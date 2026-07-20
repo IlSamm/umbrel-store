@@ -19,8 +19,8 @@ DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
 DATA_DIR = Path(os.environ.get("GESTORE_DATA_DIR", str(DEFAULT_DATA_DIR))).resolve()
 DB_PATH = DATA_DIR / "gestore_data.sqlite3"
 PROFILE_ID = "default"
-BUILD_VERSION = "1.1.108"
-BUILD_CACHE = "20260720b"
+BUILD_VERSION = "1.1.109"
+BUILD_CACHE = "20260720c"
 
 DEFAULT_SNAPSHOT = {
     "entries": {},
@@ -104,6 +104,7 @@ def load_snapshot(profile_id: str = PROFILE_ID) -> dict:
 
 
 def save_snapshot(snapshot: dict, profile_id: str = PROFILE_ID) -> dict:
+    existing = load_snapshot(profile_id)
     entries = snapshot.get("entries")
     settings = snapshot.get("settings")
     payslips = snapshot.get("payslips")
@@ -115,6 +116,11 @@ def save_snapshot(snapshot: dict, profile_id: str = PROFILE_ID) -> dict:
     payslips = payslips if isinstance(payslips, list) else []
     if not isinstance(sync_meta, dict):
         sync_meta = {}
+
+    # A bootstrap con cache Safari vuota non deve mai cancellare le giornate
+    # gia presenti. Lo svuotamento completo resta possibile solo se esplicito.
+    if existing.get("entries") and not entries and snapshot.get("allowEmptyEntries") is not True:
+        entries = existing["entries"]
 
     now_ms = int(time.time() * 1000)
     sync_meta = {

@@ -1,6 +1,6 @@
 var state = {
       activeTab: 'home',
-      entries: loadWithMigration(STORAGE_ENTRIES, LEGACY_ENTRY_KEYS, ENTRY_BACKUP_KEYS, {}, 'entries'),
+      entries: loadEntriesWithRecovery(),
       settings: normalizeRuntimeSettings(loadWithMigration(STORAGE_SETTINGS, LEGACY_SETTINGS_KEYS, SETTINGS_BACKUP_KEYS, {}, 'settings')),
       settingsDraft: {},
       currentMonth: new Date(),
@@ -21,7 +21,6 @@ var state = {
     state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
     state.settingsDraft = Object.assign({}, state.settings);
     state.privacyLocked = Boolean(state.settings.lockApp);
-    saveEntries(); saveSettings();
 
     function getPayslipMonthDate(payslip) {
       if (!payslip || !payslip.month || !payslip.year) return null;
