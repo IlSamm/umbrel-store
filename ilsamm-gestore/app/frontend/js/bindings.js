@@ -73,94 +73,22 @@ function bindEvents() {
       document.querySelectorAll('[data-delete-payslip]').forEach(function (btn) {
         btn.onclick = function () { if (confirm('Eliminare questa busta paga?')) deletePayslip(btn.dataset.deletePayslip); };
       });
-      var updatePayslipLiveSummary = function () {
-        var draft = ensurePayslipDraft();
-        var score = Math.max(0, Math.min(5, getPayslipCoreFieldScore(draft)));
-        var percent = Math.round((score / 5) * 100);
-        var status = getPayslipStatus(draft);
-        var missing = getPayslipMissingCoreFields(draft);
-        var statusNode = document.querySelector('[data-payslip-status-label]');
-        if (statusNode) {
-          statusNode.textContent = status.label;
-          statusNode.className = 'paydesk-badge paydesk-badge-' + status.tone;
-        }
-        document.querySelectorAll('[data-payslip-score-count]').forEach(function (node) {
-          node.textContent = score + '/5 dati';
-        });
-        document.querySelectorAll('[data-payslip-period-value]').forEach(function (node) {
-          node.textContent = getPayslipMonthLabel(draft);
-        });
-        var companyText = String(draft.company || '').trim() || 'Ditta da confermare';
-        document.querySelectorAll('[data-payslip-company-value]').forEach(function (node) {
-          node.textContent = companyText;
-        });
-        document.querySelectorAll('[data-payslip-progress-fill]').forEach(function (node) {
-          node.style.width = percent + '%';
-        });
-        document.querySelectorAll('[data-payslip-progress-copy]').forEach(function (node) {
-          node.textContent = missing.length ? ('Controlla ancora: ' + missing.join(', ') + '.') : 'Mese, anno, ditta, netto e lordo sono pronti.';
-        });
-        document.querySelectorAll('[data-payslip-guide-text]').forEach(function (node) {
-          node.textContent = state.payslipStatus || (missing.length ? ('Controlla ancora: ' + missing.join(', ') + '.') : 'Foto e campi pronti. Puoi salvare.');
-        });
-        document.querySelectorAll('[data-payslip-netto-value]').forEach(function (node) {
-          node.textContent = formatMoneyEuro(draft.netto);
-        });
-        document.querySelectorAll('[data-payslip-lordo-value]').forEach(function (node) {
-          node.textContent = formatMoneyEuro(draft.lordo);
-        });
-      };
-      [
-        ['payslipMonth', 'month'],
-        ['payslipYear', 'year'],
-        ['payslipCompany', 'company'],
-        ['payslipNetto', 'netto'],
-        ['payslipLordo', 'lordo']
-      ].forEach(function (pair) {
-        var el = document.getElementById(pair[0]);
-        if (!el) return;
-        var key = pair[1];
-        var syncFieldValue = function (rawValue) {
+      var payslipNetto = document.getElementById('payslipNetto');
+      if (payslipNetto) {
+        payslipNetto.oninput = function (e) {
           ensurePayslipDraft();
-          if (key === 'company') state.payslipDraft[key] = String(rawValue || '').slice(0, 60);
-          else if (key === 'month' || key === 'year') state.payslipDraft[key] = Math.max(0, parseInt(rawValue || '0', 10) || 0);
-          else state.payslipDraft[key] = parseDecimalInput(rawValue, 0);
-          updatePayslipLiveSummary();
+          state.payslipDraft.netto = parseDecimalInput(e.target.value, 0);
         };
-        if (key === 'month') {
-          el.onchange = function (e) { syncFieldValue(e.target.value); };
-          return;
-        }
-        el.oninput = function (e) { syncFieldValue(e.target.value); };
-        if (key === 'company') {
-          el.onblur = function (e) {
-            ensurePayslipDraft();
-            state.payslipDraft.company = String(state.payslipDraft.company || '').trim().slice(0, 60);
-            e.target.value = state.payslipDraft.company;
-            updatePayslipLiveSummary();
-          };
-          return;
-        }
-        if (key === 'year') {
-          el.onblur = function (e) {
-            ensurePayslipDraft();
-            state.payslipDraft.year = Math.max(0, parseInt(e.target.value || '0', 10) || new Date().getFullYear());
-            e.target.value = state.payslipDraft.year;
-            updatePayslipLiveSummary();
-          };
-          return;
-        }
-        el.onfocus = function (e) {
+        payslipNetto.onfocus = function (e) {
           if (isZeroLikeDecimalText(e.target.value)) e.target.value = '';
           requestAnimationFrame(function () { e.target.setSelectionRange(e.target.value.length, e.target.value.length); });
         };
-        el.onblur = function (e) {
+        payslipNetto.onblur = function (e) {
           ensurePayslipDraft();
-          state.payslipDraft[key] = parseDecimalInput(e.target.value, 0);
-          e.target.value = formatEditorDecimal(state.payslipDraft[key] || 0);
-          updatePayslipLiveSummary();
+          state.payslipDraft.netto = parseDecimalInput(e.target.value, 0);
+          e.target.value = formatEditorDecimal(state.payslipDraft.netto || 0);
         };
-      });
+      }
       var sourceText = document.getElementById('payslipSourceText');
       if (sourceText) sourceText.oninput = function (e) { ensurePayslipDraft(); state.payslipDraft.sourceText = String(e.target.value || ''); };
 

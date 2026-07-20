@@ -1,27 +1,26 @@
-/* Home day hero: the daily total is the primary focus of the first screen. */
+/* Home day card: compact hierarchy for the first iPhone viewport. */
 @media (max-width: 560px) {
   .screen.home-screen .go-day-card-v2 {
     position: relative !important;
     isolation: isolate !important;
     display: block !important;
     width: var(--home-rail) !important;
-    min-height: 432px !important;
+    min-height: 0 !important;
     height: auto !important;
-    padding: 20px !important;
+    padding: 18px !important;
     overflow: hidden !important;
-    text-align: left !important;
     color: #f8fbff !important;
-    border: 1px solid rgba(124, 153, 240, .42) !important;
-    border-radius: 30px !important;
+    text-align: left !important;
+    border: 1px solid rgba(124, 153, 240, .38) !important;
+    border-radius: 27px !important;
     background:
-      radial-gradient(circle at 87% -2%, rgba(131, 89, 255, .36), transparent 36%),
-      radial-gradient(circle at 2% 48%, rgba(43, 147, 255, .20), transparent 44%),
-      linear-gradient(154deg, rgba(27, 46, 91, .995) 0%, rgba(8, 21, 50, .995) 52%, rgba(3, 9, 24, 1) 100%) !important;
+      radial-gradient(circle at 50% -8%, rgba(131, 89, 255, .28), transparent 38%),
+      radial-gradient(circle at 0% 46%, rgba(43, 147, 255, .16), transparent 42%),
+      linear-gradient(154deg, rgba(25, 43, 84, .995) 0%, rgba(8, 21, 49, .995) 54%, rgba(3, 9, 24, 1) 100%) !important;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, .10),
-      inset 0 -1px 0 rgba(113, 85, 255, .10),
-      0 24px 50px rgba(0, 0, 0, .35),
-      0 0 42px rgba(47, 107, 255, .09) !important;
+      inset 0 1px 0 rgba(255, 255, 255, .09),
+      inset 0 -1px 0 rgba(113, 85, 255, .08),
+      0 18px 40px rgba(0, 0, 0, .30) !important;
     -webkit-tap-highlight-color: transparent !important;
   }
 
@@ -31,42 +30,27 @@
     inset: 0 !important;
     z-index: -1 !important;
     border-radius: inherit !important;
-    background:
-      linear-gradient(115deg, rgba(255, 255, 255, .055), transparent 34%),
-      radial-gradient(circle at 68% 100%, rgba(98, 67, 220, .12), transparent 36%) !important;
+    background: linear-gradient(118deg, rgba(255, 255, 255, .045), transparent 36%) !important;
     pointer-events: none !important;
   }
 
   .screen.home-screen .go-day-card-v2::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 28px !important;
-    right: 28px !important;
-    z-index: 2 !important;
-    height: 1px !important;
-    background: linear-gradient(90deg, transparent, rgba(95, 184, 255, .88), rgba(151, 95, 255, .88), transparent) !important;
-    box-shadow: 0 0 16px rgba(94, 129, 255, .50) !important;
-    pointer-events: none !important;
+    content: none !important;
+    display: none !important;
   }
 
   .screen.home-screen .go-day-card-v2.is-empty-summary {
-    border-color: rgba(103, 142, 235, .33) !important;
+    border-color: rgba(103, 142, 235, .31) !important;
     background:
-      radial-gradient(circle at 88% 4%, rgba(86, 108, 223, .24), transparent 35%),
-      radial-gradient(circle at 8% 42%, rgba(38, 139, 255, .13), transparent 40%),
-      linear-gradient(150deg, rgba(22, 37, 73, .99), rgba(7, 17, 39, 1) 56%, rgba(4, 11, 27, 1)) !important;
-  }
-
-  .screen.home-screen .go-day-card-v2.is-empty-summary .go-time-pill {
-    display: none !important;
+      radial-gradient(circle at 50% -8%, rgba(86, 108, 223, .22), transparent 38%),
+      linear-gradient(150deg, rgba(22, 37, 73, .99), rgba(7, 17, 39, 1) 58%, rgba(4, 11, 27, 1)) !important;
   }
 
   .screen.home-screen .go-day-card-v2.is-rest-summary {
     border-color: rgba(119, 138, 190, .28) !important;
     background:
-      radial-gradient(circle at 88% 4%, rgba(100, 112, 165, .18), transparent 35%),
-      linear-gradient(150deg, rgba(24, 37, 67, .99), rgba(8, 17, 36, 1) 56%, rgba(4, 10, 24, 1)) !important;
+      radial-gradient(circle at 50% -8%, rgba(100, 112, 165, .17), transparent 38%),
+      linear-gradient(150deg, rgba(24, 37, 67, .99), rgba(8, 17, 36, 1) 58%, rgba(4, 10, 24, 1)) !important;
   }
 
   .screen.home-screen .go-day-card-v2 svg {
@@ -78,42 +62,39 @@
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-head {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0 !important;
+    display: block !important;
     min-width: 0 !important;
-    text-align: center !important;
+    text-align: left !important;
   }
 
-  .screen.home-screen .go-day-card-v2 .go-day-head > div:first-child {
+  .screen.home-screen .go-day-card-v2 .go-day-meta {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
     min-width: 0 !important;
-    text-align: center !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-kicker {
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center !important;
-    justify-content: center !important;
-    gap: 7px !important;
-    margin: 0 0 6px !important;
+    margin: 0 !important;
     color: #9b83ff !important;
-    font-size: 11px !important;
+    font-size: 10.5px !important;
     line-height: 1 !important;
     font-weight: 900 !important;
-    letter-spacing: .24em !important;
+    letter-spacing: .22em !important;
     text-transform: uppercase !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-kicker-icon {
     display: inline-grid !important;
     place-items: center !important;
-    width: 16px !important;
-    height: 16px !important;
-    flex: 0 0 16px !important;
+    width: 15px !important;
+    height: 15px !important;
+    flex: 0 0 15px !important;
     color: #8fa8ff !important;
-    font-size: 16px !important;
+    font-size: 15px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-title {
@@ -122,72 +103,30 @@
     max-width: none !important;
     overflow: visible !important;
     color: #fff !important;
-    font-size: clamp(38px, 10.2vw, 42px) !important;
+    margin-top: 9px !important;
+    font-size: clamp(36px, 9.8vw, 40px) !important;
     line-height: 1 !important;
     font-weight: 920 !important;
     letter-spacing: -.045em !important;
     text-overflow: clip !important;
+    text-align: center !important;
     white-space: nowrap !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-date {
-    margin-top: 5px !important;
+    margin: 0 !important;
     color: rgba(222, 231, 255, .60) !important;
-    font-size: 12.5px !important;
+    font-size: 11px !important;
     line-height: 1.1 !important;
     font-weight: 620 !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-time-pill {
-    display: grid !important;
-    grid-template-columns: 24px minmax(0, 1fr) !important;
-    align-items: center !important;
-    gap: 7px !important;
-    min-width: 128px !important;
-    max-width: 148px !important;
-    min-height: 36px !important;
-    margin-top: 10px !important;
-    padding: 5px 12px !important;
-    overflow: hidden !important;
-    color: #f8fbff !important;
-    border: 1px solid rgba(166, 181, 232, .20) !important;
-    border-radius: 999px !important;
-    background: linear-gradient(180deg, rgba(79, 83, 153, .58), rgba(34, 45, 84, .66)) !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, .10),
-      0 10px 24px rgba(0, 0, 0, .16) !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-pill-icon {
-    display: grid !important;
-    place-items: center !important;
-    width: 24px !important;
-    height: 24px !important;
-    border-radius: 999px !important;
-    color: #79adff !important;
-    background: rgba(67, 116, 255, .20) !important;
-    font-size: 13px !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-time-copy {
-    width: auto !important;
-    height: auto !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    font-size: 12px !important;
-    line-height: 1 !important;
-    font-weight: 820 !important;
-    letter-spacing: -.02em !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    text-overflow: ellipsis !important;
+    text-align: right !important;
     white-space: nowrap !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-hero-core {
     position: relative !important;
     margin-top: 17px !important;
-    padding: 7px 3px 10px !important;
+    padding: 0 4px !important;
     overflow: visible !important;
     border: 0 !important;
     border-radius: 0 !important;
@@ -199,20 +138,20 @@
   .screen.home-screen .go-day-card-v2 .go-hero-core::before {
     content: '' !important;
     position: absolute !important;
-    top: -52px !important;
-    right: -16px !important;
-    width: 170px !important;
-    height: 170px !important;
+    top: -45px !important;
+    right: 8% !important;
+    width: 150px !important;
+    height: 150px !important;
     border-radius: 999px !important;
-    background: radial-gradient(circle, rgba(119, 83, 255, .16), transparent 68%) !important;
+    background: radial-gradient(circle, rgba(119, 83, 255, .12), transparent 68%) !important;
     filter: blur(9px) !important;
     pointer-events: none !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-label {
     position: relative !important;
-    color: rgba(224, 232, 255, .67) !important;
-    font-size: 13.5px !important;
+    color: rgba(224, 232, 255, .66) !important;
+    font-size: 12.5px !important;
     line-height: 1.1 !important;
     font-weight: 650 !important;
     text-align: center !important;
@@ -223,24 +162,24 @@
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin: 9px auto 0 !important;
+    margin: 7px auto 0 !important;
     overflow: visible !important;
     color: #fff !important;
-    font-size: clamp(64px, 17.8vw, 72px) !important;
+    font-size: clamp(60px, 16.8vw, 68px) !important;
     line-height: .92 !important;
     font-weight: 950 !important;
-    letter-spacing: -.075em !important;
+    letter-spacing: -.072em !important;
     font-variant-numeric: tabular-nums !important;
-    text-shadow: 0 18px 36px rgba(0, 0, 0, .34) !important;
+    text-shadow: 0 14px 30px rgba(0, 0, 0, .30) !important;
     text-align: center !important;
     white-space: nowrap !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-target-copy {
     position: relative !important;
-    margin-top: 8px !important;
+    margin-top: 6px !important;
     color: rgba(222, 231, 255, .64) !important;
-    font-size: 14px !important;
+    font-size: 13px !important;
     line-height: 1.15 !important;
     font-weight: 650 !important;
     text-align: center !important;
@@ -253,12 +192,12 @@
 
   .screen.home-screen .go-day-card-v2 .go-day-timeline {
     position: relative !important;
-    height: 9px !important;
-    margin-top: 16px !important;
+    height: 8px !important;
+    margin-top: 13px !important;
     overflow: hidden !important;
     border-radius: 999px !important;
-    background: rgba(78, 92, 137, .30) !important;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .30) !important;
+    background: rgba(78, 92, 137, .28) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .28) !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-timeline span {
@@ -268,7 +207,7 @@
     max-width: 100% !important;
     border-radius: inherit !important;
     background: linear-gradient(90deg, #62d0ff 0%, #6b8cff 50%, #a15dff 100%) !important;
-    box-shadow: 0 0 12px rgba(108, 109, 255, .42) !important;
+    box-shadow: 0 0 12px rgba(108, 109, 255, .38) !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-progress-captions {
@@ -276,7 +215,7 @@
     display: flex !important;
     justify-content: space-between !important;
     gap: 14px !important;
-    margin-top: 8px !important;
+    margin-top: 7px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-progress-captions span {
@@ -291,15 +230,15 @@
 
   .screen.home-screen .go-day-card-v2 .go-progress-captions strong {
     color: #f8fbff !important;
-    font-size: 13px !important;
+    font-size: 12.5px !important;
     line-height: 1 !important;
     font-weight: 850 !important;
     font-variant-numeric: tabular-nums !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-progress-captions em {
-    color: rgba(216, 226, 255, .54) !important;
-    font-size: 10.2px !important;
+    color: rgba(216, 226, 255, .52) !important;
+    font-size: 9.5px !important;
     line-height: 1 !important;
     font-style: normal !important;
     font-weight: 650 !important;
@@ -310,44 +249,39 @@
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 0 !important;
     width: 100% !important;
-    margin-top: 16px !important;
-    padding: 5px !important;
-    overflow: hidden !important;
-    border: 1px solid rgba(143, 163, 221, .14) !important;
-    border-radius: 20px !important;
-    background: linear-gradient(155deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .018)) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045) !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-stat-row {
-    display: grid !important;
-    grid-template-columns: 28px minmax(0, 1fr) !important;
-    align-items: center !important;
-    gap: 7px !important;
-    min-width: 0 !important;
-    min-height: 62px !important;
-    padding: 8px 9px !important;
-    overflow: hidden !important;
+    margin-top: 14px !important;
+    padding: 3px 0 0 !important;
+    overflow: visible !important;
     border: 0 !important;
-    border-right: 1px solid rgba(143, 163, 221, .12) !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
   }
 
-  .screen.home-screen .go-day-card-v2 .go-stat-row:last-child {
+  .screen.home-screen .go-day-card-v2 .go-stat-row {
+    display: grid !important;
+    grid-template-columns: 27px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    min-height: 55px !important;
+    padding: 6px 8px !important;
+    overflow: visible !important;
     border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-icon {
     display: grid !important;
     place-items: center !important;
-    width: 28px !important;
-    height: 28px !important;
-    flex: 0 0 28px !important;
+    width: 27px !important;
+    height: 27px !important;
+    flex: 0 0 27px !important;
     border-radius: 9px !important;
     font-size: 13px !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06) !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-row > span:last-child {
@@ -357,12 +291,12 @@
   .screen.home-screen .go-day-card-v2 .go-stat-row em {
     display: block !important;
     overflow: hidden !important;
-    color: rgba(215, 225, 255, .56) !important;
-    font-size: 8.8px !important;
+    color: rgba(215, 225, 255, .54) !important;
+    font-size: 8.4px !important;
     line-height: 1 !important;
     font-style: normal !important;
     font-weight: 780 !important;
-    letter-spacing: .015em !important;
+    letter-spacing: .025em !important;
     text-overflow: ellipsis !important;
     text-transform: uppercase !important;
     white-space: nowrap !important;
@@ -373,7 +307,7 @@
     margin-top: 5px !important;
     overflow: hidden !important;
     color: #fff !important;
-    font-size: clamp(13.5px, 3.7vw, 15px) !important;
+    font-size: clamp(13px, 3.55vw, 14.5px) !important;
     line-height: 1 !important;
     font-weight: 900 !important;
     letter-spacing: -.035em !important;
@@ -384,17 +318,17 @@
 
   .screen.home-screen .go-day-card-v2 .go-stat-blue .go-stat-icon {
     color: #78adff !important;
-    background: rgba(71, 111, 255, .19) !important;
+    background: rgba(71, 111, 255, .18) !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-violet .go-stat-icon {
     color: #af78ff !important;
-    background: rgba(142, 86, 255, .18) !important;
+    background: rgba(142, 86, 255, .17) !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-orange .go-stat-icon {
     color: #ffb362 !important;
-    background: rgba(255, 154, 65, .15) !important;
+    background: rgba(255, 154, 65, .14) !important;
   }
 
   .screen.home-screen .go-day-card-v2:active {
@@ -405,64 +339,40 @@
 
 @media (max-width: 374px) {
   .screen.home-screen .go-day-card-v2 {
-    min-height: 410px !important;
     padding: 16px !important;
-    border-radius: 28px !important;
+    border-radius: 25px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-title {
-    font-size: 37px !important;
+    font-size: 34px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-day-date {
-    font-size: 11px !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-time-pill {
-    min-width: 120px !important;
-    max-width: 128px !important;
-    padding: 7px 9px !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-time-copy {
-    font-size: 11.5px !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-hero-core {
-    margin-top: 14px !important;
-    padding: 7px 2px 9px !important;
+    font-size: 10.5px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-total-number {
-    font-size: clamp(61px, 17.4vw, 66px) !important;
-  }
-
-  .screen.home-screen .go-day-card-v2 .go-stat-column {
-    gap: 0 !important;
-    margin-top: 13px !important;
-    padding: 4px !important;
+    font-size: clamp(55px, 16.4vw, 61px) !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-row {
-    grid-template-columns: 25px minmax(0, 1fr) !important;
+    grid-template-columns: 24px minmax(0, 1fr) !important;
     gap: 5px !important;
-    min-height: 57px !important;
-    padding: 7px 6px !important;
-    border-radius: 0 !important;
+    min-height: 52px !important;
+    padding: 6px 5px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-icon {
-    width: 25px !important;
-    height: 25px !important;
-    font-size: 12px !important;
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 11.5px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-row em {
-    font-size: 8px !important;
+    font-size: 7.6px !important;
   }
 
   .screen.home-screen .go-day-card-v2 .go-stat-row strong {
-    font-size: 13.5px !important;
+    font-size: 12.5px !important;
   }
-
 }

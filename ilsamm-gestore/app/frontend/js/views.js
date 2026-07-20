@@ -1,4 +1,4 @@
-function renderPayslips() {
+function renderPayslipsLegacy() {
       ensurePayslipDraft();
       var draft = state.payslipDraft;
       var draftStatus = state.payslipStatus ? '<div class="payslip-status">' + escapeHtml(state.payslipStatus) + '</div>' : '';
@@ -149,12 +149,6 @@ function renderPayslips() {
       var todayDisplayMinutes = entry && isStateOnlyType(entry.type) ? breakdown.covered : breakdown.total;
       var ordinaryDisplayMinutes = entry && isStateOnlyType(entry.type) ? breakdown.leave : breakdown.normal;
       var ordinaryLabel = entry && isStateOnlyType(entry.type) ? 'Coperte' : 'Normali';
-      var timeBadgeText = entry
-        ? (isStateOnlyType(entry.type) ? (type ? type.label : 'Segnato') : ((entry.start || '--:--') + ' - ' + (entry.end || '--:--')))
-        : '';
-      var timeBadgeHtml = timeBadgeText
-        ? '<div class="go-time-pill"><span class="go-pill-icon">' + icons.clock + '</span><span class="go-time-copy">' + timeBadgeText + '</span></div>'
-        : '';
       var isRestDay = entry && entry.type === 'riposo';
       var dayPrimaryText = entry ? formatDurationPadded(todayDisplayMinutes) : '0h 00m';
       var ordinaryText = entry ? formatDurationPadded(ordinaryDisplayMinutes) : '--';
@@ -173,9 +167,6 @@ function renderPayslips() {
       var weekMissingSub = weekRemaining > 0 ? (remainingWorkdays + ' giorni rimasti') : 'Settimana in positivo';
       var monthNormalValue = formatDuration(monthStats.normalMinutes || Math.max(0, monthStats.totalMinutes - (monthStats.overtimeMinutes || 0)));
       var monthPermessoValue = (monthStats.permesso || 0) + ' gg';
-      var statDotColor = type ? type.dot : '#23dba0';
-      var scheduleStart = entry && entry.start ? entry.start : '--:--';
-      var scheduleEnd = entry && entry.end ? entry.end : '--:--';
       var dayProgressStyle = clampChartPercent(entry ? heroPercent : 0).toFixed(2) + '%';
       var dayMainLabel = isRestDay ? 'Giornata di riposo' : 'Totale lavorato oggi';
       var targetDurationText = formatDurationPadded(todayTargetMinutes);
@@ -190,7 +181,7 @@ function renderPayslips() {
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
           '<button class="go-card go-day-card go-day-card-v2' + daySummaryClass + '" data-open-date="' + key + '">' +
-            '<div class="go-day-head"><div><div class="go-kicker go-day-kicker"><span class="go-kicker-icon">' + icons.calendar + '</span>Oggi</div><div class="go-day-title">' + dayTitleLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div>' + timeBadgeHtml + '</div>' +
+            '<div class="go-day-head"><div class="go-day-meta"><span class="go-day-kicker">Oggi</span><span class="go-day-date">' + fullDateLabel + '</span></div><div class="go-day-title">' + dayTitleLabel + '</div></div>' +
             '<div class="go-hero-core">' +
               '<div class="go-label">' + dayMainLabel + '</div>' +
               '<div class="go-total-number">' + dayPrimaryText + '</div>' +
@@ -754,7 +745,7 @@ function renderOverlay() {
       return '<div class="confirm-overlay open"><div class="confirm-card"><div class="confirm-title">Cancella giornata</div><div class="confirm-text">Vuoi cancellare tutte le ore e i dati di questo giorno?</div><div class="confirm-actions"><button class="ghost" data-close-confirm="1">Annulla</button><button class="ghost danger" data-confirm-clear="1">Cancella</button></div></div></div>';
     }
 
-    function renderPayslips() {
+    function renderPayslipsComplexLegacy() {
       ensurePayslipDraft();
       var draft = state.payslipDraft;
       var currentStatus = getPayslipStatus(draft);
@@ -828,6 +819,50 @@ function renderOverlay() {
             '<div class="paydesk-head"><div><div class="section-title" style="margin:0;">Archivio</div><div class="small muted">Apri una busta per rivedere foto e dati.</div></div><div class="small muted">' + (state.payslips || []).length + ' salvate</div></div>' +
             ((state.payslips && state.payslips.length) ? '<div class="paydesk-archive-list">' + archive + '</div>' : '<div class="paydesk-empty-archive"><div class="small muted">Quando salvi una busta la ritrovi qui con foto, ditta, netto e lordo.</div></div>') +
           '</div></div>' +
+        '</div><input id="payslipFileInput" type="file" accept="image/*" hidden>';
+    }
+
+    function renderPayslips() {
+      ensurePayslipDraft();
+      var draft = state.payslipDraft;
+      var hasPhoto = Boolean(draft.imageData);
+      var hasAmount = parseDecimalInput(draft.netto, 0) > 0;
+      var canReset = Boolean(draft.id || hasPhoto || hasAmount);
+      var statusHtml = state.payslipStatus
+        ? '<div class="payvault-status">' + escapeHtml(state.payslipStatus) + '</div>'
+        : '';
+      var archive = (state.payslips || []).map(function (item) {
+        return '<button class="payvault-item" data-open-payslip="' + item.id + '">' +
+          '<span class="payvault-thumb' + (item.imageData ? '' : ' is-empty') + '">' +
+            (item.imageData ? '<img src="' + item.imageData + '" alt="Busta paga ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
+          '</span>' +
+          '<span class="payvault-item-copy"><span class="payvault-item-period">' + escapeHtml(getPayslipMonthLabel(item)) + '</span><strong>' + formatMoneyEuro(item.netto) + '</strong><small>Importo ricevuto</small></span>' +
+          '<span class="payvault-chevron">' + icons.right + '</span>' +
+        '</button>';
+      }).join('');
+      return '<div class="top top-centered page-top payvault-page-top"><div class="title">Buste paga</div></div>' +
+        '<div class="stack payvault-stack">' +
+          '<section class="card payvault-card"><div class="card-body payvault-body">' +
+            '<div class="payvault-head">' +
+              '<div class="payvault-heading"><span class="payvault-heading-icon">' + icons.receipt + '</span><div><div class="payvault-kicker">Nuova busta</div><div class="payvault-title">Foto e importo</div></div></div>' +
+              (canReset ? '<button class="ghost mini-btn payvault-new-btn" data-reset-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Nuova</button>' : '') +
+            '</div>' +
+            '<div class="payvault-copy">Salva la foto della busta paga e scrivi quanto hai ricevuto. Nient\'altro.</div>' +
+            (hasPhoto
+              ? '<div class="payvault-photo"><img src="' + draft.imageData + '" alt="Anteprima busta paga"><div class="payvault-photo-foot"><span>Foto pronta</span><button class="ghost mini-btn" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Cambia</button></div></div>'
+              : '<div class="payvault-upload"><span class="payvault-upload-icon">' + icons.receipt + '</span><strong>Aggiungi la foto</strong><span>Scatta la busta oppure sceglila dalla galleria.</span><div class="payvault-upload-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>' + (state.payslipBusy ? 'Caricamento...' : 'Scatta foto') + '</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Galleria</button></div></div>') +
+            '<label class="payvault-amount"><span>Importo ricevuto</span><div class="payvault-amount-input"><b>EUR</b><input id="payslipNetto" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '" placeholder="0,00"></div></label>' +
+            statusHtml +
+            '<div class="payvault-actions"><button class="solid payvault-save" data-save-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Salva busta paga</button>' +
+              (draft.id ? '<button class="ghost danger" data-delete-payslip="' + draft.id + '">Elimina</button>' : '') +
+            '</div>' +
+          '</div></section>' +
+          '<section class="card payvault-archive"><div class="card-body payvault-archive-body">' +
+            '<div class="payvault-archive-head"><div><div class="payvault-kicker">Archivio</div><div class="section-title">Buste salvate</div></div><span>' + (state.payslips || []).length + '</span></div>' +
+            ((state.payslips && state.payslips.length)
+              ? '<div class="payvault-list">' + archive + '</div>'
+              : '<div class="payvault-empty"><span class="payvault-empty-icon">' + icons.receipt + '</span><strong>Nessuna busta salvata</strong><span>Le buste appariranno qui con foto e importo.</span></div>') +
+          '</div></section>' +
         '</div><input id="payslipFileInput" type="file" accept="image/*" hidden>';
     }
 

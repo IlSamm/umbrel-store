@@ -759,34 +759,6 @@ var state = {
       if (state.payslipDraft && state.payslipDraft.id === id) resetPayslipDraft();
       render();
     }
-    async function loadExternalScript(src) {
-      return new Promise(function (resolve, reject) {
-        var script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.crossOrigin = 'anonymous';
-        script.onload = function () { resolve(); };
-        script.onerror = function () {
-          script.remove();
-          reject(new Error('load'));
-        };
-        document.head.appendChild(script);
-      });
-    }
-    async function loadTesseract() {
-      if (window.Tesseract && typeof window.Tesseract.recognize === 'function') return window.Tesseract;
-      var sources = [
-        'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
-        'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'
-      ];
-      for (var i = 0; i < sources.length; i++) {
-        try {
-          await loadExternalScript(sources[i]);
-          if (window.Tesseract && typeof window.Tesseract.recognize === 'function') return window.Tesseract;
-        } catch (err) {}
-      }
-      throw new Error('ocr-unavailable');
-    }
     function readFileAsDataURL(file) {
       return new Promise(function (resolve, reject) {
         var reader = new FileReader();
@@ -806,51 +778,19 @@ var state = {
           var baseCanvas = document.createElement('canvas');
           baseCanvas.width = width;
           baseCanvas.height = height;
-          var baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+          var baseCtx = baseCanvas.getContext('2d');
           baseCtx.drawImage(img, 0, 0, width, height);
-          var preview = baseCanvas.toDataURL('image/jpeg', 0.92);
-
-          var softCanvas = document.createElement('canvas');
-          softCanvas.width = width;
-          softCanvas.height = height;
-          var softCtx = softCanvas.getContext('2d', { willReadFrequently: true });
-          softCtx.filter = 'contrast(140%) brightness(106%) grayscale(100%)';
-          softCtx.drawImage(baseCanvas, 0, 0, width, height);
-
-          var hardCanvas = document.createElement('canvas');
-          hardCanvas.width = width;
-          hardCanvas.height = height;
-          var hardCtx = hardCanvas.getContext('2d', { willReadFrequently: true });
-          hardCtx.drawImage(softCanvas, 0, 0, width, height);
-          var imageData = hardCtx.getImageData(0, 0, width, height);
-          var data = imageData.data;
-          for (var i = 0; i < data.length; i += 4) {
-            var gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-            gray = (gray - 128) * 1.55 + 128;
-            gray = gray < 0 ? 0 : (gray > 255 ? 255 : gray);
-            var boosted = gray > 182 ? 255 : gray < 92 ? 0 : gray;
-            data[i] = boosted;
-            data[i + 1] = boosted;
-            data[i + 2] = boosted;
-          }
-          hardCtx.putImageData(imageData, 0, 0);
-
-          var pageCanvas = cropCanvasArea(softCanvas, 0.02, 0.02, 0.96, 0.96);
-          resolve({
-            preview: preview,
-            ocr: hardCanvas.toDataURL('image/jpeg', 0.96),
-            ocrAlt: softCanvas.toDataURL('image/jpeg', 0.96),
-            ocrWide: pageCanvas.toDataURL('image/jpeg', 0.96),
-            regions: getPayslipRegionSources(pageCanvas)
-          });
+          resolve({ preview: baseCanvas.toDataURL('image/jpeg', 0.9) });
         };
         img.onerror = function () {
-          resolve({ preview: dataUrl, ocr: dataUrl, ocrAlt: dataUrl, ocrWide: dataUrl, regions: [] });
+          resolve({ preview: dataUrl });
         };
         img.src = dataUrl;
       });
     }
-    async function processPayslipFile(file) {
+    async function processPayslipFileLegacy(file) {
+      return processPayslipFile(file);
+      /* Legacy OCR flow retained below only for migration history. */
       if (!file) return;
       ensurePayslipDraft();
       state.payslipBusy = true;
@@ -989,6 +929,16 @@ var state = {
     function savePayslipDraft() {
       ensurePayslipDraft();
       var draft = Object.assign({}, makeEmptyPayslipDraft(), state.payslipDraft);
+      if (!draft.imageData) {
+        state.payslipStatus = 'Aggiungi prima la foto della busta paga.';
+        render();
+        return;
+      }
+      if (parseDecimalInput(draft.netto, 0) <= 0) {
+        state.payslipStatus = 'Inserisci l\'importo ricevuto.';
+        render();
+        return;
+      }
       var saved = Object.assign({}, reducePayslipToCoreFields(draft), {
         id: draft.id || ('payslip-' + Date.now()),
         imageData: draft.imageData || '',
@@ -1003,11 +953,14 @@ var state = {
         return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
       });
       savePayslips();
-      state.payslipStatus = getPayslipCoreFieldScore(saved) >= 5 ? 'Busta salvata.' : 'Busta salvata. Puoi completare i campi mancanti quando vuoi.';
+      state.payslipDraft = makeEmptyPayslipDraft();
+      state.payslipStatus = 'Busta paga salvata.';
       state.activeTab = 'payslips';
       render();
     }
-    async function processPayslipFile(file) {
+    async function processPayslipFileOcrLegacy(file) {
+      return processPayslipFile(file);
+      /* Legacy OCR flow retained below only for migration history. */
       if (!file) return;
       ensurePayslipDraft();
       state.payslipBusy = true;
@@ -1092,6 +1045,31 @@ var state = {
         if (err && err.message === 'image-only') state.payslipStatus = 'Per ora puoi caricare solo foto della busta paga.';
         else if (err && err.message === 'ocr-unavailable') state.payslipStatus = 'Il lettore automatico non si e caricato. Riprova oppure compila i campi a mano.';
         else state.payslipStatus = 'Non sono riuscito a leggere bene la foto. Prova con una foto piu nitida oppure compila i campi a mano.';
+      }
+      state.payslipBusy = false;
+      state.activeTab = 'payslips';
+      render();
+    }
+
+    async function processPayslipFile(file) {
+      if (!file) return;
+      ensurePayslipDraft();
+      state.payslipBusy = true;
+      state.payslipStatus = 'Sto preparando la foto...';
+      render();
+      try {
+        if (!file.type || file.type.indexOf('image/') !== 0) throw new Error('image-only');
+        var dataUrl = await readFileAsDataURL(file);
+        var prepared = await preparePayslipImage(dataUrl);
+        mergePayslipParsedData({}, {
+          imageData: prepared.preview || dataUrl,
+          fileName: file.name || 'busta-paga.jpg'
+        });
+        state.payslipStatus = 'Foto pronta. Inserisci l\'importo ricevuto e salva.';
+      } catch (err) {
+        state.payslipStatus = err && err.message === 'image-only'
+          ? 'Puoi caricare soltanto una foto della busta paga.'
+          : 'Non sono riuscito a caricare la foto. Riprova con un\'altra immagine.';
       }
       state.payslipBusy = false;
       state.activeTab = 'payslips';
