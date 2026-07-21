@@ -167,9 +167,7 @@ function renderPayslipsLegacy() {
       var weekMissingSub = weekRemaining > 0 ? (remainingWorkdays + ' giorni rimasti') : 'Settimana in positivo';
       var monthNormalValue = formatDuration(monthStats.normalMinutes || Math.max(0, monthStats.totalMinutes - (monthStats.overtimeMinutes || 0)));
       var monthPermessoValue = (monthStats.permesso || 0) + ' gg';
-      var dayProgressStyle = clampChartPercent(entry ? heroPercent : 0).toFixed(2) + '%';
       var dayMainLabel = isRestDay ? 'Giornata di riposo' : 'Totale lavorato oggi';
-      var targetDurationText = formatDurationPadded(todayTargetMinutes);
       var dayTargetCopy = 'su <strong>' + formatHourValue(state.settings.dailyTarget) + '</strong> previste';
       if (!entry) dayTargetCopy = 'tocca per inserire la giornata';
       if (entry && isStateOnlyType(entry.type)) dayTargetCopy = 'Giornata segnata';
@@ -177,17 +175,14 @@ function renderPayslipsLegacy() {
       var daySummaryClass = !entry ? ' is-empty-summary' : (isRestDay ? ' is-rest-summary' : ' is-work-summary');
       var dayTitleLabel = dayLabel.replace(/\s+\d+\s*$/, '');
       var fullDateLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
-      var progressEndLabel = entry ? formatDurationPadded(todayDisplayMinutes) : '0h 00m';
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
           '<button class="go-card go-day-card go-day-card-v2' + daySummaryClass + '" data-open-date="' + key + '">' +
-            '<div class="go-day-head"><div class="go-day-meta"><span class="go-day-kicker">Oggi</span><span class="go-day-date">' + fullDateLabel + '</span></div><div class="go-day-title">' + dayTitleLabel + '</div></div>' +
+            '<div class="go-day-head"><div class="go-day-title">' + dayTitleLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div>' +
             '<div class="go-hero-core">' +
               '<div class="go-label">' + dayMainLabel + '</div>' +
               '<div class="go-total-number">' + dayPrimaryText + '</div>' +
               '<div class="go-day-target-copy">' + dayTargetCopy + '</div>' +
-              '<div class="go-day-timeline"><span style="width:' + dayProgressStyle + ';"></span></div>' +
-              '<div class="go-progress-captions"><span><strong>' + targetDurationText + '</strong><em>Previsto</em></span><span><strong>' + progressEndLabel + '</strong><em>Registrato</em></span></div>' +
             '</div>' +
             '<div class="go-stat-column">' +
               '<div class="go-stat-row go-stat-blue"><span class="go-stat-icon">' + icons.briefcase + '</span><span><em>' + ordinaryLabel + '</em><strong>' + ordinaryText + '</strong></span></div>' +
