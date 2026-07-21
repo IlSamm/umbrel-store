@@ -50,8 +50,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.117',
-      build: '20260721d',
+      version: '1.1.118',
+      build: '20260721e',
       appName: 'GestOre'
     };
 
@@ -581,9 +581,10 @@ var errorBox = document.getElementById('errorBox');
       } else if (e.type === 'ferie' || e.type === 'malattia' || e.type === 'permesso' || e.type === 'festivita_pagata') {
         leave = hoursToMinutes(getStateOnlyCoveredHours(e));
       }
-      var manualOver = hasManualOvertime(e) ? Math.min(Math.max(0, hoursToMinutes(e.overtimeHours || 0)), total) : 0;
+      var usesManualOvertime = hasManualOvertime(e);
+      var manualOver = usesManualOvertime ? Math.min(Math.max(0, hoursToMinutes(e.overtimeHours || 0)), total) : 0;
       var autoOver = getAutoOvertimeMinutes(e);
-      var over = manualOver > 0 ? manualOver : Math.min(autoOver, total);
+      var over = usesManualOvertime ? manualOver : Math.min(autoOver, total);
       return { total: total, normal: Math.max(0, total - over), overtime: over, leave: leave, covered: total + leave };
     }
     function getVacationAllowanceDays(year, source) {
@@ -1534,6 +1535,7 @@ var errorBox = document.getElementById('errorBox');
       add('calcWorkedMinutes calcola 8-18 con 1h pausa = 540 minuti', calcWorkedMinutes({ start:'08:00', end:'18:00', breakHours:1 }) === 540);
       add('getAutoOvertimeMinutes usa il target giornaliero', getAutoOvertimeMinutes({ type:'lavoro', start:'08:00', end:'18:00', breakHours:1, overtimeHours:0, overtimeManual:false }) === 60);
       add('getBreakdown usa l extra automatico quando non e manuale', getBreakdown({ type:'lavoro', start:'08:00', end:'18:00', breakHours:1, overtimeHours:0, overtimeManual:false }).overtime === 60);
+      add('getBreakdown rispetta zero extra impostato manualmente', getBreakdown({ type:'lavoro', start:'08:00', end:'18:00', breakHours:1, overtimeHours:0, overtimeManual:true }).overtime === 0);
       add('festivita italiane includono il 25 aprile', (getItalianHolidayInfo(new Date(2026, 3, 25)) || {}).name === 'Festa della Liberazione');
       add('festivita italiane includono Pasqua 2026', (getItalianHolidayInfo(new Date(2026, 3, 5)) || {}).name === 'Pasqua');
       add('festivita pagata copre il target giornaliero', getBreakdown({ type:'festivita_pagata', quantityHours:getDefaultPaidDayHours() }).leave === getDailyTargetMinutes());

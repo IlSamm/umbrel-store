@@ -470,6 +470,36 @@ function bindEvents() {
           updateEditorSummaryUI();
         };
       }
+      document.querySelectorAll('[data-adjust-editor-hours]').forEach(function (button) {
+        button.onclick = function () {
+          if (!state.draft) return;
+          var field = button.getAttribute('data-adjust-editor-hours');
+          if (['breakHours', 'overtimeHours', 'leaveHours'].indexOf(field) === -1) return;
+          var delta = Number(button.getAttribute('data-editor-delta')) || 0;
+          var nextValue = Math.min(24, Math.max(0, Math.round((parseDecimalInput(state.draft[field], 0) + delta) * 100) / 100));
+          state.draft[field] = nextValue;
+          if (field === 'overtimeHours') state.draft.overtimeManual = true;
+          if (field === 'breakHours') syncDraftAutoOvertime();
+          var inputId = field === 'breakHours' ? 'editorBreakHours' : (field === 'overtimeHours' ? 'editorOvertimeHours' : 'editorLeaveHours');
+          var fieldInput = document.getElementById(inputId);
+          if (fieldInput) fieldInput.value = formatEditorDecimal(state.draft[field] || 0);
+          updateEditorSummaryUI();
+        };
+      });
+      var overtimeAuto = document.querySelector('[data-toggle-editor-overtime-auto]');
+      if (overtimeAuto) overtimeAuto.onclick = function () {
+        if (!state.draft) return;
+        if (state.draft.overtimeManual) {
+          state.draft.overtimeManual = false;
+          syncDraftAutoOvertime(true);
+        } else {
+          state.draft.overtimeManual = true;
+          state.draft.overtimeHours = minutesToHours(getBreakdown(state.draft).overtime);
+          var overtimeField = document.getElementById('editorOvertimeHours');
+          if (overtimeField) overtimeField.value = formatEditorDecimal(state.draft.overtimeHours || 0);
+        }
+        updateEditorSummaryUI();
+      };
       var leaveInput = document.getElementById('editorLeaveHours');
       if (leaveInput) {
         leaveInput.onfocus = function (e) { if (isZeroLikeDecimalText(e.target.value)) e.target.value = ''; requestAnimationFrame(function () { e.target.setSelectionRange(e.target.value.length, e.target.value.length); }); };

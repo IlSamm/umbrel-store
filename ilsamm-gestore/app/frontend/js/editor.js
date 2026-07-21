@@ -56,11 +56,20 @@ function openEditor(date) {
       var overtimeEl = document.getElementById('editorSummaryExtra');
       var leaveEl = document.getElementById('editorSummaryLeave');
       var coveredEl = document.getElementById('editorSummaryCovered');
-      if (totalEl) totalEl.textContent = formatDuration(breakdown.total);
-      if (normalEl) normalEl.textContent = formatHourValue(minutesToHours(breakdown.normal));
-      if (overtimeEl) overtimeEl.textContent = formatHourValue(minutesToHours(breakdown.overtime));
-      if (leaveEl) leaveEl.textContent = formatHourValue(minutesToHours(breakdown.leave));
-      if (coveredEl) coveredEl.textContent = formatHourValue(minutesToHours(breakdown.leave));
+      var breakEl = document.getElementById('editorSummaryBreak');
+      var autoToggle = document.querySelector('[data-toggle-editor-overtime-auto]');
+      var overtimeMode = document.querySelector('[data-editor-overtime-mode]');
+      if (totalEl) totalEl.textContent = formatDuration(isStateOnlyType(state.draft.type) ? breakdown.covered : breakdown.total);
+      if (normalEl) normalEl.textContent = formatDuration(breakdown.normal);
+      if (overtimeEl) overtimeEl.textContent = formatDuration(breakdown.overtime);
+      if (leaveEl) leaveEl.textContent = formatDuration(breakdown.leave);
+      if (coveredEl) coveredEl.textContent = formatDuration(breakdown.leave);
+      if (breakEl) breakEl.textContent = formatDuration(hoursToMinutes(state.draft.breakHours || 0));
+      if (autoToggle) {
+        autoToggle.classList.toggle('is-on', !state.draft.overtimeManual);
+        autoToggle.setAttribute('aria-pressed', state.draft.overtimeManual ? 'false' : 'true');
+      }
+      if (overtimeMode) overtimeMode.textContent = state.draft.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti';
     }
     function clearEditorDay() {
       if (!state.editingDate) return;

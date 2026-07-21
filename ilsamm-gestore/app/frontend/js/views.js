@@ -732,7 +732,7 @@ function renderCalendar() {
     }
 
 
-function renderOverlay() {
+function renderOverlayLegacy() {
       if (!state.editingDate || !state.draft) return '';
       var date = state.editingDate, d = state.draft;
       var breakdown = getBreakdown(d);
@@ -779,6 +779,69 @@ function renderOverlay() {
         '<div class="editor-section editor-notes-section"><button class="collapse-btn editor-collapse-btn" data-toggle-notes-open="1"><div class="editor-notes-title"><span class="editor-card-icon editor-icon-blue">' + icons.note + '</span><div>Annotazioni</div></div><span>' + icons.right + '</span></button><div class="collapse-panel ' + (state.notesOpen ? 'open' : '') + '"><textarea id="editorNotes" class="notes" placeholder="Aggiungi una nota...">' + escapeHtml(d.notes) + '</textarea></div></div>' +
         '<div class="editor-section editor-danger-section"><div class="editor-actions"><button class="ghost danger editor-danger-btn" data-clear-day="1">' + icons.trash + 'Cancella giornata</button></div></div>' +
         '</div></div></div>';
+    }
+
+    function renderOverlay() {
+      if (!state.editingDate || !state.draft) return '';
+      var date = state.editingDate;
+      var d = state.draft;
+      var breakdown = getBreakdown(d);
+      var label = weekNamesFull[mondayIndex(date.getDay())];
+      var currentType = dayTypes[d.type];
+      var others = Object.entries(dayTypes).filter(function (pair) { return pair[0] !== d.type; });
+      var isStateOnly = isStateOnlyType(d.type);
+      var isMixed = isMixedType(d.type);
+      var holidayName = d.type === 'festivita_pagata' ? getHolidayDisplayName(d, date) : '';
+      var editorDateLabel = label + ' ' + date.getDate() + ' ' + monthNames[date.getMonth()] + ' ' + date.getFullYear();
+      var typeSubtitle = 'Giornata lavorativa';
+      if (d.type === 'lavoro_ferie') typeSubtitle = 'Lavoro con ore di ferie';
+      if (d.type === 'ferie') typeSubtitle = 'Giornata di ferie';
+      if (d.type === 'malattia') typeSubtitle = 'Giornata di malattia';
+      if (d.type === 'permesso') typeSubtitle = 'Giornata di permesso';
+      if (d.type === 'festivita_pagata') typeSubtitle = holidayName || 'Festivita italiana pagata';
+      if (d.type === 'riposo') typeSubtitle = 'Giornata di riposo';
+
+      var summaryHtml = '';
+      if (d.type === 'riposo') {
+        summaryHtml = '<div class="day-editor-summary-state"><span class="day-editor-summary-state-icon">' + typeIconSvg(d.type) + '</span><div><span>Stato giornata</span><strong>Riposo</strong></div></div>';
+      } else if (isStateOnly) {
+        summaryHtml = '<div class="day-editor-summary-state"><span class="day-editor-summary-state-icon">' + typeIconSvg(d.type) + '</span><div><span>' + escapeHtml(currentType.label) + '</span><strong id="editorSummaryCovered">' + formatDuration(breakdown.leave) + '</strong></div></div>' +
+          '<div class="day-editor-summary-total"><span>Ore coperte</span><strong id="editorSummaryTotal">' + formatDuration(breakdown.covered) + '</strong></div>';
+      } else {
+        summaryHtml = '<div class="day-editor-summary-grid ' + (isMixed ? 'is-mixed' : '') + '">' +
+          '<div class="day-editor-summary-stat"><span class="day-editor-summary-icon is-blue">' + icons.clock + '</span><span>Normali</span><strong id="editorSummaryNormal">' + formatDuration(breakdown.normal) + '</strong></div>' +
+          '<div class="day-editor-summary-stat"><span class="day-editor-summary-icon is-green">' + icons.coffee + '</span><span>Pausa</span><strong id="editorSummaryBreak">' + formatDuration(hoursToMinutes(d.breakHours || 0)) + '</strong></div>' +
+          '<div class="day-editor-summary-stat"><span class="day-editor-summary-icon is-violet">' + icons.star + '</span><span>Extra</span><strong id="editorSummaryExtra">' + formatDuration(breakdown.overtime) + '</strong></div>' +
+          (isMixed ? '<div class="day-editor-summary-stat"><span class="day-editor-summary-icon is-blue">' + icons.calendar + '</span><span>Ferie</span><strong id="editorSummaryLeave">' + formatDuration(breakdown.leave) + '</strong></div>' : '') +
+        '</div><div class="day-editor-summary-total"><span>Totale lavorato</span><strong id="editorSummaryTotal">' + formatDuration(breakdown.total) + '</strong></div>';
+      }
+
+      var dynamicSections = '';
+      if (d.type === 'riposo') {
+        dynamicSections = '<section class="day-editor-card day-editor-state-card"><span class="day-editor-state-icon">' + typeIconSvg(d.type) + '</span><div><span class="day-editor-kicker">RIPOSO</span><strong>Nessun orario da inserire</strong><small>Puoi aggiungere una nota oppure salvare la giornata.</small></div></section>';
+      } else if (isStateOnly) {
+        dynamicSections = '<section class="day-editor-card day-editor-quantity-card"><div class="day-editor-kicker">QUANTITA</div><div class="day-editor-quantity-row"><span class="day-editor-round-icon is-blue">' + icons.clock + '</span><div class="day-editor-quantity-copy"><strong>' + getEditorQuantityLabel(d.type) + '</strong><small>' + getEditorQuantityHint(d.type) + '</small></div><div class="day-editor-number-field"><input id="editorQuantityHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.quantityHours || 0) + '" aria-label="' + getEditorQuantityLabel(d.type) + '"><span>h</span></div></div></section>';
+      } else {
+        dynamicSections = '<section class="day-editor-card day-editor-schedule-card"><div class="day-editor-kicker">ORARIO</div><div class="day-editor-time-grid">' +
+          '<label class="time-box day-editor-time-field ' + (normalizeTimeInputValue(d.start || '') ? 'has-time' : 'empty-time') + '"><span class="day-editor-round-icon is-green">' + icons.right + '</span><span class="day-editor-time-label">Entrata</span><span class="time-field"><input id="editorStart" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.start || '') + '" aria-label="Orario di entrata"><span class="time-placeholder" aria-hidden="true">--:--</span></span></label>' +
+          '<label class="time-box day-editor-time-field ' + (normalizeTimeInputValue(d.end || '') ? 'has-time' : 'empty-time') + '"><span class="day-editor-round-icon is-violet">' + icons.left + '</span><span class="day-editor-time-label">Uscita</span><span class="time-field"><input id="editorEnd" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.end || '') + '" aria-label="Orario di uscita"><span class="time-placeholder" aria-hidden="true">--:--</span></span></label>' +
+        '</div><div class="day-editor-inline-row"><span class="day-editor-round-icon is-blue">' + icons.clock + '</span><div class="day-editor-inline-copy"><strong>Pausa</strong><small>Durata non lavorata</small></div><div class="day-editor-stepper"><button type="button" data-adjust-editor-hours="breakHours" data-editor-delta="-0.5" aria-label="Riduci pausa">-</button><div class="day-editor-step-value"><input id="editorBreakHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.breakHours || 0) + '" aria-label="Ore di pausa"><span>h</span></div><button type="button" data-adjust-editor-hours="breakHours" data-editor-delta="0.5" aria-label="Aumenta pausa">+</button></div></div>' +
+        (isMixed ? '<div class="day-editor-inline-row day-editor-leave-row"><span class="day-editor-round-icon is-blue">' + icons.calendar + '</span><div class="day-editor-inline-copy"><strong>Ferie</strong><small>Ore coperte nella giornata</small></div><div class="day-editor-stepper"><button type="button" data-adjust-editor-hours="leaveHours" data-editor-delta="-0.5" aria-label="Riduci ferie">-</button><div class="day-editor-step-value"><input id="editorLeaveHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.leaveHours || 0) + '" aria-label="Ore di ferie"><span>h</span></div><button type="button" data-adjust-editor-hours="leaveHours" data-editor-delta="0.5" aria-label="Aumenta ferie">+</button></div></div>' : '') +
+        '</section><section class="day-editor-card day-editor-overtime-card"><div class="day-editor-kicker">STRAORDINARI</div><div class="day-editor-overtime-head"><span class="day-editor-round-icon is-violet">' + icons.star + '</span><div class="day-editor-inline-copy"><strong>Ore straordinarie</strong><small data-editor-overtime-mode>' + (d.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti') + '</small></div><button type="button" class="day-editor-auto-toggle ' + (!d.overtimeManual ? 'is-on' : '') + '" data-toggle-editor-overtime-auto="1" aria-pressed="' + (!d.overtimeManual ? 'true' : 'false') + '" aria-label="Calcolo automatico straordinari"><span></span></button></div><div class="day-editor-overtime-stepper"><button type="button" data-adjust-editor-hours="overtimeHours" data-editor-delta="-0.5" aria-label="Riduci straordinari">-</button><div class="day-editor-overtime-value"><input id="editorOvertimeHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.overtimeHours || 0) + '" aria-label="Ore straordinarie"><span>h</span></div><button type="button" data-adjust-editor-hours="overtimeHours" data-editor-delta="0.5" aria-label="Aumenta straordinari">+</button></div></section>';
+      }
+
+      var holidayBadge = holidayName ? '<span class="day-editor-holiday-badge">' + escapeHtml(holidayName) + '</span>' : '';
+      var canClear = hasMeaningfulDayData(d) || Boolean(state.entries[toISODate(date)]);
+
+      return '<div class="overlay open editor-overlay editor-overlay-v3" role="dialog" aria-modal="true" aria-label="Inserisci giornata"><header class="day-editor-header"><button class="day-editor-close" data-close-editor="1" aria-label="Chiudi">' + icons.x + '</button><div class="day-editor-header-copy"><div class="day-editor-title">Inserisci giornata</div><div class="day-editor-date">' + editorDateLabel + '</div></div><button class="day-editor-save" data-save-day="1">Salva</button></header>' +
+        '<div class="day-editor-scroll"><main class="day-editor-stack">' +
+          '<section class="day-editor-type-section"><button class="day-editor-type-card" data-toggle-type-open="1"><span class="day-editor-type-icon" style="background:' + typeIconBg(d.type) + '">' + typeIconSvg(d.type) + '</span><span class="day-editor-type-copy"><strong>' + currentType.label + '</strong><small>' + escapeHtml(typeSubtitle) + '</small>' + holidayBadge + '</span><span class="day-editor-chevron">' + icons.right + '</span></button>' +
+          (state.typeOpen ? '<div class="day-editor-type-options">' + others.map(function (pair) { return '<button class="day-editor-type-option" data-select-type="' + pair[0] + '"><span class="day-editor-type-option-icon" style="background:' + typeIconBg(pair[0]) + '">' + typeIconSvg(pair[0]) + '</span><span>' + pair[1].label + '</span><small>Scegli</small></button>'; }).join('') + '</div>' : '') + '</section>' +
+          dynamicSections +
+          '<section class="day-editor-card day-editor-notes-card"><div class="day-editor-kicker">NOTE (OPZIONALI)</div><label class="day-editor-notes-field"><span class="day-editor-round-icon is-blue">' + icons.note + '</span><textarea id="editorNotes" rows="1" placeholder="Aggiungi una nota alla giornata...">' + escapeHtml(d.notes) + '</textarea></label></section>' +
+          '<section class="day-editor-card day-editor-summary-card"><div class="day-editor-kicker">RIEPILOGO GIORNATA</div>' + summaryHtml + '</section>' +
+          (canClear ? '<section class="day-editor-danger-section"><button class="day-editor-danger" data-clear-day="1">' + icons.trash + '<span>Cancella giornata</span></button></section>' : '') +
+        '</main></div></div>';
     }
 
     function renderConfirmModal() {
