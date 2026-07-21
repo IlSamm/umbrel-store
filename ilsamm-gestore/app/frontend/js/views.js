@@ -548,9 +548,44 @@ function renderCalendar() {
       '</div></section>';
     }
 
+    function renderVacationScreen() {
+      var year = Number(state.vacationScreenYear) || new Date().getFullYear();
+      var balance = getVacationBalanceForYear(year);
+      var details = getVacationDetailsForYear(year);
+      var hasAllowance = balance.allowanceDays > 0;
+      var over = hasAllowance && balance.overMinutes > 0;
+      var remainingValue = hasAllowance ? formatVacationDayValue(over ? (balance.overMinutes / balance.dailyMinutes) : balance.remainingDays) : '--';
+      var remainingLabel = over ? 'giorni oltre il saldo' : (hasAllowance ? 'giorni disponibili' : 'imposta il saldo annuale');
+      var recentRows = details.slice(0, 4).map(function (item) {
+        var date = parseLocalDateKey(item.key);
+        var dayLabel = date ? new Intl.DateTimeFormat('it-IT', { weekday: 'long' }).format(date) : item.key;
+        var fullDate = date ? new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' }).format(date) : item.key;
+        var typeLabel = item.entry.type === 'lavoro_ferie' ? 'Ferie parziali' : 'Giornata intera';
+        return '<button class="vacation-page-history-row" data-open-vacation-date="' + item.key + '">' +
+          '<span class="vacation-page-history-date"><strong>' + (date ? date.getDate() : '--') + '</strong><small>' + escapeHtml(date ? new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(date).replace('.', '') : '') + '</small></span>' +
+          '<span class="vacation-page-history-copy"><strong>' + escapeHtml(dayLabel) + '</strong><small>' + escapeHtml(fullDate + ' · ' + typeLabel) + '</small></span>' +
+          '<span class="vacation-page-history-hours"><strong>' + formatDuration(item.minutes) + '</strong><small>utilizzate</small></span>' +
+          icons.right +
+        '</button>';
+      }).join('');
+      var status = state.vacationStatus ? '<div class="vacation-page-status">' + escapeHtml(state.vacationStatus) + '</div>' : '';
+      return '<div class="vacation-page">' +
+        '<div class="vacation-page-top"><div><span>GESTIONE ANNUALE</span><h1>Ferie</h1></div><div class="vacation-year-switch"><button data-vacation-year-prev="1" aria-label="Anno precedente">' + icons.left + '</button><strong>' + year + '</strong><button data-vacation-year-next="1" aria-label="Anno successivo">' + icons.right + '</button></div></div>' +
+        '<section class="vacation-page-hero' + (over ? ' is-over' : '') + '">' +
+          '<div class="vacation-page-hero-head"><div><span class="vacation-page-kicker">IL TUO SALDO</span><h2>' + remainingValue + '</h2><p>' + remainingLabel + '</p></div>' +
+          '<div class="vacation-page-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>usato</span></div></div></div>' +
+          '<div class="vacation-page-metrics"><div><span>Totale</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Usate</span><strong>' + formatVacationDayValue(balance.usedDays) + ' gg</strong></div><div><span>Ore usate</span><strong>' + formatDuration(balance.usedMinutes) + '</strong></div></div>' +
+          '<button class="vacation-page-edit" data-open-vacation-manager="' + year + '"><span>' + icons.settings + '</span><div><strong>Gestisci disponibilità</strong><small>Imposta il totale e aggiungi un periodo</small></div>' + icons.right + '</button>' +
+          status +
+        '</section>' +
+        '<button class="vacation-page-action" data-open-vacation-manager="' + year + '"><span class="vacation-page-action-icon">' + icons.umbrella + '</span><span><span>NUOVO PERIODO</span><strong>Inserisci le ferie</strong><small>Weekend, riposi e festività vengono esclusi</small></span><span class="vacation-page-action-arrow">' + icons.right + '</span></button>' +
+        '<div class="vacation-page-section-head"><div><span>STORICO</span><h2>Ferie utilizzate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
+        '<section class="vacation-page-history">' + (recentRows || '<div class="vacation-page-empty"><span>' + icons.calendar + '</span><strong>Nessuna ferie registrata</strong><small>Quando inserisci una giornata, la ritroverai qui.</small></div>') + '</section>' +
+      '</div>';
+    }
+
     function renderStats() {
       var s = getMonthStats(state.currentMonth);
-      var vacationBalance = getVacationBalanceForYear(state.currentMonth.getFullYear());
       var focus = getMonthFocus(state.currentMonth);
       var weekBlocks = getMonthWeekBlocks(state.currentMonth);
       var activityCells = getMonthActivityCells(state.currentMonth);
@@ -573,7 +608,6 @@ function renderCalendar() {
       return '<div class="top top-centered page-top"><div class="title">Statistiche</div></div>' +
         '<div class="stack">' +
           '<div class="card"><div class="card-body compact"><div class="month-head"><button class="icon" data-stats-prev="1">' + icons.left + '</button><div class="large" style="font-weight:700;">' + formatMonthYear(state.currentMonth) + '</div><button class="icon" data-stats-next="1">' + icons.right + '</button></div></div></div>' +
-          renderVacationCard(vacationBalance) +
           '<div class="card stats-overview"><div class="card-body">' +
             '<div class="stats-overview-top"><div class="stats-overview-copy"><div class="stats-kicker">Questo mese</div><div class="stats-main-value">' + (s.totalMinutes ? formatDuration(s.totalMinutes) : '--') + '</div><div class="stats-main-sub">' + (recordedDays ? (recordedDays + ' giorni registrati • media ' + (s.workedDays ? formatDuration(monthAverage) : '--')) : 'Appena inizi a compilare qui vedrai l’andamento del mese') + '</div></div><div class="stats-overview-side"><div class="stats-overview-side-value">' + coveragePercent + '%</div><div class="stats-overview-side-label">coperto</div></div></div>' +
             '<div class="stats-chip-grid">' +
@@ -622,115 +656,6 @@ function renderCalendar() {
     function segmentsTotalDaysForStats(s) {
       return s.workedDays + s.ferie + s.malattia + s.permesso + (s.festivitaPagata || 0) + s.riposo;
     }
-
-    function renderSettings() {
-      var draftName = escapeHtml((state.settingsDraft.userName || '').trim() || 'Utente');
-      var workdaysCount = normalizeWeekdayList(state.settingsDraft.workdays || []).length;
-      var autoRestCount = normalizeWeekdayList(state.settingsDraft.autoRestDays || []).length;
-      return '<div class="top settings-top settings-top-refined settings-top-centered"><div class="title">Impostazioni</div></div>' +
-        '<div class="stack">' +
-          '<div class="card settings-hero settings-hero-clean"><div class="card-body">' +
-            '<div class="settings-hero-headline">Tutto sotto controllo</div>' +
-            '<div class="small muted settings-hero-subcopy">Qui sistemi nome, obiettivi, giorni lavorativi e riposi automatici. Tutto si salva in automatico appena fai una modifica.</div>' +
-            '<div class="settings-hero-grid">' +
-              '<div class="settings-stat"><strong>' + draftName + '</strong><span class="tiny muted">Profilo</span></div>' +
-              '<div class="settings-stat"><strong>' + state.settingsDraft.weeklyTarget + 'h</strong><span class="tiny muted">Target settimana</span></div>' +
-              '<div class="settings-stat"><strong>' + workdaysCount + '</strong><span class="tiny muted">Giorni attivi</span></div>' +
-              '<div class="settings-stat"><strong>' + autoRestCount + '</strong><span class="tiny muted">Riposi auto</span></div>' +
-            '</div>' +
-          '</div></div>' +
-
-          '<div><div class="section-title">Profilo</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-field">' +
-              '<div class="settings-field-head"><div class="chip">' + icons.home + '</div><div class="settings-field-copy"><div class="settings-label">Nome utente</div><div class="settings-name">Come vuoi comparire nell’app</div></div></div>' +
-              '<input id="userNameInput" class="settings-input" type="text" maxlength="24" placeholder="Inserisci il tuo nome" value="' + escapeHtml(state.settingsDraft.userName || '') + '">' +
-              '<div class="settings-help">Nome mostrato nelle parti personalizzate dell’app.</div>' +
-            '</div>' +
-          '</div></div></div>' +
-
-          '<div><div class="section-title">Obiettivi</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-split">' +
-              '<div class="settings-field">' +
-                '<div class="settings-field-head"><div class="chip">' + icons.target + '</div><div class="settings-field-copy"><div class="settings-label">Settimana</div><div class="settings-name">Ore target</div></div></div>' +
-                '<input id="weeklyTargetInput" class="settings-input settings-target-input" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.weeklyTarget + '">' +
-                '<div class="settings-help">Quante ore vuoi raggiungere ogni settimana.</div>' +
-              '</div>' +
-              '<div class="settings-field">' +
-                '<div class="settings-field-head"><div class="chip">' + icons.activity + '</div><div class="settings-field-copy"><div class="settings-label">Giorno</div><div class="settings-name">Ore target</div></div></div>' +
-                '<input id="dailyTargetInput" class="settings-input settings-target-input" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.dailyTarget + '">' +
-                '<div class="settings-help">Valore usato per i confronti giornalieri.</div>' +
-              '</div>' +
-            '</div>' +
-          '</div></div></div>' +
-
-          '<div><div class="section-title">Settimana lavorativa</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-field">' +
-              '<div class="settings-field-head"><div class="chip">' + icons.calendar + '</div><div class="settings-field-copy"><div class="settings-label">Giorni attivi</div><div class="settings-name">Tocca per attivare o disattivare</div></div></div>' +
-              '<div class="workdays">' +
-                workdayLabels.map(function (label, index) {
-                  var active = state.settingsDraft.workdays.indexOf(index) !== -1;
-                  return '<button class="day ' + (active ? 'active' : '') + '" data-toggle-workday="' + index + '">' + label + '</button>';
-                }).join('') +
-              '</div>' +
-              '<div class="settings-help settings-workdays-note">I giorni selezionati vengono usati per target e riepiloghi.</div>' +
-            '</div>' +
-          '</div></div></div>' +
-
-          '<div><div class="section-title">Riposo automatico</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-field">' +
-              '<div class="settings-field-head"><div class="chip">😴</div><div class="settings-field-copy"><div class="settings-label">Giorni di riposo</div><div class="settings-name">Per esempio domenica o sabato + domenica</div></div></div>' +
-              '<div class="workdays">' +
-                workdayLabels.map(function (label, index) {
-                  var active = normalizeWeekdayList(state.settingsDraft.autoRestDays || []).indexOf(index) !== -1;
-                  return '<button class="day ' + (active ? 'rest-active' : '') + '" data-toggle-auto-rest-day="' + index + '">' + label + '</button>';
-                }).join('') +
-              '</div>' +
-              '<div class="settings-help settings-workdays-note">Se il giorno è vuoto, viene mostrato automaticamente come riposo. I dati inseriti a mano hanno sempre la precedenza.</div>' +
-            '</div>' +
-          '</div></div></div>' +
-
-          '<div><div class="section-title">Promemoria</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-group">' +
-              '<div class="settings-field">' +
-                '<div class="between"><div class="row"><div class="chip">' + icons.bell + '</div><div><div class="settings-name">Promemoria giornaliero</div><div class="tiny muted">Questa opzione si aggiorna subito</div></div></div><button class="toggle-btn ' + (state.settings.remindersEnabled ? 'on' : '') + '" data-toggle-reminders="1"><span class="knob"></span></button></div>' +
-              '</div>' +
-              '<div class="settings-split">' +
-                '<div class="settings-field">' +
-                  '<div class="settings-label">Orario</div>' +
-                  '<input id="reminderTimeInput" class="settings-input time" type="time" value="' + state.settings.reminderTime + '">' +
-                '</div>' +
-                '<div class="settings-field">' +
-                  '<div class="settings-label">Notifica</div>' +
-                  '<button class="solid" data-test-notification="1">Invia prova</button>' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div></div></div>' +
-
-          '<div><div class="section-title">Dati e sicurezza</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-group">' +
-              '<div class="settings-field">' +
-                '<div class="between"><div class="row"><div class="chip">' + icons.lock + '</div><div><div class="settings-name">Blocco app</div><div class="tiny muted">Richiede autenticazione all’apertura</div></div></div><button class="toggle-btn ' + (state.settings.lockApp ? 'on' : '') + '" data-toggle-lock="1"><span class="knob"></span></button></div>' +
-              '</div>' +
-              '<div class="settings-actions-grid">' +
-                '<button class="ghost" data-export-csv="1">Esporta Excel</button>' +
-                '<button class="ghost" data-export-report="1">Esporta PDF</button>' +
-              '</div>' +
-              '<div class="settings-inline-note"><div class="chip">' + icons.check + '</div><div><div class="small" style="font-weight:700;">Salvataggio automatico</div><div class="small muted">Profilo, obiettivi, giorni attivi, riposi automatici, promemoria e blocco app si aggiornano subito.</div></div></div>' +
-            '</div>' +
-          '</div></div></div>' +
-
-          '<div><div class="section-title">Info app</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-tile-grid">' +
-              '<div class="settings-mini-detail"><div><div class="settings-label">Versione</div><strong>' + state.settings.version + '</strong></div><span class="muted">Attiva</span></div>' +
-              '<div class="settings-mini-detail"><div><div class="settings-label">Build</div><strong>' + (state.settings.build || 'n/d') + '</strong></div><span class="muted">Cache</span></div>' +
-              '<div class="settings-mini-detail"><div><div class="settings-label">Nome app</div><strong>' + state.settings.appName + '</strong></div><span class="muted">GestOre</span></div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div class="settings-footer-space"></div>' +
-        '</div>';
-    }
-
 
 function renderOverlayLegacy() {
       if (!state.editingDate || !state.draft) return '';
@@ -1049,7 +974,7 @@ function renderOverlayLegacy() {
           '<span class="payvault-chevron">' + icons.right + '</span>' +
         '</button>';
       }).join('');
-      return '<div class="top top-centered page-top payvault-page-top"><div class="title">Buste paga</div></div>' +
+      return '<div class="profile-subpage-top payvault-profile-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>PROFILO</span><h1>Buste paga</h1></div><i></i></div>' +
         '<div class="stack payvault-stack">' +
           '<section class="card payvault-card"><div class="card-body payvault-body">' +
             '<div class="payvault-head">' +
@@ -1075,120 +1000,80 @@ function renderOverlayLegacy() {
         '</div><input id="payslipFileInput" type="file" accept="image/*" multiple hidden>';
     }
 
+    function renderProfile() {
+      var rawName = String(state.settingsDraft.userName || '').trim() || 'Utente';
+      var safeName = escapeHtml(rawName);
+      var initials = rawName.split(/\s+/).slice(0, 2).map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'U';
+      var todayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+      var savedCount = (state.payslips || []).length;
+      return '<div class="profile-page">' +
+        '<div class="profile-brand-row"><div class="profile-brand">Gest<span>Ore</span></div><span class="profile-brand-icon">' + icons.user + '</span></div>' +
+        '<section class="profile-hero"><span class="profile-avatar">' + escapeHtml(initials) + '</span><div class="profile-hero-copy"><span>IL MIO PROFILO</span><h1>Ciao ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div><button data-open-profile-section="settings" aria-label="Modifica profilo">' + icons.settings + '</button></section>' +
+        '<div class="profile-section-title">Il mio profilo</div>' +
+        '<section class="profile-group"><button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni</strong><small>Nome, obiettivi, turni e preferenze</small></span><span class="profile-row-chevron">' + icons.right + '</span></button></section>' +
+        '<div class="profile-section-title">Dati e archivio</div>' +
+        '<section class="profile-group">' +
+          '<button class="profile-row" data-open-profile-section="payslips"><span class="profile-row-icon is-violet">' + icons.receipt + '</span><span class="profile-row-copy"><strong>Buste paga</strong><small>' + savedCount + (savedCount === 1 ? ' busta salvata' : ' buste salvate') + '</small></span><span class="profile-row-value">Apri</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-blue">' + icons.download + '</span><span class="profile-row-copy"><strong>Esporta dati</strong><small>Excel, PDF mensile e PDF annuale</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<div class="profile-row profile-row-static"><span class="profile-row-icon is-green">' + icons.check + '</span><span class="profile-row-copy"><strong>Salvataggio dati</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></span><span class="profile-status-dot"></span></div>' +
+        '</section>' +
+        '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span></div>' +
+      '</div>';
+    }
+
+    function renderExports() {
+      var monthLabel = escapeHtml(monthNames[state.currentMonth.getMonth()]);
+      var yearLabel = escapeHtml(String(state.currentMonth.getFullYear()));
+      var entriesCount = Object.keys(state.entries || {}).length;
+      return '<div class="exports-page">' +
+        '<div class="profile-subpage-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>DATI E ARCHIVIO</span><h1>Esporta dati</h1></div><i></i></div>' +
+        '<section class="exports-hero"><span class="exports-hero-icon">' + icons.download + '</span><div><span>ARCHIVIO GESTORE</span><h2>I tuoi dati, nel formato giusto</h2><p>' + entriesCount + (entriesCount === 1 ? ' giornata registrata' : ' giornate registrate') + ' disponibili per l\'esportazione.</p></div></section>' +
+        '<div class="settings-modern-section-title">Tutti i dati</div>' +
+        '<section class="exports-group"><button class="exports-row" data-export-csv="1"><span class="exports-row-icon is-green">' + icons.activity + '</span><span class="exports-row-copy"><strong>Esporta Excel</strong><small>Tutte le giornate e tutte le ore registrate</small></span><span class="exports-format">.CSV</span>' + icons.right + '</button></section>' +
+        '<div class="settings-modern-section-title">Report PDF</div>' +
+        '<section class="exports-group">' +
+          '<button class="exports-row" data-export-report="1"><span class="exports-row-icon is-blue">' + icons.note + '</span><span class="exports-row-copy"><strong>' + monthLabel + ' ' + yearLabel + '</strong><small>Report completo del mese corrente</small></span><span class="exports-format">PDF</span>' + icons.right + '</button>' +
+          '<button class="exports-row" data-export-report-year="1"><span class="exports-row-icon is-violet">' + icons.calendar + '</span><span class="exports-row-copy"><strong>Anno ' + yearLabel + '</strong><small>Riepilogo annuale nello stesso formato GestOre</small></span><span class="exports-format">PDF</span>' + icons.right + '</button>' +
+        '</section>' +
+        '<div class="exports-note"><span>' + icons.check + '</span><p>L\'esportazione crea una copia dei dati e non modifica nulla di ciò che hai salvato.</p></div>' +
+      '</div>';
+    }
+
     function renderSettings() {
-      var draftName = escapeHtml((state.settingsDraft.userName || '').trim() || 'Utente');
-      var workdaysCount = normalizeWeekdayList(state.settingsDraft.workdays || []).length;
-      var autoRestCount = normalizeWeekdayList(state.settingsDraft.autoRestDays || []).length;
       var holidayHelper = escapeHtml(getHolidaySettingsHelperText(state.settingsDraft));
       var reminderHelper = escapeHtml(getReminderHelperText());
       var syncStatusMessage = escapeHtml(getSyncStatusMessage());
-      var exportMonthLabel = escapeHtml(monthNames[state.currentMonth.getMonth()]);
-      var exportYearLabel = escapeHtml(String(state.currentMonth.getFullYear()));
-      return '<div class="top settings-top settings-top-refined settings-top-centered"><div class="title">Impostazioni</div></div>' +
-        '<div class="stack">' +
-          '<div class="card settings-hero settings-hero-clean"><div class="card-body">' +
-            '<div class="settings-hero-headline">Tutto sotto controllo</div>' +
-            '<div class="small muted settings-hero-subcopy">Qui sistemi nome, obiettivi, giorni lavorativi, riposi automatici e promemoria. Se il server locale e disponibile, i dati restano anche sincronizzati.</div>' +
-            '<div class="settings-hero-grid">' +
-              '<div class="settings-stat"><strong>' + draftName + '</strong><span class="tiny muted">Profilo</span></div>' +
-              '<div class="settings-stat"><strong>' + state.settingsDraft.weeklyTarget + 'h</strong><span class="tiny muted">Target settimana</span></div>' +
-              '<div class="settings-stat"><strong>' + workdaysCount + '</strong><span class="tiny muted">Giorni attivi</span></div>' +
-              '<div class="settings-stat"><strong>' + autoRestCount + '</strong><span class="tiny muted">Riposi auto</span></div>' +
-            '</div>' +
-          '</div></div>' +
-          '<div><div class="section-title">Profilo</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-field">' +
-              '<div class="settings-field-head"><div class="chip">' + icons.home + '</div><div class="settings-field-copy"><div class="settings-label">Nome utente</div><div class="settings-name">Come vuoi comparire nell\'app</div></div></div>' +
-              '<input id="userNameInput" class="settings-input" type="text" maxlength="24" placeholder="Inserisci il tuo nome" value="' + escapeHtml(state.settingsDraft.userName || '') + '">' +
-              '<div class="settings-help">Nome mostrato nelle parti personalizzate dell\'app.</div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div><div class="section-title">Obiettivi</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-split">' +
-              '<div class="settings-field">' +
-                '<div class="settings-field-head"><div class="chip">' + icons.target + '</div><div class="settings-field-copy"><div class="settings-label">Settimana</div><div class="settings-name">Ore target</div></div></div>' +
-                '<input id="weeklyTargetInput" class="settings-input settings-target-input" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.weeklyTarget + '">' +
-                '<div class="settings-help">Quante ore vuoi raggiungere ogni settimana.</div>' +
-              '</div>' +
-              '<div class="settings-field">' +
-                '<div class="settings-field-head"><div class="chip">' + icons.activity + '</div><div class="settings-field-copy"><div class="settings-label">Giorno</div><div class="settings-name">Ore target</div></div></div>' +
-                '<input id="dailyTargetInput" class="settings-input settings-target-input" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.dailyTarget + '">' +
-                '<div class="settings-help">Valore usato per i confronti giornalieri.</div>' +
-              '</div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div><div class="section-title">Settimana lavorativa</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-field">' +
-              '<div class="settings-field-head"><div class="chip">' + icons.calendar + '</div><div class="settings-field-copy"><div class="settings-label">Giorni attivi</div><div class="settings-name">Tocca per attivare o disattivare</div></div></div>' +
-              '<div class="workdays">' +
-                workdayLabels.map(function (label, index) {
-                  var active = state.settingsDraft.workdays.indexOf(index) !== -1;
-                  return '<button class="day ' + (active ? 'active' : '') + '" data-toggle-workday="' + index + '">' + label + '</button>';
-                }).join('') +
-              '</div>' +
-              '<div class="settings-help settings-workdays-note">I giorni selezionati vengono usati per target e riepiloghi.</div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div><div class="section-title">Riposo automatico</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-field">' +
-              '<div class="settings-field-head"><div class="chip">R</div><div class="settings-field-copy"><div class="settings-label">Giorni di riposo</div><div class="settings-name">Per esempio domenica o sabato + domenica</div></div></div>' +
-              '<div class="workdays">' +
-                workdayLabels.map(function (label, index) {
-                  var active = normalizeWeekdayList(state.settingsDraft.autoRestDays || []).indexOf(index) !== -1;
-                  return '<button class="day ' + (active ? 'rest-active' : '') + '" data-toggle-auto-rest-day="' + index + '">' + label + '</button>';
-                }).join('') +
-              '</div>' +
-              '<div class="settings-help settings-workdays-note">Se il giorno e vuoto, viene mostrato automaticamente come riposo. I dati inseriti a mano hanno sempre la precedenza.</div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div><div class="section-title">Festivita automatiche</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-group">' +
-              '<div class="settings-field">' +
-                '<div class="between"><div class="row"><div class="chip">F</div><div><div class="settings-name">Conta ore anche nei weekend</div><div class="tiny muted">Se spento, sabato e domenica non coprono mai ore anche se li usi per straordinari</div></div></div><button class="toggle-btn ' + (state.settingsDraft.holidayHoursOnOffDays ? 'on' : '') + '" data-toggle-holiday-offdays="1"><span class="knob"></span></button></div>' +
-                '<div class="settings-help">' + holidayHelper + '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div><div class="section-title">Promemoria</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-group">' +
-              '<div class="settings-field">' +
-                '<div class="between"><div class="row"><div class="chip">' + icons.bell + '</div><div><div class="settings-name">Promemoria locale</div><div class="tiny muted">Funziona mentre GestOre resta aperta</div></div></div><button class="toggle-btn ' + (state.settings.remindersEnabled ? 'on' : '') + '" data-toggle-reminders="1"><span class="knob"></span></button></div>' +
-              '</div>' +
-              '<div class="settings-split">' +
-                '<div class="settings-field">' +
-                  '<div class="settings-label">Orario</div>' +
-                  '<input id="reminderTimeInput" class="settings-input time" type="time" value="' + state.settings.reminderTime + '">' +
-                '</div>' +
-                '<div class="settings-field">' +
-                  '<div class="settings-label">Notifica</div>' +
-                  '<button class="solid" data-test-notification="1">Invia test</button>' +
-                '</div>' +
-              '</div>' +
-              '<div class="settings-help">' + reminderHelper + '</div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div><div class="section-title">Dati e sicurezza</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-group">' +
-              '<div class="settings-field">' +
-                '<div class="between"><div class="row"><div class="chip">' + icons.lock + '</div><div><div class="settings-name">Schermata privacy</div><div class="tiny muted">Nasconde i dati quando riapri l\'app</div></div></div><button class="toggle-btn ' + (state.settings.lockApp ? 'on' : '') + '" data-toggle-lock="1"><span class="knob"></span></button></div>' +
-                '<div class="settings-help">Non usa un PIN: e un blocco rapido visivo utile quando lasci il telefono sul tavolo o riapri GestOre davanti ad altre persone.</div>' +
-              '</div>' +
-              '<div class="settings-actions-grid settings-actions-grid-pdf">' +
-                '<button class="ghost" data-export-csv="1">Esporta Excel</button>' +
-                '<button class="ghost" data-export-report="1">PDF ' + exportMonthLabel + '</button>' +
-                '<button class="ghost" data-export-report-year="1">PDF anno ' + exportYearLabel + '</button>' +
-              '</div>' +
-              '<div class="settings-inline-note"><div class="chip">' + icons.check + '</div><div><div class="small" style="font-weight:700;">Salvataggio automatico</div><div class="small muted">' + syncStatusMessage + '</div></div></div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div><div class="section-title">Info app</div><div class="card settings-card"><div class="card-body">' +
-            '<div class="settings-tile-grid">' +
-              '<div class="settings-mini-detail"><div><div class="settings-label">Versione</div><strong>' + state.settings.version + '</strong></div><span class="muted">Attiva</span></div>' +
-              '<div class="settings-mini-detail"><div><div class="settings-label">Nome app</div><strong>' + state.settings.appName + '</strong></div><span class="muted">GestOre</span></div>' +
-            '</div>' +
-          '</div></div></div>' +
-          '<div class="settings-footer-space"></div>' +
-        '</div>';
+      var workdays = normalizeWeekdayList(state.settingsDraft.workdays || []);
+      var restDays = normalizeWeekdayList(state.settingsDraft.autoRestDays || []);
+      return '<div class="settings-modern-page">' +
+        '<div class="profile-subpage-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>PROFILO</span><h1>Impostazioni</h1></div><i></i></div>' +
+        '<div class="settings-modern-section-title">Profilo e obiettivi</div>' +
+        '<section class="settings-modern-group">' +
+          '<label class="settings-modern-row settings-modern-input-row"><span class="settings-modern-icon is-blue">' + icons.user + '</span><span class="settings-modern-copy"><strong>Nome utente</strong><small>Come compari nell\'app</small></span><input id="userNameInput" type="text" maxlength="24" placeholder="Il tuo nome" value="' + escapeHtml(state.settingsDraft.userName || '') + '"></label>' +
+          '<div class="settings-modern-divider"></div>' +
+          '<div class="settings-target-grid"><label><span>Target settimana</span><div><input id="weeklyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.weeklyTarget + '"><b>h</b></div></label><label><span>Target giornaliero</span><div><input id="dailyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.dailyTarget + '"><b>h</b></div></label></div>' +
+        '</section>' +
+        '<div class="settings-modern-section-title">Calendario di lavoro</div>' +
+        '<section class="settings-modern-group">' +
+          '<div class="settings-modern-days"><div class="settings-modern-heading"><span class="settings-modern-icon is-blue">' + icons.calendar + '</span><div><strong>Giorni lavorativi</strong><small>Usati per target e riepiloghi</small></div></div><div class="workdays">' + workdayLabels.map(function (label, index) { return '<button class="day ' + (workdays.indexOf(index) !== -1 ? 'active' : '') + '" data-toggle-workday="' + index + '">' + label + '</button>'; }).join('') + '</div></div>' +
+          '<div class="settings-modern-divider"></div>' +
+          '<div class="settings-modern-days"><div class="settings-modern-heading"><span class="settings-modern-icon is-amber">R</span><div><strong>Riposo automatico</strong><small>I dati inseriti a mano hanno sempre precedenza</small></div></div><div class="workdays">' + workdayLabels.map(function (label, index) { return '<button class="day ' + (restDays.indexOf(index) !== -1 ? 'rest-active' : '') + '" data-toggle-auto-rest-day="' + index + '">' + label + '</button>'; }).join('') + '</div></div>' +
+          '<div class="settings-modern-divider"></div>' +
+          '<div class="settings-modern-toggle-row"><span class="settings-modern-icon is-violet">F</span><span class="settings-modern-copy"><strong>Festività nei weekend</strong><small>' + holidayHelper + '</small></span><button class="toggle-btn ' + (state.settingsDraft.holidayHoursOnOffDays ? 'on' : '') + '" data-toggle-holiday-offdays="1" aria-label="Festività nei weekend"><span class="knob"></span></button></div>' +
+        '</section>' +
+        '<div class="settings-modern-section-title">Notifiche e privacy</div>' +
+        '<section class="settings-modern-group">' +
+          '<div class="settings-modern-toggle-row"><span class="settings-modern-icon is-violet">' + icons.bell + '</span><span class="settings-modern-copy"><strong>Promemoria locale</strong><small>' + reminderHelper + '</small></span><button class="toggle-btn ' + (state.settings.remindersEnabled ? 'on' : '') + '" data-toggle-reminders="1" aria-label="Promemoria locale"><span class="knob"></span></button></div>' +
+          '<div class="settings-modern-reminder"><label><span>Orario</span><input id="reminderTimeInput" type="time" value="' + state.settings.reminderTime + '"></label><button data-test-notification="1">Invia test</button></div>' +
+          '<div class="settings-modern-divider"></div>' +
+          '<div class="settings-modern-toggle-row"><span class="settings-modern-icon is-green">' + icons.lock + '</span><span class="settings-modern-copy"><strong>Schermata privacy</strong><small>Nasconde i dati quando riapri l\'app</small></span><button class="toggle-btn ' + (state.settings.lockApp ? 'on' : '') + '" data-toggle-lock="1" aria-label="Schermata privacy"><span class="knob"></span></button></div>' +
+        '</section>' +
+        '<div class="settings-modern-section-title">Dati e sicurezza</div>' +
+        '<section class="settings-modern-group">' +
+          '<div class="settings-sync-row"><span class="settings-modern-icon is-green">' + icons.check + '</span><span class="settings-modern-copy"><strong>Salvataggio automatico</strong><small>' + syncStatusMessage + '</small></span><span class="settings-sync-live">Attivo</span></div>' +
+        '</section>' +
+        '<div class="settings-modern-footer"><span>GestOre</span><strong>Versione ' + escapeHtml(state.settings.version) + '</strong></div>' +
+      '</div>';
     }
 
     function renderPrivacyLock() {
@@ -1201,11 +1086,12 @@ function renderOverlayLegacy() {
         { key: 'home', label: 'Home', icon: icons.home },
         { key: 'calendar', label: 'Calendario', icon: icons.calendar },
         { key: 'stats', label: 'Statistiche', icon: icons.activity },
-        { key: 'payslips', label: 'Buste', icon: icons.receipt },
-        { key: 'settings', label: 'Impostazioni', icon: icons.settings }
+        { key: 'vacations', label: 'Ferie', icon: icons.umbrella },
+        { key: 'profile', label: 'Profilo', icon: icons.user }
       ];
+      var navActiveTab = state.activeTab === 'payslips' || state.activeTab === 'settings' || state.activeTab === 'exports' ? 'profile' : state.activeTab;
       return '<div class="bottom-nav"><div class="nav-grid">' + items.map(function (i) {
-        return '<button class="nav-btn ' + (state.activeTab === i.key ? 'active' : '') + '" data-tab="' + i.key + '">' + i.icon + '<span class="nav-label">' + i.label + '</span></button>';
+        return '<button class="nav-btn ' + (navActiveTab === i.key ? 'active' : '') + '" data-tab="' + i.key + '">' + i.icon + '<span class="nav-label">' + i.label + '</span></button>';
       }).join('') + '</div></div>';
     }
 
@@ -1217,7 +1103,10 @@ function renderOverlayLegacy() {
         '<section class="screen home-screen ' + (state.activeTab === 'home' ? ('active' + switchClass) : '') + '">' + renderHome() + '</section>' +
         '<section class="screen calendar-screen ' + (state.activeTab === 'calendar' ? ('active' + switchClass) : '') + '">' + renderCalendar() + '</section>' +
         '<section class="screen stats-screen ' + (state.activeTab === 'stats' ? ('active' + switchClass) : '') + '">' + renderStats() + '</section>' +
+        '<section class="screen vacations-screen ' + (state.activeTab === 'vacations' ? ('active' + switchClass) : '') + '">' + renderVacationScreen() + '</section>' +
+        '<section class="screen profile-screen ' + (state.activeTab === 'profile' ? ('active' + switchClass) : '') + '">' + renderProfile() + '</section>' +
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
+        '<section class="screen exports-screen ' + (state.activeTab === 'exports' ? ('active' + switchClass) : '') + '">' + renderExports() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
         renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock();
       bindEvents();

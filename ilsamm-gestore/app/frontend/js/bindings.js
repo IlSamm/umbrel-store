@@ -4,8 +4,9 @@ function bindEvents() {
           if (state.privacyLocked) return;
           var nextTab = btn.dataset.tab;
           if (!nextTab || state.activeTab === nextTab) return;
-          var order = ['home', 'calendar', 'stats', 'payslips', 'settings'];
-          var currentIndex = order.indexOf(state.activeTab);
+          var order = ['home', 'calendar', 'stats', 'vacations', 'profile'];
+          var currentPrimaryTab = state.activeTab === 'payslips' || state.activeTab === 'settings' || state.activeTab === 'exports' ? 'profile' : state.activeTab;
+          var currentIndex = order.indexOf(currentPrimaryTab);
           var nextIndex = order.indexOf(nextTab);
           var navGrid = btn.closest('.nav-grid');
           document.querySelectorAll('.nav-btn.nav-press').forEach(function (node) { node.classList.remove('nav-press'); });
@@ -18,6 +19,17 @@ function bindEvents() {
             render();
           }, 120);
         };
+      });
+      document.querySelectorAll('[data-open-profile-section]').forEach(function (btn) {
+        btn.onclick = function () {
+          var section = btn.dataset.openProfileSection;
+          if (section !== 'settings' && section !== 'payslips' && section !== 'exports') return;
+          state.activeTab = section;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-back-profile]').forEach(function (btn) {
+        btn.onclick = function () { state.activeTab = 'profile'; render(); };
       });
       document.querySelectorAll('[data-open-date]').forEach(function (btn) {
         btn.onclick = function () { openEditor(new Date(btn.dataset.openDate + 'T12:00:00')); };
@@ -155,6 +167,11 @@ function bindEvents() {
       if (stPrev) stPrev.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1); render(); };
       var stNext = document.querySelector('[data-stats-next]');
       if (stNext) stNext.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1); render(); };
+
+      var vacationYearPrev = document.querySelector('[data-vacation-year-prev]');
+      if (vacationYearPrev) vacationYearPrev.onclick = function () { state.vacationScreenYear = (Number(state.vacationScreenYear) || new Date().getFullYear()) - 1; render(); };
+      var vacationYearNext = document.querySelector('[data-vacation-year-next]');
+      if (vacationYearNext) vacationYearNext.onclick = function () { state.vacationScreenYear = (Number(state.vacationScreenYear) || new Date().getFullYear()) + 1; render(); };
 
       document.querySelectorAll('[data-open-vacation-history]').forEach(function (btn) {
         btn.onclick = function () {

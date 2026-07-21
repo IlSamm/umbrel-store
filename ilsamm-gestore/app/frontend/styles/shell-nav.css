@@ -66,9 +66,12 @@ body::after,
 .screen.home-screen,
 .screen.home-screen.active,
 .calendar-screen.active,
-.stats-screen.active,
-.payslips-screen.active,
-.settings-screen.active {
+    .stats-screen.active,
+    .vacations-screen.active,
+    .profile-screen.active,
+    .payslips-screen.active,
+    .exports-screen.active,
+    .settings-screen.active {
   position: relative !important;
   z-index: 1 !important;
   background: transparent !important;

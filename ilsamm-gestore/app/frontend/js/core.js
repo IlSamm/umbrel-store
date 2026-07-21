@@ -50,8 +50,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.118',
-      build: '20260721e',
+      version: '1.1.119',
+      build: '20260721f',
       appName: 'GestOre'
     };
 
@@ -90,6 +90,8 @@ var errorBox = document.getElementById('errorBox');
       bell: '<svg viewBox="0 0 24 24"><path d="M15 17H5l2-2v-4a5 5 0 1 1 10 0v4l2 2h-4"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg>',
       check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>'
       ,umbrella: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0c-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0Z"></path><path d="M12 3v15a3 3 0 0 0 6 0"></path></svg>'
+      ,user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>'
+      ,download: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>'
     };
 
     function loadStorage(key, fallback) {

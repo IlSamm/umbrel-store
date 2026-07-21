@@ -24,6 +24,7 @@ var state = {
       vacationStatus: '',
       vacationHistoryOpen: false,
       vacationHistoryYear: new Date().getFullYear(),
+      vacationScreenYear: new Date().getFullYear(),
       privacyLocked: false,
       syncStatus: 'Solo sul dispositivo',
       lastSyncedAt: 0
