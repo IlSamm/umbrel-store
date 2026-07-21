@@ -48,9 +48,10 @@ var errorBox = document.getElementById('errorBox');
       workdays: [0,1,2,3,4],
       autoRestDays: [],
       holidayHoursOnOffDays: false,
+      vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.112',
-      build: '20260720f',
+      version: '1.1.113',
+      build: '20260720g',
       appName: 'GestOre'
     };
 
@@ -88,6 +89,7 @@ var errorBox = document.getElementById('errorBox');
       lock: '<svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 1 1 8 0v3"></path></svg>',
       bell: '<svg viewBox="0 0 24 24"><path d="M15 17H5l2-2v-4a5 5 0 1 1 10 0v4l2 2h-4"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg>',
       check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>'
+      ,umbrella: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0c-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0Z"></path><path d="M12 3v15a3 3 0 0 0 6 0"></path></svg>'
     };
 
     function loadStorage(key, fallback) {
@@ -173,6 +175,17 @@ var errorBox = document.getElementById('errorBox');
     function persistPayslipsLocally() {
       try { localStorage.setItem(STORAGE_PAYSLIPS, JSON.stringify(state.payslips || [])); } catch (err) {}
     }
+    function loadPayslipsWithRecovery() {
+      var primary = readParsedStorage(STORAGE_PAYSLIPS);
+      if (primary && Array.isArray(primary.parsed)) return primary.parsed;
+      var safetyBundle = readParsedStorage(STORAGE_SAFETY_BUNDLE);
+      var bundledPayslips = safetyBundle && safetyBundle.parsed && safetyBundle.parsed.payslips;
+      if (Array.isArray(bundledPayslips)) {
+        try { localStorage.setItem(STORAGE_PAYSLIPS, JSON.stringify(bundledPayslips)); } catch (err) {}
+        return bundledPayslips;
+      }
+      return [];
+    }
     function areSettingsEffectivelyDefault(settings) {
       var candidate = normalizeRuntimeSettings(settings || {});
       return Number(candidate.weeklyTarget) === Number(defaultSettings.weeklyTarget) &&
@@ -184,6 +197,7 @@ var errorBox = document.getElementById('errorBox');
         normalizeWeekdayList(candidate.workdays || []).join(',') === normalizeWeekdayList(defaultSettings.workdays || []).join(',') &&
         normalizeWeekdayList(candidate.autoRestDays || []).join(',') === normalizeWeekdayList(defaultSettings.autoRestDays || []).join(',') &&
         Boolean(candidate.holidayHoursOnOffDays) === Boolean(defaultSettings.holidayHoursOnOffDays) &&
+        JSON.stringify(candidate.vacationAllowanceByYear || {}) === JSON.stringify(defaultSettings.vacationAllowanceByYear || {}) &&
         String(candidate.weekdayMode || '') === String(defaultSettings.weekdayMode || '') &&
         String(candidate.version || '') === String(defaultSettings.version || '') &&
         String(candidate.appName || '') === String(defaultSettings.appName || '');
@@ -288,6 +302,15 @@ var errorBox = document.getElementById('errorBox');
       merged.workdays = normalizeWeekdayList(merged.workdays || defaultSettings.workdays || []);
       merged.autoRestDays = normalizeWeekdayList(merged.autoRestDays || []);
       merged.holidayHoursOnOffDays = Boolean(merged.holidayHoursOnOffDays);
+      var rawVacationAllowances = merged.vacationAllowanceByYear && typeof merged.vacationAllowanceByYear === 'object' && !Array.isArray(merged.vacationAllowanceByYear)
+        ? merged.vacationAllowanceByYear
+        : {};
+      merged.vacationAllowanceByYear = Object.keys(rawVacationAllowances).reduce(function (result, yearKey) {
+        var year = Number(yearKey);
+        var days = parseDecimalInput(rawVacationAllowances[yearKey], 0);
+        if (Number.isInteger(year) && year >= 2000 && year <= 2200 && days >= 0) result[String(year)] = Math.min(366, days);
+        return result;
+      }, {});
       merged.weekdayMode = defaultSettings.weekdayMode;
       merged.version = defaultSettings.version;
       merged.build = defaultSettings.build;
@@ -562,6 +585,94 @@ var errorBox = document.getElementById('errorBox');
       var autoOver = getAutoOvertimeMinutes(e);
       var over = manualOver > 0 ? manualOver : Math.min(autoOver, total);
       return { total: total, normal: Math.max(0, total - over), overtime: over, leave: leave, covered: total + leave };
+    }
+    function getVacationAllowanceDays(year, source) {
+      var settingsSource = normalizeRuntimeSettings(source || (state && state.settings) || defaultSettings);
+      var selectedYear = String(Number(year) || new Date().getFullYear());
+      return Math.max(0, parseDecimalInput((settingsSource.vacationAllowanceByYear || {})[selectedYear], 0));
+    }
+    function setVacationAllowanceDays(year, days) {
+      if (!state || !state.settings) return;
+      var selectedYear = String(Number(year) || new Date().getFullYear());
+      var next = Object.assign({}, state.settings.vacationAllowanceByYear || {});
+      next[selectedYear] = Math.min(366, Math.max(0, parseDecimalInput(days, 0)));
+      state.settings.vacationAllowanceByYear = next;
+      state.settingsDraft = Object.assign({}, state.settings, { vacationAllowanceByYear: Object.assign({}, next) });
+      saveSettings();
+    }
+    function calculateVacationBalance(entries, settingsSource, year) {
+      var selectedYear = Number(year) || new Date().getFullYear();
+      var normalizedSettings = normalizeRuntimeSettings(settingsSource || defaultSettings);
+      var dailyMinutes = Math.max(1, hoursToMinutes(getDefaultPaidDayHours(normalizedSettings)));
+      var usedMinutes = Object.keys(normalizeEntryMap(entries)).reduce(function (sum, key) {
+        if (String(key).slice(0, 4) !== String(selectedYear)) return sum;
+        var entry = entries[key];
+        if (!entry || (entry.type !== 'ferie' && entry.type !== 'lavoro_ferie')) return sum;
+        var leaveMinutes = getBreakdown(entry).leave;
+        if (!leaveMinutes && entry.type === 'ferie') leaveMinutes = dailyMinutes;
+        return sum + Math.max(0, leaveMinutes);
+      }, 0);
+      var allowanceDays = getVacationAllowanceDays(selectedYear, normalizedSettings);
+      var totalMinutes = Math.round(allowanceDays * dailyMinutes);
+      var remainingMinutes = Math.max(0, totalMinutes - usedMinutes);
+      var overMinutes = Math.max(0, usedMinutes - totalMinutes);
+      return {
+        year: selectedYear,
+        allowanceDays: allowanceDays,
+        dailyMinutes: dailyMinutes,
+        totalMinutes: totalMinutes,
+        usedMinutes: usedMinutes,
+        remainingMinutes: remainingMinutes,
+        overMinutes: overMinutes,
+        usedDays: usedMinutes / dailyMinutes,
+        remainingDays: remainingMinutes / dailyMinutes,
+        percent: totalMinutes ? Math.min(100, Math.round((usedMinutes / totalMinutes) * 100)) : 0
+      };
+    }
+    function getVacationBalanceForYear(year) {
+      return calculateVacationBalance((state && state.entries) || {}, (state && state.settings) || defaultSettings, year);
+    }
+    function parseLocalDateKey(value) {
+      var match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) return null;
+      var date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0, 0);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+    function addVacationRange(startKey, endKey) {
+      var start = parseLocalDateKey(startKey);
+      var end = parseLocalDateKey(endKey);
+      if (!start || !end || end.getTime() < start.getTime()) return { ok: false, reason: 'date', added: 0, skipped: 0 };
+      var spanDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+      if (spanDays > 366) return { ok: false, reason: 'range', added: 0, skipped: 0 };
+      var added = 0;
+      var skipped = 0;
+      var dailyHours = getDefaultPaidDayHours();
+      var autoRestDays = getAutoRestDays();
+      for (var current = new Date(start); current.getTime() <= end.getTime(); current.setDate(current.getDate() + 1)) {
+        var currentKey = toISODate(current);
+        var weekday = mondayIndex(current.getDay());
+        var isWeekend = weekday >= 5;
+        var isRest = autoRestDays.indexOf(weekday) !== -1;
+        var isHoliday = Boolean(getItalianHolidayInfo(current));
+        if (isWeekend || isRest || isHoliday || !isConfiguredWorkday(current) || state.entries[currentKey]) {
+          skipped += 1;
+          continue;
+        }
+        state.entries[currentKey] = {
+          type: 'ferie',
+          start: '',
+          end: '',
+          breakHours: 0,
+          overtimeHours: 0,
+          overtimeManual: false,
+          leaveHours: 0,
+          quantityHours: dailyHours,
+          notes: ''
+        };
+        added += 1;
+      }
+      if (added) saveEntries();
+      return { ok: true, added: added, skipped: skipped };
     }
     function getMonthEntries(date) {
       var rows = [];
@@ -1137,7 +1248,9 @@ var errorBox = document.getElementById('errorBox');
       state.entries = normalized.entries;
       state.settings = normalizeRuntimeSettings(normalized.settings || {});
       state.settingsDraft = Object.assign({}, state.settings);
-      state.payslips = normalized.payslips.slice();
+      state.payslips = typeof normalizePayslipCollection === 'function'
+        ? normalizePayslipCollection(normalized.payslips)
+        : normalized.payslips.slice();
       state.privacyLocked = Boolean(state.settings.lockApp) && (preserveLockState ? wasLocked : true);
       persistEntriesLocally();
       persistSettingsLocally();
@@ -1428,6 +1541,11 @@ var errorBox = document.getElementById('errorBox');
       add('festivita pagata usa il target passato nelle impostazioni', getAutoHolidayHours(new Date(2026, 3, 6), { workdays:[0,1,2,3,4], holidayHoursOnOffDays:false, dailyTarget:6 }) === 6);
       add('festivita su sabato attivo senza override non copre ore', getAutoHolidayHours(new Date(2026, 7, 15), { workdays:[0,1,2,3,4,5], holidayHoursOnOffDays:false, dailyTarget:8 }) === 0);
       add('festivita su domenica senza override non copre ore', getAutoHolidayHours(new Date(2026, 3, 5), { workdays:[0,1,2,3,4], holidayHoursOnOffDays:false, dailyTarget:8 }) === 0);
+      var vacationFixture = calculateVacationBalance({
+        '2026-07-01': { type:'ferie', quantityHours:8 },
+        '2026-07-02': { type:'lavoro_ferie', start:'08:00', end:'12:00', breakHours:0, leaveHours:4 }
+      }, { dailyTarget:8, vacationAllowanceByYear:{ '2026':20 } }, 2026);
+      add('saldo ferie conta giornate intere e parziali', vacationFixture.usedMinutes === 720 && vacationFixture.remainingMinutes === 8880);
       add('buildMonthGrid restituisce 35 celle', buildMonthGrid(new Date()).length === 35);
       add('migrazione dati attiva', typeof loadWithMigration === 'function');
       return tests;

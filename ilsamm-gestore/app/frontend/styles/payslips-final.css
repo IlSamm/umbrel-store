@@ -391,3 +391,368 @@
     font-size: 21px;
   }
 }
+
+/* Multi-photo gallery */
+.payvault-gallery {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(124, 151, 225, .17);
+  border-radius: 22px;
+  background: rgba(2, 7, 18, .42);
+}
+
+.payvault-gallery-head,
+.payvault-gallery-head > div {
+  display: flex;
+  align-items: center;
+}
+
+.payvault-gallery-head {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.payvault-gallery-head > div {
+  gap: 8px;
+  min-width: 0;
+}
+
+.payvault-gallery-head strong {
+  color: #f6f8ff;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.payvault-gallery-head span {
+  color: rgba(218, 227, 255, .48);
+  font-size: 10px;
+}
+
+.payvault-gallery-head > span {
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .04);
+}
+
+.payvault-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.payvault-gallery-item {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: .78;
+}
+
+.payvault-gallery-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(129, 159, 231, .18);
+  border-radius: 15px;
+  background: #050a16;
+}
+
+.payvault-gallery-open img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.payvault-gallery-open > span {
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 850;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  background: rgba(4, 9, 22, .78);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.payvault-gallery-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 50%;
+  background: rgba(3, 7, 17, .80);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.payvault-gallery-remove svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.payvault-gallery-actions {
+  margin-top: 0;
+}
+
+.payvault-thumb {
+  position: relative;
+}
+
+.payvault-thumb b {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 999px;
+  background: rgba(4, 9, 22, .82);
+}
+
+/* Full-screen image viewer */
+.payvault-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: grid;
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 10px max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+.payvault-viewer-backdrop,
+.payvault-decision-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(0, 3, 11, .91);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.payvault-viewer-stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  width: min(100%, 430px);
+  height: min(100%, 820px);
+  min-height: 0;
+}
+
+.payvault-viewer-head,
+.payvault-viewer-nav,
+.payvault-viewer-nav button {
+  display: flex;
+  align-items: center;
+}
+
+.payvault-viewer-head {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 4px;
+}
+
+.payvault-viewer-head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.payvault-viewer-head strong {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.payvault-viewer-head span {
+  overflow: hidden;
+  color: rgba(220, 229, 255, .53);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payvault-viewer-head > button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .11);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .07);
+}
+
+.payvault-viewer-head svg,
+.payvault-viewer-nav svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.payvault-viewer-image {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(133, 160, 229, .15);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, .30);
+}
+
+.payvault-viewer-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.payvault-viewer-nav {
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  padding: 4px;
+  border: 1px solid rgba(125, 153, 221, .13);
+  border-radius: 17px;
+  background: rgba(35, 51, 91, .30);
+}
+
+.payvault-viewer-nav button {
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 10px;
+  color: #dce6ff;
+  font-size: 11px;
+  font-weight: 750;
+  border: 0;
+  background: transparent;
+}
+
+.payvault-viewer-nav > div {
+  color: rgba(220, 229, 255, .58);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+/* Custom destructive confirmation */
+.payvault-decision {
+  position: fixed;
+  inset: 0;
+  z-index: 2550;
+  display: grid;
+  place-items: end center;
+  padding: 10px 10px max(10px, env(safe-area-inset-bottom, 0px));
+}
+
+.payvault-decision-backdrop {
+  background: rgba(0, 3, 11, .76);
+}
+
+.payvault-decision-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 11px;
+  width: min(100%, 410px);
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(244, 101, 134, .22);
+  border-radius: 27px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(236, 72, 116, .10), transparent 42%),
+    linear-gradient(160deg, rgba(29, 35, 61, .99), rgba(7, 11, 24, .995));
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .055);
+}
+
+.payvault-decision-icon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  color: #ff6e90;
+  border: 1px solid rgba(255, 100, 139, .20);
+  border-radius: 16px;
+  background: rgba(223, 55, 98, .10);
+}
+
+.payvault-decision-icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.payvault-decision-title {
+  color: #fff;
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -.035em;
+}
+
+.payvault-decision-text {
+  max-width: 320px;
+  color: rgba(221, 230, 255, .60);
+  font-size: 12px;
+  line-height: 1.48;
+}
+
+.payvault-decision-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.payvault-decision-actions button {
+  min-height: 48px;
+}
+
+@media (max-width: 374px) {
+  .payvault-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .payvault-gallery-head > div > span,
+  .payvault-viewer-nav button span {
+    display: none;
+  }
+}

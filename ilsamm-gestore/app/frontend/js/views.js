@@ -509,8 +509,35 @@ function renderCalendar() {
       });
     }
 
+    function formatVacationDayValue(value) {
+      var rounded = Math.round((Number(value) || 0) * 10) / 10;
+      return String(rounded).replace('.', ',');
+    }
+
+    function renderVacationCard(balance) {
+      var hasAllowance = balance.allowanceDays > 0;
+      var remainingLabel = hasAllowance ? (formatVacationDayValue(balance.remainingDays) + ' gg') : '--';
+      var status = state.vacationStatus ? '<div class="vacation-card-status">' + escapeHtml(state.vacationStatus) + '</div>' : '';
+      return '<section class="card vacation-card"><div class="card-body vacation-card-body">' +
+        '<div class="vacation-card-head"><div><div class="vacation-kicker">FERIE ' + balance.year + '</div><div class="vacation-card-title">Il tuo saldo</div></div><button class="vacation-manage" data-open-vacation-manager="' + balance.year + '">Gestisci</button></div>' +
+        '<div class="vacation-balance">' +
+          '<div class="vacation-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>utilizzate</span></div></div>' +
+          '<div class="vacation-balance-copy"><div class="vacation-balance-main"><strong>' + (hasAllowance ? (remainingLabel + ' rimaste') : 'Imposta il totale') + '</strong><span>' + (hasAllowance ? (formatVacationDayValue(balance.usedDays) + ' giorni usati su ' + formatVacationDayValue(balance.allowanceDays)) : 'Inserisci i giorni di ferie previsti per questo anno') + '</span></div>' +
+          '<div class="vacation-track"><span style="width:' + balance.percent + '%"></span></div></div>' +
+        '</div>' +
+        '<div class="vacation-metrics">' +
+          '<div><span>Totale</span><strong>' + (hasAllowance ? (formatVacationDayValue(balance.allowanceDays) + ' gg') : '--') + '</strong></div>' +
+          '<div><span>Usate</span><strong>' + formatVacationDayValue(balance.usedDays) + ' gg</strong></div>' +
+          '<div><span>Rimaste</span><strong>' + remainingLabel + '</strong></div>' +
+        '</div>' +
+        status +
+        '<button class="vacation-add-button" data-open-vacation-manager="' + balance.year + '"><span class="vacation-add-icon">' + icons.umbrella + '</span><span><strong>Aggiungi un periodo di ferie</strong><small>Le giornate gia compilate non vengono toccate</small></span>' + icons.right + '</button>' +
+      '</div></section>';
+    }
+
     function renderStats() {
       var s = getMonthStats(state.currentMonth);
+      var vacationBalance = getVacationBalanceForYear(state.currentMonth.getFullYear());
       var focus = getMonthFocus(state.currentMonth);
       var weekBlocks = getMonthWeekBlocks(state.currentMonth);
       var activityCells = getMonthActivityCells(state.currentMonth);
@@ -533,6 +560,7 @@ function renderCalendar() {
       return '<div class="top top-centered page-top"><div class="title">Statistiche</div></div>' +
         '<div class="stack">' +
           '<div class="card"><div class="card-body compact"><div class="month-head"><button class="icon" data-stats-prev="1">' + icons.left + '</button><div class="large" style="font-weight:700;">' + formatMonthYear(state.currentMonth) + '</div><button class="icon" data-stats-next="1">' + icons.right + '</button></div></div></div>' +
+          renderVacationCard(vacationBalance) +
           '<div class="card stats-overview"><div class="card-body">' +
             '<div class="stats-overview-top"><div class="stats-overview-copy"><div class="stats-kicker">Questo mese</div><div class="stats-main-value">' + (s.totalMinutes ? formatDuration(s.totalMinutes) : '--') + '</div><div class="stats-main-sub">' + (recordedDays ? (recordedDays + ' giorni registrati • media ' + (s.workedDays ? formatDuration(monthAverage) : '--')) : 'Appena inizi a compilare qui vedrai l’andamento del mese') + '</div></div><div class="stats-overview-side"><div class="stats-overview-side-value">' + coveragePercent + '%</div><div class="stats-overview-side-label">coperto</div></div></div>' +
             '<div class="stats-chip-grid">' +
@@ -745,6 +773,60 @@ function renderOverlay() {
       return '<div class="confirm-overlay open"><div class="confirm-card"><div class="confirm-title">Cancella giornata</div><div class="confirm-text">Vuoi cancellare tutte le ore e i dati di questo giorno?</div><div class="confirm-actions"><button class="ghost" data-close-confirm="1">Annulla</button><button class="ghost danger" data-confirm-clear="1">Cancella</button></div></div></div>';
     }
 
+    function renderVacationManager() {
+      if (!state.vacationManagerOpen) return '';
+      var year = state.vacationDraft && Number(state.vacationDraft.year) ? Number(state.vacationDraft.year) : state.currentMonth.getFullYear();
+      var draft = state.vacationDraft || {};
+      return '<div class="vacation-overlay open" role="dialog" aria-modal="true" aria-label="Gestione ferie">' +
+        '<button class="vacation-overlay-backdrop" data-close-vacation-manager="1" aria-label="Chiudi"></button>' +
+        '<div class="vacation-sheet">' +
+          '<div class="vacation-sheet-handle"></div>' +
+          '<div class="vacation-sheet-head"><div><div class="vacation-kicker">FERIE ' + year + '</div><div class="vacation-sheet-title">Gestisci il tuo saldo</div></div><button class="vacation-sheet-close" data-close-vacation-manager="1">' + icons.x + '</button></div>' +
+          '<label class="vacation-total-field"><span>Totale disponibile nell\'anno</span><div><input id="vacationAllowanceInput" type="text" inputmode="decimal" value="' + escapeHtml(formatEditorDecimal(draft.allowanceDays || 0)) + '"><b>giorni</b></div><small>Un giorno corrisponde al tuo target giornaliero di ' + formatHourValue(getDefaultPaidDayHours()) + '.</small></label>' +
+          '<button class="ghost vacation-save-total" data-save-vacation-allowance="1">Salva disponibilita</button>' +
+          '<div class="vacation-sheet-divider"><span>AGGIUNGI UN PERIODO</span></div>' +
+          '<div class="vacation-date-grid"><label><span>Dal</span><input id="vacationStartInput" type="date" value="' + escapeHtml(draft.start || '') + '"></label><label><span>Al</span><input id="vacationEndInput" type="date" value="' + escapeHtml(draft.end || '') + '"></label></div>' +
+          '<div class="vacation-safe-note"><span>' + icons.check + '</span><p>Vengono aggiunti solo i giorni lavorativi liberi. Weekend, riposi, festivita e giornate gia compilate restano invariati.</p></div>' +
+          '<button class="solid vacation-apply" data-apply-vacation-range="1">Segna il periodo come ferie</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderPayslipViewer() {
+      if (!state.payslipViewer) return '';
+      var source = state.payslipViewer.source === 'archive'
+        ? (state.payslips || []).find(function (item) { return item.id === state.payslipViewer.payslipId; })
+        : state.payslipDraft;
+      var photos = normalizePayslipPhotos(source);
+      if (!photos.length) return '';
+      var index = Math.max(0, Math.min(photos.length - 1, Number(state.payslipViewer.index) || 0));
+      var photo = photos[index];
+      return '<div class="payvault-viewer" role="dialog" aria-modal="true" aria-label="Foto busta paga">' +
+        '<button class="payvault-viewer-backdrop" data-close-payslip-viewer="1" aria-label="Chiudi foto"></button>' +
+        '<div class="payvault-viewer-stage">' +
+          '<div class="payvault-viewer-head"><div><strong>Foto ' + (index + 1) + ' di ' + photos.length + '</strong><span>' + escapeHtml(photo.fileName || 'Busta paga') + '</span></div><button data-close-payslip-viewer="1">' + icons.x + '</button></div>' +
+          '<div class="payvault-viewer-image"><img src="' + photo.data + '" alt="Foto ingrandita della busta paga"></div>' +
+          (photos.length > 1 ? '<div class="payvault-viewer-nav"><button data-payslip-viewer-prev="1">' + icons.left + '<span>Precedente</span></button><div>' + (index + 1) + ' / ' + photos.length + '</div><button data-payslip-viewer-next="1"><span>Successiva</span>' + icons.right + '</button></div>' : '') +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderPayslipDecisionModal() {
+      var photoIndex = Number(state.payslipPhotoDeletePendingIndex);
+      var deletingPhoto = Number.isInteger(photoIndex) && photoIndex >= 0;
+      var payslipId = state.payslipDeletePendingId;
+      if (!deletingPhoto && !payslipId) return '';
+      var payslip = payslipId ? (state.payslips || []).find(function (item) { return item.id === payslipId; }) : null;
+      var title = deletingPhoto ? 'Rimuovere questa foto?' : 'Eliminare la busta paga?';
+      var text = deletingPhoto
+        ? 'La foto verra rimossa dalla galleria. Le altre foto e l\'importo resteranno salvati.'
+        : 'Stai per eliminare ' + escapeHtml(payslip ? getPayslipMonthLabel(payslip) : 'questa busta paga') + '. Questa azione non puo essere annullata.';
+      return '<div class="payvault-decision" role="alertdialog" aria-modal="true">' +
+        '<button class="payvault-decision-backdrop" data-close-payslip-decision="1" aria-label="Annulla"></button>' +
+        '<div class="payvault-decision-card"><div class="payvault-decision-icon">' + icons.trash + '</div><div class="payvault-decision-title">' + title + '</div><div class="payvault-decision-text">' + text + '</div><div class="payvault-decision-actions"><button class="ghost" data-close-payslip-decision="1">Annulla</button><button class="ghost danger" data-confirm-payslip-decision="1">' + (deletingPhoto ? 'Rimuovi foto' : 'Elimina busta') + '</button></div></div>' +
+      '</div>';
+    }
+
     function renderPayslipsComplexLegacy() {
       ensurePayslipDraft();
       var draft = state.payslipDraft;
@@ -825,18 +907,28 @@ function renderOverlay() {
     function renderPayslips() {
       ensurePayslipDraft();
       var draft = state.payslipDraft;
-      var hasPhoto = Boolean(draft.imageData);
+      var photos = normalizePayslipPhotos(draft);
+      var hasPhoto = photos.length > 0;
       var hasAmount = parseDecimalInput(draft.netto, 0) > 0;
       var canReset = Boolean(draft.id || hasPhoto || hasAmount);
       var statusHtml = state.payslipStatus
         ? '<div class="payvault-status">' + escapeHtml(state.payslipStatus) + '</div>'
         : '';
+      var gallery = photos.map(function (photo, index) {
+        return '<div class="payvault-gallery-item">' +
+          '<button class="payvault-gallery-open" data-view-payslip-photo="' + index + '" aria-label="Apri foto ' + (index + 1) + '"><img src="' + photo.data + '" alt="Foto ' + (index + 1) + ' della busta paga"><span>' + (index + 1) + '</span></button>' +
+          '<button class="payvault-gallery-remove" data-remove-payslip-photo="' + index + '" aria-label="Rimuovi foto ' + (index + 1) + '">' + icons.x + '</button>' +
+        '</div>';
+      }).join('');
       var archive = (state.payslips || []).map(function (item) {
+        var itemPhotos = normalizePayslipPhotos(item);
+        var firstPhoto = itemPhotos[0] || null;
         return '<button class="payvault-item" data-open-payslip="' + item.id + '">' +
-          '<span class="payvault-thumb' + (item.imageData ? '' : ' is-empty') + '">' +
-            (item.imageData ? '<img src="' + item.imageData + '" alt="Busta paga ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
+          '<span class="payvault-thumb' + (firstPhoto ? '' : ' is-empty') + '">' +
+            (firstPhoto ? '<img src="' + firstPhoto.data + '" alt="Busta paga ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
+            (itemPhotos.length > 1 ? '<b>' + itemPhotos.length + '</b>' : '') +
           '</span>' +
-          '<span class="payvault-item-copy"><span class="payvault-item-period">' + escapeHtml(getPayslipMonthLabel(item)) + '</span><strong>' + formatMoneyEuro(item.netto) + '</strong><small>Importo ricevuto</small></span>' +
+          '<span class="payvault-item-copy"><span class="payvault-item-period">' + escapeHtml(getPayslipMonthLabel(item)) + '</span><strong>' + formatMoneyEuro(item.netto) + '</strong><small>' + itemPhotos.length + (itemPhotos.length === 1 ? ' foto salvata' : ' foto salvate') + '</small></span>' +
           '<span class="payvault-chevron">' + icons.right + '</span>' +
         '</button>';
       }).join('');
@@ -847,10 +939,10 @@ function renderOverlay() {
               '<div class="payvault-heading"><span class="payvault-heading-icon">' + icons.receipt + '</span><div><div class="payvault-kicker">Nuova busta</div><div class="payvault-title">Foto e importo</div></div></div>' +
               (canReset ? '<button class="ghost mini-btn payvault-new-btn" data-reset-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Nuova</button>' : '') +
             '</div>' +
-            '<div class="payvault-copy">Salva la foto della busta paga e scrivi quanto hai ricevuto. Nient\'altro.</div>' +
+            '<div class="payvault-copy">Salva una o piu foto della busta paga e scrivi quanto hai ricevuto. Nessuna analisi automatica.</div>' +
             (hasPhoto
-              ? '<div class="payvault-photo"><img src="' + draft.imageData + '" alt="Anteprima busta paga"><div class="payvault-photo-foot"><span>Foto pronta</span><button class="ghost mini-btn" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Cambia</button></div></div>'
-              : '<div class="payvault-upload"><span class="payvault-upload-icon">' + icons.receipt + '</span><strong>Aggiungi la foto</strong><span>Scatta la busta oppure sceglila dalla galleria.</span><div class="payvault-upload-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>' + (state.payslipBusy ? 'Caricamento...' : 'Scatta foto') + '</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Galleria</button></div></div>') +
+              ? '<div class="payvault-gallery"><div class="payvault-gallery-head"><div><strong>' + photos.length + ' foto</strong><span>Tocca una foto per aprirla</span></div><span>max ' + MAX_PAYSLIP_PHOTOS + '</span></div><div class="payvault-gallery-grid">' + gallery + '</div><div class="payvault-upload-actions payvault-gallery-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Scatta ancora</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Aggiungi foto</button></div></div>'
+              : '<div class="payvault-upload"><span class="payvault-upload-icon">' + icons.receipt + '</span><strong>Aggiungi le foto</strong><span>Scatta una foto oppure selezionane piu di una dalla galleria.</span><div class="payvault-upload-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>' + (state.payslipBusy ? 'Caricamento...' : 'Scatta foto') + '</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Galleria</button></div></div>') +
             '<label class="payvault-amount"><span>Importo ricevuto</span><div class="payvault-amount-input"><b>EUR</b><input id="payslipNetto" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '" placeholder="0,00"></div></label>' +
             statusHtml +
             '<div class="payvault-actions"><button class="solid payvault-save" data-save-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Salva busta paga</button>' +
@@ -863,7 +955,7 @@ function renderOverlay() {
               ? '<div class="payvault-list">' + archive + '</div>'
               : '<div class="payvault-empty"><span class="payvault-empty-icon">' + icons.receipt + '</span><strong>Nessuna busta salvata</strong><span>Le buste appariranno qui con foto e importo.</span></div>') +
           '</div></section>' +
-        '</div><input id="payslipFileInput" type="file" accept="image/*" hidden>';
+        '</div><input id="payslipFileInput" type="file" accept="image/*" multiple hidden>';
     }
 
     function renderSettings() {
@@ -1010,7 +1102,7 @@ function renderOverlay() {
         '<section class="screen stats-screen ' + (state.activeTab === 'stats' ? ('active' + switchClass) : '') + '">' + renderStats() + '</section>' +
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal() + renderPrivacyLock();
+        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock();
       bindEvents();
       initHomeTitleMorph();
       state.tabSwitchFx = false;

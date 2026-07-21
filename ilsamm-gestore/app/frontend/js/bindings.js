@@ -30,16 +30,20 @@ function bindEvents() {
           if (state.payslipBusy) return;
           var input = document.getElementById('payslipFileInput');
           if (!input) return;
-          if (btn.hasAttribute('data-trigger-payslip-camera')) input.setAttribute('capture', 'environment');
-          else input.removeAttribute('capture');
+          if (btn.hasAttribute('data-trigger-payslip-camera')) {
+            input.setAttribute('capture', 'environment');
+            input.removeAttribute('multiple');
+          } else {
+            input.removeAttribute('capture');
+            input.setAttribute('multiple', 'multiple');
+          }
           input.value = '';
           input.click();
         };
       });
       var payslipInput = document.getElementById('payslipFileInput');
       if (payslipInput) payslipInput.onchange = function (e) {
-        var file = e.target.files && e.target.files[0];
-        processPayslipFile(file);
+        processPayslipFiles(e.target.files || []);
       };
       var resetPayslip = document.querySelector('[data-reset-payslip]');
       if (resetPayslip) resetPayslip.onclick = function () { resetPayslipDraft(); render(); };
@@ -47,7 +51,7 @@ function bindEvents() {
         btn.onclick = function () {
           var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.openPayslip; });
           if (!found) return;
-          state.payslipDraft = Object.assign({}, found);
+          state.payslipDraft = clonePayslipForDraft(found);
           state.payslipStatus = '';
           render();
         };
@@ -62,7 +66,7 @@ function bindEvents() {
         btn.onclick = function () {
           var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.openHomePayslip; });
           if (!found) return;
-          state.payslipDraft = Object.assign({}, found);
+          state.payslipDraft = clonePayslipForDraft(found);
           state.payslipStatus = '';
           state.activeTab = 'payslips';
           render();
@@ -71,8 +75,57 @@ function bindEvents() {
       var savePayslipBtn = document.querySelector('[data-save-payslip]');
       if (savePayslipBtn) savePayslipBtn.onclick = function () { if (!state.payslipBusy) savePayslipDraft(); }; 
       document.querySelectorAll('[data-delete-payslip]').forEach(function (btn) {
-        btn.onclick = function () { if (confirm('Eliminare questa busta paga?')) deletePayslip(btn.dataset.deletePayslip); };
+        btn.onclick = function () {
+          state.payslipDeletePendingId = btn.dataset.deletePayslip || '';
+          state.payslipPhotoDeletePendingIndex = -1;
+          render();
+        };
       });
+      document.querySelectorAll('[data-view-payslip-photo]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipViewer = { source: 'draft', index: Number(btn.dataset.viewPayslipPhoto) || 0 };
+          render();
+        };
+      });
+      document.querySelectorAll('[data-remove-payslip-photo]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipPhotoDeletePendingIndex = Number(btn.dataset.removePayslipPhoto);
+          state.payslipDeletePendingId = '';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-payslip-viewer]').forEach(function (btn) {
+        btn.onclick = function () { state.payslipViewer = null; render(); };
+      });
+      var viewerPrev = document.querySelector('[data-payslip-viewer-prev]');
+      if (viewerPrev) viewerPrev.onclick = function () {
+        if (!state.payslipViewer) return;
+        var photos = normalizePayslipPhotos(state.payslipDraft);
+        state.payslipViewer.index = (Number(state.payslipViewer.index) - 1 + photos.length) % photos.length;
+        render();
+      };
+      var viewerNext = document.querySelector('[data-payslip-viewer-next]');
+      if (viewerNext) viewerNext.onclick = function () {
+        if (!state.payslipViewer) return;
+        var photos = normalizePayslipPhotos(state.payslipDraft);
+        state.payslipViewer.index = (Number(state.payslipViewer.index) + 1) % photos.length;
+        render();
+      };
+      document.querySelectorAll('[data-close-payslip-decision]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipDeletePendingId = '';
+          state.payslipPhotoDeletePendingIndex = -1;
+          render();
+        };
+      });
+      var confirmPayslipDecision = document.querySelector('[data-confirm-payslip-decision]');
+      if (confirmPayslipDecision) confirmPayslipDecision.onclick = function () {
+        if (Number.isInteger(Number(state.payslipPhotoDeletePendingIndex)) && Number(state.payslipPhotoDeletePendingIndex) >= 0) {
+          removePayslipPhotoAt(Number(state.payslipPhotoDeletePendingIndex));
+          return;
+        }
+        if (state.payslipDeletePendingId) deletePayslip(state.payslipDeletePendingId);
+      };
       var payslipNetto = document.getElementById('payslipNetto');
       if (payslipNetto) {
         payslipNetto.oninput = function (e) {
@@ -102,6 +155,73 @@ function bindEvents() {
       if (stPrev) stPrev.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1); render(); };
       var stNext = document.querySelector('[data-stats-next]');
       if (stNext) stNext.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1); render(); };
+
+      document.querySelectorAll('[data-open-vacation-manager]').forEach(function (btn) {
+        btn.onclick = function () {
+          var year = Number(btn.dataset.openVacationManager) || state.currentMonth.getFullYear();
+          var now = new Date();
+          var startDate = now.getFullYear() === year ? now : new Date(year, state.currentMonth.getMonth(), 1, 12, 0, 0, 0);
+          state.vacationDraft = {
+            year: year,
+            allowanceDays: getVacationAllowanceDays(year),
+            start: toISODate(startDate),
+            end: toISODate(startDate)
+          };
+          state.vacationManagerOpen = true;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-vacation-manager]').forEach(function (btn) {
+        btn.onclick = function () { state.vacationManagerOpen = false; render(); };
+      });
+      var vacationAllowance = document.getElementById('vacationAllowanceInput');
+      if (vacationAllowance) {
+        vacationAllowance.oninput = function (e) {
+          if (!state.vacationDraft) return;
+          state.vacationDraft.allowanceDays = parseDecimalInput(e.target.value, 0);
+        };
+        vacationAllowance.onfocus = function (e) {
+          if (isZeroLikeDecimalText(e.target.value)) e.target.value = '';
+        };
+        vacationAllowance.onblur = function (e) {
+          if (!state.vacationDraft) return;
+          state.vacationDraft.allowanceDays = parseDecimalInput(e.target.value, 0);
+          e.target.value = formatEditorDecimal(state.vacationDraft.allowanceDays || 0);
+        };
+      }
+      var vacationStart = document.getElementById('vacationStartInput');
+      if (vacationStart) vacationStart.onchange = function (e) {
+        if (!state.vacationDraft) return;
+        state.vacationDraft.start = e.target.value;
+        if (!state.vacationDraft.end || state.vacationDraft.end < e.target.value) state.vacationDraft.end = e.target.value;
+        render();
+      };
+      var vacationEnd = document.getElementById('vacationEndInput');
+      if (vacationEnd) vacationEnd.onchange = function (e) { if (state.vacationDraft) state.vacationDraft.end = e.target.value; };
+      var saveVacationAllowance = document.querySelector('[data-save-vacation-allowance]');
+      if (saveVacationAllowance) saveVacationAllowance.onclick = function () {
+        if (!state.vacationDraft) return;
+        setVacationAllowanceDays(state.vacationDraft.year, state.vacationDraft.allowanceDays);
+        state.vacationStatus = 'Disponibilita ferie aggiornata.';
+        state.vacationManagerOpen = false;
+        render();
+      };
+      var applyVacationRange = document.querySelector('[data-apply-vacation-range]');
+      if (applyVacationRange) applyVacationRange.onclick = function () {
+        if (!state.vacationDraft) return;
+        setVacationAllowanceDays(state.vacationDraft.year, state.vacationDraft.allowanceDays);
+        var result = addVacationRange(state.vacationDraft.start, state.vacationDraft.end);
+        if (!result.ok) {
+          state.vacationStatus = result.reason === 'range' ? 'Il periodo non puo superare un anno.' : 'Controlla le date inserite.';
+          render();
+          return;
+        }
+        state.vacationStatus = result.added
+          ? (result.added + (result.added === 1 ? ' giorno di ferie aggiunto.' : ' giorni di ferie aggiunti.') + (result.skipped ? (' ' + result.skipped + ' giorni non modificati.') : ''))
+          : 'Nessun giorno aggiunto: il periodo non contiene giornate lavorative libere.';
+        state.vacationManagerOpen = false;
+        render();
+      };
 
       var settingsAutosaveTimer = 0;
       var commitSettingsDraft = function () {

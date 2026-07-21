@@ -1,3 +1,5 @@
+var MAX_PAYSLIP_PHOTOS = 8;
+
 var state = {
       activeTab: 'home',
       entries: loadEntriesWithRecovery(),
@@ -9,11 +11,17 @@ var state = {
       typeOpen: false,
       notesOpen: false,
       confirmClearOpen: false,
-      payslips: loadStorage(STORAGE_PAYSLIPS, []),
+      payslips: normalizePayslipCollection(loadPayslipsWithRecovery()),
       payslipDraft: null,
       payslipBusy: false,
       payslipStatus: '',
       payslipOcrReady: false,
+      payslipViewer: null,
+      payslipDeletePendingId: '',
+      payslipPhotoDeletePendingIndex: -1,
+      vacationManagerOpen: false,
+      vacationDraft: null,
+      vacationStatus: '',
       privacyLocked: false,
       syncStatus: 'Solo sul dispositivo',
       lastSyncedAt: 0
@@ -21,6 +29,50 @@ var state = {
     state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
     state.settingsDraft = Object.assign({}, state.settings);
     state.privacyLocked = Boolean(state.settings.lockApp);
+
+    function normalizePayslipPhotos(payslip) {
+      var source = payslip && typeof payslip === 'object' ? payslip : {};
+      var sourcePhotos = Array.isArray(source.photos) ? source.photos : [];
+      var normalized = sourcePhotos.map(function (photo, index) {
+        var current = photo && typeof photo === 'object' ? photo : {};
+        var data = String(current.data || current.imageData || current.dataUrl || '');
+        if (!data) return null;
+        return {
+          id: String(current.id || ('photo-' + String(source.id || 'legacy') + '-' + index)),
+          data: data,
+          fileName: String(current.fileName || ('busta-paga-' + (index + 1) + '.jpg')),
+          createdAt: Math.max(0, Number(current.createdAt || source.createdAt || Date.now()) || Date.now())
+        };
+      }).filter(Boolean);
+      if (!normalized.length && source.imageData) {
+        normalized.push({
+          id: 'photo-' + String(source.id || 'legacy') + '-0',
+          data: String(source.imageData),
+          fileName: String(source.fileName || 'busta-paga.jpg'),
+          createdAt: Math.max(0, Number(source.createdAt || Date.now()) || Date.now())
+        });
+      }
+      return normalized;
+    }
+    function normalizePayslipRecord(payslip) {
+      var source = payslip && typeof payslip === 'object' ? payslip : {};
+      var photos = normalizePayslipPhotos(source);
+      var firstPhoto = photos[0] || null;
+      return Object.assign({}, source, {
+        photos: photos,
+        imageData: firstPhoto ? firstPhoto.data : '',
+        fileName: firstPhoto ? firstPhoto.fileName : ''
+      });
+    }
+    function normalizePayslipCollection(items) {
+      return (Array.isArray(items) ? items : []).map(normalizePayslipRecord);
+    }
+    function clonePayslipForDraft(payslip) {
+      var normalized = normalizePayslipRecord(payslip);
+      return Object.assign({}, normalized, {
+        photos: normalized.photos.map(function (photo) { return Object.assign({}, photo); })
+      });
+    }
 
     function getPayslipMonthDate(payslip) {
       if (!payslip || !payslip.month || !payslip.year) return null;
@@ -757,6 +809,8 @@ var state = {
       state.payslips = (state.payslips || []).filter(function (item) { return item.id !== id; });
       savePayslips();
       if (state.payslipDraft && state.payslipDraft.id === id) resetPayslipDraft();
+      state.payslipDeletePendingId = '';
+      state.payslipViewer = null;
       render();
     }
     function readFileAsDataURL(file) {
@@ -771,7 +825,7 @@ var state = {
       return new Promise(function (resolve) {
         var img = new Image();
         img.onload = function () {
-          var maxSide = 2200;
+          var maxSide = 1400;
           var ratio = Math.min(1, maxSide / Math.max(img.width, img.height));
           var width = Math.max(1, Math.round(img.width * ratio));
           var height = Math.max(1, Math.round(img.height * ratio));
@@ -780,7 +834,7 @@ var state = {
           baseCanvas.height = height;
           var baseCtx = baseCanvas.getContext('2d');
           baseCtx.drawImage(img, 0, 0, width, height);
-          resolve({ preview: baseCanvas.toDataURL('image/jpeg', 0.9) });
+          resolve({ preview: baseCanvas.toDataURL('image/jpeg', 0.78) });
         };
         img.onerror = function () {
           resolve({ preview: dataUrl });
@@ -894,6 +948,7 @@ var state = {
     function makeEmptyPayslipDraft() {
       return Object.assign({
         id: '',
+        photos: [],
         imageData: '',
         fileName: '',
         createdAt: Date.now()
@@ -908,13 +963,14 @@ var state = {
     }
     function getPayslipStatus(payslip) {
       var score = getPayslipCoreFieldScore(payslip);
-      var hasImage = Boolean(payslip && payslip.imageData);
+      var hasImage = normalizePayslipPhotos(payslip).length > 0;
       if (score >= 5) return { label: hasImage ? 'Foto + dati' : 'Completa', tone: 'ok' };
       if (score >= 3) return { label: 'Da controllare', tone: hasImage ? 'alert' : 'soft' };
       return { label: hasImage ? 'Foto salvata' : 'Da completare', tone: 'soft' };
     }
     function ensurePayslipDraft() {
       if (!state.payslipDraft) state.payslipDraft = makeEmptyPayslipDraft();
+      state.payslipDraft = clonePayslipForDraft(state.payslipDraft);
       return state.payslipDraft;
     }
     function resetPayslipDraft() {
@@ -924,12 +980,13 @@ var state = {
     function mergePayslipParsedData(parsed, extra) {
       var current = ensurePayslipDraft();
       var normalized = reducePayslipToCoreFields(Object.assign({}, current, parsed || {}));
-      state.payslipDraft = Object.assign({}, makeEmptyPayslipDraft(), current, normalized, extra || {});
+      state.payslipDraft = clonePayslipForDraft(Object.assign({}, makeEmptyPayslipDraft(), current, normalized, extra || {}));
     }
     function savePayslipDraft() {
       ensurePayslipDraft();
-      var draft = Object.assign({}, makeEmptyPayslipDraft(), state.payslipDraft);
-      if (!draft.imageData) {
+      var draft = clonePayslipForDraft(Object.assign({}, makeEmptyPayslipDraft(), state.payslipDraft));
+      var photos = normalizePayslipPhotos(draft);
+      if (!photos.length) {
         state.payslipStatus = 'Aggiungi prima la foto della busta paga.';
         render();
         return;
@@ -939,10 +996,12 @@ var state = {
         render();
         return;
       }
-      var saved = Object.assign({}, reducePayslipToCoreFields(draft), {
+      var existing = (state.payslips || []).find(function (item) { return item.id === draft.id; }) || {};
+      var saved = Object.assign({}, existing, draft, reducePayslipToCoreFields(draft), {
         id: draft.id || ('payslip-' + Date.now()),
-        imageData: draft.imageData || '',
-        fileName: draft.fileName || '',
+        photos: photos,
+        imageData: photos[0].data,
+        fileName: photos[0].fileName,
         createdAt: draft.createdAt || Date.now()
       });
       var index = (state.payslips || []).findIndex(function (item) { return item.id === saved.id; });
@@ -1051,27 +1110,76 @@ var state = {
       render();
     }
 
-    async function processPayslipFile(file) {
-      if (!file) return;
-      ensurePayslipDraft();
-      state.payslipBusy = true;
-      state.payslipStatus = 'Sto preparando la foto...';
+    function removePayslipPhotoAt(index) {
+      var draft = ensurePayslipDraft();
+      var photos = normalizePayslipPhotos(draft);
+      if (index < 0 || index >= photos.length) return;
+      photos.splice(index, 1);
+      var firstPhoto = photos[0] || null;
+      state.payslipDraft = Object.assign({}, draft, {
+        photos: photos,
+        imageData: firstPhoto ? firstPhoto.data : '',
+        fileName: firstPhoto ? firstPhoto.fileName : ''
+      });
+      state.payslipPhotoDeletePendingIndex = -1;
+      state.payslipViewer = null;
+      state.payslipStatus = photos.length ? 'Foto rimossa.' : 'Aggiungi almeno una foto prima di salvare.';
       render();
+    }
+
+    async function processPayslipFiles(fileList) {
+      var files = Array.prototype.slice.call(fileList || []).filter(Boolean);
+      if (!files.length) return;
+      ensurePayslipDraft();
+      var currentPhotos = normalizePayslipPhotos(state.payslipDraft);
+      var availableSlots = Math.max(0, MAX_PAYSLIP_PHOTOS - currentPhotos.length);
+      if (!availableSlots) {
+        state.payslipStatus = 'Puoi salvare fino a ' + MAX_PAYSLIP_PHOTOS + ' foto per ogni busta paga.';
+        render();
+        return;
+      }
+      files = files.slice(0, availableSlots);
+      state.payslipBusy = true;
+      state.payslipStatus = files.length > 1 ? ('Sto preparando ' + files.length + ' foto...') : 'Sto preparando la foto...';
+      render();
+      var added = [];
+      var rejected = 0;
       try {
-        if (!file.type || file.type.indexOf('image/') !== 0) throw new Error('image-only');
-        var dataUrl = await readFileAsDataURL(file);
-        var prepared = await preparePayslipImage(dataUrl);
-        mergePayslipParsedData({}, {
-          imageData: prepared.preview || dataUrl,
-          fileName: file.name || 'busta-paga.jpg'
+        for (var index = 0; index < files.length; index += 1) {
+          var file = files[index];
+          if (!file.type || file.type.indexOf('image/') !== 0) {
+            rejected += 1;
+            continue;
+          }
+          state.payslipStatus = 'Preparazione foto ' + (index + 1) + ' di ' + files.length + '...';
+          render();
+          var dataUrl = await readFileAsDataURL(file);
+          var prepared = await preparePayslipImage(dataUrl);
+          added.push({
+            id: 'photo-' + Date.now() + '-' + index,
+            data: prepared.preview || dataUrl,
+            fileName: file.name || ('busta-paga-' + (currentPhotos.length + index + 1) + '.jpg'),
+            createdAt: Date.now()
+          });
+        }
+        var nextPhotos = currentPhotos.concat(added);
+        var firstPhoto = nextPhotos[0] || null;
+        state.payslipDraft = Object.assign({}, state.payslipDraft, {
+          photos: nextPhotos,
+          imageData: firstPhoto ? firstPhoto.data : '',
+          fileName: firstPhoto ? firstPhoto.fileName : ''
         });
-        state.payslipStatus = 'Foto pronta. Inserisci l\'importo ricevuto e salva.';
+        state.payslipStatus = added.length
+          ? (added.length + (added.length === 1 ? ' foto pronta.' : ' foto pronte.') + ' Inserisci l\'importo e salva.')
+          : 'Non ho trovato immagini valide.';
+        if (rejected && added.length) state.payslipStatus += ' ' + rejected + ' file ignorati.';
       } catch (err) {
-        state.payslipStatus = err && err.message === 'image-only'
-          ? 'Puoi caricare soltanto una foto della busta paga.'
-          : 'Non sono riuscito a caricare la foto. Riprova con un\'altra immagine.';
+        state.payslipStatus = 'Non sono riuscito a caricare tutte le foto. Riprova con immagini piu leggere.';
       }
       state.payslipBusy = false;
       state.activeTab = 'payslips';
       render();
+    }
+    async function processPayslipFile(file) {
+      return processPayslipFiles(file ? [file] : []);
     }
