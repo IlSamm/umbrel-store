@@ -156,6 +156,24 @@ function bindEvents() {
       var stNext = document.querySelector('[data-stats-next]');
       if (stNext) stNext.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1); render(); };
 
+      document.querySelectorAll('[data-open-vacation-history]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.vacationHistoryYear = Number(btn.dataset.openVacationHistory) || state.currentMonth.getFullYear();
+          state.vacationHistoryOpen = true;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-vacation-history]').forEach(function (btn) {
+        btn.onclick = function () { state.vacationHistoryOpen = false; render(); };
+      });
+      document.querySelectorAll('[data-open-vacation-date]').forEach(function (btn) {
+        btn.onclick = function () {
+          var date = parseLocalDateKey(btn.dataset.openVacationDate);
+          if (!date) return;
+          state.vacationHistoryOpen = false;
+          openEditor(date);
+        };
+      });
       document.querySelectorAll('[data-open-vacation-manager]').forEach(function (btn) {
         btn.onclick = function () {
           var year = Number(btn.dataset.openVacationManager) || state.currentMonth.getFullYear();
@@ -167,6 +185,7 @@ function bindEvents() {
             start: toISODate(startDate),
             end: toISODate(startDate)
           };
+          state.vacationHistoryOpen = false;
           state.vacationManagerOpen = true;
           render();
         };

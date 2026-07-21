@@ -514,24 +514,42 @@ function renderCalendar() {
       return String(rounded).replace('.', ',');
     }
 
+    function getVacationDetailsForYear(year) {
+      var selectedYear = Number(year) || new Date().getFullYear();
+      var dailyMinutes = Math.max(1, getVacationBalanceForYear(selectedYear).dailyMinutes);
+      return Object.keys(state.entries || {}).filter(function (key) {
+        var entry = state.entries[key];
+        return key.slice(0, 4) === String(selectedYear) && entry && (entry.type === 'ferie' || entry.type === 'lavoro_ferie');
+      }).map(function (key) {
+        var entry = state.entries[key];
+        var minutes = getBreakdown(entry).leave;
+        if (!minutes && entry.type === 'ferie') minutes = dailyMinutes;
+        return { key: key, entry: entry, minutes: Math.max(0, minutes) };
+      }).sort(function (a, b) { return b.key.localeCompare(a.key); });
+    }
+
     function renderVacationCard(balance) {
       var hasAllowance = balance.allowanceDays > 0;
-      var remainingLabel = hasAllowance ? (formatVacationDayValue(balance.remainingDays) + ' gg') : '--';
+      var isOver = hasAllowance && balance.overMinutes > 0;
+      var mainDays = isOver ? (balance.overMinutes / balance.dailyMinutes) : balance.remainingDays;
+      var mainValue = hasAllowance ? formatVacationDayValue(mainDays) : '--';
+      var mainLabel = isOver ? 'giorni oltre il saldo' : (hasAllowance ? 'giorni disponibili' : 'imposta il totale annuale');
+      var usedLabel = formatVacationDayValue(balance.usedDays);
+      var allowanceLabel = hasAllowance ? formatVacationDayValue(balance.allowanceDays) : '--';
       var status = state.vacationStatus ? '<div class="vacation-card-status">' + escapeHtml(state.vacationStatus) + '</div>' : '';
       return '<section class="card vacation-card"><div class="card-body vacation-card-body">' +
-        '<div class="vacation-card-head"><div><div class="vacation-kicker">FERIE ' + balance.year + '</div><div class="vacation-card-title">Il tuo saldo</div></div><button class="vacation-manage" data-open-vacation-manager="' + balance.year + '">Gestisci</button></div>' +
-        '<div class="vacation-balance">' +
-          '<div class="vacation-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>utilizzate</span></div></div>' +
-          '<div class="vacation-balance-copy"><div class="vacation-balance-main"><strong>' + (hasAllowance ? (remainingLabel + ' rimaste') : 'Imposta il totale') + '</strong><span>' + (hasAllowance ? (formatVacationDayValue(balance.usedDays) + ' giorni usati su ' + formatVacationDayValue(balance.allowanceDays)) : 'Inserisci i giorni di ferie previsti per questo anno') + '</span></div>' +
-          '<div class="vacation-track"><span style="width:' + balance.percent + '%"></span></div></div>' +
+        '<div class="vacation-card-head"><div class="vacation-card-heading"><span class="vacation-card-icon">' + icons.umbrella + '</span><div><div class="vacation-kicker">FERIE ' + balance.year + '</div><div class="vacation-card-title">Disponibilita</div></div></div><button class="vacation-manage" data-open-vacation-manager="' + balance.year + '">Modifica</button></div>' +
+        '<div class="vacation-balance' + (isOver ? ' is-over' : '') + '">' +
+          '<div class="vacation-balance-main"><strong>' + mainValue + '</strong><span>' + mainLabel + '</span></div>' +
+          '<div class="vacation-progress-copy"><strong>' + balance.percent + '%</strong><span>' + (hasAllowance ? 'utilizzato' : 'da impostare') + '</span></div>' +
         '</div>' +
+        '<div class="vacation-track"><span style="width:' + balance.percent + '%"></span></div>' +
         '<div class="vacation-metrics">' +
-          '<div><span>Totale</span><strong>' + (hasAllowance ? (formatVacationDayValue(balance.allowanceDays) + ' gg') : '--') + '</strong></div>' +
-          '<div><span>Usate</span><strong>' + formatVacationDayValue(balance.usedDays) + ' gg</strong></div>' +
-          '<div><span>Rimaste</span><strong>' + remainingLabel + '</strong></div>' +
+          '<button data-open-vacation-history="' + balance.year + '"><span>Usate</span><strong>' + usedLabel + ' gg</strong><small>Apri il dettaglio</small>' + icons.right + '</button>' +
+          '<div><span>Totale anno</span><strong>' + allowanceLabel + (hasAllowance ? ' gg' : '') + '</strong><small>' + (hasAllowance ? 'Disponibilita impostata' : 'Non ancora impostato') + '</small></div>' +
         '</div>' +
         status +
-        '<button class="vacation-add-button" data-open-vacation-manager="' + balance.year + '"><span class="vacation-add-icon">' + icons.umbrella + '</span><span><strong>Aggiungi un periodo di ferie</strong><small>Le giornate gia compilate non vengono toccate</small></span>' + icons.right + '</button>' +
+        '<button class="vacation-add-button" data-open-vacation-manager="' + balance.year + '"><span><strong>Inserisci un periodo di ferie</strong><small>Weekend e festivi esclusi automaticamente</small></span>' + icons.right + '</button>' +
       '</div></section>';
     }
 
@@ -773,21 +791,60 @@ function renderOverlay() {
       return '<div class="confirm-overlay open"><div class="confirm-card"><div class="confirm-title">Cancella giornata</div><div class="confirm-text">Vuoi cancellare tutte le ore e i dati di questo giorno?</div><div class="confirm-actions"><button class="ghost" data-close-confirm="1">Annulla</button><button class="ghost danger" data-confirm-clear="1">Cancella</button></div></div></div>';
     }
 
+    function renderVacationHistory() {
+      if (!state.vacationHistoryOpen) return '';
+      var year = Number(state.vacationHistoryYear) || state.currentMonth.getFullYear();
+      var balance = getVacationBalanceForYear(year);
+      var rows = getVacationDetailsForYear(year);
+      var items = rows.map(function (item) {
+        var date = parseLocalDateKey(item.key);
+        var weekday = date ? new Intl.DateTimeFormat('it-IT', { weekday: 'long' }).format(date) : '';
+        var dateLabel = date ? new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(date) : item.key;
+        var monthLabel = date ? new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(date).replace('.', '') : '';
+        var typeLabel = item.entry.type === 'lavoro_ferie' ? 'Ferie parziali' : 'Giornata di ferie';
+        var notes = String(item.entry.notes || '').trim();
+        return '<button class="vacation-history-row" data-open-vacation-date="' + item.key + '">' +
+          '<span class="vacation-history-date"><strong>' + (date ? date.getDate() : '--') + '</strong><small>' + escapeHtml(monthLabel) + '</small></span>' +
+          '<span class="vacation-history-copy"><strong>' + escapeHtml(weekday) + '</strong><small>' + escapeHtml(dateLabel + ' - ' + typeLabel + (notes ? (' - ' + notes) : '')) + '</small></span>' +
+          '<span class="vacation-history-hours"><strong>' + formatDuration(item.minutes) + '</strong><small>ferie</small></span>' +
+          '<span class="vacation-history-chevron">' + icons.right + '</span>' +
+        '</button>';
+      }).join('');
+      return '<div class="vacation-history-overlay" role="dialog" aria-modal="true" aria-label="Ferie utilizzate">' +
+        '<button class="vacation-overlay-backdrop" data-close-vacation-history="1" aria-label="Chiudi"></button>' +
+        '<div class="vacation-history-sheet">' +
+          '<div class="vacation-sheet-handle"></div>' +
+          '<div class="vacation-sheet-head"><div><div class="vacation-kicker">FERIE ' + year + '</div><div class="vacation-sheet-title">Giorni utilizzati</div></div><button class="vacation-sheet-close" data-close-vacation-history="1">' + icons.x + '</button></div>' +
+          '<div class="vacation-history-summary"><span class="vacation-history-summary-icon">' + icons.umbrella + '</span><div><span>Totale registrato</span><strong>' + formatDuration(balance.usedMinutes) + '</strong></div><b>' + rows.length + (rows.length === 1 ? ' giornata' : ' giornate') + '</b></div>' +
+          (items ? '<div class="vacation-history-list">' + items + '</div>' : '<div class="vacation-history-empty"><span>' + icons.umbrella + '</span><strong>Nessuna ferie registrata</strong><small>Quando inserisci una giornata di ferie la ritrovi qui.</small></div>') +
+        '</div>' +
+      '</div>';
+    }
+
     function renderVacationManager() {
       if (!state.vacationManagerOpen) return '';
       var year = state.vacationDraft && Number(state.vacationDraft.year) ? Number(state.vacationDraft.year) : state.currentMonth.getFullYear();
       var draft = state.vacationDraft || {};
+      var balance = getVacationBalanceForYear(year);
+      var hasAllowance = balance.allowanceDays > 0;
+      var remainingLabel = hasAllowance ? (formatVacationDayValue(balance.remainingDays) + ' giorni disponibili') : 'Totale non impostato';
       return '<div class="vacation-overlay open" role="dialog" aria-modal="true" aria-label="Gestione ferie">' +
         '<button class="vacation-overlay-backdrop" data-close-vacation-manager="1" aria-label="Chiudi"></button>' +
         '<div class="vacation-sheet">' +
           '<div class="vacation-sheet-handle"></div>' +
-          '<div class="vacation-sheet-head"><div><div class="vacation-kicker">FERIE ' + year + '</div><div class="vacation-sheet-title">Gestisci il tuo saldo</div></div><button class="vacation-sheet-close" data-close-vacation-manager="1">' + icons.x + '</button></div>' +
-          '<label class="vacation-total-field"><span>Totale disponibile nell\'anno</span><div><input id="vacationAllowanceInput" type="text" inputmode="decimal" value="' + escapeHtml(formatEditorDecimal(draft.allowanceDays || 0)) + '"><b>giorni</b></div><small>Un giorno corrisponde al tuo target giornaliero di ' + formatHourValue(getDefaultPaidDayHours()) + '.</small></label>' +
-          '<button class="ghost vacation-save-total" data-save-vacation-allowance="1">Salva disponibilita</button>' +
-          '<div class="vacation-sheet-divider"><span>AGGIUNGI UN PERIODO</span></div>' +
-          '<div class="vacation-date-grid"><label><span>Dal</span><input id="vacationStartInput" type="date" value="' + escapeHtml(draft.start || '') + '"></label><label><span>Al</span><input id="vacationEndInput" type="date" value="' + escapeHtml(draft.end || '') + '"></label></div>' +
-          '<div class="vacation-safe-note"><span>' + icons.check + '</span><p>Vengono aggiunti solo i giorni lavorativi liberi. Weekend, riposi, festivita e giornate gia compilate restano invariati.</p></div>' +
-          '<button class="solid vacation-apply" data-apply-vacation-range="1">Segna il periodo come ferie</button>' +
+          '<div class="vacation-sheet-head"><div><div class="vacation-kicker">FERIE ' + year + '</div><div class="vacation-sheet-title">Gestione ferie</div></div><button class="vacation-sheet-close" data-close-vacation-manager="1">' + icons.x + '</button></div>' +
+          '<div class="vacation-sheet-summary"><span class="vacation-sheet-summary-icon">' + icons.umbrella + '</span><div><span>Saldo attuale</span><strong>' + remainingLabel + '</strong><small>' + formatVacationDayValue(balance.usedDays) + ' usati su ' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) : '--') + ' giorni</small></div></div>' +
+          '<section class="vacation-manager-panel">' +
+            '<div class="vacation-panel-head"><span>1</span><div><strong>Disponibilita annuale</strong><small>Quanti giorni hai in totale nel ' + year + '?</small></div></div>' +
+            '<label class="vacation-total-field"><span>Totale ferie</span><div><input id="vacationAllowanceInput" type="text" inputmode="decimal" value="' + escapeHtml(formatEditorDecimal(draft.allowanceDays || 0)) + '"><b>giorni</b></div></label>' +
+            '<div class="vacation-total-actions"><small>1 giorno = ' + formatHourValue(getDefaultPaidDayHours()) + '</small><button class="ghost vacation-save-total" data-save-vacation-allowance="1">Aggiorna totale</button></div>' +
+          '</section>' +
+          '<section class="vacation-manager-panel vacation-range-panel">' +
+            '<div class="vacation-panel-head"><span>2</span><div><strong>Nuovo periodo</strong><small>Scegli il primo e l\'ultimo giorno.</small></div></div>' +
+            '<div class="vacation-date-grid"><label><span>Dal</span><input id="vacationStartInput" type="date" value="' + escapeHtml(draft.start || '') + '"></label><span class="vacation-date-arrow">' + icons.right + '</span><label><span>Al</span><input id="vacationEndInput" type="date" value="' + escapeHtml(draft.end || '') + '"></label></div>' +
+            '<div class="vacation-safe-note"><span>' + icons.check + '</span><p>Weekend, riposi, festivita e giornate gia compilate vengono saltati automaticamente.</p></div>' +
+            '<button class="solid vacation-apply" data-apply-vacation-range="1">Aggiungi ferie</button>' +
+          '</section>' +
         '</div>' +
       '</div>';
     }
@@ -911,6 +968,7 @@ function renderOverlay() {
       var hasPhoto = photos.length > 0;
       var hasAmount = parseDecimalInput(draft.netto, 0) > 0;
       var canReset = Boolean(draft.id || hasPhoto || hasAmount);
+      var savedCount = (state.payslips || []).length;
       var statusHtml = state.payslipStatus
         ? '<div class="payvault-status">' + escapeHtml(state.payslipStatus) + '</div>'
         : '';
@@ -928,7 +986,8 @@ function renderOverlay() {
             (firstPhoto ? '<img src="' + firstPhoto.data + '" alt="Busta paga ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
             (itemPhotos.length > 1 ? '<b>' + itemPhotos.length + '</b>' : '') +
           '</span>' +
-          '<span class="payvault-item-copy"><span class="payvault-item-period">' + escapeHtml(getPayslipMonthLabel(item)) + '</span><strong>' + formatMoneyEuro(item.netto) + '</strong><small>' + itemPhotos.length + (itemPhotos.length === 1 ? ' foto salvata' : ' foto salvate') + '</small></span>' +
+          '<span class="payvault-item-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' + itemPhotos.length + (itemPhotos.length === 1 ? ' foto salvata' : ' foto salvate') + '</small></span>' +
+          '<span class="payvault-item-amount">' + formatMoneyEuro(item.netto) + '</span>' +
           '<span class="payvault-chevron">' + icons.right + '</span>' +
         '</button>';
       }).join('');
@@ -936,24 +995,24 @@ function renderOverlay() {
         '<div class="stack payvault-stack">' +
           '<section class="card payvault-card"><div class="card-body payvault-body">' +
             '<div class="payvault-head">' +
-              '<div class="payvault-heading"><span class="payvault-heading-icon">' + icons.receipt + '</span><div><div class="payvault-kicker">Nuova busta</div><div class="payvault-title">Foto e importo</div></div></div>' +
+              '<div class="payvault-heading"><span class="payvault-heading-icon">' + icons.receipt + '</span><div><div class="payvault-kicker">NUOVA BUSTA</div><div class="payvault-title">Salva il cedolino</div></div></div>' +
               (canReset ? '<button class="ghost mini-btn payvault-new-btn" data-reset-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Nuova</button>' : '') +
             '</div>' +
-            '<div class="payvault-copy">Salva una o piu foto della busta paga e scrivi quanto hai ricevuto. Nessuna analisi automatica.</div>' +
+            '<div class="payvault-flow" aria-hidden="true"><span class="is-current' + (hasPhoto ? ' is-complete' : '') + '"><b>1</b> Foto</span><i class="' + (hasPhoto ? 'is-complete' : '') + '"></i><span class="' + (hasPhoto ? 'is-current' : '') + (hasAmount ? ' is-complete' : '') + '"><b>2</b> Importo</span></div>' +
             (hasPhoto
-              ? '<div class="payvault-gallery"><div class="payvault-gallery-head"><div><strong>' + photos.length + ' foto</strong><span>Tocca una foto per aprirla</span></div><span>max ' + MAX_PAYSLIP_PHOTOS + '</span></div><div class="payvault-gallery-grid">' + gallery + '</div><div class="payvault-upload-actions payvault-gallery-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Scatta ancora</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Aggiungi foto</button></div></div>'
-              : '<div class="payvault-upload"><span class="payvault-upload-icon">' + icons.receipt + '</span><strong>Aggiungi le foto</strong><span>Scatta una foto oppure selezionane piu di una dalla galleria.</span><div class="payvault-upload-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>' + (state.payslipBusy ? 'Caricamento...' : 'Scatta foto') + '</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Galleria</button></div></div>') +
-            '<label class="payvault-amount"><span>Importo ricevuto</span><div class="payvault-amount-input"><b>EUR</b><input id="payslipNetto" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '" placeholder="0,00"></div></label>' +
+              ? '<div class="payvault-gallery"><div class="payvault-gallery-head"><div><strong>' + photos.length + (photos.length === 1 ? ' foto pronta' : ' foto pronte') + '</strong><span>Tocca per visualizzare</span></div><span>' + photos.length + '/' + MAX_PAYSLIP_PHOTOS + '</span></div><div class="payvault-gallery-grid">' + gallery + '</div><div class="payvault-upload-actions payvault-gallery-actions"><button class="ghost" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Scatta ancora</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Aggiungi foto</button></div></div>'
+              : '<div class="payvault-capture"><span class="payvault-upload-icon">' + icons.receipt + '</span><div class="payvault-capture-copy"><strong>Aggiungi la busta paga</strong><span>Fotografa il cedolino o scegli fino a ' + MAX_PAYSLIP_PHOTOS + ' immagini.</span></div><div class="payvault-upload-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>' + (state.payslipBusy ? 'Caricamento...' : 'Scatta') + '</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Galleria</button></div></div>') +
+            '<label class="payvault-amount"><span><b>Importo ricevuto</b><small>Inseriscilo manualmente</small></span><div class="payvault-amount-input"><b>EUR</b><input id="payslipNetto" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '" placeholder="0,00"></div></label>' +
             statusHtml +
             '<div class="payvault-actions"><button class="solid payvault-save" data-save-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Salva busta paga</button>' +
               (draft.id ? '<button class="ghost danger" data-delete-payslip="' + draft.id + '">Elimina</button>' : '') +
             '</div>' +
           '</div></section>' +
           '<section class="card payvault-archive"><div class="card-body payvault-archive-body">' +
-            '<div class="payvault-archive-head"><div><div class="payvault-kicker">Archivio</div><div class="section-title">Buste salvate</div></div><span>' + (state.payslips || []).length + '</span></div>' +
+            '<div class="payvault-archive-head"><div><div class="payvault-kicker">ARCHIVIO</div><div class="section-title">Le tue buste</div></div><span>' + savedCount + '</span></div>' +
             ((state.payslips && state.payslips.length)
               ? '<div class="payvault-list">' + archive + '</div>'
-              : '<div class="payvault-empty"><span class="payvault-empty-icon">' + icons.receipt + '</span><strong>Nessuna busta salvata</strong><span>Le buste appariranno qui con foto e importo.</span></div>') +
+              : '<div class="payvault-empty"><span class="payvault-empty-icon">' + icons.receipt + '</span><strong>Archivio vuoto</strong><span>La prima busta salvata apparira qui.</span></div>') +
           '</div></section>' +
         '</div><input id="payslipFileInput" type="file" accept="image/*" multiple hidden>';
     }
@@ -1102,7 +1161,7 @@ function renderOverlay() {
         '<section class="screen stats-screen ' + (state.activeTab === 'stats' ? ('active' + switchClass) : '') + '">' + renderStats() + '</section>' +
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock();
+        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock();
       bindEvents();
       initHomeTitleMorph();
       state.tabSwitchFx = false;
