@@ -106,6 +106,110 @@ body.app-booting {
   transition: opacity .28s ease, transform .34s ease;
 }
 
+.go-time-loader {
+  position: relative;
+  display: grid;
+  width: clamp(178px, 48vw, 198px);
+  height: clamp(112px, 29vw, 124px);
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(103, 161, 255, .30);
+  border-radius: 38px;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(91, 151, 255, .24), transparent 48%),
+    linear-gradient(155deg, rgba(20, 39, 76, .96), rgba(4, 12, 28, .98));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    inset 0 -25px 38px rgba(0,0,0,.18),
+    0 24px 58px rgba(0,0,0,.36),
+    0 0 52px rgba(47, 131, 255, .16);
+  animation: goTimeLoaderReveal .72s cubic-bezier(.2, .85, .22, 1) both;
+}
+
+.go-time-loader::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(126, 174, 255, .10);
+  border-radius: 31px;
+  pointer-events: none;
+}
+
+.go-time-loader-orbit {
+  position: absolute;
+  inset: -42%;
+  opacity: .48;
+  background: conic-gradient(from 0deg, transparent 0 72%, #4cc7ff 82%, #677dff 90%, transparent 100%);
+  filter: blur(.2px);
+  animation: goTimeOrbit 3.2s linear infinite;
+}
+
+.go-time-loader-digits {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 132px;
+  height: 64px;
+  padding: 0 13px;
+  overflow: hidden;
+  border: 1px solid rgba(127, 173, 255, .15);
+  border-radius: 22px;
+  background: rgba(1, 7, 19, .72);
+  box-shadow: inset 0 1px 10px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.go-time-loader-digits::before,
+.go-time-loader-digits::after {
+  width: 2ch;
+  height: 1em;
+  margin: 0 9px;
+  overflow: hidden;
+  color: transparent;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 35px;
+  font-weight: 800;
+  line-height: 1em;
+  letter-spacing: -.08em;
+  text-shadow: 0 0 0 var(--digit-color);
+  font-variant-numeric: tabular-nums;
+  animation: goTimeRoll var(--roll-speed) steps(20) infinite;
+}
+
+.go-time-loader-digits::before {
+  content: "12 09 17 04 21 06 15 23 08 19 03 14 22 07 16 01 20 11 05 18";
+  --digit-color: #f4f8ff;
+  --roll-speed: 1.65s;
+}
+
+.go-time-loader-digits::after {
+  content: "00 07 14 21 28 35 42 49 56 03 10 17 24 31 38 45 52 59 06 13";
+  --digit-color: #67b9ff;
+  --roll-speed: 1.12s;
+  animation-direction: reverse;
+}
+
+.go-time-loader-digits > i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+}
+
+.go-time-loader-digits > i b {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #778cff;
+  box-shadow: 0 0 10px rgba(92, 139, 255, .72);
+  animation: goTimeColon 1s ease-in-out infinite;
+}
+
 .go-splash-emblem {
   position: relative;
   display: grid;
@@ -272,6 +376,24 @@ body.app-booting {
   to { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
 }
 
+@keyframes goTimeLoaderReveal {
+  from { opacity: 0; transform: translateY(13px) scale(.88); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes goTimeRoll {
+  to { text-shadow: 0 -20em 0 var(--digit-color); }
+}
+
+@keyframes goTimeOrbit {
+  to { transform: rotate(1turn); }
+}
+
+@keyframes goTimeColon {
+  0%, 100% { opacity: .38; }
+  50% { opacity: 1; }
+}
+
 @keyframes goEmblemShine {
   0%, 30% { transform: translateX(0) rotate(24deg); }
   68%, 100% { transform: translateX(430%) rotate(24deg); }
@@ -312,6 +434,12 @@ body.app-booting {
     border-radius: 29px;
   }
 
+  .go-time-loader {
+    width: 164px;
+    height: 104px;
+    border-radius: 33px;
+  }
+
   .go-splash-wordmark {
     margin-top: 25px;
     font-size: 48px;
@@ -327,6 +455,11 @@ body.app-booting {
     width: 108px;
   }
 
+  .go-time-loader {
+    width: 164px;
+    height: 104px;
+  }
+
   .go-splash-wordmark {
     font-size: 48px;
   }
@@ -334,6 +467,11 @@ body.app-booting {
 
 @media (prefers-reduced-motion: reduce) {
   .go-splash-glow,
+  .go-time-loader,
+  .go-time-loader-orbit,
+  .go-time-loader-digits::before,
+  .go-time-loader-digits::after,
+  .go-time-loader-digits > i b,
   .go-splash-emblem,
   .go-splash-emblem-shine,
   .go-splash-wordmark,

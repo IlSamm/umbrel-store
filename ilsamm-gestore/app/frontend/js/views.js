@@ -1164,7 +1164,7 @@ function renderOverlayLegacy() {
       var dailyTarget = Math.max(0, Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
       var weeklyTarget = Math.max(0, Number(state.settingsDraft.weeklyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
       return '<div class="profile-page profile-page-v2">' +
-        '<header class="profile-v2-top"><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Gest<span>Ore</span></div></div><button data-open-profile-section="settings" aria-label="Apri impostazioni">' + icons.settings + '</button></header>' +
+        '<header class="profile-v2-top"><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Gest<span>Ore</span></div></div></header>' +
         '<section class="profile-v2-hero">' +
           '<div class="profile-v2-identity"><span class="profile-v2-avatar">' + escapeHtml(initials) + '</span><div class="profile-v2-copy"><span>IL TUO PROFILO</span><h1>Ciao, ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div><button data-open-profile-section="settings" data-settings-section="profile" aria-label="Modifica nome e obiettivi">' + icons.settings + '</button></div>' +
           '<div class="profile-v2-safe"><span>' + icons.check + '</span><div><strong>Dati al sicuro</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></div><i></i></div>' +
@@ -1178,7 +1178,7 @@ function renderOverlayLegacy() {
         '<section class="profile-group profile-v2-group">' +
           '<button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni</strong><small>Profilo, calendario, notifiche, privacy e dati</small></span><span class="profile-row-value">5 sezioni</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="payslips"><span class="profile-row-icon is-violet">' + icons.receipt + '</span><span class="profile-row-copy"><strong>Buste paga</strong><small>' + savedCount + (savedCount === 1 ? ' busta salvata' : ' buste salvate') + '</small></span><span class="profile-row-value">Apri</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-blue">' + icons.download + '</span><span class="profile-row-copy"><strong>Esporta dati</strong><small>Excel, PDF mensile e PDF annuale</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-blue">' + icons.download + '</span><span class="profile-row-copy"><strong>Report e file</strong><small>PDF mensile, PDF annuale ed Excel</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
         '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span></div>' +
       '</div>';
@@ -1309,12 +1309,9 @@ function renderOverlayLegacy() {
 
       if (section === 'data') {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
-          topBar('Dati e archivio', true) +
-          intro('green', icons.download, 'ARCHIVIO', 'Salvataggio ed esportazione', 'Controlla lo stato dei dati e crea copie in Excel o PDF quando vuoi.') +
-          '<div class="settings-v2-section-title">Stato dati</div>' +
-          '<section class="settings-v2-group"><div class="settings-v2-sync-row"><span class="settings-v2-icon is-green">' + icons.check + '</span><span class="settings-v2-copy"><strong>Salvataggio automatico</strong><small>' + syncStatusMessage + '</small></span><span>ATTIVO</span></div></section>' +
-          '<div class="settings-v2-section-title">Esportazione</div>' +
-          '<section class="settings-v2-group"><button class="settings-v2-link-row" data-open-profile-section="exports"><span class="settings-v2-icon is-blue">' + icons.download + '</span><span class="settings-v2-copy"><strong>Esporta i tuoi dati</strong><small>Excel, PDF del mese e PDF annuale</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+          topBar('Account e backup', true) +
+          intro('green', icons.lock, 'DATABASE PERSONALE', 'I dati giusti, per ogni utente', 'Il server mantiene un database separato per ogni account. Da qui puoi salvarne una copia sul telefono.') +
+          (typeof renderAccountDataSettings === 'function' ? renderAccountDataSettings() : '') +
           '<section class="settings-v2-version"><div><span>VERSIONE INSTALLATA</span><strong>GestOre ' + escapeHtml(state.settings.version) + '</strong></div><span>' + icons.check + '</span></section>' +
         '</div>';
       }
@@ -1330,7 +1327,7 @@ function renderOverlayLegacy() {
           '<button class="settings-hub-row" data-open-settings-section="privacy"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Privacy e sicurezza</strong><small>Protezione quando riapri l&apos;app</small></span><span class="settings-hub-value">' + privacyStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
         '</section>' +
         '<div class="settings-v2-section-title">Dati e app</div>' +
-        '<section class="settings-hub-group"><button class="settings-hub-row" data-open-settings-section="data"><span class="settings-v2-icon is-green">' + icons.download + '</span><span class="settings-v2-copy"><strong>Dati e archivio</strong><small>Salvataggio automatico ed esportazioni</small></span><span class="settings-hub-value is-live">Al sicuro</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+        '<section class="settings-hub-group"><button class="settings-hub-row" data-open-settings-section="data"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Account e backup</strong><small>Database personale e salvataggi sul telefono</small></span><span class="settings-hub-value is-live">Protetto</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
         '<div class="settings-v2-footer"><strong>GestOre</strong><span>Le tue preferenze si salvano automaticamente</span></div>' +
       '</div>';
     }
@@ -1367,8 +1364,9 @@ function renderOverlayLegacy() {
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
         '<section class="screen exports-screen ' + (state.activeTab === 'exports' ? ('active' + switchClass) : '') + '">' + renderExports() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock();
+        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderAccountGate === 'function' ? renderAccountGate() : '');
       bindEvents();
+      if (typeof bindAccountEvents === 'function') bindAccountEvents();
       initHomeTitleMorph();
       state.tabSwitchFx = false;
     }

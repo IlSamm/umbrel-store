@@ -26,6 +26,11 @@
   animation: vacation-flow-enter .24s cubic-bezier(.2, .85, .3, 1) both;
 }
 
+.vacation-flow-sheet.is-range {
+  min-height: min(720px, calc(100dvh - max(20px, env(safe-area-inset-top, 0px)) - 14px));
+  align-content: start;
+}
+
 @keyframes vacation-flow-enter {
   from { opacity: 0; transform: translateY(20px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -80,8 +85,7 @@
 .vacation-flow-head > div > span,
 .vacation-flow-section-title > span,
 .vacation-flow-balance span,
-.vacation-flow-availability small,
-.vacation-range-dates label > span {
+.vacation-flow-availability small {
   color: #8aa9ff;
   font-size: 9px;
   font-weight: 900;
@@ -147,8 +151,7 @@
   white-space: nowrap;
 }
 
-.vacation-allowance-editor,
-.vacation-range-editor {
+.vacation-allowance-editor {
   display: grid;
   gap: 13px;
   padding: 15px;
@@ -277,8 +280,7 @@
 }
 
 .vacation-flow-availability svg,
-.vacation-flow-note svg,
-.vacation-range-preview-icon svg {
+.vacation-flow-note svg {
   width: 22px;
   height: 22px;
   fill: none;
@@ -307,116 +309,331 @@
   font-size: 10px;
 }
 
-.vacation-range-dates {
+.vacation-request-balance {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
-  align-items: end;
-  gap: 7px;
-}
-
-.vacation-range-dates label {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-}
-
-.vacation-range-dates input {
-  width: 100%;
-  min-width: 0;
-  height: 51px;
-  padding: 0 9px;
-  color: #f8faff;
-  font-size: 12px;
-  font-weight: 800;
-  border: 1px solid rgba(120, 157, 237, .18);
-  border-radius: 15px;
-  outline: 0;
-  background: rgba(60, 91, 157, .09);
-  color-scheme: dark;
-}
-
-.vacation-range-dates input:focus {
-  border-color: rgba(105, 147, 255, .55);
-  box-shadow: 0 0 0 3px rgba(72, 114, 229, .10);
-}
-
-.vacation-range-dates input::-webkit-calendar-picker-indicator {
-  opacity: .62;
-}
-
-.vacation-range-connector {
-  display: grid;
-  place-items: center;
-  height: 51px;
-  color: rgba(184, 201, 239, .34);
-}
-
-.vacation-range-connector svg {
-  width: 17px;
-  height: 17px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-}
-
-.vacation-range-preview {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 45px minmax(0, 1fr) minmax(0, .82fr);
   align-items: center;
   gap: 11px;
-  min-height: 67px;
   padding: 11px 13px;
-  border: 1px solid rgba(105, 143, 226, .14);
+  border: 1px solid rgba(68, 215, 173, .15);
   border-radius: 18px;
-  background: rgba(73, 101, 166, .055);
+  background: linear-gradient(145deg, rgba(25, 172, 130, .09), rgba(61, 87, 157, .035));
 }
 
-.vacation-range-preview-icon {
+.vacation-request-balance > span {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  color: #829df3;
-  border-radius: 14px;
-  background: rgba(76, 103, 187, .12);
+  width: 45px;
+  height: 45px;
+  color: #4eddb0;
+  border: 1px solid rgba(75, 222, 177, .16);
+  border-radius: 15px;
+  background: rgba(25, 178, 132, .10);
 }
 
-.vacation-range-preview > div {
+.vacation-request-balance svg,
+.vacation-request-date-icon svg,
+.vacation-request-summary-head svg,
+.vacation-request-exclusions svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vacation-request-balance > div {
   display: grid;
   gap: 3px;
   min-width: 0;
 }
 
-.vacation-range-preview strong {
-  color: #f7f9ff;
-  font-size: 13px;
+.vacation-request-balance > div:last-child {
+  padding-left: 11px;
+  border-left: 1px solid rgba(118, 148, 215, .11);
+}
+
+.vacation-request-balance small,
+.vacation-request-date-copy small,
+.vacation-request-metrics span {
+  color: #8ba8f7;
+  font-size: 9px;
+  line-height: 1.15;
+  font-weight: 900;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.vacation-request-balance strong {
+  overflow: hidden;
+  color: #f8faff;
+  font-size: 14px;
+  line-height: 1.15;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vacation-request-editor {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid rgba(123, 155, 229, .17);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(76, 107, 180, .075), rgba(255, 255, 255, .014));
+}
+
+.vacation-request-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(123, 153, 223, .11);
+  border-radius: 15px;
+  background: rgba(2, 8, 21, .30);
+}
+
+.vacation-request-mode button {
+  min-height: 38px;
+  padding: 0 10px;
+  color: rgba(207, 220, 250, .47);
+  font-size: 12px;
+  font-weight: 800;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+}
+
+.vacation-request-mode button.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(67, 115, 229, .82), rgba(105, 74, 219, .78));
+  box-shadow: 0 7px 18px rgba(53, 66, 179, .20), inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+.vacation-request-date-list {
+  display: grid;
+  gap: 8px;
+}
+
+.vacation-request-date {
+  position: relative;
+  display: grid;
+  grid-template-columns: 43px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 9px 11px;
+  overflow: hidden;
+  border: 1px solid rgba(117, 153, 235, .16);
+  border-radius: 17px;
+  background: rgba(55, 84, 149, .075);
+}
+
+.vacation-request-date:focus-within {
+  border-color: rgba(102, 146, 255, .50);
+  box-shadow: 0 0 0 3px rgba(71, 112, 224, .10);
+}
+
+.vacation-request-date-icon {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  color: #62d9b0;
+  border-radius: 14px;
+  background: rgba(30, 177, 133, .11);
+}
+
+.vacation-request-date-icon.is-end {
+  color: #a276ff;
+  background: rgba(118, 79, 221, .12);
+}
+
+.vacation-request-date-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vacation-request-date-copy strong {
+  overflow: hidden;
+  color: #f8faff;
+  font-size: 14px;
   line-height: 1.2;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vacation-request-date-action {
+  color: #9ab2fb;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.vacation-request-date input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: .001;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.vacation-request-summary {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(68, 216, 173, .18);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(32, 190, 146, .10), transparent 38%),
+    linear-gradient(145deg, rgba(24, 161, 124, .075), rgba(53, 76, 142, .035));
+}
+
+.vacation-request-summary[data-tone="empty"] {
+  border-color: rgba(125, 153, 218, .15);
+  background: rgba(65, 88, 143, .045);
+}
+
+.vacation-request-summary[data-tone="warning"] {
+  border-color: rgba(255, 155, 111, .19);
+  background: rgba(197, 84, 52, .055);
+}
+
+.vacation-request-summary-head {
+  display: grid;
+  grid-template-columns: 37px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.vacation-request-summary-head > span {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  color: #51ddb0;
+  border-radius: 12px;
+  background: rgba(25, 179, 132, .11);
+}
+
+.vacation-request-summary[data-tone="empty"] .vacation-request-summary-head > span {
+  color: #809ce9;
+  background: rgba(72, 103, 183, .12);
+}
+
+.vacation-request-summary[data-tone="warning"] .vacation-request-summary-head > span {
+  color: #ff9d78;
+  background: rgba(225, 105, 69, .11);
+}
+
+.vacation-request-summary-head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.vacation-request-summary-head strong {
+  color: #f8faff;
+  font-size: 14px;
   font-weight: 850;
 }
 
-.vacation-range-preview small {
-  color: rgba(211, 223, 250, .47);
+.vacation-request-summary-head small {
+  color: rgba(210, 223, 251, .50);
   font-size: 10px;
   line-height: 1.35;
 }
 
-.vacation-range-preview[data-tone="positive"] {
-  border-color: rgba(67, 218, 172, .16);
-  background: rgba(25, 171, 127, .065);
+.vacation-request-total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  min-height: 70px;
+  padding: 10px;
+  border-top: 1px solid rgba(105, 145, 213, .10);
+  border-bottom: 1px solid rgba(105, 145, 213, .10);
 }
 
-.vacation-range-preview[data-tone="positive"] .vacation-range-preview-icon {
-  color: #4bdeb0;
-  background: rgba(25, 178, 132, .11);
+.vacation-request-total > strong {
+  color: #fff;
+  font-size: 47px;
+  line-height: .9;
+  font-weight: 930;
+  letter-spacing: -.055em;
 }
 
-.vacation-range-preview[data-tone="warning"] {
-  border-color: rgba(255, 158, 112, .18);
+.vacation-request-total > span {
+  display: grid;
+  gap: 3px;
+  color: #f2f6ff;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.vacation-range-preview[data-tone="warning"] .vacation-range-preview-icon {
-  color: #ff9d78;
-  background: rgba(230, 113, 77, .10);
+.vacation-request-total small {
+  color: #72cdb1;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.vacation-request-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(117, 148, 214, .11);
+  border-radius: 15px;
+  background: rgba(2, 8, 20, .19);
+}
+
+.vacation-request-metrics > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.vacation-request-metrics > div + div {
+  border-left: 1px solid rgba(117, 148, 214, .10);
+}
+
+.vacation-request-metrics strong {
+  color: #f7f9ff;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.vacation-request-exclusions {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  color: rgba(207, 221, 250, .49);
+}
+
+.vacation-request-exclusions > span {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: #6bc9ff;
+}
+
+.vacation-request-exclusions svg {
+  width: 15px;
+  height: 15px;
+}
+
+.vacation-request-exclusions p {
+  margin: 2px 0 0;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .vacation-flow-note {
@@ -515,18 +732,31 @@
   }
 
   .vacation-allowance-editor,
-  .vacation-range-editor {
+  .vacation-request-editor {
     padding: 13px;
   }
 
-  .vacation-range-dates {
-    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
-    gap: 5px;
+  .vacation-request-balance {
+    grid-template-columns: 41px minmax(0, 1fr) minmax(0, .78fr);
+    gap: 9px;
+    padding-inline: 11px;
   }
 
-  .vacation-range-dates input {
-    padding-inline: 6px;
-    font-size: 11px;
+  .vacation-request-balance > span,
+  .vacation-request-date-icon {
+    width: 41px;
+    height: 41px;
+  }
+
+  .vacation-request-date {
+    grid-template-columns: 41px minmax(0, 1fr) auto;
+    gap: 9px;
+    min-height: 61px;
+    padding-inline: 9px;
+  }
+
+  .vacation-request-total > strong {
+    font-size: 43px;
   }
 }
 

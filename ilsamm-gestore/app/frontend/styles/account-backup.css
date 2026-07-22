@@ -1,0 +1,440 @@
+/* Account gate, per-user database and phone backup controls. */
+.account-gate,
+.account-gate * {
+  box-sizing: border-box;
+}
+
+.account-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 4800;
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  place-items: center;
+  padding:
+    max(24px, env(safe-area-inset-top, 0px))
+    18px
+    max(24px, env(safe-area-inset-bottom, 0px));
+  color: #f8fbff;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(45, 116, 235, .18), transparent 36%),
+    radial-gradient(circle at 100% 100%, rgba(22, 167, 156, .08), transparent 34%),
+    linear-gradient(180deg, #07142c 0%, #020817 55%, #01040b 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+}
+
+.account-gate-panel {
+  width: min(100%, 386px);
+  padding: 21px;
+  border: 1px solid rgba(100, 152, 246, .24);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(62, 128, 245, .16), transparent 38%),
+    linear-gradient(150deg, rgba(17, 34, 67, .98), rgba(4, 12, 28, .99));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 28px 70px rgba(0,0,0,.42);
+}
+
+.account-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-brand-icon,
+.account-loading-mark {
+  display: grid;
+  place-items: center;
+  color: #7db2ff;
+  border: 1px solid rgba(99, 154, 255, .22);
+  background: linear-gradient(145deg, rgba(42, 105, 218, .25), rgba(15, 42, 94, .18));
+}
+
+.account-brand-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 16px;
+}
+
+.account-brand-icon svg,
+.account-loading-mark svg,
+.account-security-note svg,
+.account-current-card svg,
+.account-backup-card button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.account-brand > div {
+  display: grid;
+  gap: 2px;
+}
+
+.account-brand > div > span,
+.account-gate-copy > span {
+  color: #7fa9ff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .19em;
+}
+
+.account-brand > div > div {
+  color: #fff;
+  font-size: 27px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -.055em;
+}
+
+.account-brand > div > div strong {
+  color: #65aaff;
+}
+
+.account-gate-copy {
+  margin-top: 28px;
+}
+
+.account-gate-copy h1 {
+  margin: 7px 0 8px;
+  color: #fff;
+  font-size: clamp(30px, 9vw, 38px);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+
+.account-gate-copy p {
+  margin: 0;
+  color: rgba(211, 224, 251, .65);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.account-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.account-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.account-form label > span {
+  padding-left: 4px;
+  color: rgba(178, 198, 236, .66);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.account-form input {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  outline: none;
+  border: 1px solid rgba(112, 151, 223, .20);
+  border-radius: 17px;
+  background: rgba(3, 11, 27, .72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.account-form input:focus {
+  border-color: rgba(79, 148, 255, .72);
+  box-shadow: 0 0 0 3px rgba(56, 128, 255, .10);
+}
+
+.account-form input::placeholder {
+  color: rgba(166, 183, 219, .34);
+}
+
+.account-primary,
+.account-mode-switch {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+
+.account-primary {
+  min-height: 55px;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 850;
+  border: 0;
+  border-radius: 18px;
+  background: linear-gradient(110deg, #526cff, #3d8cff 58%, #36a8ff);
+  box-shadow: 0 13px 26px rgba(38, 92, 218, .25), inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+.account-primary:disabled,
+.account-backup-card button:disabled {
+  opacity: .55;
+}
+
+.account-mode-switch {
+  min-height: 42px;
+  margin-top: 10px;
+  color: #82b6ff;
+  font-size: 12px;
+  font-weight: 750;
+  border: 0;
+  background: transparent;
+}
+
+.account-form-message,
+.account-settings-message {
+  padding: 11px 13px;
+  color: #8edbc3;
+  font-size: 11px;
+  line-height: 1.4;
+  border: 1px solid rgba(44, 205, 160, .18);
+  border-radius: 14px;
+  background: rgba(18, 111, 87, .10);
+}
+
+.account-form-message.is-error,
+.account-settings-message.is-error {
+  color: #ff9cae;
+  border-color: rgba(255, 89, 119, .24);
+  background: rgba(142, 31, 54, .13);
+}
+
+.account-security-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 15px;
+  color: rgba(173, 192, 229, .50);
+  font-size: 9px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.account-security-note svg {
+  width: 14px;
+  height: 14px;
+  color: #49d0a5;
+}
+
+.account-gate.is-loading {
+  align-content: center;
+  gap: 10px;
+  color: rgba(208, 221, 248, .68);
+  font-size: 12px;
+}
+
+.account-gate.is-loading strong {
+  color: #fff;
+  font-size: 18px;
+}
+
+.account-loading-mark {
+  width: 62px;
+  height: 62px;
+  margin-bottom: 5px;
+  border-radius: 21px;
+  animation: accountLoadingPulse 1.25s ease-in-out infinite;
+}
+
+.account-current-card,
+.account-backup-card {
+  border: 1px solid rgba(100, 146, 232, .22);
+  background:
+    radial-gradient(circle at 6% 0%, rgba(56, 123, 239, .14), transparent 40%),
+    linear-gradient(150deg, rgba(17, 32, 62, .98), rgba(5, 14, 31, .99));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 15px 34px rgba(0,0,0,.18);
+}
+
+.account-current-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border-radius: 23px;
+}
+
+.account-current-card > span {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  place-items: center;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 900;
+  border: 1px solid rgba(107, 166, 255, .50);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #317be8, #3449b9);
+}
+
+.account-current-card > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.account-current-card small {
+  color: #7fa9ff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.account-current-card strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-current-card p {
+  margin: 2px 0 0;
+  color: rgba(199, 215, 244, .52);
+  font-size: 10px;
+}
+
+.account-current-card > i {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  color: #47d2a5;
+  border-radius: 50%;
+  background: rgba(36, 190, 144, .10);
+}
+
+.account-current-card > i svg {
+  width: 16px;
+  height: 16px;
+}
+
+.account-backup-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 24px;
+}
+
+.account-backup-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 3px;
+}
+
+.account-backup-copy > div {
+  min-width: 0;
+}
+
+.account-backup-copy strong {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.account-backup-copy p {
+  margin: 5px 0 0;
+  color: rgba(196, 213, 245, .56);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.account-backup-card button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 50px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 820;
+  border-radius: 16px;
+}
+
+.account-backup-card button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.account-backup-primary {
+  color: #fff;
+  border: 0;
+  background: linear-gradient(110deg, #4d68fb, #398cff 62%, #3ca9fa);
+  box-shadow: 0 10px 22px rgba(40, 94, 210, .18), inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+.account-backup-secondary {
+  color: #89b8ff;
+  border: 1px solid rgba(105, 153, 239, .19);
+  background: rgba(7, 18, 40, .76);
+}
+
+.account-settings-message {
+  margin-top: 10px;
+}
+
+.account-logout-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 69px;
+  padding: 11px 13px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+
+@keyframes accountLoadingPulse {
+  0%, 100% { opacity: .58; transform: scale(.94); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@media (max-height: 720px) {
+  .account-gate {
+    place-items: start center;
+  }
+
+  .account-gate-panel {
+    padding: 18px;
+  }
+
+  .account-gate-copy {
+    margin-top: 20px;
+  }
+
+  .account-form {
+    margin-top: 17px;
+  }
+
+  .account-form input {
+    min-height: 49px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-loading-mark {
+    animation: none;
+  }
+}

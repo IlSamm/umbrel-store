@@ -50,8 +50,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.125',
-      build: '20260722f',
+      version: '1.1.126',
+      build: '20260722g',
       appName: 'GestOre'
     };
 
@@ -1295,6 +1295,7 @@ var errorBox = document.getElementById('errorBox');
         cache: 'no-store',
         body: JSON.stringify(snapshot)
       });
+      if (response.status === 401 && typeof handleAccountUnauthorized === 'function') handleAccountUnauthorized();
       if (!response.ok) throw new Error('server-sync-failed');
       return normalizeServerSnapshot(await response.json());
     }
@@ -1459,7 +1460,8 @@ var errorBox = document.getElementById('errorBox');
         updateReminderSchedule();
         if (state.settings.lockApp && state.privacyLocked && typeof render === 'function') render();
       });
-      bootstrapServerState();
+      if (typeof bootstrapAccountSession === 'function') bootstrapAccountSession();
+      else bootstrapServerState();
       updateReminderSchedule();
     }
     async function testNotification() {
