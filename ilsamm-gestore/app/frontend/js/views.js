@@ -811,11 +811,11 @@ function renderOverlayLegacy() {
       var balance = getVacationBalanceForYear(year);
       var mode = state.vacationManagerMode === 'range' ? 'range' : 'allowance';
       var hasAllowance = balance.allowanceDays > 0;
-      var remainingLabel = hasAllowance ? (formatVacationDayValue(balance.remainingDays) + ' gg disponibili') : 'Saldo non impostato';
+      var remainingLabel = hasAllowance ? (formatVacationDayValue(balance.remainingDays) + ' gg disponibili') : 'Da impostare';
       var error = state.vacationManagerError ? '<div class="vacation-flow-error">' + escapeHtml(state.vacationManagerError) + '</div>' : '';
       var headerIcon = mode === 'range' ? icons.calendar : icons.settings;
       var headerTitle = mode === 'range' ? 'Inserisci le ferie' : 'Disponibilita annuale';
-      var headerText = mode === 'range' ? 'Scegli il periodo da registrare.' : 'Imposta il monte ferie per il ' + year + '.';
+      var headerText = mode === 'range' ? 'Scegli la durata, poi tocca le date.' : 'Imposta il monte ferie per il ' + year + '.';
       var content = '';
 
       if (mode === 'allowance') {
@@ -841,32 +841,55 @@ function renderOverlayLegacy() {
           error +
           '<button class="solid vacation-flow-primary" data-save-vacation-allowance="1">Salva disponibilita</button>';
       } else {
-        var rangeStaysInYear = String(draft.start || '').slice(0, 4) === String(year) && String(draft.end || '').slice(0, 4) === String(year);
-        var preview = rangeStaysInYear ? getVacationRangePreview(draft.start, draft.end) : { ok: false, reason: 'year', eligibleKeys: [], skipped: 0 };
+        var rangeMode = draft.rangeMode === 'period' ? 'period' : 'single';
+        var rangeEnd = rangeMode === 'period' ? draft.end : draft.start;
+        var rangeStaysInYear = String(draft.start || '').slice(0, 4) === String(year) && String(rangeEnd || '').slice(0, 4) === String(year);
+        var preview = rangeStaysInYear ? getVacationRangePreview(draft.start, rangeEnd) : { ok: false, reason: 'year', eligibleKeys: [], skipped: 0, skippedReasons: {} };
         var previewDays = preview.ok ? preview.eligibleKeys.length : 0;
         var previewMinutes = previewDays * balance.dailyMinutes;
         var exceedsBalance = hasAllowance && previewDays > balance.remainingDays;
         var previewTone = !preview.ok || !previewDays ? 'empty' : (exceedsBalance ? 'warning' : 'positive');
-        var previewTitle = !preview.ok
-          ? (preview.reason === 'year' ? ('Scegli date del ' + year) : (preview.reason === 'range' ? 'Periodo troppo lungo' : 'Controlla le date'))
-          : (previewDays ? (previewDays + (previewDays === 1 ? ' giorno verra aggiunto' : ' giorni verranno aggiunti')) : 'Nessun giorno disponibile');
-        var previewMeta = preview.ok
-          ? (previewDays ? (formatDuration(previewMinutes) + ' di ferie' + (preview.skipped ? (' - ' + preview.skipped + ' esclusi') : '')) : 'Le giornate selezionate sono gia occupate o non lavorative.')
-          : (preview.reason === 'year' ? ('Il periodo deve rimanere nel ' + year + '.') : 'La data finale deve essere successiva a quella iniziale.');
-        var actionLabel = previewDays === 1 ? 'Aggiungi 1 giorno' : ('Aggiungi ' + previewDays + ' giorni');
+        var formatRequestDate = function (value) {
+          var date = parseLocalDateKey(value);
+          if (!date) return 'Scegli una data';
+          var label = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+          return label.charAt(0).toUpperCase() + label.slice(1);
+        };
+        var reasonLabels = [];
+        var skippedReasons = preview.skippedReasons || {};
+        if (skippedReasons.weekend) reasonLabels.push(skippedReasons.weekend + ' weekend');
+        if (skippedReasons.holiday) reasonLabels.push(skippedReasons.holiday + ' festivita');
+        if (skippedReasons.rest) reasonLabels.push(skippedReasons.rest + (skippedReasons.rest === 1 ? ' riposo' : ' riposi'));
+        if (skippedReasons.notWorkday) reasonLabels.push(skippedReasons.notWorkday + (skippedReasons.notWorkday === 1 ? ' giorno non lavorativo' : ' giorni non lavorativi'));
+        if (skippedReasons.occupied) reasonLabels.push(skippedReasons.occupied + (skippedReasons.occupied === 1 ? ' giornata gia compilata' : ' giornate gia compilate'));
+        var excludedLabel = preview.skipped ? ('Non conteggiati: ' + reasonLabels.join(', ')) : 'Tutti i giorni selezionati verranno conteggiati';
+        var remainingAfter = balance.remainingDays - previewDays;
+        var remainingAfterLabel = hasAllowance
+          ? (remainingAfter >= 0 ? (formatVacationDayValue(remainingAfter) + ' gg') : (formatVacationDayValue(Math.abs(remainingAfter)) + ' gg oltre'))
+          : 'Da impostare';
+        var summaryTitle = !preview.ok
+          ? (preview.reason === 'year' ? ('Scegli date del ' + year) : 'Controlla le date')
+          : (previewDays ? 'Controlla il riepilogo' : 'Questa selezione non e disponibile');
+        var summaryText = !preview.ok
+          ? (preview.reason === 'year' ? ('Il periodo deve rimanere nel ' + year + '.') : 'La data finale deve essere successiva a quella iniziale.')
+          : (previewDays ? 'Questi sono i giorni che verranno salvati.' : (excludedLabel + '.'));
+        var actionLabel = previewDays ? ('Salva ' + previewDays + (previewDays === 1 ? ' giorno' : ' giorni')) : (rangeMode === 'single' ? 'Scegli un altro giorno' : 'Modifica il periodo');
         content =
-          '<div class="vacation-flow-availability"><span>' + icons.umbrella + '</span><div><small>SALDO DISPONIBILE</small><strong>' + remainingLabel + '</strong><p>' + formatVacationDayValue(balance.usedDays) + ' gg gia utilizzati</p></div></div>' +
-          '<section class="vacation-range-editor">' +
-            '<div class="vacation-flow-section-title"><span>PERIODO</span><strong>Seleziona le date</strong></div>' +
-            '<div class="vacation-range-dates">' +
-              '<label><span>DAL</span><input id="vacationStartInput" type="date" min="' + year + '-01-01" max="' + year + '-12-31" value="' + escapeHtml(draft.start || '') + '"></label>' +
-              '<span class="vacation-range-connector">' + icons.right + '</span>' +
-              '<label><span>AL</span><input id="vacationEndInput" type="date" min="' + year + '-01-01" max="' + year + '-12-31" value="' + escapeHtml(draft.end || '') + '"></label>' +
+          '<div class="vacation-request-balance"><span>' + icons.umbrella + '</span><div><small>DISPONIBILI</small><strong>' + remainingLabel + '</strong></div><div><small>GIA USATE</small><strong>' + formatVacationDayValue(balance.usedDays) + ' gg</strong></div></div>' +
+          '<section class="vacation-request-editor">' +
+            '<div class="vacation-request-mode" role="group" aria-label="Durata delle ferie"><button class="' + (rangeMode === 'single' ? 'active' : '') + '" data-vacation-range-mode="single">Un solo giorno</button><button class="' + (rangeMode === 'period' ? 'active' : '') + '" data-vacation-range-mode="period">Piu giorni</button></div>' +
+            '<div class="vacation-request-date-list">' +
+              '<label class="vacation-request-date"><span class="vacation-request-date-icon">' + icons.calendar + '</span><span class="vacation-request-date-copy"><small>' + (rangeMode === 'single' ? 'GIORNO DI FERIE' : 'DATA INIZIO') + '</small><strong>' + escapeHtml(formatRequestDate(draft.start)) + '</strong></span><span class="vacation-request-date-action">Modifica</span><input id="vacationStartInput" type="date" min="' + year + '-01-01" max="' + year + '-12-31" value="' + escapeHtml(draft.start || '') + '"></label>' +
+              (rangeMode === 'period' ? '<label class="vacation-request-date"><span class="vacation-request-date-icon is-end">' + icons.calendar + '</span><span class="vacation-request-date-copy"><small>DATA FINE</small><strong>' + escapeHtml(formatRequestDate(draft.end)) + '</strong></span><span class="vacation-request-date-action">Modifica</span><input id="vacationEndInput" type="date" min="' + year + '-01-01" max="' + year + '-12-31" value="' + escapeHtml(draft.end || '') + '"></label>' : '') +
             '</div>' +
           '</section>' +
-          '<div class="vacation-range-preview" data-tone="' + previewTone + '"><span class="vacation-range-preview-icon">' + (previewDays ? icons.check : icons.calendar) + '</span><div><strong>' + previewTitle + '</strong><small>' + previewMeta + '</small></div></div>' +
-          (exceedsBalance ? '<div class="vacation-flow-warning">Il periodo supera il saldo disponibile di ' + formatVacationDayValue(previewDays - balance.remainingDays) + ' gg.</div>' : '') +
-          '<div class="vacation-flow-note"><span>' + icons.check + '</span><p>Weekend, riposi, festivita e giornate gia compilate vengono saltati automaticamente.</p></div>' +
+          '<section class="vacation-request-summary" data-tone="' + previewTone + '">' +
+            '<div class="vacation-request-summary-head"><span>' + (previewDays ? icons.check : icons.calendar) + '</span><div><strong>' + summaryTitle + '</strong><small>' + summaryText + '</small></div></div>' +
+            '<div class="vacation-request-total"><strong>' + (preview.ok ? previewDays : '--') + '</strong><span>' + (previewDays === 1 ? 'giorno di ferie' : 'giorni di ferie') + '<small>' + (previewDays ? formatDuration(previewMinutes) + ' totali' : 'Nessuna ora conteggiata') + '</small></span></div>' +
+            '<div class="vacation-request-metrics"><div><span>NON CONTATI</span><strong>' + (preview.ok ? preview.skipped : '--') + '</strong></div><div><span>SALDO DOPO</span><strong>' + remainingAfterLabel + '</strong></div></div>' +
+            '<div class="vacation-request-exclusions"><span>' + icons.check + '</span><p>' + escapeHtml(excludedLabel) + '</p></div>' +
+          '</section>' +
+          (exceedsBalance ? '<div class="vacation-flow-warning">Attenzione: superi il saldo disponibile di ' + formatVacationDayValue(previewDays - balance.remainingDays) + ' gg.</div>' : '') +
           error +
           '<button class="solid vacation-flow-primary" data-apply-vacation-range="1"' + (!preview.ok || !previewDays ? ' disabled' : '') + '>' + actionLabel + '</button>';
       }
@@ -1055,16 +1078,24 @@ function renderOverlayLegacy() {
       var initials = rawName.split(/\s+/).slice(0, 2).map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'U';
       var todayLabel = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
       var savedCount = (state.payslips || []).length;
-      return '<div class="profile-page">' +
-        '<div class="profile-brand-row"><div class="profile-brand">Gest<span>Ore</span></div><span class="profile-brand-icon">' + icons.user + '</span></div>' +
-        '<section class="profile-hero"><span class="profile-avatar">' + escapeHtml(initials) + '</span><div class="profile-hero-copy"><span>IL MIO PROFILO</span><h1>Ciao ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div><button data-open-profile-section="settings" aria-label="Modifica profilo">' + icons.settings + '</button></section>' +
-        '<div class="profile-section-title">Il mio profilo</div>' +
-        '<section class="profile-group"><button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni</strong><small>Nome, obiettivi, turni e preferenze</small></span><span class="profile-row-chevron">' + icons.right + '</span></button></section>' +
-        '<div class="profile-section-title">Dati e archivio</div>' +
-        '<section class="profile-group">' +
+      var dailyTarget = Math.max(0, Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
+      var weeklyTarget = Math.max(0, Number(state.settingsDraft.weeklyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
+      return '<div class="profile-page profile-page-v2">' +
+        '<header class="profile-v2-top"><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Gest<span>Ore</span></div></div><button data-open-profile-section="settings" aria-label="Apri impostazioni">' + icons.settings + '</button></header>' +
+        '<section class="profile-v2-hero">' +
+          '<div class="profile-v2-identity"><span class="profile-v2-avatar">' + escapeHtml(initials) + '</span><div class="profile-v2-copy"><span>IL TUO PROFILO</span><h1>Ciao, ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div><button data-open-profile-section="settings" data-settings-section="profile" aria-label="Modifica nome e obiettivi">' + icons.settings + '</button></div>' +
+          '<div class="profile-v2-safe"><span>' + icons.check + '</span><div><strong>Dati al sicuro</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></div><i></i></div>' +
+        '</section>' +
+        '<section class="profile-v2-summary" aria-label="Riepilogo profilo">' +
+          '<div><span>OGGI</span><strong>' + dailyTarget + '</strong><small>target</small></div>' +
+          '<div><span>SETTIMANA</span><strong>' + weeklyTarget + '</strong><small>target</small></div>' +
+          '<div><span>ARCHIVIO</span><strong>' + savedCount + '</strong><small>' + (savedCount === 1 ? 'busta' : 'buste') + '</small></div>' +
+        '</section>' +
+        '<div class="profile-section-title">Gestione personale</div>' +
+        '<section class="profile-group profile-v2-group">' +
+          '<button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni</strong><small>Profilo, calendario, notifiche, privacy e dati</small></span><span class="profile-row-value">5 sezioni</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="payslips"><span class="profile-row-icon is-violet">' + icons.receipt + '</span><span class="profile-row-copy"><strong>Buste paga</strong><small>' + savedCount + (savedCount === 1 ? ' busta salvata' : ' buste salvate') + '</small></span><span class="profile-row-value">Apri</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-blue">' + icons.download + '</span><span class="profile-row-copy"><strong>Esporta dati</strong><small>Excel, PDF mensile e PDF annuale</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<div class="profile-row profile-row-static"><span class="profile-row-icon is-green">' + icons.check + '</span><span class="profile-row-copy"><strong>Salvataggio dati</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></span><span class="profile-status-dot"></span></div>' +
         '</section>' +
         '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span></div>' +
       '</div>';
@@ -1088,7 +1119,7 @@ function renderOverlayLegacy() {
       '</div>';
     }
 
-    function renderSettings() {
+    function renderSettingsLegacy() {
       var holidayHelper = escapeHtml(getHolidaySettingsHelperText(state.settingsDraft));
       var reminderHelper = escapeHtml(getReminderHelperText());
       var syncStatusMessage = escapeHtml(getSyncStatusMessage());
@@ -1122,6 +1153,102 @@ function renderOverlayLegacy() {
           '<div class="settings-sync-row"><span class="settings-modern-icon is-green">' + icons.check + '</span><span class="settings-modern-copy"><strong>Salvataggio automatico</strong><small>' + syncStatusMessage + '</small></span><span class="settings-sync-live">Attivo</span></div>' +
         '</section>' +
         '<div class="settings-modern-footer"><span>GestOre</span><strong>Versione ' + escapeHtml(state.settings.version) + '</strong></div>' +
+      '</div>';
+    }
+
+    function renderSettings() {
+      var section = state.settingsSection || '';
+      var workdays = normalizeWeekdayList(state.settingsDraft.workdays || []);
+      var restDays = normalizeWeekdayList(state.settingsDraft.autoRestDays || []);
+      var holidayHelper = escapeHtml(getHolidaySettingsHelperText(state.settingsDraft));
+      var reminderHelper = escapeHtml(getReminderHelperText());
+      var syncStatusMessage = escapeHtml(getSyncStatusMessage());
+      var activeWorkdays = workdays.length ? workdays.map(function (index) { return weekNames[index]; }).join(', ') : 'Nessuno';
+      var activeRestDays = restDays.length ? restDays.map(function (index) { return weekNames[index]; }).join(', ') : 'Nessuno';
+      var reminderStatus = state.settings.remindersEnabled ? ('Attivo alle ' + state.settings.reminderTime) : 'Disattivato';
+      var privacyStatus = state.settings.lockApp ? 'Attiva' : 'Disattivata';
+      var targetStatus = (Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h al giorno';
+      var topBar = function (title, isDetail) {
+        return '<div class="settings-v2-top"><button ' + (isDetail ? 'data-back-settings="1"' : 'data-back-profile="1"') + ' aria-label="' + (isDetail ? 'Torna alle impostazioni' : 'Torna al profilo') + '">' + icons.left + '</button><div><span>IMPOSTAZIONI</span><h1>' + title + '</h1></div><i></i></div>';
+      };
+      var intro = function (tone, icon, kicker, title, copy) {
+        return '<section class="settings-detail-intro is-' + tone + '"><span class="settings-detail-intro-icon">' + icon + '</span><div><span>' + kicker + '</span><h2>' + title + '</h2><p>' + copy + '</p></div></section>';
+      };
+
+      if (section === 'profile') {
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
+          topBar('Profilo e obiettivi', true) +
+          intro('blue', icons.user, 'PERSONALE', 'Il tuo profilo', 'Aggiorna il nome mostrato nell&apos;app e i target usati nei riepiloghi.') +
+          '<div class="settings-v2-section-title">Identit&agrave;</div>' +
+          '<section class="settings-v2-group"><label class="settings-v2-input-row"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span><strong>Nome utente</strong><small>Viene mostrato nel tuo profilo</small></span><input id="userNameInput" type="text" maxlength="24" placeholder="Il tuo nome" value="' + escapeHtml(state.settingsDraft.userName || '') + '"></label></section>' +
+          '<div class="settings-v2-section-title">Obiettivi ore</div>' +
+          '<section class="settings-v2-targets"><label><span>GIORNALIERO</span><div><input id="dailyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.dailyTarget + '"><b>ore</b></div><small>Usato nella scheda di ogni giornata</small></label><label><span>SETTIMANALE</span><div><input id="weeklyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.weeklyTarget + '"><b>ore</b></div><small>Usato nel riepilogo settimanale</small></label></section>' +
+          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>Le modifiche vengono salvate automaticamente senza cancellare le ore registrate.</p></div>' +
+        '</div>';
+      }
+
+      if (section === 'calendar') {
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
+          topBar('Calendario di lavoro', true) +
+          intro('blue', icons.calendar, 'ORGANIZZAZIONE', 'La tua settimana', 'Decidi quali giorni contribuiscono ai target e quali diventano riposo automatico.') +
+          '<div class="settings-v2-section-title">Giorni lavorativi</div>' +
+          '<section class="settings-v2-group settings-v2-days-card"><div class="settings-v2-row-heading"><span class="settings-v2-icon is-blue">' + icons.briefcase + '</span><span><strong>Settimana attiva</strong><small>' + escapeHtml(activeWorkdays) + '</small></span></div><div class="settings-v2-days">' + weekNames.map(function (label, index) { return '<button class="' + (workdays.indexOf(index) !== -1 ? 'is-active' : '') + '" data-toggle-workday="' + index + '" aria-pressed="' + (workdays.indexOf(index) !== -1 ? 'true' : 'false') + '"><span>' + label.slice(0, 1) + '</span><small>' + label + '</small></button>'; }).join('') + '</div></section>' +
+          '<div class="settings-v2-section-title">Riposo automatico</div>' +
+          '<section class="settings-v2-group settings-v2-days-card"><div class="settings-v2-row-heading"><span class="settings-v2-icon is-amber">' + icons.coffee + '</span><span><strong>Giorni di riposo</strong><small>' + escapeHtml(activeRestDays) + '</small></span></div><div class="settings-v2-days is-rest">' + weekNames.map(function (label, index) { return '<button class="' + (restDays.indexOf(index) !== -1 ? 'is-active' : '') + '" data-toggle-auto-rest-day="' + index + '" aria-pressed="' + (restDays.indexOf(index) !== -1 ? 'true' : 'false') + '"><span>' + label.slice(0, 1) + '</span><small>' + label + '</small></button>'; }).join('') + '</div><p>I dati inseriti manualmente hanno sempre la precedenza.</p></section>' +
+          '<div class="settings-v2-section-title">Festivit&agrave;</div>' +
+          '<section class="settings-v2-group"><div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.star + '</span><span class="settings-v2-copy"><strong>Ore nei giorni non lavorativi</strong><small>' + holidayHelper + '</small></span><button class="toggle-btn ' + (state.settingsDraft.holidayHoursOnOffDays ? 'on' : '') + '" data-toggle-holiday-offdays="1" aria-label="Ore festive nei giorni non lavorativi"><span class="knob"></span></button></div></section>' +
+        '</div>';
+      }
+
+      if (section === 'notifications') {
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
+          topBar('Notifiche', true) +
+          intro('violet', icons.bell, 'PROMEMORIA', 'Non dimenticare le ore', 'Scegli se ricevere un avviso locale e a che ora mostrarlo.') +
+          '<div class="settings-v2-section-title">Promemoria giornaliero</div>' +
+          '<section class="settings-v2-group">' +
+            '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Promemoria locale</strong><small>' + reminderHelper + '</small></span><button class="toggle-btn ' + (state.settings.remindersEnabled ? 'on' : '') + '" data-toggle-reminders="1" aria-label="Promemoria locale"><span class="knob"></span></button></div>' +
+            '<div class="settings-v2-divider"></div>' +
+            '<div class="settings-v2-time-row"><label><span>ORARIO</span><input id="reminderTimeInput" type="time" value="' + state.settings.reminderTime + '"></label><button data-test-notification="1">' + icons.bell + '<span>Invia notifica di prova</span></button></div>' +
+          '</section>' +
+          '<div class="settings-v2-note"><span>' + icons.bell + '</span><p>Le notifiche vengono gestite dal dispositivo. Potrebbe essere necessario consentirle nelle impostazioni di iPhone.</p></div>' +
+        '</div>';
+      }
+
+      if (section === 'privacy') {
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
+          topBar('Privacy e sicurezza', true) +
+          intro('green', icons.lock, 'PROTEZIONE', 'I tuoi dati restano privati', 'Puoi nascondere il contenuto ogni volta che lasci o riapri GestOre.') +
+          '<div class="settings-v2-section-title">Protezione app</div>' +
+          '<section class="settings-v2-group"><div class="settings-v2-toggle-row settings-v2-privacy-toggle"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Schermata privacy</strong><small>Nasconde ore, ferie e importi quando riapri l&apos;app</small></span><button class="toggle-btn ' + (state.settings.lockApp ? 'on' : '') + '" data-toggle-lock="1" aria-label="Schermata privacy"><span class="knob"></span></button></div></section>' +
+          '<section class="settings-v2-security-info"><span>' + icons.check + '</span><div><strong>Nessuna modifica ai dati</strong><p>Questa opzione oscura solo lo schermo. Le giornate e le buste paga restano salvate normalmente.</p></div></section>' +
+        '</div>';
+      }
+
+      if (section === 'data') {
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
+          topBar('Dati e archivio', true) +
+          intro('green', icons.download, 'ARCHIVIO', 'Salvataggio ed esportazione', 'Controlla lo stato dei dati e crea copie in Excel o PDF quando vuoi.') +
+          '<div class="settings-v2-section-title">Stato dati</div>' +
+          '<section class="settings-v2-group"><div class="settings-v2-sync-row"><span class="settings-v2-icon is-green">' + icons.check + '</span><span class="settings-v2-copy"><strong>Salvataggio automatico</strong><small>' + syncStatusMessage + '</small></span><span>ATTIVO</span></div></section>' +
+          '<div class="settings-v2-section-title">Esportazione</div>' +
+          '<section class="settings-v2-group"><button class="settings-v2-link-row" data-open-profile-section="exports"><span class="settings-v2-icon is-blue">' + icons.download + '</span><span class="settings-v2-copy"><strong>Esporta i tuoi dati</strong><small>Excel, PDF del mese e PDF annuale</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+          '<section class="settings-v2-version"><div><span>VERSIONE INSTALLATA</span><strong>GestOre ' + escapeHtml(state.settings.version) + '</strong></div><span>' + icons.check + '</span></section>' +
+        '</div>';
+      }
+
+      return '<div class="settings-modern-page settings-page-v2 settings-hub-page">' +
+        topBar('Impostazioni', false) +
+        '<section class="settings-hub-hero"><span class="settings-hub-hero-icon">' + icons.settings + '</span><div><span>CENTRO DI CONTROLLO</span><h2>Tutto al suo posto</h2><p>Ogni preferenza ha ora una sezione dedicata.</p></div><b>v' + escapeHtml(state.settings.version) + '</b></section>' +
+        '<div class="settings-v2-section-title">Preferenze personali</div>' +
+        '<section class="settings-hub-group">' +
+          '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong><small>Nome, target giornaliero e settimanale</small></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="calendar"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Calendario di lavoro</strong><small>Giorni attivi, riposi e festivit&agrave;</small></span><span class="settings-hub-value">' + workdays.length + ' giorni</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong><small>Promemoria per registrare la giornata</small></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="privacy"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Privacy e sicurezza</strong><small>Protezione quando riapri l&apos;app</small></span><span class="settings-hub-value">' + privacyStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+        '</section>' +
+        '<div class="settings-v2-section-title">Dati e app</div>' +
+        '<section class="settings-hub-group"><button class="settings-hub-row" data-open-settings-section="data"><span class="settings-v2-icon is-green">' + icons.download + '</span><span class="settings-v2-copy"><strong>Dati e archivio</strong><small>Salvataggio automatico ed esportazioni</small></span><span class="settings-hub-value is-live">Al sicuro</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+        '<div class="settings-v2-footer"><strong>GestOre</strong><span>Le tue preferenze si salvano automaticamente</span></div>' +
       '</div>';
     }
 

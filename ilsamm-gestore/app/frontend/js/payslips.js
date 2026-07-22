@@ -2,6 +2,7 @@ var MAX_PAYSLIP_PHOTOS = 8;
 
 var state = {
       activeTab: 'home',
+      settingsSection: '',
       entries: loadEntriesWithRecovery(),
       settings: normalizeRuntimeSettings(loadWithMigration(STORAGE_SETTINGS, LEGACY_SETTINGS_KEYS, SETTINGS_BACKUP_KEYS, {}, 'settings')),
       settingsDraft: {},

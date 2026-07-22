@@ -24,12 +24,24 @@ function bindEvents() {
         btn.onclick = function () {
           var section = btn.dataset.openProfileSection;
           if (section !== 'settings' && section !== 'payslips' && section !== 'exports') return;
+          if (section === 'settings') state.settingsSection = btn.dataset.settingsSection || '';
           state.activeTab = section;
           render();
         };
       });
       document.querySelectorAll('[data-back-profile]').forEach(function (btn) {
-        btn.onclick = function () { state.activeTab = 'profile'; render(); };
+        btn.onclick = function () { state.settingsSection = ''; state.activeTab = 'profile'; render(); };
+      });
+      document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
+        btn.onclick = function () {
+          var section = btn.dataset.openSettingsSection;
+          if (['profile', 'calendar', 'notifications', 'privacy', 'data'].indexOf(section) === -1) return;
+          state.settingsSection = section;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-back-settings]').forEach(function (btn) {
+        btn.onclick = function () { state.settingsSection = ''; render(); };
       });
       document.querySelectorAll('[data-open-date]').forEach(function (btn) {
         btn.onclick = function () { openEditor(new Date(btn.dataset.openDate + 'T12:00:00')); };
@@ -196,11 +208,21 @@ function bindEvents() {
           var year = Number(yearValue) || state.currentMonth.getFullYear();
           var now = new Date();
           var startDate = now.getFullYear() === year ? now : new Date(year, state.currentMonth.getMonth(), 1, 12, 0, 0, 0);
+          if (mode === 'range') {
+            for (var offset = 0; offset < 366 && startDate.getFullYear() === year; offset += 1) {
+              var candidateKey = toISODate(startDate);
+              var candidatePreview = getVacationRangePreview(candidateKey, candidateKey);
+              if (candidatePreview.ok && candidatePreview.eligibleKeys.length) break;
+              startDate.setDate(startDate.getDate() + 1);
+            }
+            if (startDate.getFullYear() !== year) startDate = new Date(year, 0, 1, 12, 0, 0, 0);
+          }
           state.vacationDraft = {
             year: year,
             allowanceDays: getVacationAllowanceDays(year),
             start: toISODate(startDate),
-            end: toISODate(startDate)
+            end: toISODate(startDate),
+            rangeMode: 'single'
           };
           state.vacationHistoryOpen = false;
           state.vacationManagerMode = mode;
@@ -214,6 +236,15 @@ function bindEvents() {
       });
       document.querySelectorAll('[data-open-vacation-range]').forEach(function (btn) {
         openVacationManager(btn, 'range', btn.dataset.openVacationRange);
+      });
+      document.querySelectorAll('[data-vacation-range-mode]').forEach(function (btn) {
+        btn.onclick = function () {
+          if (!state.vacationDraft) return;
+          state.vacationDraft.rangeMode = btn.dataset.vacationRangeMode === 'period' ? 'period' : 'single';
+          if (state.vacationDraft.rangeMode === 'single' || !state.vacationDraft.end) state.vacationDraft.end = state.vacationDraft.start;
+          state.vacationManagerError = '';
+          render();
+        };
       });
       document.querySelectorAll('[data-close-vacation-manager]').forEach(function (btn) {
         btn.onclick = function () { state.vacationManagerOpen = false; state.vacationManagerError = ''; render(); };
@@ -251,7 +282,7 @@ function bindEvents() {
       if (vacationStart) vacationStart.onchange = function (e) {
         if (!state.vacationDraft) return;
         state.vacationDraft.start = e.target.value;
-        if (!state.vacationDraft.end || state.vacationDraft.end < e.target.value) state.vacationDraft.end = e.target.value;
+        if (state.vacationDraft.rangeMode !== 'period' || !state.vacationDraft.end || state.vacationDraft.end < e.target.value) state.vacationDraft.end = e.target.value;
         state.vacationManagerError = '';
         render();
       };
@@ -274,13 +305,14 @@ function bindEvents() {
       var applyVacationRange = document.querySelector('[data-apply-vacation-range]');
       if (applyVacationRange) applyVacationRange.onclick = function () {
         if (!state.vacationDraft) return;
+        var rangeEnd = state.vacationDraft.rangeMode === 'period' ? state.vacationDraft.end : state.vacationDraft.start;
         var selectedYear = String(Number(state.vacationDraft.year) || new Date().getFullYear());
-        if (String(state.vacationDraft.start || '').slice(0, 4) !== selectedYear || String(state.vacationDraft.end || '').slice(0, 4) !== selectedYear) {
+        if (String(state.vacationDraft.start || '').slice(0, 4) !== selectedYear || String(rangeEnd || '').slice(0, 4) !== selectedYear) {
           state.vacationManagerError = 'Scegli date comprese nel ' + selectedYear + '.';
           render();
           return;
         }
-        var result = addVacationRange(state.vacationDraft.start, state.vacationDraft.end);
+        var result = addVacationRange(state.vacationDraft.start, rangeEnd);
         if (!result.ok) {
           state.vacationManagerError = result.reason === 'range' ? 'Il periodo non puo superare un anno.' : 'Controlla le date inserite.';
           render();

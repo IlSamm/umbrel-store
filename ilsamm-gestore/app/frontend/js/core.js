@@ -50,8 +50,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.120',
-      build: '20260722a',
+      version: '1.1.122',
+      build: '20260722c',
       appName: 'GestOre'
     };
 
@@ -644,11 +644,13 @@ var errorBox = document.getElementById('errorBox');
     function getVacationRangePreview(startKey, endKey) {
       var start = parseLocalDateKey(startKey);
       var end = parseLocalDateKey(endKey);
-      if (!start || !end || end.getTime() < start.getTime()) return { ok: false, reason: 'date', eligibleKeys: [], skipped: 0, spanDays: 0 };
+      var emptyReasons = { weekend: 0, holiday: 0, rest: 0, notWorkday: 0, occupied: 0 };
+      if (!start || !end || end.getTime() < start.getTime()) return { ok: false, reason: 'date', eligibleKeys: [], skipped: 0, skippedReasons: emptyReasons, spanDays: 0 };
       var spanDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
-      if (spanDays > 366) return { ok: false, reason: 'range', eligibleKeys: [], skipped: 0, spanDays: spanDays };
+      if (spanDays > 366) return { ok: false, reason: 'range', eligibleKeys: [], skipped: 0, skippedReasons: emptyReasons, spanDays: spanDays };
       var eligibleKeys = [];
       var skipped = 0;
+      var skippedReasons = { weekend: 0, holiday: 0, rest: 0, notWorkday: 0, occupied: 0 };
       var autoRestDays = getAutoRestDays();
       for (var current = new Date(start); current.getTime() <= end.getTime(); current.setDate(current.getDate() + 1)) {
         var currentKey = toISODate(current);
@@ -656,13 +658,20 @@ var errorBox = document.getElementById('errorBox');
         var isWeekend = weekday >= 5;
         var isRest = autoRestDays.indexOf(weekday) !== -1;
         var isHoliday = Boolean(getItalianHolidayInfo(current));
-        if (isWeekend || isRest || isHoliday || !isConfiguredWorkday(current) || state.entries[currentKey]) {
+        var skipReason = '';
+        if (isWeekend) skipReason = 'weekend';
+        else if (isHoliday) skipReason = 'holiday';
+        else if (state.entries[currentKey]) skipReason = 'occupied';
+        else if (isRest) skipReason = 'rest';
+        else if (!isConfiguredWorkday(current)) skipReason = 'notWorkday';
+        if (skipReason) {
           skipped += 1;
+          skippedReasons[skipReason] += 1;
           continue;
         }
         eligibleKeys.push(currentKey);
       }
-      return { ok: true, eligibleKeys: eligibleKeys, skipped: skipped, spanDays: spanDays };
+      return { ok: true, eligibleKeys: eligibleKeys, skipped: skipped, skippedReasons: skippedReasons, spanDays: spanDays };
     }
     function addVacationRange(startKey, endKey) {
       var preview = getVacationRangePreview(startKey, endKey);
