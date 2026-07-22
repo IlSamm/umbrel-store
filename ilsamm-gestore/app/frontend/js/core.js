@@ -50,8 +50,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.123',
-      build: '20260722d',
+      version: '1.1.125',
+      build: '20260722f',
       appName: 'GestOre'
     };
 
@@ -858,7 +858,7 @@ var errorBox = document.getElementById('errorBox');
         parseInt(text.slice(4, 6), 16) / 255
       ];
     }
-    function createMonthlyReportPdfBlob(date) {
+    function createMonthlyReportPdfBlobLegacy(date) {
       var reportMonth = new Date(date.getFullYear(), date.getMonth(), 1);
       var stats = getMonthStats(reportMonth);
       var monthRecordedDays = getRecordedDaysFromStats(stats);
@@ -1017,7 +1017,7 @@ var errorBox = document.getElementById('errorBox');
       var trailer = 'trailer\n<< /Size ' + (objects.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefOffset + '\n%%EOF';
       return new Blob(parts.concat([xref, trailer]), { type: 'application/pdf' });
     }
-    function createYearlyReportPdfBlob(date) {
+    function createYearlyReportPdfBlobLegacy(date) {
       var reportYear = new Date((date instanceof Date ? date : new Date()).getFullYear(), 0, 1);
       var monthSummaries = getYearMonthSummaries(reportYear);
       var yearStats = getYearStats(reportYear);
@@ -1215,7 +1215,7 @@ var errorBox = document.getElementById('errorBox');
       var content = [head].concat(rows).map(function (r) { return r.map(escapeCsvCell).join(','); }).join('\n');
       downloadTextFile('gestore-export.csv', content, 'text/csv;charset=utf-8');
     }
-    function exportReport() {
+    function exportTextReportLegacy() {
       var rows = getMonthEntries(state.currentMonth).sort(function (a, b) { return a[0].localeCompare(b[0]); }).map(function (pair) {
         var date = pair[0], e = pair[1], b = getBreakdown(e);
         var extraBits = [];
@@ -1228,11 +1228,11 @@ var errorBox = document.getElementById('errorBox');
     }
     function exportReport() {
       var reportMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
-      downloadBlobFile(getMonthlyReportPdfFilename(reportMonth), createMonthlyReportPdfBlob(reportMonth));
+      downloadBlobFile(getMonthlyReportPdfFilename(reportMonth), window.GestOrePdfReports.monthly(reportMonth));
     }
     function exportYearReport() {
       var reportYear = new Date(state.currentMonth.getFullYear(), 0, 1);
-      downloadBlobFile(getYearlyReportPdfFilename(reportYear), createYearlyReportPdfBlob(reportYear));
+      downloadBlobFile(getYearlyReportPdfFilename(reportYear), window.GestOrePdfReports.yearly(reportYear));
     }
     function normalizeServerSnapshot(payload) {
       var source = payload && typeof payload === 'object' ? payload : {};

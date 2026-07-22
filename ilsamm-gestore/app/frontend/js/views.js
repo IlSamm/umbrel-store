@@ -911,10 +911,11 @@ function renderOverlayLegacy() {
       if (!photos.length) return '';
       var index = Math.max(0, Math.min(photos.length - 1, Number(state.payslipViewer.index) || 0));
       var photo = photos[index];
+      var viewerMode = state.payslipViewer.source === 'archive' ? 'Sola visualizzazione' : 'Anteprima foto';
       return '<div class="payvault-viewer" role="dialog" aria-modal="true" aria-label="Foto busta paga">' +
         '<button class="payvault-viewer-backdrop" data-close-payslip-viewer="1" aria-label="Chiudi foto"></button>' +
         '<div class="payvault-viewer-stage">' +
-          '<div class="payvault-viewer-head"><div><strong>Foto ' + (index + 1) + ' di ' + photos.length + '</strong><span>' + escapeHtml(photo.fileName || 'Busta paga') + '</span></div><button data-close-payslip-viewer="1">' + icons.x + '</button></div>' +
+          '<div class="payvault-viewer-head"><div><em>' + viewerMode + '</em><strong>Foto ' + (index + 1) + ' di ' + photos.length + '</strong><span>' + escapeHtml(photo.fileName || 'Busta paga') + '</span></div><button data-close-payslip-viewer="1">' + icons.x + '</button></div>' +
           '<div class="payvault-viewer-image"><img src="' + photo.data + '" alt="Foto ingrandita della busta paga"></div>' +
           (photos.length > 1 ? '<div class="payvault-viewer-nav"><button data-payslip-viewer-prev="1">' + icons.left + '<span>Precedente</span></button><div>' + (index + 1) + ' / ' + photos.length + '</div><button data-payslip-viewer-next="1"><span>Successiva</span>' + icons.right + '</button></div>' : '') +
         '</div>' +
@@ -1014,7 +1015,7 @@ function renderOverlayLegacy() {
         '</div><input id="payslipFileInput" type="file" accept="image/*" hidden>';
     }
 
-    function renderPayslips() {
+    function renderPayslipsPayvaultLegacy() {
       ensurePayslipDraft();
       var draft = state.payslipDraft;
       var photos = normalizePayslipPhotos(draft);
@@ -1068,6 +1069,90 @@ function renderOverlayLegacy() {
               : '<div class="payvault-empty"><span class="payvault-empty-icon">' + icons.receipt + '</span><strong>Archivio vuoto</strong><span>La prima busta salvata apparira qui.</span></div>') +
           '</div></section>' +
         '</div><input id="payslipFileInput" type="file" accept="image/*" multiple hidden>';
+    }
+
+    function renderPayrollPhotoGrid(photos, source, payslipId, editable) {
+      return (photos || []).map(function (photo, index) {
+        return '<div class="payroll-photo-tile">' +
+          '<button class="payroll-photo-open" data-view-payslip-photo="' + index + '" data-payslip-source="' + source + '" data-payslip-id="' + escapeHtml(payslipId || '') + '" aria-label="Visualizza foto ' + (index + 1) + '"><img src="' + photo.data + '" alt="Foto ' + (index + 1) + ' della busta paga"><span>' + (index + 1) + '</span></button>' +
+          (editable ? '<button class="payroll-photo-remove" data-remove-payslip-photo="' + index + '" aria-label="Rimuovi foto ' + (index + 1) + '">' + icons.trash + '</button>' : '') +
+        '</div>';
+      }).join('');
+    }
+
+    function renderPayslipArchiveV2() {
+      var items = (state.payslips || []).slice();
+      var totalAmount = items.reduce(function (sum, item) { return sum + Math.max(0, parseDecimalInput(item.netto, 0)); }, 0);
+      var latest = items[0] || null;
+      var grouped = {};
+      items.forEach(function (item) {
+        var year = String(Number(item.year) || new Date().getFullYear());
+        if (!grouped[year]) grouped[year] = [];
+        grouped[year].push(item);
+      });
+      var archiveHtml = Object.keys(grouped).sort(function (a, b) { return Number(b) - Number(a); }).map(function (year) {
+        var rows = grouped[year].map(function (item) {
+          var photos = normalizePayslipPhotos(item);
+          var cover = photos[0] || null;
+          return '<button class="payroll-archive-row" data-open-payslip="' + escapeHtml(item.id) + '">' +
+            '<span class="payroll-archive-thumb' + (cover ? '' : ' is-empty') + '">' + (cover ? '<img src="' + cover.data + '" alt="Anteprima busta paga">' : icons.receipt) + (photos.length > 1 ? '<b>' + photos.length + '</b>' : '') + '</span>' +
+            '<span class="payroll-archive-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' + photos.length + (photos.length === 1 ? ' foto' : ' foto') + ' salvate</small></span>' +
+            '<span class="payroll-archive-amount">' + formatMoneyEuro(item.netto) + '</span><span class="payroll-archive-chevron">' + icons.right + '</span>' +
+          '</button>';
+        }).join('');
+        return '<section class="payroll-year-group"><div class="payroll-year-head"><span>' + year + '</span><small>' + grouped[year].length + (grouped[year].length === 1 ? ' busta' : ' buste') + '</small></div><div class="payroll-archive-list">' + rows + '</div></section>';
+      }).join('');
+      return '<div class="profile-subpage-top payroll-page-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>DOCUMENTI</span><h1>Buste paga</h1></div><i></i></div>' +
+        '<div class="stack payroll-stack">' +
+          '<section class="payroll-archive-hero"><div class="payroll-archive-hero-copy"><span class="payroll-hero-icon">' + icons.receipt + '</span><div><small>IL TUO ARCHIVIO</small><h2>Buste paga, senza confusione</h2><p>Ogni busta contiene soltanto le sue foto e l\'importo ricevuto.</p></div></div><button class="solid payroll-add-button" data-new-payslip="1"><b>+</b> Aggiungi busta</button></section>' +
+          '<section class="payroll-overview" aria-label="Riepilogo archivio"><div><span>BUSTE</span><strong>' + items.length + '</strong><small>salvate</small></div><div><span>TOTALE</span><strong>' + (items.length ? formatMoneyEuro(totalAmount) : '--') + '</strong><small>importi archiviati</small></div><div><span>ULTIMA</span><strong>' + (latest ? escapeHtml(monthNames[Math.max(0, Number(latest.month || 1) - 1)].slice(0, 3)) : '--') + '</strong><small>' + (latest ? escapeHtml(String(latest.year || '')) : 'nessuna') + '</small></div></section>' +
+          (items.length ? archiveHtml : '<section class="payroll-empty"><span>' + icons.receipt + '</span><h2>Archivio ancora vuoto</h2><p>Aggiungi la prima busta: bastano una foto e l\'importo ricevuto.</p><button class="solid" data-new-payslip="1">Aggiungi la prima busta</button></section>') +
+        '</div>';
+    }
+
+    function renderPayslipDetailV2(payslip) {
+      var photos = normalizePayslipPhotos(payslip);
+      var created = new Date(Number(payslip.createdAt) || Date.now());
+      var createdLabel = created.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+      return '<div class="profile-subpage-top payroll-page-top"><button data-close-payslip-detail="1" aria-label="Torna all\'archivio">' + icons.left + '</button><div><span>ARCHIVIO</span><h1>Dettaglio busta</h1></div><i></i></div>' +
+        '<div class="stack payroll-stack payroll-detail-stack">' +
+          '<section class="payroll-detail-hero"><div><small>BUSTA PAGA</small><h2>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</h2><span>Salvata il ' + escapeHtml(createdLabel) + '</span></div><strong>' + formatMoneyEuro(payslip.netto) + '</strong></section>' +
+          '<section class="payroll-panel payroll-documents"><div class="payroll-section-head"><div><small>DOCUMENTI</small><h2>' + photos.length + (photos.length === 1 ? ' foto salvata' : ' foto salvate') + '</h2></div><span class="payroll-readonly-badge">Sola lettura</span></div>' +
+            '<div class="payroll-photo-grid is-readonly">' + renderPayrollPhotoGrid(photos, 'archive', payslip.id, false) + '</div>' +
+            '<p class="payroll-help">Tocca una foto per aprirla a schermo intero. Da questa vista non puoi modificare o cancellare immagini.</p>' +
+          '</section>' +
+          '<section class="payroll-detail-info"><div><span>PERIODO</span><strong>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</strong></div><div><span>IMPORTO RICEVUTO</span><strong>' + formatMoneyEuro(payslip.netto) + '</strong></div></section>' +
+          '<div class="payroll-detail-actions"><button class="solid" data-edit-payslip="' + escapeHtml(payslip.id) + '">Modifica busta</button><button class="ghost danger" data-delete-payslip="' + escapeHtml(payslip.id) + '">Elimina</button></div>' +
+        '</div>';
+    }
+
+    function renderPayslipEditorV2() {
+      ensurePayslipDraft();
+      var draft = state.payslipDraft;
+      var photos = normalizePayslipPhotos(draft);
+      var editing = Boolean(draft.id);
+      var statusHtml = state.payslipStatus ? '<div class="payroll-status">' + escapeHtml(state.payslipStatus) + '</div>' : '';
+      return '<div class="profile-subpage-top payroll-page-top"><button data-close-payslip-editor="1" aria-label="Annulla e torna indietro">' + icons.left + '</button><div><span>' + (editing ? 'MODIFICA' : 'NUOVA BUSTA') + '</span><h1>' + (editing ? 'Modifica busta' : 'Aggiungi busta') + '</h1></div><i></i></div>' +
+        '<div class="stack payroll-stack payroll-editor-stack">' +
+          '<section class="payroll-editor-intro"><span>' + icons.receipt + '</span><div><h2>' + (editing ? escapeHtml(getPayslipMonthLabel(draft)) : 'Nuova busta paga') + '</h2><p>Imposta il periodo, aggiungi le foto e inserisci il netto ricevuto.</p></div></section>' +
+          '<section class="payroll-panel"><div class="payroll-section-head"><div><small>1. PERIODO</small><h2>A quale mese appartiene?</h2></div></div><div class="payroll-period-grid"><label><span>Mese</span><select id="payslipMonth">' + monthNames.map(function (name, index) { return '<option value="' + (index + 1) + '" ' + (Number(draft.month) === index + 1 ? 'selected' : '') + '>' + name + '</option>'; }).join('') + '</select></label><label><span>Anno</span><input id="payslipYear" type="number" min="2000" max="2100" inputmode="numeric" value="' + escapeHtml(draft.year || new Date().getFullYear()) + '"></label></div></section>' +
+          '<section class="payroll-panel"><div class="payroll-section-head"><div><small>2. FOTO</small><h2>' + (photos.length ? (photos.length + (photos.length === 1 ? ' foto aggiunta' : ' foto aggiunte')) : 'Aggiungi il cedolino') + '</h2></div><span>' + photos.length + '/' + MAX_PAYSLIP_PHOTOS + '</span></div>' +
+            (photos.length ? '<div class="payroll-photo-grid">' + renderPayrollPhotoGrid(photos, 'draft', '', true) + '</div>' : '<div class="payroll-photo-empty"><span>' + icons.receipt + '</span><strong>Nessuna foto</strong><p>Fotografa tutte le pagine oppure sceglile dalla galleria.</p></div>') +
+            '<div class="payroll-upload-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Scatta foto</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Apri galleria</button></div>' +
+          '</section>' +
+          '<section class="payroll-panel"><div class="payroll-section-head"><div><small>3. IMPORTO</small><h2>Quanto hai ricevuto?</h2></div></div><label class="payroll-net-input"><span>EUR</span><input id="payslipNetto" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '" placeholder="0,00"></label><p class="payroll-help">Inserisci il netto effettivamente accreditato.</p></section>' +
+          statusHtml +
+          '<button class="solid payroll-editor-save" data-save-payslip="1" ' + (state.payslipBusy ? 'disabled' : '') + '>' + (state.payslipBusy ? 'Preparazione foto...' : (editing ? 'Salva modifiche' : 'Salva busta paga')) + '</button>' +
+        '</div><input id="payslipFileInput" type="file" accept="image/*" multiple hidden>';
+    }
+
+    function renderPayslips() {
+      if (state.payslipEditorOpen) return renderPayslipEditorV2();
+      if (state.payslipDetailId) {
+        var detail = (state.payslips || []).find(function (item) { return item.id === state.payslipDetailId; });
+        if (detail) return renderPayslipDetailV2(detail);
+      }
+      return renderPayslipArchiveV2();
     }
 
     function renderProfile() {

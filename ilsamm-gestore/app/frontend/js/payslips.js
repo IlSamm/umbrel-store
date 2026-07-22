@@ -18,6 +18,8 @@ var state = {
       payslipStatus: '',
       payslipOcrReady: false,
       payslipViewer: null,
+      payslipDetailId: '',
+      payslipEditorOpen: false,
       payslipDeletePendingId: '',
       payslipPhotoDeletePendingIndex: -1,
       vacationManagerOpen: false,
@@ -815,6 +817,8 @@ var state = {
       state.payslips = (state.payslips || []).filter(function (item) { return item.id !== id; });
       savePayslips();
       if (state.payslipDraft && state.payslipDraft.id === id) resetPayslipDraft();
+      if (state.payslipDetailId === id) state.payslipDetailId = '';
+      state.payslipEditorOpen = false;
       state.payslipDeletePendingId = '';
       state.payslipViewer = null;
       render();
@@ -1018,6 +1022,8 @@ var state = {
         return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
       });
       savePayslips();
+      state.payslipDetailId = saved.id;
+      state.payslipEditorOpen = false;
       state.payslipDraft = makeEmptyPayslipDraft();
       state.payslipStatus = 'Busta paga salvata.';
       state.activeTab = 'payslips';

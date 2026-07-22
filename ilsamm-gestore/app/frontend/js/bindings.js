@@ -25,12 +25,24 @@ function bindEvents() {
           var section = btn.dataset.openProfileSection;
           if (section !== 'settings' && section !== 'payslips' && section !== 'exports') return;
           if (section === 'settings') state.settingsSection = btn.dataset.settingsSection || '';
+          if (section === 'payslips') {
+            state.payslipDetailId = '';
+            state.payslipEditorOpen = false;
+            state.payslipViewer = null;
+          }
           state.activeTab = section;
           render();
         };
       });
       document.querySelectorAll('[data-back-profile]').forEach(function (btn) {
-        btn.onclick = function () { state.settingsSection = ''; state.activeTab = 'profile'; render(); };
+        btn.onclick = function () {
+          state.settingsSection = '';
+          state.payslipDetailId = '';
+          state.payslipEditorOpen = false;
+          state.payslipViewer = null;
+          state.activeTab = 'profile';
+          render();
+        };
       });
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
@@ -70,19 +82,55 @@ function bindEvents() {
         processPayslipFiles(e.target.files || []);
       };
       var resetPayslip = document.querySelector('[data-reset-payslip]');
-      if (resetPayslip) resetPayslip.onclick = function () { resetPayslipDraft(); render(); };
+      if (resetPayslip) resetPayslip.onclick = function () { resetPayslipDraft(); state.payslipEditorOpen = true; state.payslipDetailId = ''; render(); };
+      document.querySelectorAll('[data-new-payslip]').forEach(function (btn) {
+        btn.onclick = function () {
+          resetPayslipDraft();
+          state.payslipDetailId = '';
+          state.payslipEditorOpen = true;
+          state.payslipViewer = null;
+          render();
+        };
+      });
       document.querySelectorAll('[data-open-payslip]').forEach(function (btn) {
         btn.onclick = function () {
           var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.openPayslip; });
           if (!found) return;
-          state.payslipDraft = clonePayslipForDraft(found);
+          state.payslipDetailId = found.id;
+          state.payslipEditorOpen = false;
+          state.payslipViewer = null;
           state.payslipStatus = '';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-payslip-detail]').forEach(function (btn) {
+        btn.onclick = function () { state.payslipDetailId = ''; state.payslipViewer = null; render(); };
+      });
+      document.querySelectorAll('[data-edit-payslip]').forEach(function (btn) {
+        btn.onclick = function () {
+          var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.editPayslip; });
+          if (!found) return;
+          state.payslipDraft = clonePayslipForDraft(found);
+          state.payslipDetailId = found.id;
+          state.payslipEditorOpen = true;
+          state.payslipViewer = null;
+          state.payslipStatus = '';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-payslip-editor]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipEditorOpen = false;
+          state.payslipViewer = null;
+          resetPayslipDraft();
           render();
         };
       });
       document.querySelectorAll('[data-open-payslip-archive]').forEach(function (btn) {
         btn.onclick = function () {
           state.activeTab = 'payslips';
+          state.payslipDetailId = '';
+          state.payslipEditorOpen = false;
           render();
         };
       });
@@ -90,7 +138,9 @@ function bindEvents() {
         btn.onclick = function () {
           var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.openHomePayslip; });
           if (!found) return;
-          state.payslipDraft = clonePayslipForDraft(found);
+          state.payslipDetailId = found.id;
+          state.payslipEditorOpen = false;
+          state.payslipViewer = null;
           state.payslipStatus = '';
           state.activeTab = 'payslips';
           render();
@@ -107,7 +157,11 @@ function bindEvents() {
       });
       document.querySelectorAll('[data-view-payslip-photo]').forEach(function (btn) {
         btn.onclick = function () {
-          state.payslipViewer = { source: 'draft', index: Number(btn.dataset.viewPayslipPhoto) || 0 };
+          state.payslipViewer = {
+            source: btn.dataset.payslipSource === 'archive' ? 'archive' : 'draft',
+            payslipId: btn.dataset.payslipId || '',
+            index: Number(btn.dataset.viewPayslipPhoto) || 0
+          };
           render();
         };
       });
@@ -124,14 +178,22 @@ function bindEvents() {
       var viewerPrev = document.querySelector('[data-payslip-viewer-prev]');
       if (viewerPrev) viewerPrev.onclick = function () {
         if (!state.payslipViewer) return;
-        var photos = normalizePayslipPhotos(state.payslipDraft);
+        var source = state.payslipViewer.source === 'archive'
+          ? (state.payslips || []).find(function (item) { return item.id === state.payslipViewer.payslipId; })
+          : state.payslipDraft;
+        var photos = normalizePayslipPhotos(source);
+        if (!photos.length) return;
         state.payslipViewer.index = (Number(state.payslipViewer.index) - 1 + photos.length) % photos.length;
         render();
       };
       var viewerNext = document.querySelector('[data-payslip-viewer-next]');
       if (viewerNext) viewerNext.onclick = function () {
         if (!state.payslipViewer) return;
-        var photos = normalizePayslipPhotos(state.payslipDraft);
+        var source = state.payslipViewer.source === 'archive'
+          ? (state.payslips || []).find(function (item) { return item.id === state.payslipViewer.payslipId; })
+          : state.payslipDraft;
+        var photos = normalizePayslipPhotos(source);
+        if (!photos.length) return;
         state.payslipViewer.index = (Number(state.payslipViewer.index) + 1) % photos.length;
         render();
       };
@@ -166,6 +228,10 @@ function bindEvents() {
           e.target.value = formatEditorDecimal(state.payslipDraft.netto || 0);
         };
       }
+      var payslipMonth = document.getElementById('payslipMonth');
+      if (payslipMonth) payslipMonth.onchange = function (e) { ensurePayslipDraft(); state.payslipDraft.month = Math.max(1, Math.min(12, Number(e.target.value) || (new Date().getMonth() + 1))); };
+      var payslipYear = document.getElementById('payslipYear');
+      if (payslipYear) payslipYear.onchange = function (e) { ensurePayslipDraft(); state.payslipDraft.year = Math.max(2000, Math.min(2100, Number(e.target.value) || new Date().getFullYear())); };
       var sourceText = document.getElementById('payslipSourceText');
       if (sourceText) sourceText.oninput = function (e) { ensurePayslipDraft(); state.payslipDraft.sourceText = String(e.target.value || ''); };
 
