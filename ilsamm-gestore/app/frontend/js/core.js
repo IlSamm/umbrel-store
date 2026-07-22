@@ -50,8 +50,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.122',
-      build: '20260722c',
+      version: '1.1.123',
+      build: '20260722d',
       appName: 'GestOre'
     };
 

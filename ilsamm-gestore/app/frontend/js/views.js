@@ -383,10 +383,9 @@ function renderCalendar() {
       var grid = buildMonthGrid(state.currentMonth);
       var stats = getMonthStats(state.currentMonth);
       var recordedDays = stats.workedDays + stats.ferie + stats.malattia + stats.permesso + (stats.festivitaPagata || 0) + stats.riposo;
-      return '<div class="top top-centered page-top"><div class="title">Calendario</div></div>' +
+      return '<div class="month-page-top"><div><span>GESTIONE MENSILE</span><h1>Calendario</h1></div><div class="month-page-switch"><button data-calendar-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-calendar-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
         '<div class="stack">' +
-          '<div class="card"><div class="card-body compact">' +
-            '<div class="month-head"><button class="icon" data-calendar-prev="1">' + icons.left + '</button><div class="large" style="font-weight:700;">' + formatMonthYear(state.currentMonth) + '</div><button class="icon" data-calendar-next="1">' + icons.right + '</button></div>' +
+          '<div class="card calendar-month-card"><div class="card-body compact">' +
             '<div class="week-grid">' + weekNames.map(function (n) { return '<div class="weekday">' + n + '</div>'; }).join('') + '</div>' +
             '<div class="calendar-grid">' + grid.map(function (date) {
               var key = toISODate(date);
@@ -605,9 +604,8 @@ function renderCalendar() {
         { label:'Riposo', value:s.riposo, color:'#64748b' }
       ].filter(function (item) { return item.value > 0; });
       var maxWeekMinutes = weekBlocks.reduce(function (max, block) { return Math.max(max, block.minutes); }, 0);
-      return '<div class="top top-centered page-top"><div class="title">Statistiche</div></div>' +
+      return '<div class="month-page-top"><div><span>ANALISI MENSILE</span><h1>Statistiche</h1></div><div class="month-page-switch"><button data-stats-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-stats-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
         '<div class="stack">' +
-          '<div class="card"><div class="card-body compact"><div class="month-head"><button class="icon" data-stats-prev="1">' + icons.left + '</button><div class="large" style="font-weight:700;">' + formatMonthYear(state.currentMonth) + '</div><button class="icon" data-stats-next="1">' + icons.right + '</button></div></div></div>' +
           '<div class="card stats-overview"><div class="card-body">' +
             '<div class="stats-overview-top"><div class="stats-overview-copy"><div class="stats-kicker">Questo mese</div><div class="stats-main-value">' + (s.totalMinutes ? formatDuration(s.totalMinutes) : '--') + '</div><div class="stats-main-sub">' + (recordedDays ? (recordedDays + ' giorni registrati • media ' + (s.workedDays ? formatDuration(monthAverage) : '--')) : 'Appena inizi a compilare qui vedrai l’andamento del mese') + '</div></div><div class="stats-overview-side"><div class="stats-overview-side-value">' + coveragePercent + '%</div><div class="stats-overview-side-label">coperto</div></div></div>' +
             '<div class="stats-chip-grid">' +

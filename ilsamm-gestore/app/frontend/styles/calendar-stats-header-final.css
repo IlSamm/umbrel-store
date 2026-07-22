@@ -1,0 +1,113 @@
+/* Shared monthly header for Calendar and Statistics. */
+.month-page-top,
+.month-page-switch {
+  display: flex;
+  align-items: center;
+}
+
+.month-page-top {
+  min-height: 62px;
+  margin-bottom: 14px;
+  padding: 2px 2px 0;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.month-page-top > div:first-child {
+  min-width: 0;
+}
+
+.month-page-top > div:first-child > span {
+  display: block;
+  color: #82a9ff;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: .17em;
+}
+
+.month-page-top h1 {
+  overflow: hidden;
+  margin: 5px 0 0;
+  color: #fff;
+  font-size: clamp(29px, 8.1vw, 32px);
+  line-height: .95;
+  font-weight: 900;
+  letter-spacing: -.05em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-page-switch {
+  flex: 0 0 auto;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid rgba(135, 175, 255, .16);
+  border-radius: 999px;
+  background: rgba(29, 43, 79, .60);
+}
+
+.month-page-switch button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  color: #9dbaff;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(116, 145, 255, .10);
+}
+
+.month-page-switch svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.month-page-switch strong {
+  min-width: 76px;
+  color: #f5f8ff;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 850;
+  text-align: center;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.calendar-month-card .week-grid {
+  margin-top: 2px;
+}
+
+@media (max-width: 370px) {
+  .month-page-top {
+    gap: 6px;
+  }
+
+  .month-page-top > div:first-child > span {
+    font-size: 8px;
+    letter-spacing: .14em;
+  }
+
+  .month-page-top h1 {
+    font-size: 27px;
+  }
+
+  .month-page-switch {
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .month-page-switch button {
+    width: 27px;
+    height: 27px;
+  }
+
+  .month-page-switch strong {
+    min-width: 69px;
+    font-size: 9px;
+  }
+}
