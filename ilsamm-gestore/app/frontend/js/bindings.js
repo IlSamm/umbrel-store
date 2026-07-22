@@ -668,12 +668,7 @@ function bindEvents() {
         };
       }
       var clearDay = document.querySelector('[data-clear-day]');
-      if (clearDay) clearDay.onclick = function () {
-        if (!state.editingDate) return;
-        if (!hasMeaningfulDayData(state.draft) && !state.entries[toISODate(state.editingDate)]) return;
-        state.confirmClearOpen = true;
-        render();
-      };
+      if (clearDay) clearDay.onclick = requestClearEditorDay;
       var closeConfirm = document.querySelector('[data-close-confirm]');
       if (closeConfirm) closeConfirm.onclick = function () { state.confirmClearOpen = false; render(); };
       var confirmClear = document.querySelector('[data-confirm-clear]');

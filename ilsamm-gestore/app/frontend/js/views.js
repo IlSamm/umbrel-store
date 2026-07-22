@@ -769,7 +769,7 @@ function renderOverlayLegacy() {
 
     function renderConfirmModal() {
       if (!state.confirmClearOpen) return '';
-      return '<div class="confirm-overlay open"><div class="confirm-card"><div class="confirm-title">Cancella giornata</div><div class="confirm-text">Vuoi cancellare tutte le ore e i dati di questo giorno?</div><div class="confirm-actions"><button class="ghost" data-close-confirm="1">Annulla</button><button class="ghost danger" data-confirm-clear="1">Cancella</button></div></div></div>';
+      return '<div class="confirm-overlay open" role="alertdialog" aria-modal="true" aria-labelledby="clearDayTitle" aria-describedby="clearDayText"><div class="confirm-card"><div class="confirm-title" id="clearDayTitle">Cancella giornata</div><div class="confirm-text" id="clearDayText">Vuoi cancellare tutte le ore e i dati di questo giorno?</div><div class="confirm-actions"><button class="ghost" data-close-confirm="1">Annulla</button><button class="ghost danger" data-confirm-clear="1">Cancella</button></div></div></div>';
     }
 
     function renderVacationHistory() {

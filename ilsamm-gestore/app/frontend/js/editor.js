@@ -71,17 +71,21 @@ function openEditor(date) {
       }
       if (overtimeMode) overtimeMode.textContent = state.draft.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti';
     }
+    function requestClearEditorDay() {
+      if (!state.editingDate) return;
+      var key = toISODate(state.editingDate);
+      var hasStoredEntry = Object.prototype.hasOwnProperty.call(state.entries || {}, key);
+      if (!hasMeaningfulDayData(state.draft) && !hasStoredEntry) return;
+      state.confirmClearOpen = true;
+      render();
+    }
     function clearEditorDay() {
       if (!state.editingDate) return;
       var key = toISODate(state.editingDate);
       delete state.entries[key];
-      saveEntries();
-      state.draft = makeEmptyDayDraft();
-      state.typeOpen = false;
-      state.notesOpen = false;
       state.confirmClearOpen = false;
-      document.body.classList.add('editor-open');
-      render();
+      saveEntries();
+      closeEditor();
     }
     function saveEditor() {
       if (!state.editingDate || !state.draft) return;

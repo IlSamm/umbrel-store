@@ -1,0 +1,78 @@
+/* Central placement for destructive confirmations and compact app dialogs. */
+.confirm-overlay,
+.confirm-overlay.open {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 7000 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding:
+    max(20px, env(safe-area-inset-top, 0px))
+    18px
+    max(20px, env(safe-area-inset-bottom, 0px)) !important;
+  background: rgba(1, 5, 16, .76) !important;
+  backdrop-filter: blur(16px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
+  pointer-events: auto !important;
+}
+
+.confirm-overlay {
+  display: none !important;
+}
+
+.confirm-overlay.open {
+  display: flex !important;
+}
+
+.confirm-card {
+  position: relative !important;
+  z-index: 1 !important;
+  width: min(100%, 360px) !important;
+  max-height: calc(100dvh - 40px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  overflow: auto !important;
+  animation: gestore-dialog-enter .2s cubic-bezier(.2, .85, .3, 1) both !important;
+}
+
+.vacation-overlay,
+.vacation-history-overlay,
+.payvault-decision,
+.account-delete-overlay {
+  align-items: center !important;
+  justify-items: center !important;
+  place-items: center !important;
+  padding:
+    max(16px, env(safe-area-inset-top, 0px))
+    12px
+    max(16px, env(safe-area-inset-bottom, 0px)) !important;
+}
+
+.vacation-sheet,
+.vacation-history-sheet,
+.vacation-flow-sheet,
+.payvault-decision-card,
+.account-delete-dialog {
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  animation: gestore-dialog-enter .2s cubic-bezier(.2, .85, .3, 1) both !important;
+}
+
+@keyframes gestore-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-card,
+  .vacation-sheet,
+  .vacation-history-sheet,
+  .vacation-flow-sheet,
+  .payvault-decision-card,
+  .account-delete-dialog {
+    animation: none !important;
+  }
+}
