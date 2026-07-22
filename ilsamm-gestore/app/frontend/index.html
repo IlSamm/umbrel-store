@@ -13,12 +13,12 @@
 <meta content="dark" name="color-scheme"/>
 <title>GestOre iPhone</title>
 <meta name="application-name" content="GestOre"/>
-<meta name="gestore-build" content="1.1.130-20260722k"/>
-<link rel="manifest" href="site.webmanifest?v=20260722k"/>
+<meta name="gestore-build" content="1.1.131-20260722l"/>
+<link rel="manifest" href="site.webmanifest?v=20260722l"/>
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png"/>
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png"/>
-  <link rel="stylesheet" href="style.css?v=20260722k">
+  <link rel="stylesheet" href="style.css?v=20260722l">
 </head>
 <body class="app-booting">
 <div class="error-box" id="errorBox"></div>
@@ -58,6 +58,7 @@
   var KEYBOARD_THRESHOLD = 120;
   var stableViewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
   var lastNonKeyboardHeight = stableViewportHeight;
+  var focusedEditable = null;
 
   function isIOSLike() {
     var ua = String(navigator.userAgent || '');
@@ -88,11 +89,28 @@
     document.body.scrollTop = 0;
   }
 
+  function keepFocusedControlVisible() {
+    var target = focusedEditable && document.contains(focusedEditable) ? focusedEditable : document.activeElement;
+    if (!isEditable(target)) return;
+    var vv = window.visualViewport;
+    var visibleTop = vv ? Math.max(0, Math.round(vv.offsetTop || 0)) : 0;
+    var visibleBottom = visibleTop + (vv ? Math.round(vv.height) : window.innerHeight);
+    var margin = 22;
+    var rect = target.getBoundingClientRect();
+    var container = target.closest('.day-editor-scroll, .screen.active, .account-gate, .account-page-overlay, .vacation-manager-scroll, .dialog-panel');
+    if (!container || typeof container.scrollTop !== 'number') return;
+    if (rect.bottom > visibleBottom - margin) {
+      container.scrollTop += rect.bottom - (visibleBottom - margin);
+    } else if (rect.top < visibleTop + margin) {
+      container.scrollTop -= (visibleTop + margin) - rect.top;
+    }
+  }
+
   function scheduleViewportFix() {
     applyViewportFix();
     window.requestAnimationFrame(applyViewportFix);
-    window.setTimeout(applyViewportFix, 90);
-    window.setTimeout(applyViewportFix, 220);
+    window.setTimeout(applyViewportFix, 120);
+    window.setTimeout(applyViewportFix, 320);
   }
 
   function applyViewportFix() {
@@ -101,30 +119,35 @@
       window.innerHeight || 0,
       document.documentElement.clientHeight || 0
     );
-    var visualHeight = vv ? Math.round(vv.height + vv.offsetTop) : baseHeight;
+    var visualHeight = vv ? Math.round(vv.height) : baseHeight;
     var screenHeight = getStandaloneScreenHeight();
     var fullHeight = Math.max(baseHeight, visualHeight, screenHeight || 0);
     var typing = isEditable(document.activeElement);
     var bottomGap = 0;
     var keyboardOpen = false;
     if (vv) {
-      var rawBottomGap = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
+      var rawBottomGap = Math.max(0, Math.round((lastNonKeyboardHeight || stableViewportHeight || window.innerHeight) - vv.height));
       bottomGap = rawBottomGap > 8 ? rawBottomGap : 0;
       keyboardOpen = typing && rawBottomGap > KEYBOARD_THRESHOLD;
     }
     if (keyboardOpen) {
-      stableViewportHeight = Math.max(stableViewportHeight || 0, lastNonKeyboardHeight || 0, fullHeight);
+      stableViewportHeight = Math.max(stableViewportHeight || 0, lastNonKeyboardHeight || 0);
     } else {
-      stableViewportHeight = Math.max(fullHeight, lastNonKeyboardHeight || 0);
+      stableViewportHeight = Math.max(baseHeight, screenHeight || 0);
       lastNonKeyboardHeight = stableViewportHeight;
     }
-    var layoutHeight = keyboardOpen ? (lastNonKeyboardHeight || stableViewportHeight || fullHeight) : stableViewportHeight;
+    var layoutHeight = lastNonKeyboardHeight || stableViewportHeight || fullHeight;
+    var keyboardInset = keyboardOpen ? Math.max(0, layoutHeight - visualHeight) : 0;
     root.style.setProperty('--app-vh', layoutHeight + 'px');
     root.style.setProperty('--real-app-vh', layoutHeight + 'px');
     root.style.setProperty('--visible-app-vh', visualHeight + 'px');
+    root.style.setProperty('--keyboard-inset', Math.round(keyboardInset) + 'px');
+    root.style.setProperty('--keyboard-offset-top', Math.round(vv ? vv.offsetTop || 0 : 0) + 'px');
     root.style.setProperty('--runtime-bottom-gap', Math.round(bottomGap) + 'px');
     if (body) body.classList.toggle('keyboard-open', keyboardOpen || typing);
-    if (!keyboardOpen) resetWindowScroll();
+    root.classList.toggle('keyboard-open', keyboardOpen || typing);
+    resetWindowScroll();
+    if (keyboardOpen) window.requestAnimationFrame(keepFocusedControlVisible);
   }
 
   scheduleViewportFix();
@@ -147,13 +170,21 @@
   }
 
   document.addEventListener('focusin', function (event) {
-    if (body && isEditable(event.target)) body.classList.add('keyboard-open');
+    if (isEditable(event.target)) focusedEditable = event.target;
+    if (body && focusedEditable) body.classList.add('keyboard-open');
+    if (focusedEditable) root.classList.add('keyboard-open');
     scheduleViewportFix();
+    window.setTimeout(keepFocusedControlVisible, 180);
+    window.setTimeout(keepFocusedControlVisible, 380);
   }, true);
 
   document.addEventListener('focusout', function () {
     window.setTimeout(function () {
       if (body && !isEditable(document.activeElement)) body.classList.remove('keyboard-open');
+      if (!isEditable(document.activeElement)) {
+        root.classList.remove('keyboard-open');
+        focusedEditable = null;
+      }
       scheduleViewportFix();
     }, 120);
   }, true);
@@ -184,15 +215,15 @@
 })();
 </script>
 
-<script src="js/core.js?v=20260722k"></script>
-<script src="js/pdf/engine.js?v=20260722k"></script>
-<script src="js/pdf/monthly.js?v=20260722k"></script>
-<script src="js/pdf/yearly.js?v=20260722k"></script>
-<script src="js/payslips.js?v=20260722k"></script>
-<script src="js/account.js?v=20260722k"></script>
-<script src="js/views.js?v=20260722k"></script>
-<script src="js/bindings.js?v=20260722k"></script>
-<script src="js/editor.js?v=20260722k"></script>
+<script src="js/core.js?v=20260722l"></script>
+<script src="js/pdf/engine.js?v=20260722l"></script>
+<script src="js/pdf/monthly.js?v=20260722l"></script>
+<script src="js/pdf/yearly.js?v=20260722l"></script>
+<script src="js/payslips.js?v=20260722l"></script>
+<script src="js/account.js?v=20260722l"></script>
+<script src="js/views.js?v=20260722l"></script>
+<script src="js/bindings.js?v=20260722l"></script>
+<script src="js/editor.js?v=20260722l"></script>
 </body>
 </html>
 

@@ -1,5 +1,23 @@
 var MAX_PAYSLIP_PHOTOS = 8;
 
+function loadPendingPayslipDraft() {
+  try {
+    var raw = localStorage.getItem(STORAGE_PENDING_PAYSLIP);
+    var parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function persistPendingPayslipDraft(draft) {
+  try { localStorage.setItem(STORAGE_PENDING_PAYSLIP, JSON.stringify(draft || {})); } catch (err) {}
+}
+
+function clearPendingPayslipDraft() {
+  try { localStorage.removeItem(STORAGE_PENDING_PAYSLIP); } catch (err) {}
+}
+
 var state = {
       activeTab: 'home',
       settingsSection: '',
@@ -13,13 +31,14 @@ var state = {
       notesOpen: false,
       confirmClearOpen: false,
       payslips: normalizePayslipCollection(loadPayslipsWithRecovery()),
-      payslipDraft: null,
+      payslipDraft: loadPendingPayslipDraft(),
       payslipBusy: false,
       payslipStatus: '',
       payslipOcrReady: false,
       payslipViewer: null,
       payslipDetailId: '',
       payslipEditorOpen: false,
+      payslipHydratingId: '',
       payslipDeletePendingId: '',
       payslipPhotoDeletePendingIndex: -1,
       vacationManagerOpen: false,
@@ -79,11 +98,142 @@ var state = {
     function normalizePayslipCollection(items) {
       return (Array.isArray(items) ? items : []).map(normalizePayslipRecord);
     }
+    function getPayslipPhotoCount(payslip) {
+      var localCount = normalizePayslipPhotos(payslip).length;
+      return Math.max(localCount, Math.max(0, Number(payslip && payslip.photoCount) || 0));
+    }
+    function serializePayslipsForSnapshot(items, includePhotos) {
+      return (Array.isArray(items) ? items : []).map(function (item) {
+        var record = Object.assign({}, item && typeof item === 'object' ? item : {});
+        var photos = normalizePayslipPhotos(record);
+        var sourceText = String(record.sourceText || '');
+        if (includePhotos) {
+          record.photos = photos;
+          record.imageData = photos[0] ? photos[0].data : '';
+          record.fileName = photos[0] ? photos[0].fileName : String(record.fileName || '');
+          record.photosDeferred = Boolean(record.photosDeferred && !photos.length);
+          record.photoCount = getPayslipPhotoCount(record);
+          return record;
+        }
+        delete record.photos;
+        delete record.imageData;
+        delete record.sourceText;
+        record.photoCount = getPayslipPhotoCount(item);
+        record.photosDeferred = record.photoCount > 0 || Boolean(item && item.photosDeferred);
+        record.sourceTextDeferred = Boolean(sourceText || (item && item.sourceTextDeferred));
+        return record;
+      });
+    }
     function clonePayslipForDraft(payslip) {
       var normalized = normalizePayslipRecord(payslip);
       return Object.assign({}, normalized, {
         photos: normalized.photos.map(function (photo) { return Object.assign({}, photo); })
       });
+    }
+
+    async function waitForPayslipServerReady() {
+      var startedAt = Date.now();
+      while (!serverSyncReady) {
+        if (state.account && state.account.loaded && !state.account.authenticated) throw new Error('Accedi al tuo account prima di salvare.');
+        if (Date.now() - startedAt > 15000) throw new Error('Il database del profilo non e ancora pronto.');
+        await new Promise(function (resolve) { window.setTimeout(resolve, 50); });
+      }
+    }
+
+    async function requestPayslipRecord(method, payload, options) {
+      var opts = options || {};
+      await waitForPayslipServerReady();
+      var mutationId = String(payload && payload.mutationId || makeServerMutationId('payslip'));
+      var requestPayload = Object.assign({}, payload || {}, { mutationId: mutationId, updatedAt: Date.now() });
+      var lastError = null;
+      for (var attempt = 0; attempt < 3; attempt += 1) {
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        var timeout = controller ? window.setTimeout(function () { controller.abort(); }, Number(opts.timeoutMs) || 30000) : 0;
+        try {
+          var response = await fetch(PAYSLIP_RECORD_URL, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'X-GestOre-Mutation-Id': mutationId },
+            cache: 'no-store',
+            body: JSON.stringify(requestPayload),
+            signal: controller ? controller.signal : undefined
+          });
+          if (response.status === 401 && typeof handleAccountUnauthorized === 'function') handleAccountUnauthorized();
+          var result = {};
+          try { result = await response.json(); } catch (parseError) {}
+          if (!response.ok) {
+            var responseError = new Error(result.error || 'Il server ha rifiutato la busta paga.');
+            responseError.status = response.status;
+            throw responseError;
+          }
+          if (!result.ok || String(result.mutationId || '') !== mutationId) throw new Error('Conferma database non valida.');
+          if (String(result.payslipId || '') !== String(requestPayload.payslipId || (requestPayload.payslip || {}).id || '')) {
+            throw new Error('Il server ha confermato una busta diversa.');
+          }
+          serverSyncLastError = '';
+          setSyncStatus('Server locale attivo', Number(result.updatedAt) || Date.now());
+          return result;
+        } catch (err) {
+          lastError = err && err.name === 'AbortError' ? new Error('Il caricamento della foto sta impiegando troppo tempo.') : err;
+          if (attempt < 2 && (!lastError.status || lastError.status >= 500)) {
+            await new Promise(function (resolve) { window.setTimeout(resolve, 350 * (attempt + 1)); });
+            continue;
+          }
+          break;
+        } finally {
+          if (timeout) window.clearTimeout(timeout);
+        }
+      }
+      serverSyncLastError = lastError && lastError.message ? lastError.message : 'Salvataggio non confermato.';
+      throw lastError || new Error(serverSyncLastError);
+    }
+
+    async function persistPayslipRecordToServer(payslip) {
+      return requestPayslipRecord('PUT', { payslip: clonePayslipForDraft(payslip) }, { timeoutMs: 45000 });
+    }
+
+    async function deletePayslipRecordFromServer(payslipId) {
+      return requestPayslipRecord('DELETE', { payslipId: String(payslipId || '') });
+    }
+
+    async function hydratePayslipRecord(payslipId) {
+      var id = String(payslipId || '');
+      var current = (state.payslips || []).find(function (item) { return item.id === id; });
+      if (!current || (!current.photosDeferred && !current.sourceTextDeferred)) return current || null;
+      state.payslipHydratingId = id;
+      try {
+        await waitForPayslipServerReady();
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        var timeout = controller ? window.setTimeout(function () { controller.abort(); }, 15000) : 0;
+        var response;
+        try {
+          response = await fetch(PAYSLIP_RECORD_URL + '?id=' + encodeURIComponent(id), {
+            cache: 'no-store',
+            signal: controller ? controller.signal : undefined
+          });
+        } finally {
+          if (timeout) window.clearTimeout(timeout);
+        }
+        if (response.status === 401 && typeof handleAccountUnauthorized === 'function') handleAccountUnauthorized();
+        var payload = {};
+        try { payload = await response.json(); } catch (parseError) {}
+        if (!response.ok || !payload.payslip) throw new Error(payload.error || 'Foto della busta non disponibili.');
+        var hydrated = normalizePayslipRecord(Object.assign({}, payload.payslip, {
+          photosDeferred: false,
+          sourceTextDeferred: false,
+          photoCount: normalizePayslipPhotos(payload.payslip).length
+        }));
+        var index = (state.payslips || []).findIndex(function (item) { return item.id === id; });
+        if (index >= 0) state.payslips[index] = hydrated;
+        persistPayslipsLocally();
+        return hydrated;
+      } catch (err) {
+        state.payslipStatus = err && err.name === 'AbortError'
+          ? 'Le foto stanno impiegando troppo tempo. Riprova.'
+          : (err.message || 'Non sono riuscito ad aprire le foto della busta.');
+        return current;
+      } finally {
+        state.payslipHydratingId = '';
+      }
     }
 
     function getPayslipMonthDate(payslip) {
@@ -850,15 +1000,34 @@ var state = {
       state.activeTab = 'payslips';
       render();
     }
-    function deletePayslip(id) {
-      state.payslips = (state.payslips || []).filter(function (item) { return item.id !== id; });
-      savePayslips();
-      if (state.payslipDraft && state.payslipDraft.id === id) resetPayslipDraft();
-      if (state.payslipDetailId === id) state.payslipDetailId = '';
+    async function deletePayslip(id) {
+      if (state.payslipBusy) return false;
+      var payslipId = String(id || '');
+      if (!payslipId) return false;
+      state.payslipBusy = true;
+      state.payslipStatus = 'Eliminazione dal database...';
+      render();
+      try {
+        await deletePayslipRecordFromServer(payslipId);
+      } catch (err) {
+        state.payslipBusy = false;
+        state.payslipDeletePendingId = '';
+        state.payslipStatus = 'Eliminazione non confermata: ' + (err.message || getServerSyncFailureMessage());
+        render();
+        return false;
+      }
+      state.payslips = (state.payslips || []).filter(function (item) { return item.id !== payslipId; });
+      persistPayslipsLocally();
+      saveSafetyBundle();
+      if (state.payslipDraft && state.payslipDraft.id === payslipId) resetPayslipDraft(true);
+      if (state.payslipDetailId === payslipId) state.payslipDetailId = '';
+      state.payslipBusy = false;
       state.payslipEditorOpen = false;
       state.payslipDeletePendingId = '';
       state.payslipViewer = null;
+      state.payslipStatus = 'Busta eliminata dal database.';
       render();
+      return true;
     }
     function readFileAsDataURL(file) {
       return new Promise(function (resolve, reject) {
@@ -1024,17 +1193,35 @@ var state = {
       state.payslipDraft = clonePayslipForDraft(state.payslipDraft);
       return state.payslipDraft;
     }
-    function resetPayslipDraft() {
-      state.payslipDraft = makeEmptyPayslipDraft();
-      state.payslipStatus = '';
+    function resetPayslipDraft(discardPending) {
+      if (discardPending === true) clearPendingPayslipDraft();
+      var pending = discardPending === true ? null : loadPendingPayslipDraft();
+      state.payslipDraft = pending ? clonePayslipForDraft(pending) : makeEmptyPayslipDraft();
+      state.payslipStatus = pending ? 'Riprendo la busta non ancora confermata dal database.' : '';
     }
     function mergePayslipParsedData(parsed, extra) {
       var current = ensurePayslipDraft();
       var normalized = reducePayslipToCoreFields(Object.assign({}, current, parsed || {}));
       state.payslipDraft = clonePayslipForDraft(Object.assign({}, makeEmptyPayslipDraft(), current, normalized, extra || {}));
     }
+    function commitPayslipEditorInputs() {
+      var draft = ensurePayslipDraft();
+      var month = document.getElementById('payslipMonth');
+      var year = document.getElementById('payslipYear');
+      var netto = document.getElementById('payslipNetto');
+      var hourly = document.getElementById('payslipHourlyRate');
+      var overtime = document.getElementById('payslipOvertimeRate');
+      var notes = document.getElementById('payslipNotes');
+      if (month) draft.month = Math.max(1, Math.min(12, Number(month.value) || (new Date().getMonth() + 1)));
+      if (year) draft.year = Math.max(2000, Math.min(2100, Number(year.value) || new Date().getFullYear()));
+      if (netto) draft.netto = parseDecimalInput(netto.value, 0);
+      if (hourly) draft.hourlyRate = parseDecimalInput(hourly.value, 0);
+      if (overtime) draft.overtimeRate = parseDecimalInput(overtime.value, 0);
+      if (notes) draft.notes = String(notes.value || '').slice(0, 1000);
+      return draft;
+    }
     async function savePayslipDraft() {
-      ensurePayslipDraft();
+      commitPayslipEditorInputs();
       var draft = clonePayslipForDraft(Object.assign({}, makeEmptyPayslipDraft(), state.payslipDraft));
       var photos = normalizePayslipPhotos(draft);
       if (!photos.length) {
@@ -1066,14 +1253,16 @@ var state = {
       state.payslipDraft = clonePayslipForDraft(saved);
       state.payslipBusy = true;
       state.payslipStatus = 'Salvataggio nel database...';
-      savePayslips();
+      persistPendingPayslipDraft(saved);
+      persistPayslipsLocally();
+      saveSafetyBundle();
       render();
       var confirmed = false;
       try {
-        confirmed = typeof flushServerSyncNow === 'function'
-          ? await flushServerSyncNow()
-          : Boolean(await syncStateToServer());
+        var confirmation = await persistPayslipRecordToServer(saved);
+        confirmed = Boolean(confirmation && confirmation.ok && confirmation.payslipId === saved.id);
       } catch (err) {
+        serverSyncLastError = err && err.message ? err.message : serverSyncLastError;
         confirmed = false;
       }
       confirmed = confirmed && (state.payslips || []).some(function (item) { return item.id === saved.id; });
@@ -1083,10 +1272,12 @@ var state = {
         persistPayslipsLocally();
         saveSafetyBundle();
         state.payslipDraft = clonePayslipForDraft(saved);
-        state.payslipStatus = 'La busta non e stata confermata dal server. Le foto sono ancora qui: controlla la connessione e riprova.';
+        state.payslipStatus = 'La busta non e stata confermata dal database. ' + getServerSyncFailureMessage() + ' Le foto e i valori restano qui: riprova senza reinserirli.';
         render();
         return false;
       }
+      saveSafetyBundle();
+      clearPendingPayslipDraft();
       if (state.account && state.account.storage) state.account.storage.loaded = false;
       state.payslipDetailId = saved.id;
       state.payslipEditorOpen = false;

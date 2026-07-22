@@ -193,7 +193,7 @@ var editorAutosaveTimer = 0;
   var startedAt = Date.now();
   var closed = false;
   var closeTimer = null;
-  var maxAccountWaitMs = 10000;
+  var maxAccountWaitMs = 45000;
 
   function removeSplashNode() {
     if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
@@ -214,7 +214,7 @@ var editorAutosaveTimer = 0;
   function scheduleClose() {
     if (closed || closeTimer) return;
     var elapsed = Date.now() - startedAt;
-    var accountReady = typeof state !== 'undefined' && (!state.account || state.account.loaded);
+    var accountReady = typeof state !== 'undefined' && (!state.account || state.account.dataReady === true || Boolean(state.account.dataError));
     if (!accountReady && elapsed < maxAccountWaitMs) {
       closeTimer = window.setTimeout(function () {
         closeTimer = null;

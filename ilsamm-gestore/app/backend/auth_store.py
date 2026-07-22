@@ -7,6 +7,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import threading
 import time
 import unicodedata
 import uuid
@@ -15,6 +16,7 @@ from pathlib import Path
 
 
 SESSION_TTL_MS = 180 * 24 * 60 * 60 * 1000
+SESSION_TOUCH_INTERVAL_MS = 60 * 1000
 PBKDF2_ROUNDS = 260_000
 USERNAME_RE = re.compile(r"^[a-z0-9._-]{3,24}$")
 
@@ -31,14 +33,27 @@ class AuthStore:
         self.data_dir = Path(data_dir).resolve()
         self.accounts_db = self.data_dir / "accounts.sqlite3"
         self.users_dir = self.data_dir / "users"
+        self._schema_lock = threading.Lock()
+        self._schema_ready = False
 
     def _connect(self) -> sqlite3.Connection:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(self.accounts_db, timeout=15)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA synchronous=NORMAL")
         conn.execute("PRAGMA foreign_keys=ON")
+        if self._schema_ready:
+            return conn
+        with self._schema_lock:
+            if self._schema_ready:
+                return conn
+            conn.execute("PRAGMA journal_mode=WAL")
+            self._initialize_schema(conn)
+            self._schema_ready = True
+        return conn
+
+    @staticmethod
+    def _initialize_schema(conn: sqlite3.Connection) -> None:
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -82,7 +97,6 @@ class AuthStore:
         conn.execute("CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions(user_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS sessions_admin_idx ON sessions(admin_user_id)")
         conn.commit()
-        return conn
 
     @staticmethod
     def normalize_username(value: str) -> tuple[str, str]:
@@ -191,6 +205,7 @@ class AuthStore:
                 """
                 SELECT users.*,
                        sessions.admin_user_id AS session_admin_user_id,
+                       sessions.last_seen_at AS session_last_seen_at,
                        admin.id AS session_admin_id,
                        admin.username AS session_admin_username,
                        admin.role AS session_admin_role,
@@ -206,8 +221,9 @@ class AuthStore:
                 conn.execute("DELETE FROM sessions WHERE token_hash = ? OR expires_at <= ?", (token_hash, now))
                 conn.commit()
                 return None
-            conn.execute("UPDATE sessions SET last_seen_at = ? WHERE token_hash = ?", (now, token_hash))
-            conn.commit()
+            if now - int(row["session_last_seen_at"] or 0) >= SESSION_TOUCH_INTERVAL_MS:
+                conn.execute("UPDATE sessions SET last_seen_at = ? WHERE token_hash = ?", (now, token_hash))
+                conn.commit()
         user = self._public_user(row)
         admin_id = str(row["session_admin_id"] or "")
         admin_role = str(row["session_admin_role"] or "")

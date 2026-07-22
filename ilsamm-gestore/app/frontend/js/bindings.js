@@ -86,7 +86,7 @@ function bindEvents() {
         processPayslipFiles(e.target.files || []);
       };
       var resetPayslip = document.querySelector('[data-reset-payslip]');
-      if (resetPayslip) resetPayslip.onclick = function () { resetPayslipDraft(); state.payslipEditorOpen = true; state.payslipDetailId = ''; render(); };
+      if (resetPayslip) resetPayslip.onclick = function () { resetPayslipDraft(true); state.payslipEditorOpen = true; state.payslipDetailId = ''; render(); };
       document.querySelectorAll('[data-new-payslip]').forEach(function (btn) {
         btn.onclick = function () {
           resetPayslipDraft();
@@ -97,7 +97,7 @@ function bindEvents() {
         };
       });
       document.querySelectorAll('[data-open-payslip]').forEach(function (btn) {
-        btn.onclick = function () {
+        btn.onclick = async function () {
           var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.openPayslip; });
           if (!found) return;
           state.payslipDetailId = found.id;
@@ -105,15 +105,20 @@ function bindEvents() {
           state.payslipViewer = null;
           state.payslipStatus = '';
           render();
+          if (found.photosDeferred || found.sourceTextDeferred) {
+            await hydratePayslipRecord(found.id);
+            render();
+          }
         };
       });
       document.querySelectorAll('[data-close-payslip-detail]').forEach(function (btn) {
         btn.onclick = function () { state.payslipDetailId = ''; state.payslipViewer = null; render(); };
       });
       document.querySelectorAll('[data-edit-payslip]').forEach(function (btn) {
-        btn.onclick = function () {
+        btn.onclick = async function () {
           var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.editPayslip; });
           if (!found) return;
+          if (found.photosDeferred || found.sourceTextDeferred) found = await hydratePayslipRecord(found.id) || found;
           state.payslipDraft = clonePayslipForDraft(found);
           state.payslipDetailId = found.id;
           state.payslipEditorOpen = true;
@@ -139,7 +144,7 @@ function bindEvents() {
         };
       });
       document.querySelectorAll('[data-open-home-payslip]').forEach(function (btn) {
-        btn.onclick = function () {
+        btn.onclick = async function () {
           var found = (state.payslips || []).find(function (item) { return item.id === btn.dataset.openHomePayslip; });
           if (!found) return;
           state.payslipDetailId = found.id;
@@ -148,10 +153,20 @@ function bindEvents() {
           state.payslipStatus = '';
           state.activeTab = 'payslips';
           render();
+          if (found.photosDeferred || found.sourceTextDeferred) {
+            await hydratePayslipRecord(found.id);
+            render();
+          }
         };
       });
       var savePayslipBtn = document.querySelector('[data-save-payslip]');
-      if (savePayslipBtn) savePayslipBtn.onclick = function () { if (!state.payslipBusy) savePayslipDraft(); }; 
+      if (savePayslipBtn) savePayslipBtn.onclick = function () {
+        if (state.payslipBusy) return;
+        commitPayslipEditorInputs();
+        var active = document.activeElement;
+        if (active && typeof active.blur === 'function') active.blur();
+        savePayslipDraft();
+      };
       document.querySelectorAll('[data-delete-payslip]').forEach(function (btn) {
         btn.onclick = function () {
           state.payslipDeletePendingId = btn.dataset.deletePayslip || '';

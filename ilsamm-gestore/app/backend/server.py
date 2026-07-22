@@ -7,13 +7,14 @@ import os
 import posixpath
 import sqlite3
 import tempfile
+import threading
 import time
 from contextlib import closing
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from auth_store import AuthError, AuthStore
 
@@ -28,9 +29,14 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.1.130"
-BUILD_CACHE = "20260722k"
+BUILD_VERSION = "1.1.131"
+BUILD_CACHE = "20260722l"
 AUTH_STORE = AuthStore(DATA_DIR)
+
+_DB_SCHEMA_LOCK = threading.Lock()
+_DB_SCHEMA_READY: set[str] = set()
+_SNAPSHOT_LOCKS_GUARD = threading.Lock()
+_SNAPSHOT_LOCKS: dict[str, threading.RLock] = {}
 
 DEFAULT_SYNC_META = {
     "entriesUpdatedAt": 0,
@@ -50,28 +56,50 @@ def empty_snapshot() -> dict:
     }
 
 
+def _db_key(db_path: Path) -> str:
+    return str(Path(db_path).resolve())
+
+
+def _snapshot_lock(db_path: Path) -> threading.RLock:
+    key = _db_key(db_path)
+    with _SNAPSHOT_LOCKS_GUARD:
+        lock = _SNAPSHOT_LOCKS.get(key)
+        if lock is None:
+            lock = threading.RLock()
+            _SNAPSHOT_LOCKS[key] = lock
+        return lock
+
+
 def get_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
     db_path = Path(db_path).resolve()
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=20)
-    conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS app_state (
-            profile_id TEXT PRIMARY KEY,
-            entries_json TEXT NOT NULL,
-            settings_json TEXT,
-            payslips_json TEXT,
-            sync_meta_json TEXT NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        """
-    )
-    columns = {row[1] for row in conn.execute("PRAGMA table_info(app_state)")}
-    if "payslips_json" not in columns:
-        conn.execute("ALTER TABLE app_state ADD COLUMN payslips_json TEXT")
-    conn.commit()
+    key = _db_key(db_path)
+    if key not in _DB_SCHEMA_READY:
+        with _DB_SCHEMA_LOCK:
+            if key not in _DB_SCHEMA_READY:
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS app_state (
+                        profile_id TEXT PRIMARY KEY,
+                        entries_json TEXT NOT NULL,
+                        settings_json TEXT,
+                        payslips_json TEXT,
+                        payslips_compact_json TEXT,
+                        sync_meta_json TEXT NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """
+                )
+                columns = {row[1] for row in conn.execute("PRAGMA table_info(app_state)")}
+                if "payslips_json" not in columns:
+                    conn.execute("ALTER TABLE app_state ADD COLUMN payslips_json TEXT")
+                if "payslips_compact_json" not in columns:
+                    conn.execute("ALTER TABLE app_state ADD COLUMN payslips_compact_json TEXT")
+                conn.commit()
+                _DB_SCHEMA_READY.add(key)
     return conn
 
 
@@ -111,62 +139,280 @@ def load_snapshot(profile_id: str = PROFILE_ID, db_path: Path = DB_PATH) -> dict
     return _snapshot_from_row(row)
 
 
+def _payslip_key(payslip: dict, fallback: str = "") -> str:
+    if not isinstance(payslip, dict):
+        return fallback
+    return str(payslip.get("id") or fallback).strip()
+
+
+def _stored_payslip_record(incoming: dict, existing: dict | None = None) -> dict:
+    record = dict(incoming) if isinstance(incoming, dict) else {}
+    previous = existing if isinstance(existing, dict) else {}
+    photos_deferred = record.pop("photosDeferred", False) is True
+    source_deferred = record.pop("sourceTextDeferred", False) is True
+    record.pop("photoCount", None)
+
+    if photos_deferred:
+        previous_photos = previous.get("photos") if isinstance(previous.get("photos"), list) else []
+        previous_image = str(previous.get("imageData") or "")
+        if not previous_photos and previous_image:
+            previous_photos = [{
+                "id": f"legacy-{_payslip_key(previous, 'photo')}",
+                "data": previous_image,
+                "fileName": str(previous.get("fileName") or "busta-paga.jpg"),
+            }]
+        record["photos"] = previous_photos
+        record["fileName"] = str(previous.get("fileName") or record.get("fileName") or "")
+    if source_deferred:
+        record["sourceText"] = str(previous.get("sourceText") or "")
+    photos = record.get("photos") if isinstance(record.get("photos"), list) else []
+    legacy_image = str(record.get("imageData") or "")
+    if not photos and legacy_image:
+        photos = [{
+            "id": f"legacy-{_payslip_key(record, 'photo')}",
+            "data": legacy_image,
+            "fileName": str(record.get("fileName") or "busta-paga.jpg"),
+        }]
+    if photos:
+        record["photos"] = photos
+        record.pop("imageData", None)
+    return record
+
+
+def merge_payslip_records(existing_items: list, incoming_items: list) -> list:
+    existing_map = {
+        _payslip_key(item): item
+        for item in (existing_items if isinstance(existing_items, list) else [])
+        if _payslip_key(item)
+    }
+    merged = []
+    for index, item in enumerate(incoming_items if isinstance(incoming_items, list) else []):
+        if not isinstance(item, dict):
+            continue
+        key = _payslip_key(item, f"legacy-{index}")
+        record = _stored_payslip_record(item, existing_map.get(key))
+        if key and not record.get("id"):
+            record["id"] = key
+        merged.append(record)
+    return merged
+
+
+def compact_payslip_records(items: list) -> list:
+    compact_payslips = []
+    for index, item in enumerate(items if isinstance(items, list) else []):
+        if not isinstance(item, dict):
+            continue
+        record = dict(item)
+        photos = record.get("photos") if isinstance(record.get("photos"), list) else []
+        if not photos and record.get("imageData"):
+            photos = [{"data": record.get("imageData"), "fileName": record.get("fileName", "")}]
+        source_text = str(record.get("sourceText") or "")
+        declared_photo_count = max(0, int(record.get("photoCount") or 0))
+        record.pop("photos", None)
+        record.pop("imageData", None)
+        record.pop("sourceText", None)
+        record["photoCount"] = max(len(photos), declared_photo_count)
+        record["photosDeferred"] = bool(record["photoCount"] or record.get("photosDeferred"))
+        record["sourceTextDeferred"] = bool(source_text or record.get("sourceTextDeferred"))
+        if not record.get("id"):
+            record["id"] = f"legacy-{index}"
+        compact_payslips.append(record)
+    return compact_payslips
+
+
+def compact_snapshot(snapshot: dict) -> dict:
+    compact = dict(snapshot if isinstance(snapshot, dict) else empty_snapshot())
+    compact["payslips"] = compact_payslip_records(compact.get("payslips") or [])
+    compact["compact"] = True
+    return compact
+
+
+def load_compact_snapshot(profile_id: str = PROFILE_ID, db_path: Path = DB_PATH) -> dict:
+    """Load account metadata without materializing base64 payslip photos."""
+    with _snapshot_lock(db_path):
+        with closing(get_db(db_path)) as conn:
+            row = conn.execute(
+                """
+                SELECT entries_json, settings_json, payslips_compact_json, sync_meta_json, updated_at
+                FROM app_state WHERE profile_id = ?
+                """,
+                (profile_id,),
+            ).fetchone()
+            if not row:
+                return {**empty_snapshot(), "compact": True}
+
+            entries_json, settings_json, compact_json, sync_meta_json, updated_at = row
+            compact_payslips = _parse_json(compact_json, None)
+            if not isinstance(compact_payslips, list):
+                full_row = conn.execute(
+                    "SELECT payslips_json FROM app_state WHERE profile_id = ?",
+                    (profile_id,),
+                ).fetchone()
+                full_payslips = _parse_json(full_row[0] if full_row else None, [])
+                compact_payslips = compact_payslip_records(full_payslips)
+                conn.execute(
+                    "UPDATE app_state SET payslips_compact_json = ? WHERE profile_id = ?",
+                    (json.dumps(compact_payslips, ensure_ascii=False), profile_id),
+                )
+                conn.commit()
+
+        return {
+            "entries": _parse_json(entries_json, {}),
+            "settings": _parse_json(settings_json, None),
+            "payslips": compact_payslips,
+            "syncMeta": {
+                **DEFAULT_SYNC_META,
+                **(_parse_json(sync_meta_json, {}) or {}),
+            },
+            "updatedAt": int(updated_at or 0),
+            "compact": True,
+        }
+
+
 def save_snapshot(
     snapshot: dict,
     profile_id: str = PROFILE_ID,
     db_path: Path = DB_PATH,
     force_replace: bool = False,
+    _existing_snapshot: dict | None = None,
+    _return_compact: bool = False,
 ) -> dict:
-    existing = load_snapshot(profile_id, db_path)
-    entries = snapshot.get("entries")
-    settings = snapshot.get("settings")
-    payslips = snapshot.get("payslips")
-    sync_meta = snapshot.get("syncMeta") or {}
-    updated_at = int(snapshot.get("updatedAt") or time.time() * 1000)
-
-    entries = entries if isinstance(entries, dict) else {}
-    settings = settings if isinstance(settings, dict) else None
-    payslips = payslips if isinstance(payslips, list) else []
-    sync_meta = sync_meta if isinstance(sync_meta, dict) else {}
-
-    # A blank Safari cache must not erase a populated server database.
-    allow_empty = force_replace or snapshot.get("allowEmptyEntries") is True
-    if existing.get("entries") and not entries and not allow_empty:
-        entries = existing["entries"]
-
-    now_ms = int(time.time() * 1000)
-    sync_meta = {
-        **DEFAULT_SYNC_META,
-        **sync_meta,
-        "entriesUpdatedAt": updated_at if snapshot.get("entries") is not None else int(sync_meta.get("entriesUpdatedAt") or 0),
-        "settingsUpdatedAt": updated_at if snapshot.get("settings") is not None else int(sync_meta.get("settingsUpdatedAt") or 0),
-        "payslipsUpdatedAt": updated_at if snapshot.get("payslips") is not None else int(sync_meta.get("payslipsUpdatedAt") or 0),
-        "lastServerSyncAt": now_ms,
-    }
-
-    with closing(get_db(db_path)) as conn:
-        conn.execute(
-            """
-            INSERT INTO app_state (profile_id, entries_json, settings_json, payslips_json, sync_meta_json, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(profile_id) DO UPDATE SET
-                entries_json=excluded.entries_json,
-                settings_json=excluded.settings_json,
-                payslips_json=excluded.payslips_json,
-                sync_meta_json=excluded.sync_meta_json,
-                updated_at=excluded.updated_at
-            """,
-            (
-                profile_id,
-                json.dumps(entries, ensure_ascii=False),
-                json.dumps(settings, ensure_ascii=False) if settings is not None else None,
-                json.dumps(payslips, ensure_ascii=False),
-                json.dumps(sync_meta, ensure_ascii=False),
-                updated_at,
-            ),
+    snapshot = snapshot if isinstance(snapshot, dict) else {}
+    preserve_payslips = not force_replace and snapshot.get("payslipsDeferred") is True
+    with _snapshot_lock(db_path):
+        existing = _existing_snapshot if isinstance(_existing_snapshot, dict) else (
+            load_compact_snapshot(profile_id, db_path) if preserve_payslips else load_snapshot(profile_id, db_path)
         )
-        conn.commit()
-    return load_snapshot(profile_id, db_path)
+        entries = snapshot.get("entries")
+        settings = snapshot.get("settings")
+        payslips = snapshot.get("payslips")
+        sync_meta = snapshot.get("syncMeta") or {}
+
+        entries = entries if isinstance(entries, dict) else {}
+        settings = settings if isinstance(settings, dict) else None
+        payslips = payslips if isinstance(payslips, list) else []
+        sync_meta = sync_meta if isinstance(sync_meta, dict) else {}
+
+        if not preserve_payslips:
+            payslips = merge_payslip_records(existing.get("payslips") or [], payslips)
+
+        # A blank Safari cache must not erase a populated server database.
+        allow_empty = force_replace or snapshot.get("allowEmptyEntries") is True
+        if existing.get("entries") and not entries and not allow_empty:
+            entries = existing["entries"]
+
+        now_ms = int(time.time() * 1000)
+        updated_at = max(now_ms, int(snapshot.get("updatedAt") or 0))
+        sync_meta = {
+            **DEFAULT_SYNC_META,
+            **(existing.get("syncMeta") or {}),
+            **sync_meta,
+            "entriesUpdatedAt": updated_at if snapshot.get("entries") is not None else int(sync_meta.get("entriesUpdatedAt") or 0),
+            "settingsUpdatedAt": updated_at if snapshot.get("settings") is not None else int(sync_meta.get("settingsUpdatedAt") or 0),
+            "payslipsUpdatedAt": (
+                int((existing.get("syncMeta") or {}).get("payslipsUpdatedAt") or 0)
+                if preserve_payslips
+                else updated_at
+            ),
+            "lastServerSyncAt": now_ms,
+        }
+
+        with closing(get_db(db_path)) as conn:
+            if preserve_payslips:
+                conn.execute(
+                    """
+                    INSERT INTO app_state (
+                        profile_id, entries_json, settings_json, payslips_json,
+                        payslips_compact_json, sync_meta_json, updated_at
+                    ) VALUES (?, ?, ?, '[]', '[]', ?, ?)
+                    ON CONFLICT(profile_id) DO UPDATE SET
+                        entries_json=excluded.entries_json,
+                        settings_json=excluded.settings_json,
+                        sync_meta_json=excluded.sync_meta_json,
+                        updated_at=excluded.updated_at
+                    """,
+                    (
+                        profile_id,
+                        json.dumps(entries, ensure_ascii=False),
+                        json.dumps(settings, ensure_ascii=False) if settings is not None else None,
+                        json.dumps(sync_meta, ensure_ascii=False),
+                        updated_at,
+                    ),
+                )
+            else:
+                compact_payslips = compact_payslip_records(payslips)
+                conn.execute(
+                    """
+                    INSERT INTO app_state (
+                        profile_id, entries_json, settings_json, payslips_json,
+                        payslips_compact_json, sync_meta_json, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(profile_id) DO UPDATE SET
+                        entries_json=excluded.entries_json,
+                        settings_json=excluded.settings_json,
+                        payslips_json=excluded.payslips_json,
+                        payslips_compact_json=excluded.payslips_compact_json,
+                        sync_meta_json=excluded.sync_meta_json,
+                        updated_at=excluded.updated_at
+                    """,
+                    (
+                        profile_id,
+                        json.dumps(entries, ensure_ascii=False),
+                        json.dumps(settings, ensure_ascii=False) if settings is not None else None,
+                        json.dumps(payslips, ensure_ascii=False),
+                        json.dumps(compact_payslips, ensure_ascii=False),
+                        json.dumps(sync_meta, ensure_ascii=False),
+                        updated_at,
+                    ),
+                )
+            conn.commit()
+        return load_compact_snapshot(profile_id, db_path) if preserve_payslips or _return_compact else load_snapshot(profile_id, db_path)
+
+
+def save_payslip_record(payslip: dict, db_path: Path, updated_at: int | None = None) -> dict:
+    if not isinstance(payslip, dict):
+        raise ValueError("Busta paga non valida.")
+    payslip_id = _payslip_key(payslip)
+    if not payslip_id:
+        raise ValueError("Identificativo busta paga mancante.")
+    with _snapshot_lock(db_path):
+        existing = load_snapshot(db_path=db_path)
+        items = list(existing.get("payslips") or [])
+        existing_index = next((index for index, item in enumerate(items) if _payslip_key(item) == payslip_id), -1)
+        previous = items[existing_index] if existing_index >= 0 else None
+        stored = _stored_payslip_record(payslip, previous)
+        stored["id"] = payslip_id
+        if existing_index >= 0:
+            items[existing_index] = stored
+        else:
+            items.insert(0, stored)
+        saved = save_snapshot({
+            "entries": existing.get("entries") or {},
+            "settings": existing.get("settings"),
+            "payslips": items,
+            "syncMeta": existing.get("syncMeta") or {},
+            "updatedAt": int(updated_at or time.time() * 1000),
+        }, db_path=db_path, _existing_snapshot=existing, _return_compact=True)
+        persisted = next((item for item in saved.get("payslips") or [] if _payslip_key(item) == payslip_id), None)
+        if persisted is None:
+            raise RuntimeError("La busta paga non risulta nel database dopo il salvataggio.")
+        return saved
+
+
+def delete_payslip_record(payslip_id: str, db_path: Path, updated_at: int | None = None) -> dict:
+    clean_id = str(payslip_id or "").strip()
+    if not clean_id:
+        raise ValueError("Identificativo busta paga mancante.")
+    with _snapshot_lock(db_path):
+        existing = load_snapshot(db_path=db_path)
+        items = [item for item in (existing.get("payslips") or []) if _payslip_key(item) != clean_id]
+        return save_snapshot({
+            "entries": existing.get("entries") or {},
+            "settings": existing.get("settings"),
+            "payslips": items,
+            "syncMeta": existing.get("syncMeta") or {},
+            "updatedAt": int(updated_at or time.time() * 1000),
+        }, db_path=db_path, _existing_snapshot=existing, _return_compact=True)
 
 
 def snapshot_has_data(snapshot: dict) -> bool:
@@ -174,7 +420,7 @@ def snapshot_has_data(snapshot: dict) -> bool:
 
 
 def account_snapshot_summary(account: dict) -> dict:
-    snapshot = load_snapshot(db_path=AUTH_STORE.user_db_path(account["id"]))
+    snapshot = load_compact_snapshot(db_path=AUTH_STORE.user_db_path(account["id"]))
     return {
         **account,
         "entries": len(snapshot.get("entries") or {}),
@@ -185,7 +431,7 @@ def account_snapshot_summary(account: dict) -> dict:
 
 def database_storage_summary(db_path: Path) -> dict:
     db_path = Path(db_path).resolve()
-    snapshot = load_snapshot(db_path=db_path)
+    snapshot = load_compact_snapshot(db_path=db_path)
     database_bytes = db_path.stat().st_size if db_path.exists() else 0
     wal_path = Path(f"{db_path}-wal")
     shm_path = Path(f"{db_path}-shm")
@@ -380,6 +626,17 @@ class GestOreHandler(SimpleHTTPRequestHandler):
     def _send_auth_error(self, exc: AuthError) -> None:
         self._send_json({"error": str(exc), "code": exc.code}, exc.status)
 
+    def _snapshot_ack(self, saved: dict, mutation_id: str = "", **extra) -> dict:
+        payload = {
+            "ok": True,
+            "mutationId": str(mutation_id or ""),
+            "updatedAt": int(saved.get("updatedAt") or 0),
+            "entries": len(saved.get("entries") or {}),
+            "payslips": len(saved.get("payslips") or []),
+        }
+        payload.update(extra)
+        return payload
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/api/build":
@@ -397,12 +654,13 @@ class GestOreHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/auth/status":
             user = self._current_user()
             account_count = AUTH_STORE.account_count()
+            has_legacy_data = account_count == 0 and snapshot_has_data(load_compact_snapshot(db_path=DB_PATH))
             self._send_json({
                 "authenticated": bool(user),
                 "user": user,
                 "hasAccounts": account_count > 0,
                 "setupRequired": account_count == 0,
-                "hasLegacyData": snapshot_has_data(load_snapshot(db_path=DB_PATH)),
+                "hasLegacyData": has_legacy_data,
             })
             return
         if parsed.path == "/api/admin/accounts":
@@ -426,7 +684,27 @@ class GestOreHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/snapshot":
             db_path = self._snapshot_db_for_request()
             if db_path is not None:
-                self._send_json(load_snapshot(db_path=db_path))
+                query = parse_qs(parsed.query or "")
+                snapshot = (
+                    load_compact_snapshot(db_path=db_path)
+                    if query.get("compact") == ["1"]
+                    else load_snapshot(db_path=db_path)
+                )
+                self._send_json(snapshot)
+            return
+        if parsed.path == "/api/payslip":
+            db_path = self._snapshot_db_for_request()
+            if db_path is not None:
+                query = parse_qs(parsed.query or "")
+                payslip_id = str((query.get("id") or [""])[0]).strip()
+                payslip = next(
+                    (item for item in load_snapshot(db_path=db_path).get("payslips") or [] if _payslip_key(item) == payslip_id),
+                    None,
+                )
+                if payslip is None:
+                    self._send_json({"error": "Busta paga non trovata."}, HTTPStatus.NOT_FOUND)
+                else:
+                    self._send_json({"ok": True, "payslip": payslip})
             return
         if parsed.path == "/api/backup":
             user = self._require_user()
@@ -445,7 +723,31 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         try:
             payload = self._read_json_body()
-            self._send_json(save_snapshot(payload, db_path=db_path))
+            saved = save_snapshot(payload, db_path=db_path)
+            prefer_minimal = "return=minimal" in str(self.headers.get("Prefer", "")).lower()
+            if prefer_minimal:
+                self._send_json(self._snapshot_ack(saved, self.headers.get("X-GestOre-Mutation-Id", "")))
+            else:
+                self._send_json(saved)
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._send_json({"error": f"Errore interno: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def _handle_payslip_write(self) -> None:
+        db_path = self._snapshot_db_for_request()
+        if db_path is None:
+            return
+        try:
+            payload = self._read_json_body()
+            payslip = payload.get("payslip")
+            mutation_id = str(payload.get("mutationId") or self.headers.get("X-GestOre-Mutation-Id", ""))
+            saved = save_payslip_record(payslip, db_path, payload.get("updatedAt"))
+            self._send_json(self._snapshot_ack(
+                saved,
+                mutation_id,
+                payslipId=_payslip_key(payslip),
+            ))
         except ValueError as exc:
             self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:
@@ -454,10 +756,16 @@ class GestOreHandler(SimpleHTTPRequestHandler):
     def do_PUT(self) -> None:
         if self._reject_cross_origin():
             return
-        if urlparse(self.path).path != "/api/snapshot":
+        path = urlparse(self.path).path
+        if path == "/api/snapshot":
+            self._handle_snapshot_write()
+            return
+        if path == "/api/payslip":
+            self._handle_payslip_write()
+            return
+        if path != "/api/snapshot":
             self.send_error(HTTPStatus.NOT_FOUND, "Endpoint non trovato")
             return
-        self._handle_snapshot_write()
 
     def do_POST(self) -> None:
         if self._reject_cross_origin():
@@ -528,6 +836,16 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         parsed = urlparse(self.path)
         try:
+            if parsed.path == "/api/payslip":
+                db_path = self._snapshot_db_for_request()
+                if db_path is None:
+                    return
+                payload = self._read_json_body()
+                mutation_id = str(payload.get("mutationId") or self.headers.get("X-GestOre-Mutation-Id", ""))
+                payslip_id = str(payload.get("payslipId") or "").strip()
+                saved = delete_payslip_record(payslip_id, db_path, payload.get("updatedAt"))
+                self._send_json(self._snapshot_ack(saved, mutation_id, payslipId=payslip_id, deleted=True))
+                return
             if parsed.path != "/api/admin/accounts":
                 self.send_error(HTTPStatus.NOT_FOUND, "Endpoint non trovato")
                 return

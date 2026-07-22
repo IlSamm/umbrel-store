@@ -1108,10 +1108,11 @@ function renderOverlayLegacy() {
       var archiveHtml = Object.keys(grouped).sort(function (a, b) { return Number(b) - Number(a); }).map(function (year) {
         var rows = grouped[year].map(function (item) {
           var photos = normalizePayslipPhotos(item);
+          var photoCount = getPayslipPhotoCount(item);
           var cover = photos[0] || null;
           return '<button class="payroll-archive-row" data-open-payslip="' + escapeHtml(item.id) + '">' +
-            '<span class="payroll-archive-thumb' + (cover ? '' : ' is-empty') + '">' + (cover ? '<img src="' + cover.data + '" alt="Anteprima busta paga">' : icons.receipt) + (photos.length > 1 ? '<b>' + photos.length + '</b>' : '') + '</span>' +
-            '<span class="payroll-archive-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' + photos.length + (photos.length === 1 ? ' foto' : ' foto') + ' salvate</small></span>' +
+            '<span class="payroll-archive-thumb' + (cover ? '' : ' is-empty') + '">' + (cover ? '<img src="' + cover.data + '" alt="Anteprima busta paga">' : icons.receipt) + (photoCount > 1 ? '<b>' + photoCount + '</b>' : '') + '</span>' +
+            '<span class="payroll-archive-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' + photoCount + (photoCount === 1 ? ' foto' : ' foto') + ' salvate</small></span>' +
             '<span class="payroll-archive-amount">' + formatMoneyEuro(item.netto) + '</span><span class="payroll-archive-chevron">' + icons.right + '</span>' +
           '</button>';
         }).join('');
@@ -1127,6 +1128,8 @@ function renderOverlayLegacy() {
 
     function renderPayslipDetailV2(payslip) {
       var photos = normalizePayslipPhotos(payslip);
+      var photoCount = getPayslipPhotoCount(payslip);
+      var photosLoading = Boolean(payslip.photosDeferred && state.payslipHydratingId === payslip.id);
       var created = new Date(Number(payslip.createdAt) || Date.now());
       var createdLabel = created.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
       var payslipNotes = String(payslip.notes || '').trim();
@@ -1135,9 +1138,9 @@ function renderOverlayLegacy() {
       return '<div class="profile-subpage-top payroll-page-top"><button data-close-payslip-detail="1" aria-label="Torna all\'archivio">' + icons.left + '</button><div><span>ARCHIVIO</span><h1>Dettaglio busta</h1></div><i></i></div>' +
         '<div class="stack payroll-stack payroll-detail-stack">' +
           '<section class="payroll-detail-hero"><div><small>BUSTA PAGA</small><h2>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</h2><span>Salvata il ' + escapeHtml(createdLabel) + '</span></div><strong>' + formatMoneyEuro(payslip.netto) + '</strong></section>' +
-          '<section class="payroll-panel payroll-documents"><div class="payroll-section-head"><div><small>DOCUMENTI</small><h2>' + photos.length + (photos.length === 1 ? ' foto salvata' : ' foto salvate') + '</h2></div><span class="payroll-readonly-badge">Sola lettura</span></div>' +
-            '<div class="payroll-photo-grid is-readonly">' + renderPayrollPhotoGrid(photos, 'archive', payslip.id, false) + '</div>' +
-            '<p class="payroll-help">Tocca una foto per aprirla a schermo intero. Da questa vista non puoi modificare o cancellare immagini.</p>' +
+          '<section class="payroll-panel payroll-documents"><div class="payroll-section-head"><div><small>DOCUMENTI</small><h2>' + (photosLoading ? 'Carico le foto...' : (photoCount + (photoCount === 1 ? ' foto salvata' : ' foto salvate'))) + '</h2></div><span class="payroll-readonly-badge">Sola lettura</span></div>' +
+            (photos.length ? '<div class="payroll-photo-grid is-readonly">' + renderPayrollPhotoGrid(photos, 'archive', payslip.id, false) + '</div>' : '') +
+            '<p class="payroll-help">' + (photosLoading ? 'Recupero solo i documenti di questa busta dal database.' : 'Tocca una foto per aprirla a schermo intero. Da questa vista non puoi modificare o cancellare immagini.') + '</p>' +
           '</section>' +
           '<section class="payroll-detail-info"><div><span>PERIODO</span><strong>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</strong></div><div><span>IMPORTO RICEVUTO</span><strong>' + formatMoneyEuro(payslip.netto) + '</strong></div></section>' +
           '<section class="payroll-panel payroll-detail-compensation"><div class="payroll-section-head"><div><small>DATI DEL MESE</small><h2>Tariffe e note</h2></div></div>' +

@@ -190,11 +190,30 @@ body.keyboard-open .bottom-nav,
 body.keyboard-open #app > .bottom-nav,
 html.keyboard-open .bottom-nav,
 html.keyboard-open #app > .bottom-nav {
-  bottom: var(--shell-nav-float) !important;
-  transform: translate3d(-50%, 0, 0) !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.keyboard-open {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+body.keyboard-open .screen.active {
+  padding-bottom: calc(var(--keyboard-inset, 0px) + 24px) !important;
+  scroll-padding-top: calc(var(--safe-top, 0px) + 18px) !important;
+  scroll-padding-bottom: calc(var(--keyboard-inset, 0px) + 24px) !important;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .payroll-period-grid select,
+  .payroll-period-grid input,
+  .payroll-notes-field textarea {
+    font-size: 16px !important;
+  }
 }
 
 @media (max-width: 390px) {

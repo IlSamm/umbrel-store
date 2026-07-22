@@ -9,7 +9,9 @@ var errorBox = document.getElementById('errorBox');
     var STORAGE_ENTRIES = 'gestore-entries';
     var STORAGE_SETTINGS = 'gestore-settings';
     var STORAGE_PAYSLIPS = 'gestore-payslips';
+    var STORAGE_PENDING_PAYSLIP = 'gestore-payslip-pending-v1';
     var SERVER_SYNC_URL = '/api/snapshot';
+    var PAYSLIP_RECORD_URL = '/api/payslip';
     var ENTRY_BACKUP_KEYS = ['gestore-entries-backup-v1', 'gestore-entries-backup-v2'];
     var SETTINGS_BACKUP_KEYS = ['gestore-settings-backup-v1', 'gestore-settings-backup-v2'];
     var STORAGE_SAFETY_BUNDLE = 'gestore-safety-bundle-v1';
@@ -17,8 +19,10 @@ var errorBox = document.getElementById('errorBox');
     var serverSyncTimer = 0;
     var serverSyncInFlight = false;
     var serverSyncRevision = 0;
+    var serverSyncConfirmedRevision = 0;
     var serverSyncReady = false;
     var serverSyncAllowEmptyEntries = false;
+    var serverSyncLastError = '';
     var runtimeServicesStarted = false;
     var reminderTimer = 0;
     var reminderLastSentKey = '';
@@ -51,8 +55,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.130',
-      build: '20260722k',
+      version: '1.1.131',
+      build: '20260722l',
       appName: 'GestOre'
     };
 
@@ -174,9 +178,24 @@ var errorBox = document.getElementById('errorBox');
         try { localStorage.setItem(STORAGE_ENTRIES_CLEARED_AT, String(Date.now())); } catch (err) {}
       }
     }
+    function compactPayslipsForDeviceStorage(items) {
+      return (Array.isArray(items) ? items : []).map(function (item) {
+        var record = Object.assign({}, item && typeof item === 'object' ? item : {});
+        var photos = Array.isArray(record.photos) ? record.photos : [];
+        var photoCount = Math.max(photos.length, Number(record.photoCount) || (record.imageData ? 1 : 0));
+        var hasSourceText = Boolean(record.sourceText || record.sourceTextDeferred);
+        delete record.photos;
+        delete record.imageData;
+        delete record.sourceText;
+        record.photoCount = Math.max(0, photoCount);
+        record.photosDeferred = record.photoCount > 0;
+        record.sourceTextDeferred = hasSourceText;
+        return record;
+      });
+    }
     function persistSettingsLocally() { persistJson(STORAGE_SETTINGS, SETTINGS_BACKUP_KEYS, state.settings); }
     function persistPayslipsLocally() {
-      try { localStorage.setItem(STORAGE_PAYSLIPS, JSON.stringify(state.payslips || [])); } catch (err) {}
+      try { localStorage.setItem(STORAGE_PAYSLIPS, JSON.stringify(compactPayslipsForDeviceStorage(state.payslips || []))); } catch (err) {}
     }
     function loadPayslipsWithRecovery() {
       var primary = readParsedStorage(STORAGE_PAYSLIPS);
@@ -210,7 +229,7 @@ var errorBox = document.getElementById('errorBox');
         var nextBundle = {
           entries: state && state.entries ? state.entries : {},
           settings: state && state.settings ? state.settings : {},
-          payslips: state && Array.isArray(state.payslips) ? state.payslips : [],
+          payslips: compactPayslipsForDeviceStorage(state && Array.isArray(state.payslips) ? state.payslips : []),
           version: 2
         };
         var previous = readParsedStorage(STORAGE_SAFETY_BUNDLE);
@@ -1253,10 +1272,15 @@ var errorBox = document.getElementById('errorBox');
     }
     function buildStateSnapshot(options) {
       var opts = options || {};
+      var payslips = state && Array.isArray(state.payslips) ? state.payslips : [];
+      if (typeof serializePayslipsForSnapshot === 'function') {
+        payslips = serializePayslipsForSnapshot(payslips, opts.includePayslipPhotos === true);
+      }
       return {
         entries: state && state.entries && typeof state.entries === 'object' ? state.entries : {},
         settings: state && state.settings && typeof state.settings === 'object' ? normalizeRuntimeSettings(state.settings) : {},
-        payslips: state && Array.isArray(state.payslips) ? state.payslips : [],
+        payslips: payslips,
+        payslipsDeferred: opts.includePayslipPhotos !== true,
         updatedAt: Date.now(),
         allowEmptyEntries: opts.allowEmptyEntries === true
       };
@@ -1289,20 +1313,48 @@ var errorBox = document.getElementById('errorBox');
       var when = new Date(state.lastSyncedAt);
       return label + ' alle ' + pad(when.getHours()) + ':' + pad(when.getMinutes()) + '.';
     }
-    async function pushSnapshotToServer(snapshot) {
+    function makeServerMutationId(prefix) {
+      return String(prefix || 'sync') + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    }
+    function getServerSyncFailureMessage() {
+      return serverSyncLastError || 'Il server non ha confermato il salvataggio.';
+    }
+    async function pushSnapshotToServer(snapshot, options) {
+      var opts = options || {};
+      var mutationId = String(opts.mutationId || makeServerMutationId('snapshot'));
       var controller = typeof AbortController === 'function' ? new AbortController() : null;
-      var timeout = controller ? window.setTimeout(function () { controller.abort(); }, 20000) : 0;
+      var timeout = controller ? window.setTimeout(function () { controller.abort(); }, Math.max(5000, Number(opts.timeoutMs) || 15000)) : 0;
       try {
         var response = await fetch(SERVER_SYNC_URL, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-GestOre-Mutation-Id': mutationId,
+            'Prefer': opts.minimal === true ? 'return=minimal' : 'return=representation'
+          },
           cache: 'no-store',
           body: JSON.stringify(snapshot),
           signal: controller ? controller.signal : undefined
         });
         if (response.status === 401 && typeof handleAccountUnauthorized === 'function') handleAccountUnauthorized();
-        if (!response.ok) throw new Error('server-sync-failed');
-        return normalizeServerSnapshot(await response.json());
+        var payload = {};
+        try { payload = await response.json(); } catch (parseError) {}
+        if (!response.ok) {
+          var responseError = new Error(payload.error || 'Il server ha rifiutato il salvataggio.');
+          responseError.status = response.status;
+          throw responseError;
+        }
+        if (opts.minimal === true) {
+          if (!payload.ok || String(payload.mutationId || '') !== mutationId) throw new Error('Conferma del server non valida.');
+          if (snapshot.payslipsDeferred !== true && Number(payload.payslips) !== (Array.isArray(snapshot.payslips) ? snapshot.payslips.length : 0)) {
+            throw new Error('Il numero di buste nel database non coincide.');
+          }
+          return payload;
+        }
+        return normalizeServerSnapshot(payload);
+      } catch (err) {
+        if (err && err.name === 'AbortError') throw new Error('Il server sta impiegando troppo tempo. Riprova.');
+        throw err;
       } finally {
         if (timeout) window.clearTimeout(timeout);
       }
@@ -1314,15 +1366,18 @@ var errorBox = document.getElementById('errorBox');
       var succeeded = false;
       try {
         var allowEmptyEntries = serverSyncAllowEmptyEntries;
-        var saved = await pushSnapshotToServer(buildStateSnapshot({ allowEmptyEntries: allowEmptyEntries }));
-        // Do not let an older response overwrite edits made while the request was running.
+        var outgoing = buildStateSnapshot({ allowEmptyEntries: allowEmptyEntries });
+        await pushSnapshotToServer(outgoing, { minimal: true });
+        // The compact ACK confirms SQLite without replacing newer in-memory edits.
         if (syncRevision === serverSyncRevision) {
-          applySnapshotLocally(saved, { preserveLockState: true });
           if (allowEmptyEntries) serverSyncAllowEmptyEntries = false;
         }
+        serverSyncLastError = '';
+        serverSyncConfirmedRevision = Math.max(serverSyncConfirmedRevision, syncRevision);
         setSyncStatus('Server locale attivo', Date.now());
         succeeded = true;
       } catch (err) {
+        serverSyncLastError = err && err.message ? err.message : 'Server non raggiungibile.';
         setSyncStatus('Solo sul dispositivo', 0);
       } finally {
         serverSyncInFlight = false;
@@ -1338,8 +1393,21 @@ var errorBox = document.getElementById('errorBox');
       return succeeded;
     }
     async function flushServerSyncNow() {
-      if (!serverSyncReady || !window.fetch) return false;
-      for (var attempt = 0; attempt < 6; attempt += 1) {
+      if (!window.fetch) return false;
+      var readyStartedAt = Date.now();
+      while (!serverSyncReady) {
+        if (state && state.account && state.account.loaded && !state.account.authenticated) {
+          serverSyncLastError = 'Accedi al tuo account prima di salvare.';
+          return false;
+        }
+        if (Date.now() - readyStartedAt > 15000) {
+          serverSyncLastError = 'Il database del profilo non e ancora pronto.';
+          return false;
+        }
+        await new Promise(function (resolve) { window.setTimeout(resolve, 50); });
+      }
+      if (!serverSyncInFlight && !serverSyncTimer && serverSyncRevision === serverSyncConfirmedRevision) return true;
+      for (var attempt = 0; attempt < 8; attempt += 1) {
         var waitStartedAt = Date.now();
         while (serverSyncInFlight) {
           if (Date.now() - waitStartedAt > 22000) return false;
@@ -1351,7 +1419,11 @@ var errorBox = document.getElementById('errorBox');
         }
         var targetRevision = serverSyncRevision;
         var succeeded = await syncStateToServer();
-        if (!succeeded) return false;
+        if (!succeeded) {
+          if (attempt >= 2 || (state && state.account && state.account.loaded && !state.account.authenticated)) return false;
+          await new Promise(function (resolve) { window.setTimeout(resolve, 250 * (attempt + 1)); });
+          continue;
+        }
         if (!serverSyncInFlight && serverSyncRevision === targetRevision) return true;
       }
       return false;
@@ -1363,68 +1435,132 @@ var errorBox = document.getElementById('errorBox');
       serverSyncTimer = window.setTimeout(function () {
         serverSyncTimer = 0;
         syncStateToServer();
-      }, 320);
+      }, 120);
+    }
+    function persistPendingSnapshotOnPageHide() {
+      saveSafetyBundle();
+      if (!serverSyncReady || serverSyncRevision === serverSyncConfirmedRevision) return;
+      if (state && state.account && state.account.loaded && !state.account.authenticated) return;
+      var snapshot = buildStateSnapshot({ allowEmptyEntries: serverSyncAllowEmptyEntries });
+      var raw = JSON.stringify(snapshot);
+      if (raw.length > 60000) return;
+      try {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(SERVER_SYNC_URL, new Blob([raw], { type: 'application/json' }));
+        }
+      } catch (err) {}
+    }
+    function mergeServerSnapshotWithDeviceCache(serverSnapshot, localSnapshot) {
+      var server = normalizeServerSnapshot(serverSnapshot);
+      var local = normalizeServerSnapshot(localSnapshot);
+      var mergedEntries = Object.assign({}, local.entries, server.entries);
+      var localPayslipsById = {};
+      (local.payslips || []).forEach(function (item) {
+        var id = String(item && item.id || '');
+        if (id) localPayslipsById[id] = item;
+      });
+      var seen = {};
+      var mergedPayslips = (server.payslips || []).map(function (serverItem) {
+        var id = String(serverItem && serverItem.id || '');
+        var localItem = id ? localPayslipsById[id] : null;
+        if (id) seen[id] = true;
+        if (!localItem) return serverItem;
+        var merged = Object.assign({}, localItem, serverItem);
+        var cachedPhotos = typeof normalizePayslipPhotos === 'function' ? normalizePayslipPhotos(localItem) : [];
+        if (cachedPhotos.length && serverItem.photosDeferred) {
+          merged.photos = cachedPhotos;
+          merged.imageData = cachedPhotos[0].data;
+          merged.fileName = cachedPhotos[0].fileName;
+          merged.photoCount = Math.max(cachedPhotos.length, Number(serverItem.photoCount) || 0);
+        }
+        if (serverItem.sourceTextDeferred && localItem.sourceText) merged.sourceText = localItem.sourceText;
+        return merged;
+      });
+      var recoveredPayslips = false;
+      (local.payslips || []).forEach(function (item) {
+        var id = String(item && item.id || '');
+        if (!id || seen[id]) return;
+        seen[id] = true;
+        recoveredPayslips = true;
+        mergedPayslips.push(item);
+      });
+      return {
+        snapshot: {
+          entries: mergedEntries,
+          settings: server.settings,
+          payslips: mergedPayslips,
+          syncMeta: server.syncMeta,
+          updatedAt: server.updatedAt
+        },
+        recoveredEntries: Object.keys(mergedEntries).length > Object.keys(server.entries).length,
+        recoveredPayslips: recoveredPayslips
+      };
     }
     async function bootstrapServerState() {
       if (!window.fetch) {
         setSyncStatus('Solo sul dispositivo', 0);
         serverSyncReady = true;
-        return;
+        return true;
       }
+      var completed = false;
       try {
-        var response = await fetch(SERVER_SYNC_URL, { cache: 'no-store' });
-        if (!response.ok) throw new Error('server-snapshot-unavailable');
+        var splashStatus = document.getElementById('splashStatusText');
+        if (splashStatus) splashStatus.textContent = 'Carico i dati del tuo profilo';
+        var response = null;
+        var bootstrapError = null;
+        for (var requestAttempt = 0; requestAttempt < 3; requestAttempt += 1) {
+          var bootstrapController = typeof AbortController === 'function' ? new AbortController() : null;
+          var bootstrapTimeout = bootstrapController ? window.setTimeout(function () { bootstrapController.abort(); }, 12000) : 0;
+          try {
+            response = await fetch(SERVER_SYNC_URL + '?compact=1', {
+              cache: 'no-store',
+              signal: bootstrapController ? bootstrapController.signal : undefined
+            });
+            if (!response.ok) throw new Error('Database del profilo non disponibile.');
+            bootstrapError = null;
+            break;
+          } catch (err) {
+            bootstrapError = err;
+            if (requestAttempt < 2) await new Promise(function (resolve) { window.setTimeout(resolve, 300 * (requestAttempt + 1)); });
+          } finally {
+            if (bootstrapTimeout) window.clearTimeout(bootstrapTimeout);
+          }
+        }
+        if (!response || bootstrapError) throw bootstrapError || new Error('Database del profilo non disponibile.');
         var serverSnapshot = normalizeServerSnapshot(await response.json());
-        var localSnapshot = buildStateSnapshot();
-        var localTimestamp = getLocalBundleTimestamp();
+        var localSnapshot = buildStateSnapshot({ includePayslipPhotos: true });
         var localHasData = hasMeaningfulSnapshotData(localSnapshot);
         var serverHasData = hasMeaningfulSnapshotData(serverSnapshot);
-        var localEntryCount = countEntryMap(localSnapshot.entries);
-        var serverEntryCount = countEntryMap(serverSnapshot.entries);
-        if (serverEntryCount > 0 && localEntryCount === 0) {
-          applySnapshotLocally(serverSnapshot);
-          setSyncStatus('Dati ripristinati dal server', Date.now());
-        } else if (serverEntryCount > 0 && localEntryCount > 0) {
-          var serverIsNewer = serverSnapshot.updatedAt > localTimestamp;
-          var preferredSnapshot = serverIsNewer ? serverSnapshot : localSnapshot;
-          var mergedEntries = serverIsNewer
-            ? Object.assign({}, localSnapshot.entries, serverSnapshot.entries)
-            : Object.assign({}, serverSnapshot.entries, localSnapshot.entries);
-          var mergedSnapshot = {
-            entries: mergedEntries,
-            settings: preferredSnapshot.settings,
-            payslips: preferredSnapshot.payslips.length
-              ? preferredSnapshot.payslips
-              : (serverIsNewer ? localSnapshot.payslips : serverSnapshot.payslips),
-            updatedAt: Date.now()
-          };
-          applySnapshotLocally(mergedSnapshot);
-          var mergedSaved = await pushSnapshotToServer(buildStateSnapshot());
-          applySnapshotLocally(mergedSaved, { preserveLockState: true });
-          setSyncStatus('Dati verificati e sincronizzati', Date.now());
-        } else if (localEntryCount > 0 && serverEntryCount === 0) {
-          var restoredServer = await pushSnapshotToServer(localSnapshot);
-          applySnapshotLocally(restoredServer, { preserveLockState: true });
-          setSyncStatus('Dati recuperati dal dispositivo', Date.now());
-        } else if (serverHasData && (!localHasData || serverSnapshot.updatedAt > localTimestamp)) {
-          applySnapshotLocally(serverSnapshot);
-          setSyncStatus('Dati ripristinati dal server', Date.now());
+        if (serverHasData) {
+          var merged = mergeServerSnapshotWithDeviceCache(serverSnapshot, localSnapshot);
+          applySnapshotLocally(merged.snapshot);
+          if (merged.recoveredEntries || merged.recoveredPayslips) {
+            await pushSnapshotToServer(
+              buildStateSnapshot({ includePayslipPhotos: merged.recoveredPayslips }),
+              { minimal: true, timeoutMs: 30000 }
+            );
+            setSyncStatus('Dati locali recuperati e sincronizzati', Date.now());
+          } else {
+            setSyncStatus('Dati ripristinati dal server', Date.now());
+          }
         } else if (localHasData) {
-          var saved = await pushSnapshotToServer(localSnapshot);
-          applySnapshotLocally(saved, { preserveLockState: true });
-          setSyncStatus('Server locale attivo', Date.now());
-        } else if (serverHasData) {
-          applySnapshotLocally(serverSnapshot);
-          setSyncStatus('Dati ripristinati dal server', Date.now());
+          await pushSnapshotToServer(localSnapshot, { minimal: true, timeoutMs: 30000 });
+          applySnapshotLocally(localSnapshot, { preserveLockState: true });
+          setSyncStatus('Dati recuperati dal dispositivo', Date.now());
         } else {
           setSyncStatus('Pronto per la sync locale', 0);
         }
+        serverSyncLastError = '';
+        completed = true;
       } catch (err) {
+        serverSyncLastError = err && err.message ? err.message : 'Database del profilo non disponibile.';
         setSyncStatus('Solo sul dispositivo', 0);
       } finally {
-        serverSyncReady = true;
+        var hasRemoteAccount = Boolean(state && state.account && state.account.authenticated && state.account.user);
+        serverSyncReady = completed || !hasRemoteAccount;
         if (typeof render === 'function') render();
       }
+      return completed;
     }
     async function ensureNotificationPermission(requestIfNeeded) {
       if (!('Notification' in window)) return 'unsupported';
@@ -1497,11 +1633,13 @@ var errorBox = document.getElementById('errorBox');
         if (!state || !state.settings) return;
         if (document.visibilityState === 'hidden') {
           if (state.settings.lockApp) state.privacyLocked = true;
+          persistPendingSnapshotOnPageHide();
           return;
         }
         updateReminderSchedule();
         if (state.settings.lockApp && state.privacyLocked && typeof render === 'function') render();
       });
+      window.addEventListener('pagehide', persistPendingSnapshotOnPageHide);
       if (typeof bootstrapAccountSession === 'function') bootstrapAccountSession();
       else bootstrapServerState();
       updateReminderSchedule();

@@ -12,6 +12,8 @@ var STORAGE_ACTIVE_ACCOUNT = 'gestore-active-account-v1';
 
 state.account = {
   loaded: false,
+  dataReady: false,
+  dataError: '',
   authenticated: false,
   setupRequired: false,
   hasAccounts: false,
@@ -136,6 +138,8 @@ async function loadAccountStorageUsage(force) {
 }
 
 async function bootstrapAccountSession() {
+  state.account.dataReady = false;
+  state.account.dataError = '';
   try {
     var response = await fetch(ACCOUNT_STATUS_URL, { cache: 'no-store' });
     var payload = await readJsonResponse(response);
@@ -150,12 +154,19 @@ async function bootstrapAccountSession() {
 
     if (state.account.authenticated) {
       prepareDeviceForAuthenticatedUser(state.account.user);
-      await bootstrapServerState();
+      var databaseReady = await bootstrapServerState();
+      if (!databaseReady) {
+        state.account.dataError = getServerSyncFailureMessage();
+        if (typeof render === 'function') render();
+        return;
+      }
       if (String(state.settings.userName || '') === 'Utente' && state.account.user.username) {
         state.settings.userName = state.account.user.username;
         state.settingsDraft = Object.assign({}, state.settings);
         saveSettings();
       }
+      state.account.dataReady = true;
+      state.account.dataError = '';
       return;
     }
 
@@ -164,6 +175,7 @@ async function bootstrapAccountSession() {
       clearGestOreDeviceCache();
       resetRuntimeAccountData();
     }
+    state.account.dataReady = true;
     if (typeof render === 'function') render();
   } catch (err) {
     // Older/offline installations keep the existing single-user behavior.
@@ -172,11 +184,24 @@ async function bootstrapAccountSession() {
     state.account.user = null;
     state.account.notice = 'Server account non disponibile: modalita locale attiva.';
     await bootstrapServerState();
+    state.account.dataReady = true;
   } finally {
     var splashStatus = document.getElementById('splashStatusText');
-    if (splashStatus) splashStatus.textContent = 'Dati pronti';
+    if (splashStatus) splashStatus.textContent = state.account.dataReady ? 'Dati pronti' : 'Connessione da riprovare';
+    if (typeof render === 'function') render();
     window.dispatchEvent(new CustomEvent('gestore:account-ready'));
   }
+}
+
+async function retryAccountDataLoad() {
+  if (!state.account.authenticated || state.account.busy) return;
+  setAccountUiState({ busy: true, dataReady: false, dataError: '', error: '' });
+  var ready = await bootstrapServerState();
+  setAccountUiState({
+    busy: false,
+    dataReady: Boolean(ready),
+    dataError: ready ? '' : getServerSyncFailureMessage()
+  });
 }
 
 function setAccountUiState(values) {
@@ -186,10 +211,10 @@ function setAccountUiState(values) {
 
 function handleAccountUnauthorized() {
   serverSyncReady = false;
-  clearGestOreDeviceCache();
-  resetRuntimeAccountData();
   state.account = Object.assign({}, state.account, {
     loaded: true,
+    dataReady: true,
+    dataError: '',
     authenticated: false,
     hasAccounts: true,
     setupRequired: false,
@@ -197,7 +222,7 @@ function handleAccountUnauthorized() {
     mode: 'login',
     busy: false,
     notice: '',
-    error: 'La sessione e scaduta. Accedi di nuovo.'
+    error: 'La sessione e scaduta. I dati presenti sul dispositivo sono rimasti intatti: accedi di nuovo per sincronizzarli.'
   });
   if (typeof render === 'function') render();
 }
@@ -217,7 +242,7 @@ async function submitAccountRegistration(form) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
-      body: JSON.stringify({ username: username, password: password, snapshot: buildStateSnapshot() })
+      body: JSON.stringify({ username: username, password: password, snapshot: buildStateSnapshot({ includePayslipPhotos: true }) })
     });
     var payload = await readJsonResponse(response);
     activateAccountOnDevice(payload.user && payload.user.id);
@@ -250,7 +275,12 @@ async function submitAccountLogin(form) {
 async function logoutAccount() {
   if (state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Salvataggio in corso...' });
-  try { await syncStateToServer(); } catch (err) {}
+  var confirmed = false;
+  try { confirmed = await flushServerSyncNow(); } catch (err) {}
+  if (!confirmed) {
+    setAccountUiState({ busy: false, notice: '', error: 'Non esco finche il database non conferma l\'ultimo salvataggio. Riprova tra un momento.' });
+    return;
+  }
   try {
     await fetch(ACCOUNT_LOGOUT_URL, { method: 'POST', cache: 'no-store' });
   } catch (err) {}
@@ -269,7 +299,7 @@ async function downloadAccountBackup() {
   if (state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Preparazione del database...' });
   try {
-    await syncStateToServer();
+    if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
     var response = await fetch(ACCOUNT_BACKUP_URL, { cache: 'no-store' });
     if (!response.ok) await readJsonResponse(response);
     var blob = await response.blob();
@@ -318,7 +348,7 @@ async function openManagedAccount(userId) {
   if (!userId || state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Apertura del database selezionato...' });
   try {
-    await syncStateToServer();
+    if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
     var response = await fetch(ACCOUNT_ADMIN_ACCESS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -337,7 +367,7 @@ async function returnToOwnerAccount() {
   if (state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Ritorno al profilo Proprietario...' });
   try {
-    await syncStateToServer();
+    if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
     var response = await fetch(ACCOUNT_ADMIN_RETURN_URL, { method: 'POST', cache: 'no-store' });
     var payload = await readJsonResponse(response);
     activateAccountOnDevice(payload.user && payload.user.id);
@@ -390,7 +420,13 @@ function formatAccountActivity(timestamp) {
 }
 
 function renderAccountGate() {
-  if (state.account.authenticated) return '';
+  if (state.account.authenticated && state.account.dataReady) return '';
+  if (state.account.authenticated && state.account.dataError) {
+    return '<div class="account-gate"><div class="account-gate-panel account-data-loading"><div class="account-brand"><span class="account-brand-icon">' + icons.user + '</span><div><span>DATABASE PERSONALE</span><div>Gest<strong>Ore</strong></div></div></div><div class="account-gate-copy"><span>CONNESSIONE</span><h1>I dati sono al sicuro</h1><p>' + escapeHtml(state.account.dataError) + ' Non mostro una Home vuota: riproviamo ad aprire il database corretto.</p></div><button class="account-primary" type="button" data-retry-account-data="1" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Riprovo...' : 'Riprova ora') + '</button></div></div>';
+  }
+  if (state.account.authenticated && !state.account.dataReady) {
+    return '<div class="account-gate"><div class="account-gate-panel account-data-loading"><div class="account-brand"><span class="account-brand-icon">' + icons.user + '</span><div><span>DATABASE PERSONALE</span><div>Gest<strong>Ore</strong></div></div></div><div class="account-gate-copy"><span>CARICAMENTO</span><h1>Recupero i tuoi dati</h1><p>Ore e buste restano protette mentre apro il profilo corretto.</p></div><div class="account-admin-loading"><span></span><strong>Sincronizzazione sicura</strong><small>Non chiudere l\'app</small></div></div></div>';
+  }
   if (!state.account.loaded) return '';
   var registerMode = state.account.mode === 'register';
   var firstSetup = state.account.setupRequired;
@@ -498,6 +534,8 @@ function renderAccountDataSettings() {
 }
 
 function bindAccountEvents() {
+  var retryData = document.querySelector('[data-retry-account-data]');
+  if (retryData) retryData.onclick = retryAccountDataLoad;
   document.querySelectorAll('[data-account-mode]').forEach(function (button) {
     button.onclick = function () { setAccountUiState({ mode: button.dataset.accountMode, error: '', notice: '' }); };
   });

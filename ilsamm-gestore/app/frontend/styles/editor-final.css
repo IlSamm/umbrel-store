@@ -66,8 +66,8 @@ body.editor-open #app > .bottom-nav {
 }
 
 body.keyboard-open .editor-overlay-v3 {
-  height: var(--visible-app-vh, var(--real-app-vh, 100dvh)) !important;
-  min-height: var(--visible-app-vh, var(--real-app-vh, 100dvh)) !important;
+  height: var(--real-app-vh, 100dvh) !important;
+  min-height: var(--real-app-vh, 100dvh) !important;
 }
 
 .editor-overlay-v3 button,
@@ -161,6 +161,12 @@ body.keyboard-open .editor-overlay-v3 {
   overscroll-behavior-y: contain !important;
   -webkit-overflow-scrolling: touch !important;
   scrollbar-width: none !important;
+}
+
+body.keyboard-open .day-editor-scroll {
+  padding-bottom: calc(var(--keyboard-inset, 0px) + 24px) !important;
+  scroll-padding-top: 16px !important;
+  scroll-padding-bottom: calc(var(--keyboard-inset, 0px) + 24px) !important;
 }
 
 .day-editor-scroll::-webkit-scrollbar {
