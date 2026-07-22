@@ -1,4 +1,14 @@
-function openEditor(date) {
+var editorAutosaveTimer = 0;
+    var editorDraftDirty = false;
+
+    function clearEditorAutosaveTimer() {
+      if (!editorAutosaveTimer) return;
+      window.clearTimeout(editorAutosaveTimer);
+      editorAutosaveTimer = 0;
+    }
+    function openEditor(date) {
+      clearEditorAutosaveTimer();
+      editorDraftDirty = false;
       var key = toISODate(date);
       var current = getEntryForDate(date) || makeEmptyDayDraft();
       state.editingDate = date;
@@ -16,7 +26,14 @@ function openEditor(date) {
       document.body.classList.add('editor-open');
       render();
     }
-    function closeEditor() {
+    function closeEditor(options) {
+      var opts = options && typeof options === 'object' ? options : {};
+      if (opts.skipAutosave) {
+        clearEditorAutosaveTimer();
+        editorDraftDirty = false;
+      } else {
+        flushEditorAutosave();
+      }
       var activeEl = document.activeElement;
       if (activeEl && typeof activeEl.blur === 'function') activeEl.blur();
       document.body.classList.remove('editor-open');
@@ -71,25 +88,16 @@ function openEditor(date) {
       }
       if (overtimeMode) overtimeMode.textContent = state.draft.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti';
     }
-    function requestClearEditorDay() {
-      if (!state.editingDate) return;
-      var key = toISODate(state.editingDate);
-      var hasStoredEntry = Object.prototype.hasOwnProperty.call(state.entries || {}, key);
-      if (!hasMeaningfulDayData(state.draft) && !hasStoredEntry) return;
-      state.confirmClearOpen = true;
-      render();
+    function setEditorAutosaveStatus(status) {
+      var indicator = document.querySelector('[data-editor-autosave]');
+      if (!indicator) return;
+      var normalized = status === 'saving' || status === 'saved' ? status : 'ready';
+      indicator.setAttribute('data-status', normalized);
+      var label = indicator.querySelector('[data-editor-autosave-label]');
+      if (label) label.textContent = normalized === 'saving' ? 'Salvo...' : (normalized === 'saved' ? 'Salvato' : 'Auto');
     }
-    function clearEditorDay() {
-      if (!state.editingDate) return;
-      var key = toISODate(state.editingDate);
-      delete state.entries[key];
-      state.confirmClearOpen = false;
-      saveEntries();
-      closeEditor();
-    }
-    function saveEditor() {
-      if (!state.editingDate || !state.draft) return;
-      var key = toISODate(state.editingDate);
+    function sanitizeEditorDraft() {
+      if (!state.draft) return null;
       var sanitizedDraft = Object.assign({}, state.draft, {
         start: normalizeTimeInputValue(state.draft.start),
         end: normalizeTimeInputValue(state.draft.end),
@@ -113,14 +121,57 @@ function openEditor(date) {
       } else {
         delete sanitizedDraft.holidayName;
       }
-
-      if (!hasMeaningfulDayData(sanitizedDraft)) {
-        delete state.entries[key];
-      } else {
-        state.entries[key] = sanitizedDraft;
-      }
+      return sanitizedDraft;
+    }
+    function persistEditorDraft(force) {
+      if (!state.editingDate || !state.draft) return false;
+      if (!force && !editorDraftDirty) return true;
+      var key = toISODate(state.editingDate);
+      var sanitizedDraft = sanitizeEditorDraft();
+      if (!sanitizedDraft) return false;
+      if (!hasMeaningfulDayData(sanitizedDraft)) delete state.entries[key];
+      else state.entries[key] = sanitizedDraft;
+      state.draft = Object.assign({}, sanitizedDraft);
+      editorDraftDirty = false;
       saveEntries();
-      closeEditor();
+      setEditorAutosaveStatus('saved');
+      return true;
+    }
+    function scheduleEditorAutosave() {
+      if (!state.editingDate || !state.draft) return;
+      editorDraftDirty = true;
+      clearEditorAutosaveTimer();
+      setEditorAutosaveStatus('saving');
+      editorAutosaveTimer = window.setTimeout(function () {
+        editorAutosaveTimer = 0;
+        persistEditorDraft();
+      }, 420);
+    }
+    function flushEditorAutosave() {
+      clearEditorAutosaveTimer();
+      return persistEditorDraft();
+    }
+    function requestClearEditorDay() {
+      if (!state.editingDate) return;
+      var key = toISODate(state.editingDate);
+      var hasStoredEntry = Object.prototype.hasOwnProperty.call(state.entries || {}, key);
+      if (!hasMeaningfulDayData(state.draft) && !hasStoredEntry) return;
+      state.confirmClearOpen = true;
+      render();
+    }
+    function clearEditorDay() {
+      if (!state.editingDate) return;
+      clearEditorAutosaveTimer();
+      editorDraftDirty = false;
+      var key = toISODate(state.editingDate);
+      delete state.entries[key];
+      state.confirmClearOpen = false;
+      saveEntries();
+      closeEditor({ skipAutosave: true });
+    }
+    function saveEditor() {
+      if (!persistEditorDraft(true)) return;
+      closeEditor({ skipAutosave: true });
     }
 
     var failed = runInlineTests().filter(function (t) { return !t.passed; });

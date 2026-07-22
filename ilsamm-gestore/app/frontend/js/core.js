@@ -16,6 +16,7 @@ var errorBox = document.getElementById('errorBox');
     var STORAGE_ENTRIES_CLEARED_AT = 'gestore-entries-cleared-at-v1';
     var serverSyncTimer = 0;
     var serverSyncInFlight = false;
+    var serverSyncRevision = 0;
     var serverSyncReady = false;
     var serverSyncAllowEmptyEntries = false;
     var runtimeServicesStarted = false;
@@ -50,8 +51,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.128',
-      build: '20260722i',
+      version: '1.1.129',
+      build: '20260722j',
       appName: 'GestOre'
     };
 
@@ -1302,21 +1303,33 @@ var errorBox = document.getElementById('errorBox');
     async function syncStateToServer() {
       if (!serverSyncReady || serverSyncInFlight || !window.fetch) return;
       serverSyncInFlight = true;
+      var syncRevision = serverSyncRevision;
       try {
         var allowEmptyEntries = serverSyncAllowEmptyEntries;
         var saved = await pushSnapshotToServer(buildStateSnapshot({ allowEmptyEntries: allowEmptyEntries }));
-        applySnapshotLocally(saved, { preserveLockState: true });
-        if (allowEmptyEntries) serverSyncAllowEmptyEntries = false;
+        // Do not let an older response overwrite edits made while the request was running.
+        if (syncRevision === serverSyncRevision) {
+          applySnapshotLocally(saved, { preserveLockState: true });
+          if (allowEmptyEntries) serverSyncAllowEmptyEntries = false;
+        }
         setSyncStatus('Server locale attivo', Date.now());
       } catch (err) {
         setSyncStatus('Solo sul dispositivo', 0);
       } finally {
         serverSyncInFlight = false;
+        if (serverSyncRevision > syncRevision) {
+          if (serverSyncTimer) window.clearTimeout(serverSyncTimer);
+          serverSyncTimer = window.setTimeout(function () {
+            serverSyncTimer = 0;
+            syncStateToServer();
+          }, 0);
+        }
         if (state && state.activeTab === 'settings' && typeof render === 'function') render();
       }
     }
     function queueServerSync() {
       if (!serverSyncReady || !window.fetch) return;
+      serverSyncRevision += 1;
       if (serverSyncTimer) window.clearTimeout(serverSyncTimer);
       serverSyncTimer = window.setTimeout(function () {
         serverSyncTimer = 0;

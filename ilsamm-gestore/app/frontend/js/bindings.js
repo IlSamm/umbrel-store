@@ -521,6 +521,7 @@ function bindEvents() {
             if (!state.draft.overtimeManual) state.draft.overtimeHours = minutesToHours(getAutoOvertimeMinutes(state.draft));
           }
           state.typeOpen = false;
+          scheduleEditorAutosave();
           render();
         };
       });
@@ -529,9 +530,7 @@ function bindEvents() {
       var toggleNotes = document.querySelector('[data-toggle-notes-open]');
       if (toggleNotes) toggleNotes.onclick = function () { state.notesOpen = !state.notesOpen; render(); };
       var closeBtn = document.querySelector('[data-close-editor]');
-      if (closeBtn) closeBtn.onclick = closeEditor;
-      var saveDay = document.querySelector('[data-save-day]');
-      if (saveDay) saveDay.onclick = saveEditor;
+      if (closeBtn) closeBtn.onclick = function () { closeEditor(); };
       var start = document.getElementById('editorStart');
       if (start) {
         var syncStart = function (value) {
@@ -540,6 +539,7 @@ function bindEvents() {
           state.draft.start = normalizeTimeInputValue(value);
           syncDraftAutoOvertime();
           updateEditorSummaryUI();
+          scheduleEditorAutosave();
         };
         syncTimeFieldState(start);
         start.oninput = function (e) { syncStart(e.target.value); };
@@ -548,6 +548,7 @@ function bindEvents() {
           var normalized = normalizeTimeInputValue(e.target.value);
           e.target.value = normalized;
           syncStart(normalized);
+          flushEditorAutosave();
         };
       }
       var end = document.getElementById('editorEnd');
@@ -558,6 +559,7 @@ function bindEvents() {
           state.draft.end = normalizeTimeInputValue(value);
           syncDraftAutoOvertime();
           updateEditorSummaryUI();
+          scheduleEditorAutosave();
         };
         syncTimeFieldState(end);
         end.oninput = function (e) { syncEnd(e.target.value); };
@@ -566,6 +568,7 @@ function bindEvents() {
           var normalized = normalizeTimeInputValue(e.target.value);
           e.target.value = normalized;
           syncEnd(normalized);
+          flushEditorAutosave();
         };
       }
       var breakH = document.getElementById('editorBreakHours');
@@ -581,6 +584,7 @@ function bindEvents() {
           state.draft.breakHours = parseDecimalInput(clean, 0);
           syncDraftAutoOvertime();
           updateEditorSummaryUI();
+          scheduleEditorAutosave();
         };
         breakH.onblur = function (e) {
           if (!state.draft) return;
@@ -588,6 +592,7 @@ function bindEvents() {
           e.target.value = formatEditorDecimal(state.draft.breakHours || 0);
           syncDraftAutoOvertime();
           updateEditorSummaryUI();
+          flushEditorAutosave();
         };
       }
       var overtime = document.getElementById('editorOvertimeHours');
@@ -604,6 +609,7 @@ function bindEvents() {
           state.draft.overtimeManual = Boolean(clean);
           state.draft.overtimeHours = parseDecimalInput(clean, 0);
           updateEditorSummaryUI();
+          scheduleEditorAutosave();
         };
         overtime.onblur = function (e) {
           if (!state.draft) return;
@@ -612,12 +618,16 @@ function bindEvents() {
             state.draft.overtimeManual = false;
             syncDraftAutoOvertime(true);
             updateEditorSummaryUI();
+            scheduleEditorAutosave();
+            flushEditorAutosave();
             return;
           }
           state.draft.overtimeManual = true;
           state.draft.overtimeHours = parseDecimalInput(raw, 0);
           e.target.value = formatEditorDecimal(state.draft.overtimeHours || 0);
           updateEditorSummaryUI();
+          scheduleEditorAutosave();
+          flushEditorAutosave();
         };
       }
       document.querySelectorAll('[data-adjust-editor-hours]').forEach(function (button) {
@@ -634,6 +644,7 @@ function bindEvents() {
           var fieldInput = document.getElementById(inputId);
           if (fieldInput) fieldInput.value = formatEditorDecimal(state.draft[field] || 0);
           updateEditorSummaryUI();
+          scheduleEditorAutosave();
         };
       });
       var overtimeAuto = document.querySelector('[data-toggle-editor-overtime-auto]');
@@ -649,22 +660,25 @@ function bindEvents() {
           if (overtimeField) overtimeField.value = formatEditorDecimal(state.draft.overtimeHours || 0);
         }
         updateEditorSummaryUI();
+        scheduleEditorAutosave();
       };
       var leaveInput = document.getElementById('editorLeaveHours');
       if (leaveInput) {
         leaveInput.onfocus = function (e) { if (isZeroLikeDecimalText(e.target.value)) e.target.value = ''; requestAnimationFrame(function () { e.target.setSelectionRange(e.target.value.length, e.target.value.length); }); };
-        leaveInput.oninput = function (e) { if (!state.draft) return; var clean = sanitizeDecimalTyping(e.target.value); if (e.target.value !== clean) e.target.value = clean; state.draft.leaveHours = parseDecimalInput(clean, 0); updateEditorSummaryUI(); };
-        leaveInput.onblur = function (e) { if (!state.draft) return; state.draft.leaveHours = parseDecimalInput(e.target.value, 0); e.target.value = formatEditorDecimal(state.draft.leaveHours || 0); };
+        leaveInput.oninput = function (e) { if (!state.draft) return; var clean = sanitizeDecimalTyping(e.target.value); if (e.target.value !== clean) e.target.value = clean; state.draft.leaveHours = parseDecimalInput(clean, 0); updateEditorSummaryUI(); scheduleEditorAutosave(); };
+        leaveInput.onblur = function (e) { if (!state.draft) return; state.draft.leaveHours = parseDecimalInput(e.target.value, 0); e.target.value = formatEditorDecimal(state.draft.leaveHours || 0); scheduleEditorAutosave(); flushEditorAutosave(); };
       }
       var quantityInput = document.getElementById('editorQuantityHours');
       if (quantityInput) {
         quantityInput.onfocus = function (e) { if (isZeroLikeDecimalText(e.target.value)) e.target.value = ''; requestAnimationFrame(function () { e.target.setSelectionRange(e.target.value.length, e.target.value.length); }); };
-        quantityInput.oninput = function (e) { if (!state.draft) return; var clean = sanitizeDecimalTyping(e.target.value); if (e.target.value !== clean) e.target.value = clean; state.draft.quantityHours = parseDecimalInput(clean, 0); updateEditorSummaryUI(); };
+        quantityInput.oninput = function (e) { if (!state.draft) return; var clean = sanitizeDecimalTyping(e.target.value); if (e.target.value !== clean) e.target.value = clean; state.draft.quantityHours = parseDecimalInput(clean, 0); updateEditorSummaryUI(); scheduleEditorAutosave(); };
         quantityInput.onblur = function (e) {
           if (!state.draft) return;
           state.draft.quantityHours = parseDecimalInput(e.target.value, 0);
           e.target.value = formatEditorDecimal(state.draft.quantityHours || 0);
           updateEditorSummaryUI();
+          scheduleEditorAutosave();
+          flushEditorAutosave();
         };
       }
       var clearDay = document.querySelector('[data-clear-day]');
@@ -674,5 +688,8 @@ function bindEvents() {
       var confirmClear = document.querySelector('[data-confirm-clear]');
       if (confirmClear) confirmClear.onclick = function () { clearEditorDay(); };
       var notes = document.getElementById('editorNotes');
-      if (notes) notes.oninput = function (e) { if (state.draft) state.draft.notes = e.target.value; };
+      if (notes) {
+        notes.oninput = function (e) { if (!state.draft) return; state.draft.notes = e.target.value; scheduleEditorAutosave(); };
+        notes.onblur = flushEditorAutosave;
+      }
     }

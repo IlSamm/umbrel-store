@@ -172,23 +172,38 @@ function renderPayslipsLegacy() {
       if (!entry) dayTargetCopy = 'tocca per inserire la giornata';
       if (entry && isStateOnlyType(entry.type)) dayTargetCopy = 'Giornata segnata';
       if (isRestDay) dayTargetCopy = 'Nessun turno previsto';
-      var daySummaryClass = !entry ? ' is-empty-summary' : (isRestDay ? ' is-rest-summary' : ' is-work-summary');
+      var daySummaryClass = !entry ? ' is-empty-summary' : (stateDayUi ? (' is-state-summary' + (isRestDay ? ' is-rest-summary' : '')) : ' is-work-summary');
       var dayTitleLabel = dayLabel.replace(/\s+\d+\s*$/, '');
       var fullDateLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+      var stateRegistrationLabel = entry && entry.autoRest ? 'Riposo previsto' : (entry && entry.autoHoliday ? 'Festivita italiana' : 'Giornata registrata');
+      var stateCoveredText = todayDisplayMinutes > 0 ? (formatDurationPadded(todayDisplayMinutes) + ' coperte') : '';
+      var dayCardContent = stateDayUi
+        ? ('<div class="go-state-hero">' +
+            '<div class="go-state-emoji-shell"><span class="go-state-emoji" aria-hidden="true">' + stateDayUi.emoji + '</span></div>' +
+            '<div class="go-state-eyebrow">' + escapeHtml(type ? type.label : 'Giornata') + '</div>' +
+            '<div class="go-state-title">' + escapeHtml(stateDayUi.title) + '</div>' +
+            '<div class="go-state-message">' + escapeHtml(stateDayUi.message) + '</div>' +
+          '</div>' +
+          '<div class="go-state-facts">' +
+            '<span class="go-state-fact">' + icons.check + '<span>' + stateRegistrationLabel + '</span></span>' +
+            (stateCoveredText ? ('<span class="go-state-fact">' + icons.clock + '<span>' + stateCoveredText + '</span></span>') : '') +
+            (entry && entry.notes ? ('<span class="go-state-fact">' + icons.note + '<span>Nota presente</span></span>') : '') +
+          '</div>')
+        : ('<div class="go-hero-core">' +
+            '<div class="go-label">' + dayMainLabel + '</div>' +
+            '<div class="go-total-number">' + dayPrimaryText + '</div>' +
+            '<div class="go-day-target-copy">' + dayTargetCopy + '</div>' +
+          '</div>' +
+          '<div class="go-stat-column">' +
+            '<div class="go-stat-row go-stat-blue"><span class="go-stat-icon">' + icons.briefcase + '</span><span><em>' + ordinaryLabel + '</em><strong>' + ordinaryText + '</strong></span></div>' +
+            '<div class="go-stat-row go-stat-violet"><span class="go-stat-icon">' + icons.activity + '</span><span><em>Extra</em><strong>' + overtimeText + '</strong></span></div>' +
+            '<div class="go-stat-row go-stat-orange"><span class="go-stat-icon">' + icons.coffee + '</span><span><em>Pausa</em><strong>' + pauseText + '</strong></span></div>' +
+          '</div>');
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
-          '<button class="go-card go-day-card go-day-card-v2' + daySummaryClass + '" data-open-date="' + key + '">' +
+          '<button class="go-card go-day-card go-day-card-v2' + daySummaryClass + '" data-day-type="' + (entry ? escapeHtml(entry.type) : 'empty') + '" data-open-date="' + key + '">' +
             '<div class="go-day-head"><div class="go-day-title">' + dayTitleLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div>' +
-            '<div class="go-hero-core">' +
-              '<div class="go-label">' + dayMainLabel + '</div>' +
-              '<div class="go-total-number">' + dayPrimaryText + '</div>' +
-              '<div class="go-day-target-copy">' + dayTargetCopy + '</div>' +
-            '</div>' +
-            '<div class="go-stat-column">' +
-              '<div class="go-stat-row go-stat-blue"><span class="go-stat-icon">' + icons.briefcase + '</span><span><em>' + ordinaryLabel + '</em><strong>' + ordinaryText + '</strong></span></div>' +
-              '<div class="go-stat-row go-stat-violet"><span class="go-stat-icon">' + icons.activity + '</span><span><em>Extra</em><strong>' + overtimeText + '</strong></span></div>' +
-              '<div class="go-stat-row go-stat-orange"><span class="go-stat-icon">' + icons.coffee + '</span><span><em>Pausa</em><strong>' + pauseText + '</strong></span></div>' +
-            '</div>' +
+            dayCardContent +
           '</button>' +
           '<section class="go-card go-analytics-card go-week-card">' +
             '<div class="go-card-head"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ore e target</div></div><div class="go-card-badge">' + formatHourValue(state.settings.weeklyTarget) + ' target</div></div>' +
@@ -741,7 +756,7 @@ function renderOverlayLegacy() {
 
       var dynamicSections = '';
       if (d.type === 'riposo') {
-        dynamicSections = '<section class="day-editor-card day-editor-state-card"><span class="day-editor-state-icon">' + typeIconSvg(d.type) + '</span><div><span class="day-editor-kicker">RIPOSO</span><strong>Nessun orario da inserire</strong><small>Puoi aggiungere una nota oppure salvare la giornata.</small></div></section>';
+        dynamicSections = '<section class="day-editor-card day-editor-state-card"><span class="day-editor-state-icon">' + typeIconSvg(d.type) + '</span><div><span class="day-editor-kicker">RIPOSO</span><strong>Nessun orario da inserire</strong><small>Puoi aggiungere una nota: la giornata si salva automaticamente.</small></div></section>';
       } else if (isStateOnly) {
         dynamicSections = '<section class="day-editor-card day-editor-quantity-card"><div class="day-editor-kicker">QUANTITA</div><div class="day-editor-quantity-row"><span class="day-editor-round-icon is-blue">' + icons.clock + '</span><div class="day-editor-quantity-copy"><strong>' + getEditorQuantityLabel(d.type) + '</strong><small>' + getEditorQuantityHint(d.type) + '</small></div><div class="day-editor-number-field"><input id="editorQuantityHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.quantityHours || 0) + '" aria-label="' + getEditorQuantityLabel(d.type) + '"><span>h</span></div></div></section>';
       } else {
@@ -756,13 +771,13 @@ function renderOverlayLegacy() {
       var holidayBadge = holidayName ? '<span class="day-editor-holiday-badge">' + escapeHtml(holidayName) + '</span>' : '';
       var canClear = hasMeaningfulDayData(d) || Boolean(state.entries[toISODate(date)]);
 
-      return '<div class="overlay open editor-overlay editor-overlay-v3" role="dialog" aria-modal="true" aria-label="Inserisci giornata"><header class="day-editor-header"><button class="day-editor-close" data-close-editor="1" aria-label="Chiudi">' + icons.x + '</button><div class="day-editor-header-copy"><div class="day-editor-title">Inserisci giornata</div><div class="day-editor-date">' + editorDateLabel + '</div></div><button class="day-editor-save" data-save-day="1">Salva</button></header>' +
+      return '<div class="overlay open editor-overlay editor-overlay-v3" role="dialog" aria-modal="true" aria-label="Inserisci giornata"><header class="day-editor-header"><button class="day-editor-back" data-close-editor="1" aria-label="Torna indietro">' + icons.left + '</button><div class="day-editor-header-copy"><div class="day-editor-title">Inserisci giornata</div><div class="day-editor-date">' + editorDateLabel + '</div></div><div class="day-editor-autosave" data-editor-autosave data-status="ready" aria-live="polite"><span class="day-editor-autosave-icon">' + icons.check + '</span><span data-editor-autosave-label>Auto</span></div></header>' +
         '<div class="day-editor-scroll"><main class="day-editor-stack">' +
           '<section class="day-editor-type-section"><button class="day-editor-type-card" data-toggle-type-open="1"><span class="day-editor-type-icon" style="background:' + typeIconBg(d.type) + '">' + typeIconSvg(d.type) + '</span><span class="day-editor-type-copy"><strong>' + currentType.label + '</strong><small>' + escapeHtml(typeSubtitle) + '</small>' + holidayBadge + '</span><span class="day-editor-chevron">' + icons.right + '</span></button>' +
           (state.typeOpen ? '<div class="day-editor-type-options">' + others.map(function (pair) { return '<button class="day-editor-type-option" data-select-type="' + pair[0] + '"><span class="day-editor-type-option-icon" style="background:' + typeIconBg(pair[0]) + '">' + typeIconSvg(pair[0]) + '</span><span>' + pair[1].label + '</span><small>Scegli</small></button>'; }).join('') + '</div>' : '') + '</section>' +
           dynamicSections +
-          '<section class="day-editor-card day-editor-notes-card"><div class="day-editor-kicker">NOTE (OPZIONALI)</div><label class="day-editor-notes-field"><span class="day-editor-round-icon is-blue">' + icons.note + '</span><textarea id="editorNotes" rows="1" placeholder="Aggiungi una nota alla giornata...">' + escapeHtml(d.notes) + '</textarea></label></section>' +
           '<section class="day-editor-card day-editor-summary-card"><div class="day-editor-kicker">RIEPILOGO GIORNATA</div>' + summaryHtml + '</section>' +
+          '<section class="day-editor-card day-editor-notes-card"><div class="day-editor-kicker">NOTE (OPZIONALI)</div><label class="day-editor-notes-field"><span class="day-editor-round-icon is-blue">' + icons.note + '</span><textarea id="editorNotes" rows="1" placeholder="Aggiungi una nota alla giornata...">' + escapeHtml(d.notes) + '</textarea></label></section>' +
           (canClear ? '<section class="day-editor-danger-section"><button class="day-editor-danger" data-clear-day="1">' + icons.trash + '<span>Cancella giornata</span></button></section>' : '') +
         '</main></div></div>';
     }
