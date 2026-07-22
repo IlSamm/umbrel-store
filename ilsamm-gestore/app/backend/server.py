@@ -28,8 +28,8 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.1.126"
-BUILD_CACHE = "20260722g"
+BUILD_VERSION = "1.1.127"
+BUILD_CACHE = "20260722h"
 AUTH_STORE = AuthStore(DATA_DIR)
 
 DEFAULT_SYNC_META = {
@@ -171,6 +171,16 @@ def save_snapshot(
 
 def snapshot_has_data(snapshot: dict) -> bool:
     return bool(snapshot.get("entries") or snapshot.get("payslips") or snapshot.get("settings"))
+
+
+def account_snapshot_summary(account: dict) -> dict:
+    snapshot = load_snapshot(db_path=AUTH_STORE.user_db_path(account["id"]))
+    return {
+        **account,
+        "entries": len(snapshot.get("entries") or {}),
+        "payslips": len(snapshot.get("payslips") or []),
+        "updatedAt": int(snapshot.get("updatedAt") or 0),
+    }
 
 
 def merge_snapshots(legacy: dict, device: dict | None) -> dict:
@@ -377,6 +387,18 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 "hasLegacyData": snapshot_has_data(load_snapshot(db_path=DB_PATH)),
             })
             return
+        if parsed.path == "/api/admin/accounts":
+            try:
+                accounts = [account_snapshot_summary(account) for account in AUTH_STORE.list_accounts(self._session_token())]
+                current = self._current_user()
+                self._send_json({
+                    "ok": True,
+                    "accounts": accounts,
+                    "activeUserId": str((current or {}).get("id") or ""),
+                })
+            except AuthError as exc:
+                self._send_auth_error(exc)
+            return
         if parsed.path == "/api/snapshot":
             db_path = self._snapshot_db_for_request()
             if db_path is not None:
@@ -442,6 +464,15 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 AUTH_STORE.logout(self._session_token())
                 self._send_json({"ok": True}, cookie=self._session_cookie("", clear=True))
                 return
+            if parsed.path == "/api/admin/access":
+                payload = self._read_json_body()
+                user = AUTH_STORE.switch_admin_account(self._session_token(), payload.get("userId", ""))
+                self._send_json({"ok": True, "user": user})
+                return
+            if parsed.path == "/api/admin/return":
+                user = AUTH_STORE.return_to_owner(self._session_token())
+                self._send_json({"ok": True, "user": user})
+                return
             if parsed.path == "/api/backup/restore":
                 user = self._require_user()
                 if not user:
@@ -461,6 +492,28 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 self._handle_snapshot_write()
                 return
             self.send_error(HTTPStatus.NOT_FOUND, "Endpoint non trovato")
+        except AuthError as exc:
+            self._send_auth_error(exc)
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._send_json({"error": f"Errore interno: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def do_DELETE(self) -> None:
+        if self._reject_cross_origin():
+            return
+        parsed = urlparse(self.path)
+        try:
+            if parsed.path != "/api/admin/accounts":
+                self.send_error(HTTPStatus.NOT_FOUND, "Endpoint non trovato")
+                return
+            payload = self._read_json_body()
+            deleted = AUTH_STORE.delete_account(
+                self._session_token(),
+                payload.get("userId", ""),
+                payload.get("confirmation", ""),
+            )
+            self._send_json({"ok": True, "deleted": deleted})
         except AuthError as exc:
             self._send_auth_error(exc)
         except ValueError as exc:

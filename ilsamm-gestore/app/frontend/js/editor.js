@@ -138,6 +138,7 @@ function openEditor(date) {
   var startedAt = Date.now();
   var closed = false;
   var closeTimer = null;
+  var maxAccountWaitMs = 10000;
 
   function removeSplashNode() {
     if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
@@ -158,9 +159,23 @@ function openEditor(date) {
   function scheduleClose() {
     if (closed || closeTimer) return;
     var elapsed = Date.now() - startedAt;
+    var accountReady = typeof state !== 'undefined' && (!state.account || state.account.loaded);
+    if (!accountReady && elapsed < maxAccountWaitMs) {
+      closeTimer = window.setTimeout(function () {
+        closeTimer = null;
+        scheduleClose();
+      }, 100);
+      return;
+    }
     var wait = Math.max(0, minVisibleMs - elapsed);
     closeTimer = window.setTimeout(closeSplash, wait);
   }
+
+  window.addEventListener('gestore:account-ready', function () {
+    if (closeTimer) window.clearTimeout(closeTimer);
+    closeTimer = null;
+    scheduleClose();
+  }, { once: true });
 
   if (document.readyState === 'complete') {
     scheduleClose();

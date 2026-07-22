@@ -1163,6 +1163,10 @@ function renderOverlayLegacy() {
       var savedCount = (state.payslips || []).length;
       var dailyTarget = Math.max(0, Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
       var weeklyTarget = Math.max(0, Number(state.settingsDraft.weeklyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
+      var accountUser = state.account && state.account.user ? state.account.user : {};
+      var accountManagementRow = accountUser.role === 'owner' && !accountUser.impersonating
+        ? '<button class="profile-row profile-owner-row" data-open-profile-section="settings" data-settings-section="accounts"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Gestione account</strong><small>Visualizza, apri o elimina i profili registrati</small></span><span class="profile-row-value is-live">Proprietario</span><span class="profile-row-chevron">' + icons.right + '</span></button>'
+        : '';
       return '<div class="profile-page profile-page-v2">' +
         '<header class="profile-v2-top"><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Gest<span>Ore</span></div></div></header>' +
         '<section class="profile-v2-hero">' +
@@ -1176,6 +1180,7 @@ function renderOverlayLegacy() {
         '</section>' +
         '<div class="profile-section-title">Gestione personale</div>' +
         '<section class="profile-group profile-v2-group">' +
+          accountManagementRow +
           '<button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni</strong><small>Profilo, calendario, notifiche, privacy e dati</small></span><span class="profile-row-value">5 sezioni</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="payslips"><span class="profile-row-icon is-violet">' + icons.receipt + '</span><span class="profile-row-copy"><strong>Buste paga</strong><small>' + savedCount + (savedCount === 1 ? ' busta salvata' : ' buste salvate') + '</small></span><span class="profile-row-value">Apri</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-blue">' + icons.download + '</span><span class="profile-row-copy"><strong>Report e file</strong><small>PDF mensile, PDF annuale ed Excel</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
@@ -1316,6 +1321,14 @@ function renderOverlayLegacy() {
         '</div>';
       }
 
+      if (section === 'accounts') {
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page account-admin-page">' +
+          topBar('Gestione account', true) +
+          intro('blue', icons.user, 'AREA PROPRIETARIO', 'Profili e database', 'Controlla chi usa GestOre e apri un database senza conoscere la password dell&apos;utente.') +
+          (typeof renderAdminAccountsSettings === 'function' ? renderAdminAccountsSettings() : '') +
+        '</div>';
+      }
+
       return '<div class="settings-modern-page settings-page-v2 settings-hub-page">' +
         topBar('Impostazioni', false) +
         '<section class="settings-hub-hero"><span class="settings-hub-hero-icon">' + icons.settings + '</span><div><span>CENTRO DI CONTROLLO</span><h2>Tutto al suo posto</h2><p>Ogni preferenza ha ora una sezione dedicata.</p></div><b>v' + escapeHtml(state.settings.version) + '</b></section>' +
@@ -1364,7 +1377,7 @@ function renderOverlayLegacy() {
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
         '<section class="screen exports-screen ' + (state.activeTab === 'exports' ? ('active' + switchClass) : '') + '">' + renderExports() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderAccountGate === 'function' ? renderAccountGate() : '');
+        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '');
       bindEvents();
       if (typeof bindAccountEvents === 'function') bindAccountEvents();
       initHomeTitleMorph();

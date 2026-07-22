@@ -47,7 +47,7 @@ function bindEvents() {
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
           var section = btn.dataset.openSettingsSection;
-          if (['profile', 'calendar', 'notifications', 'privacy', 'data'].indexOf(section) === -1) return;
+          if (['profile', 'calendar', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
           state.settingsSection = section;
           render();
         };

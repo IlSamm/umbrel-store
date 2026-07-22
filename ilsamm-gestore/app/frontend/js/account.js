@@ -4,6 +4,9 @@ var ACCOUNT_LOGIN_URL = '/api/auth/login';
 var ACCOUNT_LOGOUT_URL = '/api/auth/logout';
 var ACCOUNT_BACKUP_URL = '/api/backup';
 var ACCOUNT_RESTORE_URL = '/api/backup/restore';
+var ACCOUNT_ADMIN_URL = '/api/admin/accounts';
+var ACCOUNT_ADMIN_ACCESS_URL = '/api/admin/access';
+var ACCOUNT_ADMIN_RETURN_URL = '/api/admin/return';
 var STORAGE_ACTIVE_ACCOUNT = 'gestore-active-account-v1';
 
 state.account = {
@@ -16,7 +19,10 @@ state.account = {
   mode: 'login',
   busy: false,
   error: '',
-  notice: ''
+  notice: '',
+  adminAccounts: null,
+  adminLoading: false,
+  deleteCandidate: null
 };
 
 function clearGestOreDeviceCache() {
@@ -105,6 +111,10 @@ async function bootstrapAccountSession() {
     state.account.user = null;
     state.account.notice = 'Server account non disponibile: modalita locale attiva.';
     await bootstrapServerState();
+  } finally {
+    var splashStatus = document.getElementById('splashStatusText');
+    if (splashStatus) splashStatus.textContent = 'Dati pronti';
+    window.dispatchEvent(new CustomEvent('gestore:account-ready'));
   }
 }
 
@@ -230,11 +240,97 @@ async function restoreAccountBackup(file) {
   }
 }
 
+async function loadAdminAccounts() {
+  var user = state.account.user || {};
+  if (!user.canManageAccounts || state.account.adminLoading) return;
+  setAccountUiState({ adminLoading: true, error: '' });
+  try {
+    var response = await fetch(ACCOUNT_ADMIN_URL, { cache: 'no-store' });
+    var payload = await readJsonResponse(response);
+    setAccountUiState({ adminLoading: false, adminAccounts: payload.accounts || [], error: '' });
+  } catch (err) {
+    setAccountUiState({ adminLoading: false, adminAccounts: [], error: err.message || 'Impossibile caricare gli account.' });
+  }
+}
+
+async function openManagedAccount(userId) {
+  if (!userId || state.account.busy) return;
+  setAccountUiState({ busy: true, error: '', notice: 'Apertura del database selezionato...' });
+  try {
+    await syncStateToServer();
+    var response = await fetch(ACCOUNT_ADMIN_ACCESS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ userId: userId })
+    });
+    var payload = await readJsonResponse(response);
+    activateAccountOnDevice(payload.user && payload.user.id);
+    window.location.reload();
+  } catch (err) {
+    setAccountUiState({ busy: false, notice: '', error: err.message || 'Impossibile aprire questo account.' });
+  }
+}
+
+async function returnToOwnerAccount() {
+  if (state.account.busy) return;
+  setAccountUiState({ busy: true, error: '', notice: 'Ritorno al profilo Proprietario...' });
+  try {
+    await syncStateToServer();
+    var response = await fetch(ACCOUNT_ADMIN_RETURN_URL, { method: 'POST', cache: 'no-store' });
+    var payload = await readJsonResponse(response);
+    activateAccountOnDevice(payload.user && payload.user.id);
+    window.location.reload();
+  } catch (err) {
+    setAccountUiState({ busy: false, notice: '', error: err.message || 'Impossibile tornare al Proprietario.' });
+  }
+}
+
+function chooseAccountForDeletion(userId) {
+  var account = (state.account.adminAccounts || []).find(function (item) { return item.id === userId; });
+  if (!account || account.role === 'owner') return;
+  setAccountUiState({ deleteCandidate: account, error: '', notice: '' });
+}
+
+async function deleteManagedAccount(form) {
+  var account = state.account.deleteCandidate;
+  if (!account || state.account.busy) return;
+  var confirmation = String(form.querySelector('[name="accountConfirmation"]').value || '').trim();
+  if (confirmation !== String(account.username || '')) {
+    setAccountUiState({ error: 'Scrivi esattamente ' + account.username + ' per confermare.' });
+    return;
+  }
+  setAccountUiState({ busy: true, error: '', notice: 'Eliminazione definitiva in corso...' });
+  try {
+    var response = await fetch(ACCOUNT_ADMIN_URL, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ userId: account.id, confirmation: confirmation })
+    });
+    await readJsonResponse(response);
+    state.account.deleteCandidate = null;
+    state.account.adminAccounts = null;
+    setAccountUiState({ busy: false, notice: 'Account ' + account.username + ' eliminato definitivamente.', error: '' });
+    loadAdminAccounts();
+  } catch (err) {
+    setAccountUiState({ busy: false, notice: '', error: err.message || 'Eliminazione non riuscita.' });
+  }
+}
+
+function formatAccountActivity(timestamp) {
+  var value = Number(timestamp) || 0;
+  if (!value) return 'Mai aperto';
+  try {
+    return 'Ultimo accesso ' + new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+  } catch (err) {
+    return 'Accesso registrato';
+  }
+}
+
 function renderAccountGate() {
   if (state.account.authenticated) return '';
-  if (!state.account.loaded) {
-    return '<div class="account-gate is-loading"><div class="account-loading-mark">' + icons.user + '</div><strong>Controllo account</strong><span>Preparazione dei tuoi dati...</span></div>';
-  }
+  if (!state.account.loaded) return '';
   var registerMode = state.account.mode === 'register';
   var firstSetup = state.account.setupRequired;
   var title = registerMode ? (firstSetup ? 'Crea il tuo account' : 'Nuovo account') : 'Bentornato';
@@ -257,6 +353,57 @@ function renderAccountGate() {
     (firstSetup ? '' : '<button class="account-mode-switch" data-account-mode="' + (registerMode ? 'login' : 'register') + '">' + (registerMode ? 'Hai gia un account? Accedi' : 'Non hai un account? Registrati') + '</button>') +
     '<div class="account-security-note">' + icons.lock + '<span>Password protetta e database separato per ogni utente.</span></div>' +
   '</div></div>';
+}
+
+function renderAdminAccountsSettings() {
+  var user = state.account.user || {};
+  if (!user.canManageAccounts || user.impersonating) {
+    return '<section class="account-admin-empty">' + icons.lock + '<strong>Area riservata</strong><p>Solo il profilo Proprietario puo gestire gli account.</p></section>';
+  }
+  var accounts = state.account.adminAccounts;
+  var message = state.account.error
+    ? '<div class="account-settings-message is-error">' + escapeHtml(state.account.error) + '</div>'
+    : (state.account.notice ? '<div class="account-settings-message">' + escapeHtml(state.account.notice) + '</div>' : '');
+  if (state.account.adminLoading || accounts === null) {
+    return '<section class="account-admin-loading"><span></span><strong>Carico gli account</strong><small>Nessun dato viene condiviso tra i profili</small></section>' + message;
+  }
+  var rows = accounts.map(function (account) {
+    var isOwner = account.role === 'owner';
+    var isCurrent = account.id === user.id;
+    var initial = String(account.username || 'U').charAt(0).toUpperCase();
+    return '<article class="account-admin-row ' + (isOwner ? 'is-owner' : '') + '">' +
+      '<div class="account-admin-avatar">' + escapeHtml(initial) + '</div>' +
+      '<div class="account-admin-copy"><div><strong>' + escapeHtml(account.username || 'Utente') + '</strong><span class="' + (isOwner ? 'is-owner' : '') + '">' + (isOwner ? 'PROPRIETARIO' : 'UTENTE') + '</span></div>' +
+        '<p>' + escapeHtml(formatAccountActivity(account.lastSeenAt)) + '</p>' +
+        '<div class="account-admin-stats"><span>' + Number(account.entries || 0) + ' giornate</span><span>' + Number(account.payslips || 0) + ' buste</span></div>' +
+      '</div>' +
+      '<div class="account-admin-actions">' +
+        (isCurrent ? '<span class="account-admin-current">ATTIVO</span>' : '<button class="account-admin-open" data-admin-open-account="' + account.id + '">' + icons.right + '<span>Apri</span></button>') +
+        (isOwner ? '' : '<button class="account-admin-delete" data-admin-delete-account="' + account.id + '" aria-label="Elimina ' + escapeHtml(account.username || 'account') + '">' + icons.trash + '</button>') +
+      '</div>' +
+    '</article>';
+  }).join('');
+  return '<section class="account-owner-card"><span>' + icons.lock + '</span><div><small>ACCESSO PROPRIETARIO</small><strong>Solo tu puoi entrare qui</strong><p>Le password non sono visibili. Quando apri un profilo usi una sessione amministrativa temporanea.</p></div></section>' +
+    '<div class="settings-v2-section-title">Profili registrati</div>' +
+    '<section class="account-admin-list">' + rows + '</section>' + message +
+    '<section class="account-admin-warning">' + icons.lock + '<p>L&apos;eliminazione rimuove definitivamente profilo, sessioni e database. Il Proprietario non puo essere cancellato.</p></section>';
+}
+
+function renderAdminSessionUi() {
+  var user = state.account.user || {};
+  var candidate = state.account.deleteCandidate;
+  var banner = user.impersonating && user.owner
+    ? '<aside class="account-admin-session"><div><small>MODALITA PROPRIETARIO</small><strong>Stai gestendo ' + escapeHtml(user.username || 'un account') + '</strong></div><button data-admin-return="1">Torna a ' + escapeHtml(user.owner.username || 'Proprietario') + '</button></aside>'
+    : '';
+  if (!candidate) return banner;
+  var error = state.account.error ? '<div class="account-delete-error">' + escapeHtml(state.account.error) + '</div>' : '';
+  return banner + '<div class="account-delete-overlay" role="dialog" aria-modal="true" aria-labelledby="accountDeleteTitle"><form class="account-delete-dialog" data-admin-delete-form="1">' +
+    '<button type="button" class="account-delete-close" data-admin-delete-cancel="1" aria-label="Chiudi">' + icons.x + '</button>' +
+    '<span class="account-delete-icon">' + icons.trash + '</span><small>ELIMINAZIONE DEFINITIVA</small><h2 id="accountDeleteTitle">Eliminare ' + escapeHtml(candidate.username || 'questo account') + '?</h2>' +
+    '<p>Verranno cancellati il profilo, tutte le sessioni e il suo database. Questa operazione non puo essere annullata.</p>' +
+    '<label><span>Scrivi <b>' + escapeHtml(candidate.username || '') + '</b> per confermare</span><input name="accountConfirmation" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required></label>' +
+    error + '<div class="account-delete-actions"><button type="button" data-admin-delete-cancel="1">Annulla</button><button type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Eliminazione...' : 'Elimina definitivamente') + '</button></div>' +
+  '</form></div>';
 }
 
 function renderAccountDataSettings() {
@@ -299,4 +446,21 @@ function bindAccountEvents() {
   if (input) input.onchange = function () { restoreAccountBackup(input.files && input.files[0]); };
   var logout = document.querySelector('[data-account-logout]');
   if (logout) logout.onclick = logoutAccount;
+  document.querySelectorAll('[data-admin-open-account]').forEach(function (button) {
+    button.onclick = function () { openManagedAccount(button.dataset.adminOpenAccount); };
+  });
+  document.querySelectorAll('[data-admin-delete-account]').forEach(function (button) {
+    button.onclick = function () { chooseAccountForDeletion(button.dataset.adminDeleteAccount); };
+  });
+  document.querySelectorAll('[data-admin-delete-cancel]').forEach(function (button) {
+    button.onclick = function () { setAccountUiState({ deleteCandidate: null, error: '', notice: '' }); };
+  });
+  var deleteForm = document.querySelector('[data-admin-delete-form]');
+  if (deleteForm) deleteForm.onsubmit = function (event) { event.preventDefault(); deleteManagedAccount(deleteForm); };
+  var returnButton = document.querySelector('[data-admin-return]');
+  if (returnButton) returnButton.onclick = returnToOwnerAccount;
+  var adminUser = state.account.user || {};
+  if (state.activeTab === 'settings' && state.settingsSection === 'accounts' && adminUser.canManageAccounts && !adminUser.impersonating && state.account.adminAccounts === null && !state.account.adminLoading) {
+    window.setTimeout(loadAdminAccounts, 0);
+  }
 }
