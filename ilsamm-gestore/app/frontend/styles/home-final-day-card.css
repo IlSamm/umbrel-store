@@ -154,9 +154,9 @@
     flex-wrap: wrap !important;
     gap: 8px !important;
     width: 100% !important;
-    margin-top: 19px !important;
-    padding-top: 15px !important;
-    border-top: 1px solid rgba(143, 166, 219, .13) !important;
+    margin-top: 16px !important;
+    padding-top: 0 !important;
+    border-top: 0 !important;
   }
 
   .screen.home-screen .go-state-fact {

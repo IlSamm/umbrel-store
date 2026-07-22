@@ -4,6 +4,7 @@ var ACCOUNT_LOGIN_URL = '/api/auth/login';
 var ACCOUNT_LOGOUT_URL = '/api/auth/logout';
 var ACCOUNT_BACKUP_URL = '/api/backup';
 var ACCOUNT_RESTORE_URL = '/api/backup/restore';
+var ACCOUNT_STORAGE_URL = '/api/storage';
 var ACCOUNT_ADMIN_URL = '/api/admin/accounts';
 var ACCOUNT_ADMIN_ACCESS_URL = '/api/admin/access';
 var ACCOUNT_ADMIN_RETURN_URL = '/api/admin/return';
@@ -20,6 +21,17 @@ state.account = {
   busy: false,
   error: '',
   notice: '',
+  storage: {
+    loaded: false,
+    loading: false,
+    bytes: 0,
+    databaseBytes: 0,
+    journalBytes: 0,
+    entries: 0,
+    payslips: 0,
+    updatedAt: 0,
+    error: ''
+  },
   adminAccounts: null,
   adminLoading: false,
   deleteCandidate: null
@@ -46,6 +58,19 @@ function resetRuntimeAccountData() {
   state.privacyLocked = false;
   state.syncStatus = 'In attesa di accesso';
   state.lastSyncedAt = 0;
+  if (state.account && state.account.storage) {
+    state.account.storage = {
+      loaded: false,
+      loading: false,
+      bytes: 0,
+      databaseBytes: 0,
+      journalBytes: 0,
+      entries: 0,
+      payslips: 0,
+      updatedAt: 0,
+      error: ''
+    };
+  }
 }
 
 function activateAccountOnDevice(userId) {
@@ -72,6 +97,42 @@ async function readJsonResponse(response) {
     throw error;
   }
   return payload;
+}
+
+function formatAccountStorageBytes(value) {
+  var bytes = Math.max(0, Number(value) || 0);
+  if (bytes < 1024) return Math.round(bytes) + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + ' KB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' GB';
+}
+
+async function loadAccountStorageUsage(force) {
+  var storage = state.account && state.account.storage;
+  if (!storage || storage.loading || (!force && storage.loaded) || !state.account.authenticated) return;
+  storage.loading = true;
+  storage.error = '';
+  if (typeof render === 'function') render();
+  try {
+    var response = await fetch(ACCOUNT_STORAGE_URL, { cache: 'no-store' });
+    var payload = await readJsonResponse(response);
+    state.account.storage = {
+      loaded: true,
+      loading: false,
+      bytes: Math.max(0, Number(payload.bytes) || 0),
+      databaseBytes: Math.max(0, Number(payload.databaseBytes) || 0),
+      journalBytes: Math.max(0, Number(payload.journalBytes) || 0),
+      entries: Math.max(0, Number(payload.entries) || 0),
+      payslips: Math.max(0, Number(payload.payslips) || 0),
+      updatedAt: Math.max(0, Number(payload.updatedAt) || 0),
+      error: ''
+    };
+  } catch (err) {
+    storage.loading = false;
+    storage.loaded = false;
+    storage.error = err.message || 'Spazio database non disponibile.';
+  }
+  if (typeof render === 'function') render();
 }
 
 async function bootstrapAccountSession() {
@@ -410,12 +471,21 @@ function renderAccountDataSettings() {
   var user = state.account.user || {};
   var username = String(user.username || state.settings.userName || 'Utente');
   var initial = username.charAt(0).toUpperCase() || 'U';
+  var storage = state.account.storage || {};
+  var storageValue = storage.loading ? 'Calcolo...' : (storage.loaded ? formatAccountStorageBytes(storage.bytes) : '--');
+  var storageMeta = storage.error
+    ? escapeHtml(storage.error)
+    : (storage.loaded
+      ? (storage.entries + (storage.entries === 1 ? ' giornata' : ' giornate') + ' e ' + storage.payslips + (storage.payslips === 1 ? ' busta' : ' buste'))
+      : 'Misurazione del database personale');
   var message = state.account.error
     ? '<div class="account-settings-message is-error">' + escapeHtml(state.account.error) + '</div>'
     : (state.account.notice ? '<div class="account-settings-message">' + escapeHtml(state.account.notice) + '</div>' : '');
   return '<section class="account-current-card"><span>' + escapeHtml(initial) + '</span><div><small>ACCOUNT ATTIVO</small><strong>' + escapeHtml(username) + '</strong><p>Database personale collegato</p></div><i>' + icons.check + '</i></section>' +
     '<div class="settings-v2-section-title">Sincronizzazione</div>' +
     '<section class="settings-v2-group"><div class="settings-v2-sync-row"><span class="settings-v2-icon is-green">' + icons.check + '</span><span class="settings-v2-copy"><strong>Salvataggio automatico</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></span><span>ATTIVO</span></div></section>' +
+    '<div class="settings-v2-section-title">Spazio sul server</div>' +
+    '<section class="account-storage-card"><span class="account-storage-icon">' + icons.receipt + '</span><div class="account-storage-copy"><small>DATABASE OCCUPATO</small><strong>' + storageValue + '</strong><p>' + storageMeta + '</p></div><button type="button" data-refresh-account-storage="1" aria-label="Aggiorna spazio database" ' + (storage.loading ? 'disabled' : '') + '>' + icons.activity + '<span>Aggiorna</span></button></section>' +
     '<div class="settings-v2-section-title">Backup sul telefono</div>' +
     '<section class="account-backup-card"><div class="account-backup-copy"><span class="settings-v2-icon is-blue">' + icons.download + '</span><div><strong>Il tuo database, sempre con te</strong><p>Scarica un file SQLite con ore, ferie, impostazioni e buste del solo account ' + escapeHtml(username) + '.</p></div></div>' +
       '<button class="account-backup-primary" data-download-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.download + '<span>Scarica database</span></button>' +
@@ -446,6 +516,8 @@ function bindAccountEvents() {
   if (input) input.onchange = function () { restoreAccountBackup(input.files && input.files[0]); };
   var logout = document.querySelector('[data-account-logout]');
   if (logout) logout.onclick = logoutAccount;
+  var refreshStorage = document.querySelector('[data-refresh-account-storage]');
+  if (refreshStorage) refreshStorage.onclick = function () { loadAccountStorageUsage(true); };
   document.querySelectorAll('[data-admin-open-account]').forEach(function (button) {
     button.onclick = function () { openManagedAccount(button.dataset.adminOpenAccount); };
   });
@@ -462,5 +534,8 @@ function bindAccountEvents() {
   var adminUser = state.account.user || {};
   if (state.activeTab === 'settings' && state.settingsSection === 'accounts' && adminUser.canManageAccounts && !adminUser.impersonating && state.account.adminAccounts === null && !state.account.adminLoading) {
     window.setTimeout(loadAdminAccounts, 0);
+  }
+  if (state.activeTab === 'settings' && state.settingsSection === 'data' && state.account.authenticated && !state.account.storage.loaded && !state.account.storage.loading && !state.account.storage.error) {
+    window.setTimeout(function () { loadAccountStorageUsage(false); }, 0);
   }
 }

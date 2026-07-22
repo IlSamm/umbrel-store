@@ -607,6 +607,220 @@
   box-shadow: none;
 }
 
+.payroll-rates-panel {
+  gap: 12px;
+}
+
+.payroll-rate-reuse {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 64px;
+  padding: 9px 11px;
+  color: #fff;
+  text-align: left;
+  border: 1px solid rgba(126, 156, 234, .16);
+  border-radius: 18px;
+  background: rgba(5, 13, 31, .52);
+}
+
+.payroll-rate-reuse:disabled {
+  opacity: .55;
+}
+
+.payroll-rate-reuse-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #8daeff;
+  border-radius: 14px;
+  background: rgba(65, 96, 190, .18);
+}
+
+.payroll-rate-reuse-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.payroll-rate-reuse-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.payroll-rate-reuse-copy strong {
+  color: #f7f9ff;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 820;
+}
+
+.payroll-rate-reuse-copy small {
+  overflow: hidden;
+  color: rgba(205, 218, 249, .48);
+  font-size: 9.5px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-rate-switch {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 24px;
+  border: 1px solid rgba(134, 158, 218, .22);
+  border-radius: 999px;
+  background: rgba(72, 84, 117, .56);
+}
+
+.payroll-rate-switch i {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, .32);
+  transition: transform .18s ease;
+}
+
+.payroll-rate-reuse.is-on .payroll-rate-switch {
+  border-color: rgba(129, 120, 255, .45);
+  background: linear-gradient(90deg, #516cf3, #7a50e7);
+}
+
+.payroll-rate-reuse.is-on .payroll-rate-switch i {
+  transform: translateX(16px);
+}
+
+.payroll-rate-grid,
+.payroll-detail-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.payroll-rate-field,
+.payroll-detail-rate-grid > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(127, 156, 232, .15);
+  border-radius: 16px;
+  background: rgba(5, 12, 29, .46);
+}
+
+.payroll-rate-field > span,
+.payroll-detail-rate-grid span,
+.payroll-detail-notes > span,
+.payroll-notes-field > span {
+  color: #8c93ff;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.payroll-rate-field > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.payroll-rate-field b,
+.payroll-rate-field em {
+  color: rgba(196, 213, 248, .53);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.payroll-rate-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  color: #fff;
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -.035em;
+  text-align: center;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.payroll-rate-field input[readonly] {
+  color: #b8c7ff;
+}
+
+.payroll-notes-field {
+  display: grid;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid rgba(127, 156, 232, .15);
+  border-radius: 17px;
+  background: rgba(5, 12, 29, .46);
+}
+
+.payroll-notes-field textarea {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  padding: 0;
+  color: #f7f9ff;
+  font-size: 13px;
+  line-height: 1.45;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.payroll-notes-field textarea::placeholder {
+  color: rgba(207, 219, 249, .34);
+}
+
+.payroll-detail-compensation {
+  gap: 11px;
+}
+
+.payroll-detail-rate-grid strong {
+  color: #fff;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -.025em;
+}
+
+.payroll-detail-notes {
+  display: grid;
+  gap: 7px;
+  padding: 13px;
+  border: 1px solid rgba(127, 156, 232, .13);
+  border-radius: 16px;
+  background: rgba(5, 12, 29, .36);
+}
+
+.payroll-detail-notes p {
+  margin: 0;
+  color: rgba(227, 234, 253, .75);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .payroll-status {
   padding: 11px 13px;
   color: #c9f5e7;
@@ -652,5 +866,13 @@
 
   .payroll-photo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .payroll-rate-field {
+    padding-inline: 9px;
+  }
+
+  .payroll-rate-field input {
+    font-size: 18px;
   }
 }

@@ -229,12 +229,92 @@
 }
 
 .account-current-card,
-.account-backup-card {
+.account-backup-card,
+.account-storage-card {
   border: 1px solid rgba(100, 146, 232, .22);
   background:
     radial-gradient(circle at 6% 0%, rgba(56, 123, 239, .14), transparent 40%),
     linear-gradient(150deg, rgba(17, 32, 62, .98), rgba(5, 14, 31, .99));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 15px 34px rgba(0,0,0,.18);
+}
+
+.account-storage-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 22px;
+}
+
+.account-storage-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: #8cb5ff;
+  border: 1px solid rgba(116, 155, 244, .19);
+  border-radius: 15px;
+  background: rgba(56, 95, 191, .17);
+}
+
+.account-storage-icon svg,
+.account-storage-card button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.account-storage-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.account-storage-copy small {
+  color: #8c93ff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.account-storage-copy strong {
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 920;
+  letter-spacing: -.045em;
+}
+
+.account-storage-copy p {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: rgba(201, 216, 247, .52);
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-storage-card button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 55px;
+  min-height: 48px;
+  padding: 6px 8px;
+  color: #8fb7ff;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 850;
+  border: 1px solid rgba(116, 155, 244, .16);
+  border-radius: 14px;
+  background: rgba(48, 79, 153, .12);
+}
+
+.account-storage-card button:disabled {
+  opacity: .5;
 }
 
 .account-current-card {

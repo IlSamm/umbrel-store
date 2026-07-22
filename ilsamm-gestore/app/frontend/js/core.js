@@ -51,8 +51,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.129',
-      build: '20260722j',
+      version: '1.1.130',
+      build: '20260722k',
       appName: 'GestOre'
     };
 
@@ -1290,20 +1290,28 @@ var errorBox = document.getElementById('errorBox');
       return label + ' alle ' + pad(when.getHours()) + ':' + pad(when.getMinutes()) + '.';
     }
     async function pushSnapshotToServer(snapshot) {
-      var response = await fetch(SERVER_SYNC_URL, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
-        body: JSON.stringify(snapshot)
-      });
-      if (response.status === 401 && typeof handleAccountUnauthorized === 'function') handleAccountUnauthorized();
-      if (!response.ok) throw new Error('server-sync-failed');
-      return normalizeServerSnapshot(await response.json());
+      var controller = typeof AbortController === 'function' ? new AbortController() : null;
+      var timeout = controller ? window.setTimeout(function () { controller.abort(); }, 20000) : 0;
+      try {
+        var response = await fetch(SERVER_SYNC_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify(snapshot),
+          signal: controller ? controller.signal : undefined
+        });
+        if (response.status === 401 && typeof handleAccountUnauthorized === 'function') handleAccountUnauthorized();
+        if (!response.ok) throw new Error('server-sync-failed');
+        return normalizeServerSnapshot(await response.json());
+      } finally {
+        if (timeout) window.clearTimeout(timeout);
+      }
     }
     async function syncStateToServer() {
-      if (!serverSyncReady || serverSyncInFlight || !window.fetch) return;
+      if (!serverSyncReady || serverSyncInFlight || !window.fetch) return false;
       serverSyncInFlight = true;
       var syncRevision = serverSyncRevision;
+      var succeeded = false;
       try {
         var allowEmptyEntries = serverSyncAllowEmptyEntries;
         var saved = await pushSnapshotToServer(buildStateSnapshot({ allowEmptyEntries: allowEmptyEntries }));
@@ -1313,6 +1321,7 @@ var errorBox = document.getElementById('errorBox');
           if (allowEmptyEntries) serverSyncAllowEmptyEntries = false;
         }
         setSyncStatus('Server locale attivo', Date.now());
+        succeeded = true;
       } catch (err) {
         setSyncStatus('Solo sul dispositivo', 0);
       } finally {
@@ -1326,6 +1335,26 @@ var errorBox = document.getElementById('errorBox');
         }
         if (state && state.activeTab === 'settings' && typeof render === 'function') render();
       }
+      return succeeded;
+    }
+    async function flushServerSyncNow() {
+      if (!serverSyncReady || !window.fetch) return false;
+      for (var attempt = 0; attempt < 6; attempt += 1) {
+        var waitStartedAt = Date.now();
+        while (serverSyncInFlight) {
+          if (Date.now() - waitStartedAt > 22000) return false;
+          await new Promise(function (resolve) { window.setTimeout(resolve, 25); });
+        }
+        if (serverSyncTimer) {
+          window.clearTimeout(serverSyncTimer);
+          serverSyncTimer = 0;
+        }
+        var targetRevision = serverSyncRevision;
+        var succeeded = await syncStateToServer();
+        if (!succeeded) return false;
+        if (!serverSyncInFlight && serverSyncRevision === targetRevision) return true;
+      }
+      return false;
     }
     function queueServerSync() {
       if (!serverSyncReady || !window.fetch) return;

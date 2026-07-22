@@ -16,6 +16,16 @@ body.editor-open .app {
   background: #030817 !important;
 }
 
+body.editor-open::before,
+body.editor-open::after,
+body.editor-open #app::before,
+body.editor-open #app::after,
+.editor-overlay-v3::before,
+.editor-overlay-v3::after {
+  content: none !important;
+  display: none !important;
+}
+
 body.editor-open .bottom-nav,
 body.editor-open #app > .bottom-nav {
   opacity: 0 !important;
@@ -71,7 +81,7 @@ body.keyboard-open .editor-overlay-v3 {
   position: relative !important;
   z-index: 5 !important;
   display: grid !important;
-  grid-template-columns: 52px minmax(0, 1fr) 82px !important;
+  grid-template-columns: 52px minmax(0, 1fr) 52px !important;
   align-items: center !important;
   gap: 8px !important;
   flex: 0 0 auto !important;
@@ -79,12 +89,11 @@ body.keyboard-open .editor-overlay-v3 {
   margin: 0 auto !important;
   padding: calc(var(--safe-top) + 7px) 14px 11px !important;
   border: 0 !important;
-  background: linear-gradient(180deg, rgba(7, 20, 43, .98) 0%, rgba(7, 20, 43, .88) 72%, rgba(7, 20, 43, 0) 100%) !important;
+  background: transparent !important;
   box-shadow: none !important;
 }
 
-.day-editor-back,
-.day-editor-autosave {
+.day-editor-back {
   display: grid !important;
   place-items: center !important;
   height: 50px !important;
@@ -107,55 +116,10 @@ body.keyboard-open .editor-overlay-v3 {
   stroke-width: 2.1 !important;
 }
 
-.day-editor-autosave {
-  grid-template-columns: 17px auto !important;
-  gap: 6px !important;
-  width: 82px !important;
-  padding: 0 10px !important;
-  color: rgba(211, 222, 249, .72) !important;
-  border-color: rgba(132, 160, 220, .16) !important;
-  border-radius: 16px !important;
-  background: rgba(9, 20, 43, .52) !important;
-  font-size: 12px !important;
-  font-weight: 780 !important;
-  letter-spacing: -.01em !important;
-  pointer-events: none !important;
-  transition: color .18s ease, border-color .18s ease, background .18s ease !important;
-}
-
-.day-editor-autosave-icon {
-  display: grid !important;
-  place-items: center !important;
-  width: 17px !important;
-  height: 17px !important;
-  color: #65d8b0 !important;
-}
-
-.day-editor-autosave-icon svg {
-  width: 16px !important;
-  height: 16px !important;
-  stroke-width: 2.25 !important;
-}
-
-.day-editor-autosave[data-status="saving"] {
-  color: rgba(191, 205, 239, .68) !important;
-  border-color: rgba(126, 150, 211, .20) !important;
-}
-
-.day-editor-autosave[data-status="saving"] .day-editor-autosave-icon {
-  color: #8aa9ff !important;
-  animation: day-editor-saving-pulse .8s ease-in-out infinite alternate !important;
-}
-
-.day-editor-autosave[data-status="saved"] {
-  color: #dffdf3 !important;
-  border-color: rgba(72, 216, 167, .20) !important;
-  background: rgba(24, 130, 101, .10) !important;
-}
-
-@keyframes day-editor-saving-pulse {
-  from { opacity: .42; transform: scale(.88); }
-  to { opacity: 1; transform: scale(1); }
+.day-editor-header-spacer {
+  display: block !important;
+  width: 52px !important;
+  height: 50px !important;
 }
 
 .day-editor-header-copy {
@@ -622,7 +586,7 @@ body.keyboard-open .editor-overlay-v3 {
 .day-editor-overtime-value,
 .day-editor-number-field {
   display: flex !important;
-  align-items: baseline !important;
+  align-items: center !important;
   justify-content: center !important;
   min-width: 0 !important;
 }
@@ -639,12 +603,12 @@ body.keyboard-open .editor-overlay-v3 {
   background: transparent !important;
   box-shadow: none !important;
   font-weight: 880 !important;
-  text-align: right !important;
+  text-align: center !important;
   font-variant-numeric: tabular-nums !important;
 }
 
 .day-editor-step-value input {
-  width: 34px !important;
+  width: 38px !important;
   font-size: 20px !important;
 }
 
@@ -716,7 +680,7 @@ body.keyboard-open .editor-overlay-v3 {
 }
 
 .day-editor-overtime-value input {
-  width: 64px !important;
+  width: 72px !important;
   font-size: 30px !important;
   line-height: 1 !important;
 }
@@ -956,7 +920,7 @@ body.keyboard-open .editor-overlay-v3 {
 
 @media (max-width: 374px) {
   .day-editor-header {
-    grid-template-columns: 48px minmax(0, 1fr) 76px !important;
+    grid-template-columns: 48px minmax(0, 1fr) 48px !important;
     padding-right: 10px !important;
     padding-left: 10px !important;
   }
@@ -966,12 +930,9 @@ body.keyboard-open .editor-overlay-v3 {
     height: 48px !important;
   }
 
-  .day-editor-autosave {
-    width: 76px !important;
+  .day-editor-header-spacer {
+    width: 48px !important;
     height: 48px !important;
-    gap: 5px !important;
-    padding: 0 8px !important;
-    font-size: 11.5px !important;
   }
 
   .day-editor-title {

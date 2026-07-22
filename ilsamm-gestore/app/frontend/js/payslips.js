@@ -69,7 +69,11 @@ var state = {
       return Object.assign({}, source, {
         photos: photos,
         imageData: firstPhoto ? firstPhoto.data : '',
-        fileName: firstPhoto ? firstPhoto.fileName : ''
+        fileName: firstPhoto ? firstPhoto.fileName : '',
+        hourlyRate: parseDecimalInput(source.hourlyRate, 0),
+        overtimeRate: parseDecimalInput(source.overtimeRate, 0),
+        reusePreviousRates: Boolean(source.reusePreviousRates),
+        notes: String(source.notes || '')
       });
     }
     function normalizePayslipCollection(items) {
@@ -89,6 +93,35 @@ var state = {
     function getPayslipMonthLabel(payslip) {
       var monthDate = getPayslipMonthDate(payslip);
       return monthDate ? formatMonthYear(monthDate) : 'Busta paga';
+    }
+    function getPayslipPeriodValue(payslip) {
+      var date = getPayslipMonthDate(payslip);
+      return date ? (date.getFullYear() * 12 + date.getMonth()) : -1;
+    }
+    function findPreviousPayslipWithRates(payslip) {
+      var current = payslip || {};
+      var currentPeriod = getPayslipPeriodValue(current);
+      if (currentPeriod < 0) return null;
+      return (state.payslips || []).filter(function (item) {
+        if (!item || item.id === current.id) return false;
+        var itemPeriod = getPayslipPeriodValue(item);
+        return itemPeriod >= 0 && itemPeriod < currentPeriod &&
+          (parseDecimalInput(item.hourlyRate, 0) > 0 || parseDecimalInput(item.overtimeRate, 0) > 0);
+      }).sort(function (a, b) {
+        return getPayslipPeriodValue(b) - getPayslipPeriodValue(a);
+      })[0] || null;
+    }
+    function applyPreviousPayslipRatesToDraft() {
+      var draft = ensurePayslipDraft();
+      var previous = findPreviousPayslipWithRates(draft);
+      if (!previous) {
+        draft.reusePreviousRates = false;
+        return null;
+      }
+      draft.hourlyRate = parseDecimalInput(previous.hourlyRate, 0);
+      draft.overtimeRate = parseDecimalInput(previous.overtimeRate, 0);
+      draft.reusePreviousRates = true;
+      return previous;
     }
     function getMonthFromItalianText(text) {
       var lower = String(text || '').toLowerCase();
@@ -451,7 +484,11 @@ var state = {
         malattiaHours: 0,
         workedDays: 0,
         tfr: 0,
-        sourceText: source.sourceText || ''
+        sourceText: source.sourceText || '',
+        hourlyRate: parseDecimalInput(source.hourlyRate, 0),
+        overtimeRate: parseDecimalInput(source.overtimeRate, 0),
+        reusePreviousRates: Boolean(source.reusePreviousRates),
+        notes: String(source.notes || '')
       };
     }
     function extractMonthYearFromFileName(fileName) {
@@ -961,6 +998,10 @@ var state = {
         photos: [],
         imageData: '',
         fileName: '',
+        hourlyRate: 0,
+        overtimeRate: 0,
+        reusePreviousRates: false,
+        notes: '',
         createdAt: Date.now()
       }, reducePayslipToCoreFields({
         month: new Date().getMonth() + 1,
@@ -992,20 +1033,21 @@ var state = {
       var normalized = reducePayslipToCoreFields(Object.assign({}, current, parsed || {}));
       state.payslipDraft = clonePayslipForDraft(Object.assign({}, makeEmptyPayslipDraft(), current, normalized, extra || {}));
     }
-    function savePayslipDraft() {
+    async function savePayslipDraft() {
       ensurePayslipDraft();
       var draft = clonePayslipForDraft(Object.assign({}, makeEmptyPayslipDraft(), state.payslipDraft));
       var photos = normalizePayslipPhotos(draft);
       if (!photos.length) {
         state.payslipStatus = 'Aggiungi prima la foto della busta paga.';
         render();
-        return;
+        return false;
       }
       if (parseDecimalInput(draft.netto, 0) <= 0) {
         state.payslipStatus = 'Inserisci l\'importo ricevuto.';
         render();
-        return;
+        return false;
       }
+      var previousPayslips = (state.payslips || []).slice();
       var existing = (state.payslips || []).find(function (item) { return item.id === draft.id; }) || {};
       var saved = Object.assign({}, existing, draft, reducePayslipToCoreFields(draft), {
         id: draft.id || ('payslip-' + Date.now()),
@@ -1021,13 +1063,38 @@ var state = {
         var ad = getPayslipMonthDate(a), bd = getPayslipMonthDate(b);
         return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
       });
+      state.payslipDraft = clonePayslipForDraft(saved);
+      state.payslipBusy = true;
+      state.payslipStatus = 'Salvataggio nel database...';
       savePayslips();
+      render();
+      var confirmed = false;
+      try {
+        confirmed = typeof flushServerSyncNow === 'function'
+          ? await flushServerSyncNow()
+          : Boolean(await syncStateToServer());
+      } catch (err) {
+        confirmed = false;
+      }
+      confirmed = confirmed && (state.payslips || []).some(function (item) { return item.id === saved.id; });
+      state.payslipBusy = false;
+      if (!confirmed) {
+        state.payslips = previousPayslips;
+        persistPayslipsLocally();
+        saveSafetyBundle();
+        state.payslipDraft = clonePayslipForDraft(saved);
+        state.payslipStatus = 'La busta non e stata confermata dal server. Le foto sono ancora qui: controlla la connessione e riprova.';
+        render();
+        return false;
+      }
+      if (state.account && state.account.storage) state.account.storage.loaded = false;
       state.payslipDetailId = saved.id;
       state.payslipEditorOpen = false;
       state.payslipDraft = makeEmptyPayslipDraft();
-      state.payslipStatus = 'Busta paga salvata.';
+      state.payslipStatus = 'Busta paga salvata nel database.';
       state.activeTab = 'payslips';
       render();
+      return true;
     }
     async function processPayslipFileOcrLegacy(file) {
       return processPayslipFile(file);

@@ -28,8 +28,8 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.1.129"
-BUILD_CACHE = "20260722j"
+BUILD_VERSION = "1.1.130"
+BUILD_CACHE = "20260722k"
 AUTH_STORE = AuthStore(DATA_DIR)
 
 DEFAULT_SYNC_META = {
@@ -177,6 +177,24 @@ def account_snapshot_summary(account: dict) -> dict:
     snapshot = load_snapshot(db_path=AUTH_STORE.user_db_path(account["id"]))
     return {
         **account,
+        "entries": len(snapshot.get("entries") or {}),
+        "payslips": len(snapshot.get("payslips") or []),
+        "updatedAt": int(snapshot.get("updatedAt") or 0),
+    }
+
+
+def database_storage_summary(db_path: Path) -> dict:
+    db_path = Path(db_path).resolve()
+    snapshot = load_snapshot(db_path=db_path)
+    database_bytes = db_path.stat().st_size if db_path.exists() else 0
+    wal_path = Path(f"{db_path}-wal")
+    shm_path = Path(f"{db_path}-shm")
+    wal_bytes = wal_path.stat().st_size if wal_path.exists() else 0
+    shm_bytes = shm_path.stat().st_size if shm_path.exists() else 0
+    return {
+        "bytes": database_bytes + wal_bytes + shm_bytes,
+        "databaseBytes": database_bytes,
+        "journalBytes": wal_bytes + shm_bytes,
         "entries": len(snapshot.get("entries") or {}),
         "payslips": len(snapshot.get("payslips") or []),
         "updatedAt": int(snapshot.get("updatedAt") or 0),
@@ -398,6 +416,12 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 })
             except AuthError as exc:
                 self._send_auth_error(exc)
+            return
+        if parsed.path == "/api/storage":
+            user = self._require_user()
+            if not user:
+                return
+            self._send_json(database_storage_summary(AUTH_STORE.user_db_path(user["id"])))
             return
         if parsed.path == "/api/snapshot":
             db_path = self._snapshot_db_for_request()

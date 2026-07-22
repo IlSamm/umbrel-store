@@ -53,7 +53,11 @@ function bindEvents() {
         };
       });
       document.querySelectorAll('[data-back-settings]').forEach(function (btn) {
-        btn.onclick = function () { state.settingsSection = ''; render(); };
+        btn.onclick = function () {
+          state.settingsSection = '';
+          state.activeTab = 'profile';
+          render();
+        };
       });
       document.querySelectorAll('[data-open-date]').forEach(function (btn) {
         btn.onclick = function () { openEditor(new Date(btn.dataset.openDate + 'T12:00:00')); };
@@ -228,10 +232,57 @@ function bindEvents() {
           e.target.value = formatEditorDecimal(state.payslipDraft.netto || 0);
         };
       }
+      var rateReuse = document.querySelector('[data-toggle-payslip-rate-reuse]');
+      if (rateReuse) rateReuse.onclick = function () {
+        var draft = ensurePayslipDraft();
+        if (draft.reusePreviousRates) {
+          draft.reusePreviousRates = false;
+          state.payslipStatus = 'Ora puoi modificare le tariffe di questo mese.';
+        } else {
+          var previous = applyPreviousPayslipRatesToDraft();
+          state.payslipStatus = previous
+            ? ('Tariffe copiate da ' + getPayslipMonthLabel(previous) + '.')
+            : 'Non ci sono ancora tariffe in un mese precedente.';
+        }
+        render();
+      };
+      [['payslipHourlyRate', 'hourlyRate'], ['payslipOvertimeRate', 'overtimeRate']].forEach(function (pair) {
+        var input = document.getElementById(pair[0]);
+        if (!input) return;
+        input.oninput = function (event) {
+          ensurePayslipDraft();
+          state.payslipDraft[pair[1]] = parseDecimalInput(event.target.value, 0);
+          state.payslipDraft.reusePreviousRates = false;
+        };
+        input.onfocus = function (event) {
+          if (isZeroLikeDecimalText(event.target.value)) event.target.value = '';
+          requestAnimationFrame(function () { event.target.setSelectionRange(event.target.value.length, event.target.value.length); });
+        };
+        input.onblur = function (event) {
+          ensurePayslipDraft();
+          state.payslipDraft[pair[1]] = parseDecimalInput(event.target.value, 0);
+          event.target.value = formatEditorDecimal(state.payslipDraft[pair[1]] || 0);
+        };
+      });
+      var payslipNotes = document.getElementById('payslipNotes');
+      if (payslipNotes) payslipNotes.oninput = function (event) {
+        ensurePayslipDraft();
+        state.payslipDraft.notes = String(event.target.value || '');
+      };
       var payslipMonth = document.getElementById('payslipMonth');
-      if (payslipMonth) payslipMonth.onchange = function (e) { ensurePayslipDraft(); state.payslipDraft.month = Math.max(1, Math.min(12, Number(e.target.value) || (new Date().getMonth() + 1))); };
+      if (payslipMonth) payslipMonth.onchange = function (e) {
+        ensurePayslipDraft();
+        state.payslipDraft.month = Math.max(1, Math.min(12, Number(e.target.value) || (new Date().getMonth() + 1)));
+        if (state.payslipDraft.reusePreviousRates) applyPreviousPayslipRatesToDraft();
+        render();
+      };
       var payslipYear = document.getElementById('payslipYear');
-      if (payslipYear) payslipYear.onchange = function (e) { ensurePayslipDraft(); state.payslipDraft.year = Math.max(2000, Math.min(2100, Number(e.target.value) || new Date().getFullYear())); };
+      if (payslipYear) payslipYear.onchange = function (e) {
+        ensurePayslipDraft();
+        state.payslipDraft.year = Math.max(2000, Math.min(2100, Number(e.target.value) || new Date().getFullYear()));
+        if (state.payslipDraft.reusePreviousRates) applyPreviousPayslipRatesToDraft();
+        render();
+      };
       var sourceText = document.getElementById('payslipSourceText');
       if (sourceText) sourceText.oninput = function (e) { ensurePayslipDraft(); state.payslipDraft.sourceText = String(e.target.value || ''); };
 
