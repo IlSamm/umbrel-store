@@ -1,0 +1,262 @@
+/* Shared loading surface for server, account and document operations. */
+.go-operation-overlay,
+.go-operation-overlay * {
+  box-sizing: border-box;
+}
+
+.go-operation-overlay {
+  position: fixed;
+  z-index: 9000;
+  inset: 0;
+  display: grid;
+  width: 100%;
+  height: var(--app-vh, 100dvh);
+  min-height: 100%;
+  padding:
+    max(22px, env(safe-area-inset-top, 0px))
+    20px
+    max(22px, env(safe-area-inset-bottom, 0px));
+  place-items: center;
+  overflow: hidden;
+  color: #f7f9ff;
+  background: rgba(1, 6, 18, .64);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  backdrop-filter: blur(23px) saturate(1.16);
+  -webkit-backdrop-filter: blur(23px) saturate(1.16);
+  transition: opacity .22s ease, visibility .22s ease;
+  isolation: isolate;
+}
+
+.go-operation-overlay::before,
+.go-operation-overlay::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 290px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(58px);
+  pointer-events: none;
+}
+
+.go-operation-overlay::before {
+  top: 17%;
+  left: -155px;
+  background: rgba(43, 125, 255, .18);
+}
+
+.go-operation-overlay::after {
+  right: -175px;
+  bottom: 10%;
+  background: rgba(119, 86, 255, .14);
+}
+
+.go-operation-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.go-operation-panel {
+  position: relative;
+  display: flex;
+  width: min(100%, 292px);
+  min-height: 300px;
+  padding: 24px 24px 22px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(118, 160, 239, .25);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(81, 139, 255, .18), transparent 43%),
+    linear-gradient(155deg, rgba(17, 31, 61, .92), rgba(4, 11, 27, .96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    inset 0 -32px 52px rgba(0, 0, 0, .16),
+    0 28px 80px rgba(0, 0, 0, .5),
+    0 0 52px rgba(44, 114, 255, .1);
+  transform: translateY(9px) scale(.965);
+  transition: transform .3s cubic-bezier(.2, .85, .25, 1);
+}
+
+.go-operation-overlay.open .go-operation-panel {
+  transform: translateY(0) scale(1);
+}
+
+.go-operation-brand {
+  position: absolute;
+  top: 21px;
+  left: 0;
+  right: 0;
+  color: rgba(239, 245, 255, .74);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 780;
+  letter-spacing: -.02em;
+  text-align: center;
+}
+
+.go-operation-brand span {
+  color: #65aaff;
+}
+
+.go-operation-visual {
+  position: relative;
+  display: grid;
+  width: 104px;
+  height: 104px;
+  margin-top: 10px;
+  place-items: center;
+}
+
+.go-operation-ring,
+.go-operation-ring::before {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.go-operation-ring {
+  inset: 4px;
+  padding: 3px;
+  background: conic-gradient(from 35deg, transparent 0 12%, #54d2ff 29%, #4b87ff 55%, #8d62ff 77%, transparent 94%);
+  filter: drop-shadow(0 0 12px rgba(76, 139, 255, .35));
+  animation: goOperationSpin 1.45s linear infinite;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.go-operation-ring.is-inner {
+  inset: 15px;
+  padding: 2px;
+  opacity: .58;
+  background: conic-gradient(from 210deg, transparent 0 30%, #7d68ff 46%, #50bfff 65%, transparent 84%);
+  animation-duration: 2.1s;
+  animation-direction: reverse;
+}
+
+.go-operation-orbit {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  animation: goOperationSpin 2.25s linear infinite;
+}
+
+.go-operation-orbit::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border: 2px solid rgba(2, 9, 24, .9);
+  border-radius: 50%;
+  background: #70d9ff;
+  box-shadow: 0 0 14px rgba(84, 203, 255, .9);
+  transform: translateX(-50%);
+}
+
+.go-operation-core {
+  position: relative;
+  display: flex;
+  width: 54px;
+  height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid rgba(113, 161, 255, .2);
+  border-radius: 19px;
+  background: linear-gradient(145deg, rgba(22, 42, 82, .96), rgba(5, 13, 31, .98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 12px 24px rgba(0, 0, 0, .28);
+}
+
+.go-operation-core i {
+  display: block;
+  width: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #75dcff, #5e75ff);
+  box-shadow: 0 0 9px rgba(87, 151, 255, .45);
+  animation: goOperationBars .9s ease-in-out infinite;
+}
+
+.go-operation-core i:nth-child(1) { height: 14px; animation-delay: -.2s; }
+.go-operation-core i:nth-child(2) { height: 25px; animation-delay: -.42s; }
+.go-operation-core i:nth-child(3) { height: 18px; animation-delay: -.64s; }
+
+.go-operation-copy {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  margin-top: 18px;
+  text-align: center;
+}
+
+.go-operation-copy strong {
+  color: #f8faff;
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 780;
+  letter-spacing: -.035em;
+}
+
+.go-operation-copy span {
+  min-height: 34px;
+  color: rgba(195, 208, 237, .67);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 520;
+}
+
+.go-operation-progress {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(119, 151, 211, .14);
+}
+
+.go-operation-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #55d5ff, #438cff 54%, #8d63ff);
+  box-shadow: 0 0 12px rgba(65, 142, 255, .45);
+  animation: goOperationTravel 1.25s cubic-bezier(.42, 0, .22, 1) infinite;
+}
+
+.go-operation-overlay.has-progress .go-operation-progress::after {
+  width: var(--operation-progress, 0%);
+  animation: none;
+  transition: width .22s ease;
+}
+
+@keyframes goOperationSpin {
+  to { transform: rotate(1turn); }
+}
+
+@keyframes goOperationBars {
+  0%, 100% { transform: scaleY(.55); opacity: .58; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes goOperationTravel {
+  0% { transform: translateX(-120%); }
+  65%, 100% { transform: translateX(330%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .go-operation-ring,
+  .go-operation-orbit,
+  .go-operation-core i,
+  .go-operation-progress::after {
+    animation-duration: 2.8s !important;
+  }
+}

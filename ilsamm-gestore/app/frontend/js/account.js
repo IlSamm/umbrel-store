@@ -10,6 +10,22 @@ var ACCOUNT_ADMIN_ACCESS_URL = '/api/admin/access';
 var ACCOUNT_ADMIN_RETURN_URL = '/api/admin/return';
 var STORAGE_ACTIVE_ACCOUNT = 'gestore-active-account-v1';
 
+function beginAccountOperation(title, message, options) {
+  if (!window.GestOreLoading) return '';
+  return window.GestOreLoading.begin(Object.assign({
+    title: title,
+    message: message,
+    kind: 'account',
+    delay: 0,
+    minVisible: 620,
+    dismissKeyboard: true
+  }, options || {}));
+}
+
+function endAccountOperation(token) {
+  if (token && window.GestOreLoading) window.GestOreLoading.end(token);
+}
+
 state.account = {
   loaded: false,
   dataReady: false,
@@ -115,6 +131,7 @@ async function loadAccountStorageUsage(force) {
   storage.loading = true;
   storage.error = '';
   if (typeof render === 'function') render();
+  var loadingToken = beginAccountOperation('Calcolo dello spazio', 'Controllo i dati occupati nel tuo database', { delay: 180 });
   try {
     var response = await fetch(ACCOUNT_STORAGE_URL, { cache: 'no-store' });
     var payload = await readJsonResponse(response);
@@ -134,6 +151,7 @@ async function loadAccountStorageUsage(force) {
     storage.loaded = false;
     storage.error = err.message || 'Spazio database non disponibile.';
   }
+  endAccountOperation(loadingToken);
   if (typeof render === 'function') render();
 }
 
@@ -196,12 +214,17 @@ async function bootstrapAccountSession() {
 async function retryAccountDataLoad() {
   if (!state.account.authenticated || state.account.busy) return;
   setAccountUiState({ busy: true, dataReady: false, dataError: '', error: '' });
-  var ready = await bootstrapServerState();
-  setAccountUiState({
-    busy: false,
-    dataReady: Boolean(ready),
-    dataError: ready ? '' : getServerSyncFailureMessage()
-  });
+  var loadingToken = beginAccountOperation('Apro il tuo database', 'Recupero ore, ferie e buste paga');
+  try {
+    var ready = await bootstrapServerState();
+    setAccountUiState({
+      busy: false,
+      dataReady: Boolean(ready),
+      dataError: ready ? '' : getServerSyncFailureMessage()
+    });
+  } finally {
+    endAccountOperation(loadingToken);
+  }
 }
 
 function setAccountUiState(values) {
@@ -237,6 +260,7 @@ async function submitAccountRegistration(form) {
     return;
   }
   setAccountUiState({ busy: true, error: '', notice: 'Creazione del database personale...' });
+  var loadingToken = beginAccountOperation('Creo il tuo profilo', 'Preparo un database personale e protetto');
   try {
     var response = await fetch(ACCOUNT_REGISTER_URL, {
       method: 'POST',
@@ -249,6 +273,8 @@ async function submitAccountRegistration(form) {
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Registrazione non riuscita.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 
@@ -257,6 +283,7 @@ async function submitAccountLogin(form) {
   var username = String(form.querySelector('[name="username"]').value || '').trim();
   var password = String(form.querySelector('[name="password"]').value || '');
   setAccountUiState({ busy: true, error: '', notice: 'Apertura del tuo database...' });
+  var loadingToken = beginAccountOperation('Accesso in corso', 'Apro il database collegato al tuo profilo');
   try {
     var response = await fetch(ACCOUNT_LOGIN_URL, {
       method: 'POST',
@@ -269,21 +296,26 @@ async function submitAccountLogin(form) {
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Accesso non riuscito.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 
 async function logoutAccount() {
   if (state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Salvataggio in corso...' });
+  var loadingToken = beginAccountOperation('Salvataggio finale', 'Confermo gli ultimi dati prima di uscire');
   var confirmed = false;
   try { confirmed = await flushServerSyncNow(); } catch (err) {}
   if (!confirmed) {
+    endAccountOperation(loadingToken);
     setAccountUiState({ busy: false, notice: '', error: 'Non esco finche il database non conferma l\'ultimo salvataggio. Riprova tra un momento.' });
     return;
   }
   try {
     await fetch(ACCOUNT_LOGOUT_URL, { method: 'POST', cache: 'no-store' });
   } catch (err) {}
+  endAccountOperation(loadingToken);
   clearGestOreDeviceCache();
   resetRuntimeAccountData();
   window.location.reload();
@@ -298,6 +330,7 @@ function getDownloadFilename(response, fallback) {
 async function downloadAccountBackup() {
   if (state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Preparazione del database...' });
+  var loadingToken = beginAccountOperation('Preparo il backup', 'Raccolgo e verifico tutti i dati del profilo');
   try {
     if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
     var response = await fetch(ACCOUNT_BACKUP_URL, { cache: 'no-store' });
@@ -308,6 +341,8 @@ async function downloadAccountBackup() {
     setAccountUiState({ busy: false, error: '', notice: 'Backup scaricato sul telefono.' });
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Impossibile creare il backup.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 
@@ -315,6 +350,7 @@ async function restoreAccountBackup(file) {
   if (!file || state.account.busy) return;
   if (!window.confirm('Ripristinare questo backup? I dati attuali dell\'account verranno sostituiti.')) return;
   setAccountUiState({ busy: true, error: '', notice: 'Controllo e ripristino del database...' });
+  var loadingToken = beginAccountOperation('Ripristino del backup', 'Verifico il file e ricostruisco il database');
   try {
     var response = await fetch(ACCOUNT_RESTORE_URL, {
       method: 'POST',
@@ -328,6 +364,8 @@ async function restoreAccountBackup(file) {
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Ripristino non riuscito.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 
@@ -335,18 +373,22 @@ async function loadAdminAccounts() {
   var user = state.account.user || {};
   if (!user.canManageAccounts || state.account.adminLoading) return;
   setAccountUiState({ adminLoading: true, error: '' });
+  var loadingToken = beginAccountOperation('Carico gli account', 'Aggiorno l\'elenco dei profili disponibili', { delay: 180 });
   try {
     var response = await fetch(ACCOUNT_ADMIN_URL, { cache: 'no-store' });
     var payload = await readJsonResponse(response);
     setAccountUiState({ adminLoading: false, adminAccounts: payload.accounts || [], error: '' });
   } catch (err) {
     setAccountUiState({ adminLoading: false, adminAccounts: [], error: err.message || 'Impossibile caricare gli account.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 
 async function openManagedAccount(userId) {
   if (!userId || state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Apertura del database selezionato...' });
+  var loadingToken = beginAccountOperation('Cambio profilo', 'Salvo i dati attuali e apro il database selezionato');
   try {
     if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
     var response = await fetch(ACCOUNT_ADMIN_ACCESS_URL, {
@@ -360,12 +402,15 @@ async function openManagedAccount(userId) {
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Impossibile aprire questo account.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 
 async function returnToOwnerAccount() {
   if (state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Ritorno al profilo Proprietario...' });
+  var loadingToken = beginAccountOperation('Torno al Proprietario', 'Confermo i dati e riapro il tuo profilo');
   try {
     if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
     var response = await fetch(ACCOUNT_ADMIN_RETURN_URL, { method: 'POST', cache: 'no-store' });
@@ -374,6 +419,8 @@ async function returnToOwnerAccount() {
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Impossibile tornare al Proprietario.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 
@@ -392,6 +439,7 @@ async function deleteManagedAccount(form) {
     return;
   }
   setAccountUiState({ busy: true, error: '', notice: 'Eliminazione definitiva in corso...' });
+  var loadingToken = beginAccountOperation('Eliminazione account', 'Rimuovo definitivamente profilo e database', { kind: 'delete' });
   try {
     var response = await fetch(ACCOUNT_ADMIN_URL, {
       method: 'DELETE',
@@ -406,6 +454,8 @@ async function deleteManagedAccount(form) {
     loadAdminAccounts();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Eliminazione non riuscita.' });
+  } finally {
+    endAccountOperation(loadingToken);
   }
 }
 

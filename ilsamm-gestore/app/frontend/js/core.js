@@ -55,8 +55,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.131',
-      build: '20260722l',
+      version: '1.1.132',
+      build: '20260722m',
       appName: 'GestOre'
     };
 
@@ -1362,6 +1362,13 @@ var errorBox = document.getElementById('errorBox');
     async function syncStateToServer() {
       if (!serverSyncReady || serverSyncInFlight || !window.fetch) return false;
       serverSyncInFlight = true;
+      var loadingToken = window.GestOreLoading ? window.GestOreLoading.begin({
+        title: 'Salvataggio sicuro',
+        message: 'Aggiorno il database del tuo profilo',
+        kind: 'sync',
+        delay: 420,
+        minVisible: 560
+      }) : '';
       var syncRevision = serverSyncRevision;
       var succeeded = false;
       try {
@@ -1381,6 +1388,7 @@ var errorBox = document.getElementById('errorBox');
         setSyncStatus('Solo sul dispositivo', 0);
       } finally {
         serverSyncInFlight = false;
+        if (loadingToken && window.GestOreLoading) window.GestOreLoading.end(loadingToken);
         if (serverSyncRevision > syncRevision) {
           if (serverSyncTimer) window.clearTimeout(serverSyncTimer);
           serverSyncTimer = window.setTimeout(function () {

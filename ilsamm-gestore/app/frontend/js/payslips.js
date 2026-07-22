@@ -1,5 +1,21 @@
 var MAX_PAYSLIP_PHOTOS = 8;
 
+function beginPayslipOperation(title, message, options) {
+  if (!window.GestOreLoading) return '';
+  return window.GestOreLoading.begin(Object.assign({
+    title: title,
+    message: message,
+    kind: 'payslip',
+    delay: 0,
+    minVisible: 620,
+    dismissKeyboard: true
+  }, options || {}));
+}
+
+function endPayslipOperation(token) {
+  if (token && window.GestOreLoading) window.GestOreLoading.end(token);
+}
+
 function loadPendingPayslipDraft() {
   try {
     var raw = localStorage.getItem(STORAGE_PENDING_PAYSLIP);
@@ -200,6 +216,7 @@ var state = {
       var current = (state.payslips || []).find(function (item) { return item.id === id; });
       if (!current || (!current.photosDeferred && !current.sourceTextDeferred)) return current || null;
       state.payslipHydratingId = id;
+      var loadingToken = beginPayslipOperation('Carico i documenti', 'Recupero le foto di questa busta paga');
       try {
         await waitForPayslipServerReady();
         var controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -233,6 +250,7 @@ var state = {
         return current;
       } finally {
         state.payslipHydratingId = '';
+        endPayslipOperation(loadingToken);
       }
     }
 
@@ -1006,16 +1024,19 @@ var state = {
       if (!payslipId) return false;
       state.payslipBusy = true;
       state.payslipStatus = 'Eliminazione dal database...';
+      var loadingToken = beginPayslipOperation('Elimino la busta', 'Aggiorno l\'archivio del tuo profilo', { kind: 'delete' });
       render();
       try {
         await deletePayslipRecordFromServer(payslipId);
       } catch (err) {
+        endPayslipOperation(loadingToken);
         state.payslipBusy = false;
         state.payslipDeletePendingId = '';
         state.payslipStatus = 'Eliminazione non confermata: ' + (err.message || getServerSyncFailureMessage());
         render();
         return false;
       }
+      endPayslipOperation(loadingToken);
       state.payslips = (state.payslips || []).filter(function (item) { return item.id !== payslipId; });
       persistPayslipsLocally();
       saveSafetyBundle();
@@ -1253,6 +1274,7 @@ var state = {
       state.payslipDraft = clonePayslipForDraft(saved);
       state.payslipBusy = true;
       state.payslipStatus = 'Salvataggio nel database...';
+      var loadingToken = beginPayslipOperation('Salvo la busta paga', 'Invio foto e importo al database personale');
       persistPendingPayslipDraft(saved);
       persistPayslipsLocally();
       saveSafetyBundle();
@@ -1267,6 +1289,7 @@ var state = {
       }
       confirmed = confirmed && (state.payslips || []).some(function (item) { return item.id === saved.id; });
       state.payslipBusy = false;
+      endPayslipOperation(loadingToken);
       if (!confirmed) {
         state.payslips = previousPayslips;
         persistPayslipsLocally();
@@ -1411,6 +1434,11 @@ var state = {
       files = files.slice(0, availableSlots);
       state.payslipBusy = true;
       state.payslipStatus = files.length > 1 ? ('Sto preparando ' + files.length + ' foto...') : 'Sto preparando la foto...';
+      var loadingToken = beginPayslipOperation(
+        files.length > 1 ? 'Preparo le foto' : 'Preparo la foto',
+        files.length > 1 ? ('Ottimizzo ' + files.length + ' immagini per il salvataggio') : 'Ottimizzo l\'immagine per il salvataggio',
+        { kind: 'photo' }
+      );
       render();
       var added = [];
       var rejected = 0;
@@ -1422,6 +1450,12 @@ var state = {
             continue;
           }
           state.payslipStatus = 'Preparazione foto ' + (index + 1) + ' di ' + files.length + '...';
+          if (loadingToken && window.GestOreLoading) {
+            window.GestOreLoading.update(loadingToken, {
+              message: 'Preparazione foto ' + (index + 1) + ' di ' + files.length,
+              progress: index / files.length
+            });
+          }
           render();
           var dataUrl = await readFileAsDataURL(file);
           var prepared = await preparePayslipImage(dataUrl);
@@ -1447,6 +1481,8 @@ var state = {
         state.payslipStatus = 'Non sono riuscito a caricare tutte le foto. Riprova con immagini piu leggere.';
       }
       state.payslipBusy = false;
+      if (loadingToken && window.GestOreLoading) window.GestOreLoading.update(loadingToken, { progress: 1 });
+      endPayslipOperation(loadingToken);
       state.activeTab = 'payslips';
       render();
     }
