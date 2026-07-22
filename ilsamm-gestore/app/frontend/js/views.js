@@ -533,7 +533,7 @@ function renderCalendar() {
       var allowanceLabel = hasAllowance ? formatVacationDayValue(balance.allowanceDays) : '--';
       var status = state.vacationStatus ? '<div class="vacation-card-status">' + escapeHtml(state.vacationStatus) + '</div>' : '';
       return '<section class="card vacation-card"><div class="card-body vacation-card-body">' +
-        '<div class="vacation-card-head"><div class="vacation-card-heading"><span class="vacation-card-icon">' + icons.umbrella + '</span><div><div class="vacation-kicker">FERIE ' + balance.year + '</div><div class="vacation-card-title">Disponibilita</div></div></div><button class="vacation-manage" data-open-vacation-manager="' + balance.year + '">Modifica</button></div>' +
+        '<div class="vacation-card-head"><div class="vacation-card-heading"><span class="vacation-card-icon">' + icons.umbrella + '</span><div><div class="vacation-kicker">FERIE ' + balance.year + '</div><div class="vacation-card-title">Disponibilita</div></div></div><button class="vacation-manage" data-open-vacation-allowance="' + balance.year + '">Modifica</button></div>' +
         '<div class="vacation-balance' + (isOver ? ' is-over' : '') + '">' +
           '<div class="vacation-balance-main"><strong>' + mainValue + '</strong><span>' + mainLabel + '</span></div>' +
           '<div class="vacation-progress-copy"><strong>' + balance.percent + '%</strong><span>' + (hasAllowance ? 'utilizzato' : 'da impostare') + '</span></div>' +
@@ -544,7 +544,7 @@ function renderCalendar() {
           '<div><span>Totale anno</span><strong>' + allowanceLabel + (hasAllowance ? ' gg' : '') + '</strong><small>' + (hasAllowance ? 'Disponibilita impostata' : 'Non ancora impostato') + '</small></div>' +
         '</div>' +
         status +
-        '<button class="vacation-add-button" data-open-vacation-manager="' + balance.year + '"><span><strong>Inserisci un periodo di ferie</strong><small>Weekend e festivi esclusi automaticamente</small></span>' + icons.right + '</button>' +
+        '<button class="vacation-add-button" data-open-vacation-range="' + balance.year + '"><span><strong>Inserisci un periodo di ferie</strong><small>Weekend e festivi esclusi automaticamente</small></span>' + icons.right + '</button>' +
       '</div></section>';
     }
 
@@ -575,10 +575,10 @@ function renderCalendar() {
           '<div class="vacation-page-hero-head"><div><span class="vacation-page-kicker">IL TUO SALDO</span><h2>' + remainingValue + '</h2><p>' + remainingLabel + '</p></div>' +
           '<div class="vacation-page-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>usato</span></div></div></div>' +
           '<div class="vacation-page-metrics"><div><span>Totale</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Usate</span><strong>' + formatVacationDayValue(balance.usedDays) + ' gg</strong></div><div><span>Ore usate</span><strong>' + formatDuration(balance.usedMinutes) + '</strong></div></div>' +
-          '<button class="vacation-page-edit" data-open-vacation-manager="' + year + '"><span>' + icons.settings + '</span><div><strong>Gestisci disponibilità</strong><small>Imposta il totale e aggiungi un periodo</small></div>' + icons.right + '</button>' +
+          '<button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><div><strong>Gestisci disponibilita</strong><small>Modifica il totale annuale</small></div>' + icons.right + '</button>' +
           status +
         '</section>' +
-        '<button class="vacation-page-action" data-open-vacation-manager="' + year + '"><span class="vacation-page-action-icon">' + icons.umbrella + '</span><span><span>NUOVO PERIODO</span><strong>Inserisci le ferie</strong><small>Weekend, riposi e festività vengono esclusi</small></span><span class="vacation-page-action-arrow">' + icons.right + '</span></button>' +
+        '<button class="vacation-page-action" data-open-vacation-range="' + year + '"><span class="vacation-page-action-icon">' + icons.umbrella + '</span><span><span>NUOVO PERIODO</span><strong>Inserisci le ferie</strong><small>Scegli le date e controlla subito i giorni conteggiati</small></span><span class="vacation-page-action-arrow">' + icons.right + '</span></button>' +
         '<div class="vacation-page-section-head"><div><span>STORICO</span><h2>Ferie utilizzate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
         '<section class="vacation-page-history">' + (recentRows || '<div class="vacation-page-empty"><span>' + icons.calendar + '</span><strong>Nessuna ferie registrata</strong><small>Quando inserisci una giornata, la ritroverai qui.</small></div>') + '</section>' +
       '</div>';
@@ -809,25 +809,74 @@ function renderOverlayLegacy() {
       var year = state.vacationDraft && Number(state.vacationDraft.year) ? Number(state.vacationDraft.year) : state.currentMonth.getFullYear();
       var draft = state.vacationDraft || {};
       var balance = getVacationBalanceForYear(year);
+      var mode = state.vacationManagerMode === 'range' ? 'range' : 'allowance';
       var hasAllowance = balance.allowanceDays > 0;
-      var remainingLabel = hasAllowance ? (formatVacationDayValue(balance.remainingDays) + ' giorni disponibili') : 'Totale non impostato';
-      return '<div class="vacation-overlay open" role="dialog" aria-modal="true" aria-label="Gestione ferie">' +
+      var remainingLabel = hasAllowance ? (formatVacationDayValue(balance.remainingDays) + ' gg disponibili') : 'Saldo non impostato';
+      var error = state.vacationManagerError ? '<div class="vacation-flow-error">' + escapeHtml(state.vacationManagerError) + '</div>' : '';
+      var headerIcon = mode === 'range' ? icons.calendar : icons.settings;
+      var headerTitle = mode === 'range' ? 'Inserisci le ferie' : 'Disponibilita annuale';
+      var headerText = mode === 'range' ? 'Scegli il periodo da registrare.' : 'Imposta il monte ferie per il ' + year + '.';
+      var content = '';
+
+      if (mode === 'allowance') {
+        var draftAllowance = Math.min(366, Math.max(0, parseDecimalInput(draft.allowanceDays, 0)));
+        var projectedDifference = draftAllowance - balance.usedDays;
+        var projectionTone = projectedDifference < 0 ? 'warning' : 'positive';
+        var projectionLabel = formatVacationDayValue(Math.abs(projectedDifference)) + (projectedDifference < 0 ? ' gg oltre il saldo' : ' gg disponibili');
+        content =
+          '<div class="vacation-flow-balance">' +
+            '<div><span>FERIE USATE</span><strong>' + formatVacationDayValue(balance.usedDays) + ' gg</strong></div>' +
+            '<div><span>SALDO ATTUALE</span><strong>' + remainingLabel + '</strong></div>' +
+          '</div>' +
+          '<section class="vacation-allowance-editor">' +
+            '<div class="vacation-flow-section-title"><span>MONTE ANNUALE</span><strong>Quanti giorni hai in totale?</strong></div>' +
+            '<div class="vacation-allowance-control">' +
+              '<button type="button" data-vacation-allowance-step="-1" aria-label="Riduci di un giorno"' + (draftAllowance <= 0 ? ' disabled' : '') + '>-</button>' +
+              '<label><input id="vacationAllowanceInput" type="text" inputmode="decimal" data-used-days="' + escapeHtml(formatEditorDecimal(balance.usedDays)) + '" value="' + escapeHtml(formatEditorDecimal(draftAllowance)) + '"><span>giorni</span></label>' +
+              '<button type="button" data-vacation-allowance-step="1" aria-label="Aumenta di un giorno"' + (draftAllowance >= 366 ? ' disabled' : '') + '>+</button>' +
+            '</div>' +
+            '<div class="vacation-allowance-projection"><span>Dopo il salvataggio</span><strong id="vacationAllowanceProjection" data-tone="' + projectionTone + '">' + projectionLabel + '</strong></div>' +
+          '</section>' +
+          '<div class="vacation-flow-note"><span>' + icons.check + '</span><p>Le giornate di ferie gia registrate non vengono modificate.</p></div>' +
+          error +
+          '<button class="solid vacation-flow-primary" data-save-vacation-allowance="1">Salva disponibilita</button>';
+      } else {
+        var rangeStaysInYear = String(draft.start || '').slice(0, 4) === String(year) && String(draft.end || '').slice(0, 4) === String(year);
+        var preview = rangeStaysInYear ? getVacationRangePreview(draft.start, draft.end) : { ok: false, reason: 'year', eligibleKeys: [], skipped: 0 };
+        var previewDays = preview.ok ? preview.eligibleKeys.length : 0;
+        var previewMinutes = previewDays * balance.dailyMinutes;
+        var exceedsBalance = hasAllowance && previewDays > balance.remainingDays;
+        var previewTone = !preview.ok || !previewDays ? 'empty' : (exceedsBalance ? 'warning' : 'positive');
+        var previewTitle = !preview.ok
+          ? (preview.reason === 'year' ? ('Scegli date del ' + year) : (preview.reason === 'range' ? 'Periodo troppo lungo' : 'Controlla le date'))
+          : (previewDays ? (previewDays + (previewDays === 1 ? ' giorno verra aggiunto' : ' giorni verranno aggiunti')) : 'Nessun giorno disponibile');
+        var previewMeta = preview.ok
+          ? (previewDays ? (formatDuration(previewMinutes) + ' di ferie' + (preview.skipped ? (' - ' + preview.skipped + ' esclusi') : '')) : 'Le giornate selezionate sono gia occupate o non lavorative.')
+          : (preview.reason === 'year' ? ('Il periodo deve rimanere nel ' + year + '.') : 'La data finale deve essere successiva a quella iniziale.');
+        var actionLabel = previewDays === 1 ? 'Aggiungi 1 giorno' : ('Aggiungi ' + previewDays + ' giorni');
+        content =
+          '<div class="vacation-flow-availability"><span>' + icons.umbrella + '</span><div><small>SALDO DISPONIBILE</small><strong>' + remainingLabel + '</strong><p>' + formatVacationDayValue(balance.usedDays) + ' gg gia utilizzati</p></div></div>' +
+          '<section class="vacation-range-editor">' +
+            '<div class="vacation-flow-section-title"><span>PERIODO</span><strong>Seleziona le date</strong></div>' +
+            '<div class="vacation-range-dates">' +
+              '<label><span>DAL</span><input id="vacationStartInput" type="date" min="' + year + '-01-01" max="' + year + '-12-31" value="' + escapeHtml(draft.start || '') + '"></label>' +
+              '<span class="vacation-range-connector">' + icons.right + '</span>' +
+              '<label><span>AL</span><input id="vacationEndInput" type="date" min="' + year + '-01-01" max="' + year + '-12-31" value="' + escapeHtml(draft.end || '') + '"></label>' +
+            '</div>' +
+          '</section>' +
+          '<div class="vacation-range-preview" data-tone="' + previewTone + '"><span class="vacation-range-preview-icon">' + (previewDays ? icons.check : icons.calendar) + '</span><div><strong>' + previewTitle + '</strong><small>' + previewMeta + '</small></div></div>' +
+          (exceedsBalance ? '<div class="vacation-flow-warning">Il periodo supera il saldo disponibile di ' + formatVacationDayValue(previewDays - balance.remainingDays) + ' gg.</div>' : '') +
+          '<div class="vacation-flow-note"><span>' + icons.check + '</span><p>Weekend, riposi, festivita e giornate gia compilate vengono saltati automaticamente.</p></div>' +
+          error +
+          '<button class="solid vacation-flow-primary" data-apply-vacation-range="1"' + (!preview.ok || !previewDays ? ' disabled' : '') + '>' + actionLabel + '</button>';
+      }
+
+      return '<div class="vacation-overlay open vacation-flow-overlay" role="dialog" aria-modal="true" aria-label="' + headerTitle + '">' +
         '<button class="vacation-overlay-backdrop" data-close-vacation-manager="1" aria-label="Chiudi"></button>' +
-        '<div class="vacation-sheet">' +
+        '<div class="vacation-flow-sheet is-' + mode + '">' +
           '<div class="vacation-sheet-handle"></div>' +
-          '<div class="vacation-sheet-head"><div><div class="vacation-kicker">FERIE ' + year + '</div><div class="vacation-sheet-title">Gestione ferie</div></div><button class="vacation-sheet-close" data-close-vacation-manager="1">' + icons.x + '</button></div>' +
-          '<div class="vacation-sheet-summary"><span class="vacation-sheet-summary-icon">' + icons.umbrella + '</span><div><span>Saldo attuale</span><strong>' + remainingLabel + '</strong><small>' + formatVacationDayValue(balance.usedDays) + ' usati su ' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) : '--') + ' giorni</small></div></div>' +
-          '<section class="vacation-manager-panel">' +
-            '<div class="vacation-panel-head"><span>1</span><div><strong>Disponibilita annuale</strong><small>Quanti giorni hai in totale nel ' + year + '?</small></div></div>' +
-            '<label class="vacation-total-field"><span>Totale ferie</span><div><input id="vacationAllowanceInput" type="text" inputmode="decimal" value="' + escapeHtml(formatEditorDecimal(draft.allowanceDays || 0)) + '"><b>giorni</b></div></label>' +
-            '<div class="vacation-total-actions"><small>1 giorno = ' + formatHourValue(getDefaultPaidDayHours()) + '</small><button class="ghost vacation-save-total" data-save-vacation-allowance="1">Aggiorna totale</button></div>' +
-          '</section>' +
-          '<section class="vacation-manager-panel vacation-range-panel">' +
-            '<div class="vacation-panel-head"><span>2</span><div><strong>Nuovo periodo</strong><small>Scegli il primo e l\'ultimo giorno.</small></div></div>' +
-            '<div class="vacation-date-grid"><label><span>Dal</span><input id="vacationStartInput" type="date" value="' + escapeHtml(draft.start || '') + '"></label><span class="vacation-date-arrow">' + icons.right + '</span><label><span>Al</span><input id="vacationEndInput" type="date" value="' + escapeHtml(draft.end || '') + '"></label></div>' +
-            '<div class="vacation-safe-note"><span>' + icons.check + '</span><p>Weekend, riposi, festivita e giornate gia compilate vengono saltati automaticamente.</p></div>' +
-            '<button class="solid vacation-apply" data-apply-vacation-range="1">Aggiungi ferie</button>' +
-          '</section>' +
+          '<div class="vacation-flow-head"><span class="vacation-flow-head-icon">' + headerIcon + '</span><div><span>FERIE ' + year + '</span><strong>' + headerTitle + '</strong><small>' + headerText + '</small></div><button class="vacation-sheet-close" data-close-vacation-manager="1" aria-label="Chiudi">' + icons.x + '</button></div>' +
+          content +
         '</div>' +
       '</div>';
     }

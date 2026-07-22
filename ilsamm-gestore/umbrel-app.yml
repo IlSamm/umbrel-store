@@ -4,7 +4,7 @@ name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.1.119"
+version: "1.1.120"
 port: 8080
 
 description: >-
@@ -12,8 +12,8 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iphone.
 
 releaseNotes: >-
-  Nuove aree Ferie, Profilo ed Esporta dati, navigazione riorganizzata e
-  impostazioni piu compatte, senza modificare i dati gia salvati.
+  Gestione disponibilita e inserimento ferie ora hanno pannelli separati,
+  anteprima dei giorni conteggiati e controlli piu chiari.
 
 developer: IlSamm
 website: ""

@@ -20,6 +20,8 @@ var state = {
       payslipDeletePendingId: '',
       payslipPhotoDeletePendingIndex: -1,
       vacationManagerOpen: false,
+      vacationManagerMode: 'allowance',
+      vacationManagerError: '',
       vacationDraft: null,
       vacationStatus: '',
       vacationHistoryOpen: false,

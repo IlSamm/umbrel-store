@@ -50,8 +50,8 @@ var errorBox = document.getElementById('errorBox');
       holidayHoursOnOffDays: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.119',
-      build: '20260721f',
+      version: '1.1.120',
+      build: '20260722a',
       appName: 'GestOre'
     };
 
@@ -641,15 +641,14 @@ var errorBox = document.getElementById('errorBox');
       var date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0, 0);
       return Number.isNaN(date.getTime()) ? null : date;
     }
-    function addVacationRange(startKey, endKey) {
+    function getVacationRangePreview(startKey, endKey) {
       var start = parseLocalDateKey(startKey);
       var end = parseLocalDateKey(endKey);
-      if (!start || !end || end.getTime() < start.getTime()) return { ok: false, reason: 'date', added: 0, skipped: 0 };
+      if (!start || !end || end.getTime() < start.getTime()) return { ok: false, reason: 'date', eligibleKeys: [], skipped: 0, spanDays: 0 };
       var spanDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
-      if (spanDays > 366) return { ok: false, reason: 'range', added: 0, skipped: 0 };
-      var added = 0;
+      if (spanDays > 366) return { ok: false, reason: 'range', eligibleKeys: [], skipped: 0, spanDays: spanDays };
+      var eligibleKeys = [];
       var skipped = 0;
-      var dailyHours = getDefaultPaidDayHours();
       var autoRestDays = getAutoRestDays();
       for (var current = new Date(start); current.getTime() <= end.getTime(); current.setDate(current.getDate() + 1)) {
         var currentKey = toISODate(current);
@@ -661,6 +660,15 @@ var errorBox = document.getElementById('errorBox');
           skipped += 1;
           continue;
         }
+        eligibleKeys.push(currentKey);
+      }
+      return { ok: true, eligibleKeys: eligibleKeys, skipped: skipped, spanDays: spanDays };
+    }
+    function addVacationRange(startKey, endKey) {
+      var preview = getVacationRangePreview(startKey, endKey);
+      if (!preview.ok) return { ok: false, reason: preview.reason, added: 0, skipped: preview.skipped || 0 };
+      var dailyHours = getDefaultPaidDayHours();
+      preview.eligibleKeys.forEach(function (currentKey) {
         state.entries[currentKey] = {
           type: 'ferie',
           start: '',
@@ -672,10 +680,10 @@ var errorBox = document.getElementById('errorBox');
           quantityHours: dailyHours,
           notes: ''
         };
-        added += 1;
-      }
+      });
+      var added = preview.eligibleKeys.length;
       if (added) saveEntries();
-      return { ok: true, added: added, skipped: skipped };
+      return { ok: true, added: added, skipped: preview.skipped };
     }
     function getMonthEntries(date) {
       var rows = [];

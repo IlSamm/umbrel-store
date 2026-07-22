@@ -191,9 +191,9 @@ function bindEvents() {
           openEditor(date);
         };
       });
-      document.querySelectorAll('[data-open-vacation-manager]').forEach(function (btn) {
+      var openVacationManager = function (btn, mode, yearValue) {
         btn.onclick = function () {
-          var year = Number(btn.dataset.openVacationManager) || state.currentMonth.getFullYear();
+          var year = Number(yearValue) || state.currentMonth.getFullYear();
           var now = new Date();
           var startDate = now.getFullYear() === year ? now : new Date(year, state.currentMonth.getMonth(), 1, 12, 0, 0, 0);
           state.vacationDraft = {
@@ -203,18 +203,32 @@ function bindEvents() {
             end: toISODate(startDate)
           };
           state.vacationHistoryOpen = false;
+          state.vacationManagerMode = mode;
+          state.vacationManagerError = '';
           state.vacationManagerOpen = true;
           render();
         };
+      };
+      document.querySelectorAll('[data-open-vacation-allowance]').forEach(function (btn) {
+        openVacationManager(btn, 'allowance', btn.dataset.openVacationAllowance);
+      });
+      document.querySelectorAll('[data-open-vacation-range]').forEach(function (btn) {
+        openVacationManager(btn, 'range', btn.dataset.openVacationRange);
       });
       document.querySelectorAll('[data-close-vacation-manager]').forEach(function (btn) {
-        btn.onclick = function () { state.vacationManagerOpen = false; render(); };
+        btn.onclick = function () { state.vacationManagerOpen = false; state.vacationManagerError = ''; render(); };
       });
       var vacationAllowance = document.getElementById('vacationAllowanceInput');
       if (vacationAllowance) {
         vacationAllowance.oninput = function (e) {
           if (!state.vacationDraft) return;
           state.vacationDraft.allowanceDays = parseDecimalInput(e.target.value, 0);
+          var projection = document.getElementById('vacationAllowanceProjection');
+          if (projection) {
+            var difference = state.vacationDraft.allowanceDays - parseDecimalInput(e.target.dataset.usedDays, 0);
+            projection.textContent = formatVacationDayValue(Math.abs(difference)) + (difference < 0 ? ' gg oltre il saldo' : ' gg disponibili');
+            projection.dataset.tone = difference < 0 ? 'warning' : 'positive';
+          }
         };
         vacationAllowance.onfocus = function (e) {
           if (isZeroLikeDecimalText(e.target.value)) e.target.value = '';
@@ -225,30 +239,50 @@ function bindEvents() {
           e.target.value = formatEditorDecimal(state.vacationDraft.allowanceDays || 0);
         };
       }
+      document.querySelectorAll('[data-vacation-allowance-step]').forEach(function (btn) {
+        btn.onclick = function () {
+          if (!state.vacationDraft) return;
+          var step = Number(btn.dataset.vacationAllowanceStep) || 0;
+          state.vacationDraft.allowanceDays = Math.min(366, Math.max(0, parseDecimalInput(state.vacationDraft.allowanceDays, 0) + step));
+          render();
+        };
+      });
       var vacationStart = document.getElementById('vacationStartInput');
       if (vacationStart) vacationStart.onchange = function (e) {
         if (!state.vacationDraft) return;
         state.vacationDraft.start = e.target.value;
         if (!state.vacationDraft.end || state.vacationDraft.end < e.target.value) state.vacationDraft.end = e.target.value;
+        state.vacationManagerError = '';
         render();
       };
       var vacationEnd = document.getElementById('vacationEndInput');
-      if (vacationEnd) vacationEnd.onchange = function (e) { if (state.vacationDraft) state.vacationDraft.end = e.target.value; };
+      if (vacationEnd) vacationEnd.onchange = function (e) {
+        if (!state.vacationDraft) return;
+        state.vacationDraft.end = e.target.value;
+        state.vacationManagerError = '';
+        render();
+      };
       var saveVacationAllowance = document.querySelector('[data-save-vacation-allowance]');
       if (saveVacationAllowance) saveVacationAllowance.onclick = function () {
         if (!state.vacationDraft) return;
         setVacationAllowanceDays(state.vacationDraft.year, state.vacationDraft.allowanceDays);
         state.vacationStatus = 'Disponibilita ferie aggiornata.';
         state.vacationManagerOpen = false;
+        state.vacationManagerError = '';
         render();
       };
       var applyVacationRange = document.querySelector('[data-apply-vacation-range]');
       if (applyVacationRange) applyVacationRange.onclick = function () {
         if (!state.vacationDraft) return;
-        setVacationAllowanceDays(state.vacationDraft.year, state.vacationDraft.allowanceDays);
+        var selectedYear = String(Number(state.vacationDraft.year) || new Date().getFullYear());
+        if (String(state.vacationDraft.start || '').slice(0, 4) !== selectedYear || String(state.vacationDraft.end || '').slice(0, 4) !== selectedYear) {
+          state.vacationManagerError = 'Scegli date comprese nel ' + selectedYear + '.';
+          render();
+          return;
+        }
         var result = addVacationRange(state.vacationDraft.start, state.vacationDraft.end);
         if (!result.ok) {
-          state.vacationStatus = result.reason === 'range' ? 'Il periodo non puo superare un anno.' : 'Controlla le date inserite.';
+          state.vacationManagerError = result.reason === 'range' ? 'Il periodo non puo superare un anno.' : 'Controlla le date inserite.';
           render();
           return;
         }
@@ -256,6 +290,7 @@ function bindEvents() {
           ? (result.added + (result.added === 1 ? ' giorno di ferie aggiunto.' : ' giorni di ferie aggiunti.') + (result.skipped ? (' ' + result.skipped + ' giorni non modificati.') : ''))
           : 'Nessun giorno aggiunto: il periodo non contiene giornate lavorative libere.';
         state.vacationManagerOpen = false;
+        state.vacationManagerError = '';
         render();
       };
 

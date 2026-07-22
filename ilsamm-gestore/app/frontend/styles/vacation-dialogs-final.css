@@ -1,0 +1,537 @@
+/* Vacation allowance and date flows. Kept separate from the vacation dashboard. */
+.vacation-flow-overlay {
+  z-index: 2460;
+  padding: 10px 7px max(7px, env(safe-area-inset-bottom, 0px));
+}
+
+.vacation-flow-sheet {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  width: min(calc(100% - 2px), 414px);
+  max-height: calc(100dvh - max(16px, env(safe-area-inset-top, 0px)) - 10px);
+  padding: 8px 16px calc(17px + env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: #f7f9ff;
+  border: 1px solid rgba(129, 158, 226, .23);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 8% -5%, rgba(70, 126, 255, .17), transparent 35%),
+    radial-gradient(circle at 102% 8%, rgba(122, 86, 255, .12), transparent 32%),
+    linear-gradient(155deg, #13213f 0%, #09142b 52%, #050c1c 100%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .62), inset 0 1px 0 rgba(255, 255, 255, .06);
+  overscroll-behavior: contain;
+  animation: vacation-flow-enter .24s cubic-bezier(.2, .85, .3, 1) both;
+}
+
+@keyframes vacation-flow-enter {
+  from { opacity: 0; transform: translateY(20px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.vacation-flow-sheet button,
+.vacation-flow-sheet input {
+  font: inherit;
+}
+
+.vacation-flow-head {
+  display: grid;
+  grid-template-columns: 47px minmax(0, 1fr) 39px;
+  align-items: center;
+  gap: 11px;
+}
+
+.vacation-flow-head-icon {
+  display: grid;
+  place-items: center;
+  width: 47px;
+  height: 47px;
+  color: #78a8ff;
+  border: 1px solid rgba(104, 150, 255, .22);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(66, 117, 240, .23), rgba(80, 72, 192, .12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+.vacation-flow-sheet.is-range .vacation-flow-head-icon {
+  color: #54dfb1;
+  border-color: rgba(71, 222, 175, .19);
+  background: linear-gradient(145deg, rgba(31, 183, 137, .19), rgba(45, 86, 176, .11));
+}
+
+.vacation-flow-head-icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vacation-flow-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vacation-flow-head > div > span,
+.vacation-flow-section-title > span,
+.vacation-flow-balance span,
+.vacation-flow-availability small,
+.vacation-range-dates label > span {
+  color: #8aa9ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.vacation-flow-head > div > strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: -.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vacation-flow-head > div > small {
+  overflow: hidden;
+  color: rgba(215, 225, 251, .53);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vacation-flow-sheet .vacation-sheet-close {
+  width: 39px;
+  height: 39px;
+  padding: 0;
+}
+
+.vacation-flow-balance {
+  display: grid;
+  grid-template-columns: .82fr 1.18fr;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(122, 155, 225, .15);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .018);
+}
+
+.vacation-flow-balance > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: rgba(104, 132, 202, .045);
+}
+
+.vacation-flow-balance > div + div {
+  border-left: 1px solid rgba(132, 156, 214, .10);
+}
+
+.vacation-flow-balance strong {
+  overflow: hidden;
+  color: #f8faff;
+  font-size: 14px;
+  line-height: 1.15;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vacation-allowance-editor,
+.vacation-range-editor {
+  display: grid;
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid rgba(126, 157, 229, .16);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(80, 111, 183, .075), rgba(255, 255, 255, .016));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+.vacation-flow-section-title {
+  display: grid;
+  gap: 4px;
+}
+
+.vacation-flow-section-title strong {
+  color: #f7f9ff;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 850;
+}
+
+.vacation-allowance-control {
+  display: grid;
+  grid-template-columns: 49px minmax(0, 1fr) 49px;
+  align-items: stretch;
+  gap: 9px;
+}
+
+.vacation-allowance-control > button {
+  min-width: 49px;
+  min-height: 58px;
+  padding: 0;
+  color: #a9baff;
+  font-size: 28px;
+  font-weight: 500;
+  border: 1px solid rgba(126, 155, 230, .18);
+  border-radius: 17px;
+  background: rgba(70, 96, 164, .10);
+}
+
+.vacation-allowance-control > button:active {
+  transform: scale(.96);
+  background: rgba(80, 111, 194, .18);
+}
+
+.vacation-allowance-control > button:disabled {
+  opacity: .3;
+}
+
+.vacation-allowance-control label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 14px;
+  border: 1px solid rgba(113, 154, 255, .24);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(58, 103, 222, .15), rgba(82, 64, 182, .08));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045);
+}
+
+.vacation-allowance-control input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  color: #fff;
+  font-size: 29px;
+  font-weight: 900;
+  text-align: center;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.vacation-allowance-control label > span {
+  color: rgba(183, 202, 247, .58);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.vacation-allowance-projection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(130, 155, 216, .10);
+}
+
+.vacation-allowance-projection > span {
+  color: rgba(211, 222, 249, .52);
+  font-size: 10px;
+}
+
+.vacation-allowance-projection strong {
+  color: #56deb3;
+  font-size: 12px;
+  font-weight: 850;
+  text-align: right;
+}
+
+.vacation-allowance-projection strong[data-tone="warning"] {
+  color: #ff9d78;
+}
+
+.vacation-flow-availability {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  padding: 12px 13px;
+  border: 1px solid rgba(71, 220, 175, .15);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(29, 173, 130, .09), rgba(255, 255, 255, .016));
+}
+
+.vacation-flow-availability > span {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: #4fdbae;
+  border: 1px solid rgba(79, 219, 174, .15);
+  border-radius: 15px;
+  background: rgba(25, 184, 137, .10);
+}
+
+.vacation-flow-availability svg,
+.vacation-flow-note svg,
+.vacation-range-preview-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vacation-flow-availability > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vacation-flow-availability strong {
+  color: #f8faff;
+  font-size: 16px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.vacation-flow-availability p {
+  margin: 0;
+  color: rgba(211, 223, 250, .47);
+  font-size: 10px;
+}
+
+.vacation-range-dates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: end;
+  gap: 7px;
+}
+
+.vacation-range-dates label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.vacation-range-dates input {
+  width: 100%;
+  min-width: 0;
+  height: 51px;
+  padding: 0 9px;
+  color: #f8faff;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid rgba(120, 157, 237, .18);
+  border-radius: 15px;
+  outline: 0;
+  background: rgba(60, 91, 157, .09);
+  color-scheme: dark;
+}
+
+.vacation-range-dates input:focus {
+  border-color: rgba(105, 147, 255, .55);
+  box-shadow: 0 0 0 3px rgba(72, 114, 229, .10);
+}
+
+.vacation-range-dates input::-webkit-calendar-picker-indicator {
+  opacity: .62;
+}
+
+.vacation-range-connector {
+  display: grid;
+  place-items: center;
+  height: 51px;
+  color: rgba(184, 201, 239, .34);
+}
+
+.vacation-range-connector svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.vacation-range-preview {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  min-height: 67px;
+  padding: 11px 13px;
+  border: 1px solid rgba(105, 143, 226, .14);
+  border-radius: 18px;
+  background: rgba(73, 101, 166, .055);
+}
+
+.vacation-range-preview-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #829df3;
+  border-radius: 14px;
+  background: rgba(76, 103, 187, .12);
+}
+
+.vacation-range-preview > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.vacation-range-preview strong {
+  color: #f7f9ff;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 850;
+}
+
+.vacation-range-preview small {
+  color: rgba(211, 223, 250, .47);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.vacation-range-preview[data-tone="positive"] {
+  border-color: rgba(67, 218, 172, .16);
+  background: rgba(25, 171, 127, .065);
+}
+
+.vacation-range-preview[data-tone="positive"] .vacation-range-preview-icon {
+  color: #4bdeb0;
+  background: rgba(25, 178, 132, .11);
+}
+
+.vacation-range-preview[data-tone="warning"] {
+  border-color: rgba(255, 158, 112, .18);
+}
+
+.vacation-range-preview[data-tone="warning"] .vacation-range-preview-icon {
+  color: #ff9d78;
+  background: rgba(230, 113, 77, .10);
+}
+
+.vacation-flow-note {
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 10px 12px;
+  color: rgba(207, 221, 251, .54);
+  border: 1px solid rgba(113, 145, 216, .10);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .018);
+}
+
+.vacation-flow-note > span {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  color: #65c6ff;
+}
+
+.vacation-flow-note svg {
+  width: 17px;
+  height: 17px;
+}
+
+.vacation-flow-note p {
+  margin: 2px 0 0;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.vacation-flow-warning,
+.vacation-flow-error {
+  padding: 10px 12px;
+  color: #ffc0a8;
+  font-size: 10px;
+  line-height: 1.4;
+  border: 1px solid rgba(255, 133, 93, .18);
+  border-radius: 14px;
+  background: rgba(207, 72, 50, .075);
+}
+
+.vacation-flow-error {
+  color: #ff9aaa;
+  border-color: rgba(255, 95, 121, .22);
+  background: rgba(210, 46, 74, .09);
+}
+
+.vacation-flow-primary {
+  width: 100%;
+  min-height: 51px;
+  margin: 0;
+  padding: 0 16px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  border: 1px solid rgba(160, 178, 255, .20);
+  border-radius: 17px;
+  background: linear-gradient(135deg, #4675e8, #6c50e7 58%, #8b55e9);
+  box-shadow: 0 12px 28px rgba(65, 75, 202, .22), inset 0 1px 0 rgba(255, 255, 255, .15);
+}
+
+.vacation-flow-sheet.is-range .vacation-flow-primary {
+  background: linear-gradient(135deg, #168f78, #337bcb 55%, #6953df);
+}
+
+.vacation-flow-primary:disabled {
+  opacity: .38;
+  box-shadow: none;
+}
+
+@media (max-width: 370px) {
+  .vacation-flow-sheet {
+    gap: 12px;
+    padding-inline: 13px;
+  }
+
+  .vacation-flow-head {
+    grid-template-columns: 43px minmax(0, 1fr) 37px;
+    gap: 9px;
+  }
+
+  .vacation-flow-head-icon {
+    width: 43px;
+    height: 43px;
+  }
+
+  .vacation-flow-head > div > strong {
+    font-size: 18px;
+  }
+
+  .vacation-flow-head > div > small {
+    font-size: 10px;
+  }
+
+  .vacation-allowance-editor,
+  .vacation-range-editor {
+    padding: 13px;
+  }
+
+  .vacation-range-dates {
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .vacation-range-dates input {
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vacation-flow-sheet {
+    animation: none;
+  }
+}
