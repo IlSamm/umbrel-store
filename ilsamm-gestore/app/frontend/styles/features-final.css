@@ -422,28 +422,48 @@
 .global-search-overlay {
   position: fixed;
   z-index: 1900;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  display: grid;
-  width: 100%;
-  max-width: 430px;
-  height: var(--app-vh, 100dvh);
-  transform: translateX(-50%);
-  background: rgba(2, 6, 17, 0.78);
-  backdrop-filter: blur(24px) saturate(1.1);
-  -webkit-backdrop-filter: blur(24px) saturate(1.1);
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  width: auto;
+  max-width: none;
+  height: auto;
+  overflow: hidden;
+  transform: none;
+  background:
+    radial-gradient(circle at 82% 2%, rgba(108, 75, 229, 0.16), transparent 31%),
+    linear-gradient(180deg, #081027 0%, #050b1d 56%, #030711 100%);
+  background-color: #030711;
 }
 
 .global-search-panel {
+  position: relative;
   display: flex;
+  width: min(100%, 430px);
+  height: 100%;
   min-height: 0;
+  margin: 0 auto;
+  box-sizing: border-box;
   flex-direction: column;
   padding: max(14px, var(--safe-top)) 16px calc(22px + var(--safe-bottom));
   overflow: hidden;
   background:
     radial-gradient(circle at 82% 2%, rgba(108, 75, 229, 0.19), transparent 31%),
     linear-gradient(180deg, rgba(8, 16, 39, 0.97), rgba(3, 7, 18, 0.995));
+}
+
+body.keyboard-open .global-search-overlay,
+html.keyboard-open .global-search-overlay {
+  top: var(--keyboard-offset-top, 0px);
+  right: 0;
+  bottom: auto;
+  left: 0;
+  height: var(--visible-app-vh, 100dvh);
+}
+
+body.keyboard-open .global-search-panel,
+html.keyboard-open .global-search-panel {
+  padding-bottom: 14px;
 }
 
 .global-search-top {
@@ -642,6 +662,252 @@
   max-width: 250px;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.weekly-review-overlay {
+  position: fixed;
+  z-index: 1950;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: auto;
+  height: auto;
+  padding: max(22px, var(--safe-top)) 18px max(22px, var(--safe-bottom));
+  box-sizing: border-box;
+  overflow: auto;
+  background: rgba(2, 5, 15, 0.78);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.weekly-review-dialog {
+  width: min(100%, 370px);
+  max-height: min(720px, calc(100dvh - 44px));
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: auto;
+  border: 1px solid rgba(123, 146, 225, 0.19);
+  border-radius: 30px;
+  color: #f7f9ff;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(126, 87, 235, 0.19), transparent 35%),
+    linear-gradient(155deg, rgba(22, 35, 72, 0.985), rgba(6, 11, 28, 0.995));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  -webkit-overflow-scrolling: touch;
+}
+
+.weekly-review-head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 12px;
+}
+
+.weekly-review-icon,
+.weekly-review-head > button {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(120, 147, 235, 0.14);
+  color: #86a9ff;
+  background: rgba(80, 119, 226, 0.11);
+}
+
+.weekly-review-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 17px;
+}
+
+.weekly-review-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.weekly-review-head > div {
+  min-width: 0;
+}
+
+.weekly-review-head small {
+  display: block;
+  color: #91a8ff;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.weekly-review-head h2 {
+  margin: 4px 0 0;
+  font-size: 21px;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.weekly-review-head > button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 14px;
+}
+
+.weekly-review-head > button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.weekly-review-period {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(120, 143, 216, 0.12);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.weekly-review-period span {
+  color: rgba(184, 200, 242, 0.5);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.weekly-review-period strong {
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.weekly-review-copy {
+  margin: 15px 2px 10px;
+  color: rgba(204, 214, 243, 0.63);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.weekly-review-list {
+  display: grid;
+  gap: 8px;
+}
+
+.weekly-review-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 11px;
+  min-height: 64px;
+  padding: 9px 11px;
+  border: 1px solid rgba(119, 140, 210, 0.12);
+  border-radius: 18px;
+  color: #f4f7ff;
+  background: rgba(255, 255, 255, 0.035);
+  text-align: left;
+}
+
+.weekly-review-row > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  color: #78a9ff;
+  background: rgba(72, 124, 235, 0.11);
+}
+
+.weekly-review-row.is-violet > span {
+  color: #ad75ff;
+  background: rgba(142, 84, 238, 0.12);
+}
+
+.weekly-review-row.is-amber > span {
+  color: #f2b55f;
+  background: rgba(226, 151, 53, 0.11);
+}
+
+.weekly-review-row.is-red > span {
+  color: #ff7890;
+  background: rgba(239, 72, 105, 0.1);
+}
+
+.weekly-review-row > span svg {
+  width: 19px;
+  height: 19px;
+}
+
+.weekly-review-row > div {
+  min-width: 0;
+}
+
+.weekly-review-row strong,
+.weekly-review-row small {
+  display: block;
+}
+
+.weekly-review-row strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.weekly-review-row small {
+  margin-top: 3px;
+  color: rgba(198, 210, 241, 0.55);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.weekly-review-row > svg {
+  width: 17px;
+  color: rgba(188, 202, 239, 0.42);
+}
+
+.weekly-review-clear {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(64, 206, 158, 0.13);
+  border-radius: 19px;
+  background: rgba(30, 175, 125, 0.055);
+}
+
+.weekly-review-clear > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 14px;
+  color: #55d8aa;
+  background: rgba(44, 194, 143, 0.11);
+}
+
+.weekly-review-clear svg {
+  width: 19px;
+  height: 19px;
+}
+
+.weekly-review-clear strong,
+.weekly-review-clear small {
+  display: block;
+}
+
+.weekly-review-clear small {
+  margin-top: 3px;
+  color: rgba(198, 210, 241, 0.55);
+  font-size: 10px;
+}
+
+.weekly-review-done {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+  border: 1px solid rgba(151, 129, 255, 0.22);
+  border-radius: 17px;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(80, 121, 240, 0.9), rgba(126, 74, 221, 0.92));
+  box-shadow: 0 12px 25px rgba(37, 43, 122, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 780;
 }
 
 .feature-dialog-overlay {

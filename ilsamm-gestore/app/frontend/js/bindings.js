@@ -979,14 +979,26 @@ function bindEvents() {
       }
       bindGlobalSearchResultEvents();
 
-      document.querySelectorAll('[data-insight-date]').forEach(function (btn) {
-        btn.onclick = function () { openEditor(new Date(btn.dataset.insightDate + 'T12:00:00')); };
+      document.querySelectorAll('[data-dismiss-weekly-review]').forEach(function (btn) {
+        btn.onclick = function () { acknowledgeWeeklyReview(); };
       });
-      document.querySelectorAll('[data-insight-tab]').forEach(function (btn) {
-        btn.onclick = function () { activatePrimaryTab(btn.dataset.insightTab, btn, 60); };
-      });
-      document.querySelectorAll('[data-insight-payslips]').forEach(function (btn) {
+      document.querySelectorAll('[data-weekly-review-date]').forEach(function (btn) {
         btn.onclick = function () {
+          acknowledgeWeeklyReview(false);
+          openEditor(new Date(btn.dataset.weeklyReviewDate + 'T12:00:00'));
+        };
+      });
+      document.querySelectorAll('[data-weekly-review-tab]').forEach(function (btn) {
+        btn.onclick = function () {
+          var nextTab = btn.dataset.weeklyReviewTab;
+          acknowledgeWeeklyReview(false);
+          if (getPrimaryNavTab(state.activeTab) === nextTab) render();
+          else activatePrimaryTab(nextTab, null, 0);
+        };
+      });
+      document.querySelectorAll('[data-weekly-review-payslips]').forEach(function (btn) {
+        btn.onclick = function () {
+          acknowledgeWeeklyReview(false);
           state.activeTab = 'payslips';
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;

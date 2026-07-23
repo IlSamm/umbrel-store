@@ -1,4 +1,5 @@
 var STORAGE_SHIFT_TIMER = 'gestore-shift-timer-v1';
+var STORAGE_WEEKLY_REVIEW = 'gestore-weekly-review-v1';
 var featureRuntimeStarted = false;
 var shiftTimerTick = 0;
 
@@ -170,10 +171,17 @@ function initializeFeatureServices() {
   featureRuntimeStarted = true;
   shiftTimerTick = window.setInterval(updateShiftTimerDom, 1000);
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) updateShiftTimerDom();
+    if (!document.hidden) {
+      updateShiftTimerDom();
+      maybeOpenWeeklyReview();
+    }
     else persistShiftTimerState();
   });
+  window.addEventListener('gestore:account-ready', function () {
+    window.setTimeout(maybeOpenWeeklyReview, 80);
+  });
   window.addEventListener('pagehide', persistShiftTimerState);
+  window.setTimeout(maybeOpenWeeklyReview, 120);
 }
 
 function renderOptionalTimerHomeCard(now) {
@@ -302,8 +310,8 @@ function renderGlobalSearchOverlay() {
   '</div>';
 }
 
-function getSmartAlerts() {
-  var now = new Date();
+function getSmartAlerts(referenceDate) {
+  var now = referenceDate instanceof Date ? new Date(referenceDate.getTime()) : new Date();
   var alerts = [];
   var missing = [];
   var workdays = normalizeWeekdayList(state.settings.workdays || []);
@@ -366,6 +374,63 @@ function getSmartAlerts() {
   return alerts.slice(0, 4);
 }
 
+function getWeeklyReviewDescriptor(referenceDate) {
+  var now = referenceDate instanceof Date ? new Date(referenceDate.getTime()) : new Date();
+  now.setHours(12, 0, 0, 0);
+  var day = now.getDay();
+  if (day !== 6 && day !== 1) return null;
+
+  var weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - mondayIndex(now.getDay()));
+  if (day === 1) weekStart.setDate(weekStart.getDate() - 7);
+  var weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  var sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+  var rangeLabel = sameMonth
+    ? weekStart.getDate() + ' - ' + weekEnd.getDate() + ' ' + monthNames[weekEnd.getMonth()].toLowerCase()
+    : weekStart.getDate() + ' ' + monthNames[weekStart.getMonth()].slice(0, 3).toLowerCase() + ' - ' + weekEnd.getDate() + ' ' + monthNames[weekEnd.getMonth()].slice(0, 3).toLowerCase();
+
+  return {
+    key: toISODate(weekStart),
+    rangeLabel: rangeLabel,
+    fallback: day === 1
+  };
+}
+
+function getWeeklyReviewStorageKey(descriptor) {
+  var accountId = state && state.account && state.account.user
+    ? String(state.account.user.id || '')
+    : (typeof getStoredActiveAccountId === 'function' ? getStoredActiveAccountId() : '');
+  return STORAGE_WEEKLY_REVIEW + ':' + encodeURIComponent(accountId || 'locale') + ':' + descriptor.key;
+}
+
+function maybeOpenWeeklyReview(referenceDate, forceOpen) {
+  if (!state || !state.account || state.account.authenticated !== true || state.account.dataReady !== true) return false;
+  if (state.weeklyReviewOpen || state.globalSearchOpen || state.editingDate || state.vacationManagerOpen || state.payslipEditorOpen || state.privacyLocked) return false;
+  var descriptor = getWeeklyReviewDescriptor(referenceDate);
+  if (!descriptor) return false;
+  var storageKey = getWeeklyReviewStorageKey(descriptor);
+  if (!forceOpen) {
+    try {
+      if (localStorage.getItem(storageKey) === 'seen') return false;
+    } catch (err) {}
+  }
+  state.weeklyReviewOpen = true;
+  state.weeklyReviewDescriptor = descriptor;
+  if (typeof render === 'function') render();
+  return true;
+}
+
+function acknowledgeWeeklyReview(shouldRender) {
+  var descriptor = state.weeklyReviewDescriptor || getWeeklyReviewDescriptor(new Date());
+  if (descriptor) {
+    try { localStorage.setItem(getWeeklyReviewStorageKey(descriptor), 'seen'); } catch (err) {}
+  }
+  state.weeklyReviewOpen = false;
+  state.weeklyReviewDescriptor = null;
+  if (shouldRender !== false && typeof render === 'function') render();
+}
+
 function renderSmartAlerts() {
   var alerts = getSmartAlerts();
   if (!alerts.length) {
@@ -381,6 +446,31 @@ function renderSmartAlerts() {
   '</div></section>';
 }
 
+function renderWeeklyReviewDialog() {
+  if (!state.weeklyReviewOpen) return '';
+  var descriptor = state.weeklyReviewDescriptor || getWeeklyReviewDescriptor(new Date());
+  if (!descriptor) return '';
+  var alerts = getSmartAlerts();
+  var rows = alerts.length
+    ? alerts.map(function (alert) {
+      var action = alert.action === 'date'
+        ? ' data-weekly-review-date="' + escapeHtml(alert.value) + '"'
+        : (alert.action === 'payslips' ? ' data-weekly-review-payslips="1"' : ' data-weekly-review-tab="' + escapeHtml(alert.value) + '"');
+      return '<button class="weekly-review-row is-' + alert.tone + '"' + action + '><span>' + alert.icon + '</span><div><strong>' + escapeHtml(alert.title) + '</strong><small>' + escapeHtml(alert.copy) + '</small></div>' + icons.right + '</button>';
+    }).join('')
+    : '<div class="weekly-review-clear"><span>' + icons.check + '</span><div><strong>Tutto in ordine</strong><small>Le giornate e i documenti risultano aggiornati.</small></div></div>';
+
+  return '<div class="weekly-review-overlay" role="dialog" aria-modal="true" aria-labelledby="weeklyReviewTitle">' +
+    '<section class="weekly-review-dialog">' +
+      '<div class="weekly-review-head"><span class="weekly-review-icon">' + icons.bell + '</span><div><small>' + (descriptor.fallback ? 'CONTROLLO DEL LUNEDI' : 'FINE SETTIMANA') + '</small><h2 id="weeklyReviewTitle">Riepilogo settimanale</h2></div><button data-dismiss-weekly-review="1" aria-label="Chiudi">' + icons.x + '</button></div>' +
+      '<div class="weekly-review-period"><span>SETTIMANA</span><strong>' + escapeHtml(descriptor.rangeLabel) + '</strong></div>' +
+      '<p class="weekly-review-copy">' + (alerts.length ? 'Ci sono ' + alerts.length + (alerts.length === 1 ? ' elemento da controllare.' : ' elementi da controllare.') : 'Hai completato tutti i controlli importanti della settimana.') + '</p>' +
+      '<div class="weekly-review-list">' + rows + '</div>' +
+      '<button class="weekly-review-done" data-dismiss-weekly-review="1">Ho controllato</button>' +
+    '</section>' +
+  '</div>';
+}
+
 function renderTimerDiscardDialog() {
   if (!state.timerDiscardConfirm) return '';
   return '<div class="feature-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="timerDiscardTitle"><section class="feature-dialog">' +
@@ -390,7 +480,7 @@ function renderTimerDiscardDialog() {
 }
 
 function renderFeatureOverlays() {
-  return renderGlobalSearchOverlay() + renderTimerDiscardDialog();
+  return renderGlobalSearchOverlay() + renderTimerDiscardDialog() + renderWeeklyReviewDialog();
 }
 
 state.shiftTimer = loadShiftTimerState();
@@ -398,3 +488,5 @@ state.timerNotice = '';
 state.timerDiscardConfirm = false;
 state.globalSearchOpen = false;
 state.globalSearchQuery = '';
+state.weeklyReviewOpen = false;
+state.weeklyReviewDescriptor = null;

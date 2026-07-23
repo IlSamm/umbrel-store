@@ -1678,7 +1678,6 @@ function renderOverlayLegacy() {
           '<div><span>SETTIMANA</span><strong>' + weeklyTarget + '</strong><small>target</small></div>' +
           '<div><span>ARCHIVIO</span><strong>' + savedCount + '</strong><small>' + (savedCount === 1 ? 'busta' : 'buste') + '</small></div>' +
         '</section>' +
-        (typeof renderSmartAlerts === 'function' ? renderSmartAlerts() : '') +
         '<div class="profile-section-title">Gestione personale</div>' +
         '<section class="profile-group profile-v2-group">' +
           accountManagementRow +
