@@ -737,82 +737,66 @@ function renderCalendar() {
       return (value > 0 ? '+' : '-') + formatDuration(Math.abs(value));
     }
 
+    function formatStatsCompactDuration(minutes) {
+      var value = Math.max(0, Math.round(Number(minutes) || 0));
+      if (!value) return '--';
+      var hours = Math.floor(value / 60);
+      var remaining = value % 60;
+      return remaining ? (hours + 'h' + String(remaining).padStart(2, '0')) : (hours + 'h');
+    }
+
     function buildStatsDailyChart(series) {
-      var width = 320;
-      var height = 174;
-      var left = 31;
-      var top = 12;
-      var plotWidth = 278;
-      var plotHeight = 126;
-      var bottom = top + plotHeight;
       var dailyTarget = getDailyTargetMinutes();
       var maxRecorded = series.reduce(function (max, item) { return Math.max(max, item.total); }, 0);
       var maxMinutes = Math.max(60, dailyTarget, maxRecorded);
       maxMinutes = Math.ceil((maxMinutes * 1.12) / 60) * 60;
-      var step = plotWidth / Math.max(1, series.length);
-      var barWidth = Math.max(3.4, Math.min(7, step * .58));
-      var grid = [0, .5, 1].map(function (ratio) {
-        var y = bottom - (plotHeight * ratio);
-        var value = Math.round((maxMinutes * ratio) / 60);
-        return '<line class="analytics-chart-grid" x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotWidth) + '" y2="' + y.toFixed(1) + '"></line>' +
-          '<text class="analytics-chart-y-label" x="' + (left - 6) + '" y="' + (y + 3).toFixed(1) + '">' + value + 'h</text>';
-      }).join('');
-      var bars = series.map(function (item, index) {
-        var x = left + (step * index) + ((step - barWidth) / 2);
-        var normalHeight = (item.normal / maxMinutes) * plotHeight;
-        var extraHeight = (item.overtime / maxMinutes) * plotHeight;
-        var normalY = bottom - normalHeight;
-        var extraY = normalY - extraHeight;
-        var output = '<g><title>Giorno ' + item.day + ': ' + formatDuration(item.total) + '</title>';
-        if (normalHeight > 0) {
-          output += '<rect class="analytics-chart-bar-normal" x="' + x.toFixed(2) + '" y="' + normalY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + normalHeight.toFixed(2) + '" rx="2.5"></rect>';
-        }
-        if (extraHeight > 0) {
-          output += '<rect class="analytics-chart-bar-extra" x="' + x.toFixed(2) + '" y="' + extraY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + extraHeight.toFixed(2) + '" rx="2.5"></rect>';
-        }
+      var barAreaHeight = 142;
+      var targetTop = dailyTarget > 0 ? 26 + (barAreaHeight - ((dailyTarget / maxMinutes) * barAreaHeight)) : -1;
+      var plotWidth = Math.max(312, series.length * 50);
+      var columns = series.map(function (item) {
+        var normalPercent = Math.max(0, Math.min(100, (item.normal / maxMinutes) * 100));
+        var overtimePercent = Math.max(0, Math.min(100 - normalPercent, (item.overtime / maxMinutes) * 100));
+        var date = new Date(item.key + 'T12:00:00');
+        var weekday = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(date).replace('.', '').slice(0, 3).toUpperCase();
+        var stateDot = '';
         if (item.entry && item.total === 0) {
-          var typeColor = dayTypes[item.entry.type] ? dayTypes[item.entry.type].dot : '#71809e';
-          output += '<circle cx="' + (x + barWidth / 2).toFixed(2) + '" cy="' + (bottom - 3) + '" r="2.5" fill="' + typeColor + '"></circle>';
+          var type = dayTypes[item.entry.type] || { label: 'Segnato', dot: '#71809e' };
+          stateDot = '<i class="analytics-daily-state" style="background:' + type.dot + '" title="' + escapeHtml(type.label) + '"></i>';
         }
-        return output + '</g>';
+        return '<div class="analytics-daily-column" aria-label="' + escapeHtml(weekday + ' ' + item.day + ': ' + (item.total ? formatDuration(item.total) : 'nessuna ora')) + '">' +
+          '<span class="analytics-daily-value">' + formatStatsCompactDuration(item.total) + '</span>' +
+          '<div class="analytics-daily-bar"><i class="is-normal" style="height:' + normalPercent.toFixed(2) + '%"></i><i class="is-extra" style="height:' + overtimePercent.toFixed(2) + '%"></i>' + stateDot + '</div>' +
+          '<small>' + weekday + '</small><strong>' + item.day + '</strong>' +
+        '</div>';
       }).join('');
-      var labelDays = [1, 7, 14, 21, 28, series.length].filter(function (day, index, list) {
-        return day <= series.length && list.indexOf(day) === index;
-      });
-      var labels = labelDays.map(function (day) {
-        var x = left + (step * (day - 1)) + (step / 2);
-        return '<text class="analytics-chart-x-label" x="' + x.toFixed(2) + '" y="' + (height - 8) + '">' + day + '</text>';
-      }).join('');
-      var targetLine = '';
-      if (dailyTarget > 0) {
-        var targetY = bottom - ((dailyTarget / maxMinutes) * plotHeight);
-        targetLine = '<line class="analytics-chart-target" x1="' + left + '" y1="' + targetY.toFixed(2) + '" x2="' + (left + plotWidth) + '" y2="' + targetY.toFixed(2) + '"></line>' +
-          '<text class="analytics-chart-target-label" x="' + (left + plotWidth - 2) + '" y="' + (targetY - 5).toFixed(2) + '">target</text>';
-      }
-      return '<svg class="analytics-chart analytics-daily-chart" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Ore lavorate per giorno">' +
-        '<defs><linearGradient id="analyticsNormalBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#438dff"></stop><stop offset="1" stop-color="#66d8ff"></stop></linearGradient><linearGradient id="analyticsExtraBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7652ff"></stop><stop offset="1" stop-color="#bd6cff"></stop></linearGradient></defs>' +
-        grid + targetLine + bars + labels + '</svg>';
+      return '<div class="analytics-chart analytics-daily-readable-chart" role="img" aria-label="Ore lavorate per giorno, scorri orizzontalmente">' +
+        '<div class="analytics-daily-scroll"><div class="analytics-daily-plot" style="width:' + plotWidth + 'px">' +
+          (dailyTarget > 0 ? '<div class="analytics-daily-target-line" style="top:' + targetTop.toFixed(2) + 'px"><span>' + formatStatsCompactDuration(dailyTarget) + ' obiettivo</span></div>' : '') +
+          columns +
+        '</div></div>' +
+        '<div class="analytics-daily-scroll-hint"><span>Scorri per vedere tutti i giorni</span>' + icons.right + '</div>' +
+      '</div>';
     }
 
     function buildStatsYearChart(summaries, targetMinutes) {
-      var width = 320;
-      var height = 184;
-      var left = 31;
-      var top = 12;
-      var plotWidth = 278;
-      var plotHeight = 134;
+      var width = 344;
+      var height = 214;
+      var left = 42;
+      var top = 14;
+      var plotWidth = 290;
+      var plotHeight = 154;
       var bottom = top + plotHeight;
       var maxRecorded = summaries.reduce(function (max, item) { return Math.max(max, item.stats.totalMinutes || 0); }, 0);
       var monthTarget = targetMinutes / 12;
       var maxMinutes = Math.max(60, monthTarget, maxRecorded);
       maxMinutes = Math.ceil((maxMinutes * 1.12) / 600) * 600;
       var step = plotWidth / 12;
-      var barWidth = Math.min(13, step * .58);
+      var barWidth = Math.min(14, step * .62);
       var grid = [0, .5, 1].map(function (ratio) {
         var y = bottom - (plotHeight * ratio);
         var value = Math.round((maxMinutes * ratio) / 60);
         return '<line class="analytics-chart-grid" x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotWidth) + '" y2="' + y.toFixed(1) + '"></line>' +
-          '<text class="analytics-chart-y-label" x="' + (left - 6) + '" y="' + (y + 3).toFixed(1) + '">' + value + 'h</text>';
+          '<text class="analytics-chart-y-label" x="' + (left - 8) + '" y="' + (y + 4).toFixed(1) + '">' + value + 'h</text>';
       }).join('');
       var bars = summaries.map(function (item, index) {
         var normal = item.stats.normalMinutes || 0;
@@ -841,11 +825,13 @@ function renderCalendar() {
       var targetPercent = options.target > 0 ? Math.round((options.total / options.target) * 100) : 0;
       var ringPercent = Math.max(0, Math.min(100, targetPercent));
       var trendTone = options.delta > 0 ? ' is-positive' : (options.delta < 0 ? ' is-negative' : '');
+      var totalText = options.total ? formatDuration(options.total) : '0h 0m';
+      var totalClass = totalText.length > 8 ? ' is-long' : '';
       return '<section class="analytics-hero">' +
         '<div class="analytics-hero-head"><div><span>' + options.kicker + '</span><h2>' + options.title + '</h2></div><div class="analytics-trend' + trendTone + '">' + icons.arrowUp + '<span><strong>' + formatStatsDelta(options.delta) + '</strong><small>' + options.deltaLabel + '</small></span></div></div>' +
-        '<div class="analytics-hero-main"><div class="analytics-total"><span>ORE LAVORATE</span><strong>' + (options.total ? formatDuration(options.total) : '0h 0m') + '</strong><small>' + options.recordedDays + ' giorni registrati</small></div>' +
+        '<div class="analytics-hero-main"><div class="analytics-total' + totalClass + '"><span>ORE LAVORATE</span><strong>' + totalText + '</strong><small>' + options.recordedDays + ' giorni registrati</small></div>' +
           '<div class="analytics-target-ring" style="--analytics-progress:' + ringPercent + '%"><div><strong>' + targetPercent + '%</strong><span>target</span></div></div></div>' +
-        '<div class="analytics-hero-target"><span><i></i>Obiettivo stimato</span><strong>' + (options.target ? formatDuration(options.target) : '--') + '</strong></div>' +
+        '<div class="analytics-hero-target"><div><span><i></i>Obiettivo stimato</span><strong>' + (options.target ? formatDuration(options.target) : '--') + '</strong></div><div class="analytics-target-track"><span style="width:' + ringPercent + '%"></span></div></div>' +
         '<div class="analytics-hero-metrics">' +
           '<div><span class="is-blue">' + icons.briefcase + '</span><small>Ordinarie</small><strong>' + formatDuration(options.normal) + '</strong></div>' +
           '<div><span class="is-violet">' + icons.star + '</span><small>Straordinarie</small><strong>' + formatDuration(options.overtime) + '</strong></div>' +
@@ -919,6 +905,7 @@ function renderCalendar() {
       }).join('');
       var firstTime = focus.firstStart ? formatClockFromMinutes(focus.firstStart.minutes) : '--:--';
       var lastTime = focus.lastEnd ? formatClockFromMinutes(focus.lastEnd.minutes) : '--:--';
+      var overtimeDays = dailySeries.filter(function (item) { return item.overtime > 0; }).length;
       var insights = [
         { icon: icons.activity, tone: 'is-blue', label: 'Media lavorata', value: average ? formatDuration(average) : '--', sub: 'per giorno di lavoro' },
         { icon: icons.star, tone: 'is-violet', label: 'Giornata migliore', value: focus.longest ? formatDuration(focus.longest.minutes) : '--', sub: focus.longest ? formatShortDateLabel(focus.longest.key) : 'nessun dato' },
@@ -940,6 +927,7 @@ function renderCalendar() {
       '<section class="analytics-card analytics-chart-card">' +
         '<div class="analytics-card-head"><div><span>ANDAMENTO GIORNALIERO</span><h3>Ore lavorate ogni giorno</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
         '<div class="analytics-chart-wrap">' + buildStatsDailyChart(dailySeries) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico si riempie quando inserisci le giornate.</span></div>') + '</div>' +
+        '<div class="analytics-chart-summary"><div><span>MEDIA GIORNO</span><strong>' + (average ? formatDuration(average) : '--') + '</strong></div><div><span>GIORNO MIGLIORE</span><strong>' + (focus.longest ? formatDuration(focus.longest.minutes) : '--') + '</strong></div><div><span>GIORNI CON EXTRA</span><strong>' + overtimeDays + '</strong></div></div>' +
       '</section>' +
       renderStatsHoursComposition(stats.normalMinutes, stats.overtimeMinutes) +
       '<section class="analytics-card analytics-weeks-card">' +
@@ -965,6 +953,15 @@ function renderCalendar() {
       var extraMonth = summaries.reduce(function (best, item) {
         return !best || item.stats.overtimeMinutes > best.stats.overtimeMinutes ? item : best;
       }, null);
+      var monthlyRows = summaries.filter(function (item) {
+        return item.stats.totalMinutes > 0;
+      }).map(function (item) {
+        var total = item.stats.totalMinutes || 0;
+        var normal = item.stats.normalMinutes || 0;
+        var overtime = item.stats.overtimeMinutes || 0;
+        var maxMonth = Math.max(1, summaries.reduce(function (max, summary) { return Math.max(max, summary.stats.totalMinutes || 0); }, 0));
+        return '<div class="analytics-month-row"><div class="analytics-month-copy"><span>' + monthNames[item.date.getMonth()].slice(0, 3) + '</span><div><strong>' + monthNames[item.date.getMonth()] + '</strong><small>Ord. ' + formatDuration(normal) + ' &middot; Extra ' + formatDuration(overtime) + '</small></div></div><div class="analytics-month-value"><strong>' + formatDuration(total) + '</strong><span><i style="width:' + ((total / maxMonth) * 100).toFixed(2) + '%"></i></span></div></div>';
+      }).join('');
       var insights = [
         { icon: icons.star, tone: 'is-violet', label: 'Mese migliore', value: bestMonth && bestMonth.stats.totalMinutes ? monthNames[bestMonth.date.getMonth()] : '--', sub: bestMonth && bestMonth.stats.totalMinutes ? formatDuration(bestMonth.stats.totalMinutes) : 'nessun dato' },
         { icon: icons.activity, tone: 'is-blue', label: 'Media mensile', value: averageMonth ? formatDuration(averageMonth) : '--', sub: activeMonths.length + ' mesi con ore' },
@@ -986,6 +983,7 @@ function renderCalendar() {
       '<section class="analytics-card analytics-chart-card">' +
         '<div class="analytics-card-head"><div><span>ANDAMENTO ANNUALE</span><h3>Ore mese per mese</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
         '<div class="analytics-chart-wrap">' + buildStatsYearChart(summaries, targetMinutes) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico annuale si aggiorna automaticamente.</span></div>') + '</div>' +
+        (monthlyRows ? '<div class="analytics-month-list">' + monthlyRows + '</div>' : '') +
       '</section>' +
       renderStatsHoursComposition(stats.normalMinutes, stats.overtimeMinutes) +
       renderStatsInsightGrid(insights) +
@@ -1453,45 +1451,25 @@ function renderOverlayLegacy() {
     }
 
     function formatPayslipChartValue(value) {
-      if (value >= 1000) {
-        var thousands = value / 1000;
-        return thousands.toLocaleString('it-IT', { maximumFractionDigits: thousands >= 10 ? 0 : 1 }) + 'k';
-      }
-      return Math.round(value).toLocaleString('it-IT');
+      var amount = Math.max(0, Number(value) || 0);
+      return amount ? (Math.round(amount).toLocaleString('it-IT') + ' EUR') : '--';
     }
 
     function buildPayslipStatsChart(monthTotals, latestMonthIndex) {
-      var width = 344;
-      var height = 188;
-      var left = 32;
-      var right = 8;
-      var top = 12;
-      var bottom = 28;
-      var plotWidth = width - left - right;
-      var plotHeight = height - top - bottom;
       var maximum = Math.max.apply(null, monthTotals.concat([0]));
-      var chartMaximum = Math.max(100, Math.ceil(maximum / 500) * 500);
-      var gridValues = [chartMaximum, chartMaximum / 2, 0];
-      var grid = gridValues.map(function (value) {
-        var y = top + plotHeight - ((value / chartMaximum) * plotHeight);
-        return '<line class="payroll-stats-grid-line" x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotWidth) + '" y2="' + y.toFixed(1) + '"></line>' +
-          '<text class="payroll-stats-axis-label" x="' + (left - 6) + '" y="' + (y + 3).toFixed(1) + '">' + formatPayslipChartValue(value) + '</text>';
+      var chartMaximum = Math.max(100, maximum);
+      var columns = monthTotals.map(function (amount, index) {
+        var height = amount > 0 ? Math.max(4, (amount / chartMaximum) * 100) : 0;
+        return '<div class="payroll-stats-chart-month' + (index === latestMonthIndex ? ' is-latest' : '') + '" aria-label="' + escapeHtml(monthNames[index] + ': ' + (amount ? formatMoneyEuro(amount) : 'nessun importo')) + '">' +
+          '<span>' + formatPayslipChartValue(amount) + '</span>' +
+          '<div><i style="height:' + height.toFixed(2) + '%"></i></div>' +
+          '<strong>' + monthNames[index].slice(0, 3).toUpperCase() + '</strong>' +
+        '</div>';
       }).join('');
-      var slot = plotWidth / 12;
-      var barWidth = Math.min(15, slot * 0.58);
-      var bars = monthTotals.map(function (amount, index) {
-        var barHeight = amount > 0 ? Math.max(4, (amount / chartMaximum) * plotHeight) : 0;
-        var x = left + (slot * index) + ((slot - barWidth) / 2);
-        var y = top + plotHeight - barHeight;
-        return '<g class="payroll-stats-chart-month' + (index === latestMonthIndex ? ' is-latest' : '') + '">' +
-          (barHeight ? '<rect x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + barHeight.toFixed(2) + '" rx="' + (barWidth / 2).toFixed(2) + '"><title>' + monthNames[index] + ': ' + formatMoneyEuro(amount) + '</title></rect>' : '<circle cx="' + (x + barWidth / 2).toFixed(2) + '" cy="' + (top + plotHeight - 2) + '" r="1.5"></circle>') +
-          '<text x="' + (x + barWidth / 2).toFixed(2) + '" y="' + (height - 8) + '">' + monthNames[index].slice(0, 1) + '</text>' +
-        '</g>';
-      }).join('');
-      return '<svg class="payroll-stats-chart" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Andamento mensile degli importi netti">' +
-        '<defs><linearGradient id="payrollNetBars" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#386ff3"></stop><stop offset="58%" stop-color="#6d6bff"></stop><stop offset="100%" stop-color="#a66aff"></stop></linearGradient></defs>' +
-        grid + bars +
-      '</svg>';
+      return '<div class="payroll-stats-chart payroll-stats-readable-chart" role="img" aria-label="Andamento mensile degli importi netti">' +
+        '<div class="payroll-stats-chart-scroll"><div class="payroll-stats-chart-plot">' + columns + '</div></div>' +
+        '<div class="payroll-stats-chart-hint"><span>Scorri per vedere tutti i mesi</span>' + icons.right + '</div>' +
+      '</div>';
     }
 
     function renderPayslipStatsV2() {
