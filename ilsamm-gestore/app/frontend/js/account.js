@@ -4,11 +4,15 @@ var ACCOUNT_LOGIN_URL = '/api/auth/login';
 var ACCOUNT_LOGOUT_URL = '/api/auth/logout';
 var ACCOUNT_BACKUP_URL = '/api/backup';
 var ACCOUNT_RESTORE_URL = '/api/backup/restore';
+var ACCOUNT_BACKUPS_URL = '/api/backups';
+var ACCOUNT_BACKUP_RESTORE_URL = '/api/backups/restore';
 var ACCOUNT_STORAGE_URL = '/api/storage';
 var ACCOUNT_ADMIN_URL = '/api/admin/accounts';
 var ACCOUNT_ADMIN_ACCESS_URL = '/api/admin/access';
 var ACCOUNT_ADMIN_RETURN_URL = '/api/admin/return';
 var STORAGE_ACTIVE_ACCOUNT = 'gestore-active-account-v1';
+var STORAGE_ACCOUNT_CACHE_PREFIX = 'gestore-account-device-cache-v2:';
+var accountCacheTimer = 0;
 
 function beginAccountTransfer(title, message) {
   if (!window.GestOreLoading) return '';
@@ -45,38 +49,149 @@ state.account = {
     bytes: 0,
     databaseBytes: 0,
     journalBytes: 0,
+    backupBytes: 0,
+    backups: 0,
     entries: 0,
     payslips: 0,
     updatedAt: 0,
     error: ''
   },
+  backups: {
+    loaded: false,
+    loading: false,
+    items: [],
+    bytes: 0,
+    error: ''
+  },
+  backupDecision: null,
   adminAccounts: null,
   adminLoading: false,
   deleteCandidate: null
 };
 
-function clearGestOreDeviceCache() {
+function getStoredActiveAccountId() {
+  try { return String(localStorage.getItem(STORAGE_ACTIVE_ACCOUNT) || ''); }
+  catch (err) { return ''; }
+}
+
+function getAccountDeviceCacheKey(userId) {
+  return STORAGE_ACCOUNT_CACHE_PREFIX + String(userId || '').trim();
+}
+
+function persistAccountDeviceCache(userId) {
+  var cleanId = String(userId || '').trim();
+  if (!cleanId || !state) return false;
+  var pendingSync = null;
+  var pendingPayslip = null;
+  var shiftTimer = null;
+  try {
+    var pendingRaw = localStorage.getItem(STORAGE_PENDING_SYNC);
+    pendingSync = pendingRaw ? JSON.parse(pendingRaw) : null;
+  } catch (err) {}
+  try {
+    var payslipRaw = localStorage.getItem(STORAGE_PENDING_PAYSLIP);
+    pendingPayslip = payslipRaw ? JSON.parse(payslipRaw) : null;
+  } catch (err) {}
+  try {
+    var timerRaw = localStorage.getItem('gestore-shift-timer-v1');
+    shiftTimer = timerRaw ? JSON.parse(timerRaw) : null;
+  } catch (err) {}
+  var payload = {
+    accountId: cleanId,
+    savedAt: Date.now(),
+    entries: state.entries && typeof state.entries === 'object' ? state.entries : {},
+    settings: state.settings && typeof state.settings === 'object' ? state.settings : {},
+    payslips: compactPayslipsForDeviceStorage(Array.isArray(state.payslips) ? state.payslips : []),
+    pendingSync: pendingSync,
+    pendingPayslip: pendingPayslip,
+    shiftTimer: shiftTimer
+  };
+  try {
+    localStorage.setItem(getAccountDeviceCacheKey(cleanId), JSON.stringify(payload));
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+function scheduleCurrentAccountDeviceCache() {
+  if (accountCacheTimer) window.clearTimeout(accountCacheTimer);
+  accountCacheTimer = window.setTimeout(function () {
+    accountCacheTimer = 0;
+    persistAccountDeviceCache(getStoredActiveAccountId());
+  }, 180);
+}
+
+function restoreAccountDeviceCache(userId) {
+  var cleanId = String(userId || '').trim();
+  if (!cleanId) return false;
+  var cache = null;
+  try {
+    var raw = localStorage.getItem(getAccountDeviceCacheKey(cleanId));
+    cache = raw ? JSON.parse(raw) : null;
+  } catch (err) {}
+  if (!cache || typeof cache !== 'object' || String(cache.accountId || '') !== cleanId) return false;
+  try {
+    localStorage.setItem(STORAGE_ENTRIES, JSON.stringify(cache.entries && typeof cache.entries === 'object' ? cache.entries : {}));
+    ENTRY_BACKUP_KEYS.forEach(function (key) {
+      localStorage.setItem(key, JSON.stringify(cache.entries && typeof cache.entries === 'object' ? cache.entries : {}));
+    });
+    localStorage.setItem(STORAGE_SETTINGS, JSON.stringify(cache.settings && typeof cache.settings === 'object' ? cache.settings : {}));
+    SETTINGS_BACKUP_KEYS.forEach(function (key) {
+      localStorage.setItem(key, JSON.stringify(cache.settings && typeof cache.settings === 'object' ? cache.settings : {}));
+    });
+    localStorage.setItem(STORAGE_PAYSLIPS, JSON.stringify(Array.isArray(cache.payslips) ? cache.payslips : []));
+    localStorage.setItem(STORAGE_SAFETY_BUNDLE, JSON.stringify({
+      entries: cache.entries && typeof cache.entries === 'object' ? cache.entries : {},
+      settings: cache.settings && typeof cache.settings === 'object' ? cache.settings : {},
+      payslips: Array.isArray(cache.payslips) ? cache.payslips : [],
+      savedAt: Math.max(0, Number(cache.savedAt) || Date.now()),
+      version: 2
+    }));
+    if (cache.pendingSync && typeof cache.pendingSync === 'object') localStorage.setItem(STORAGE_PENDING_SYNC, JSON.stringify(cache.pendingSync));
+    if (cache.pendingPayslip && typeof cache.pendingPayslip === 'object') localStorage.setItem(STORAGE_PENDING_PAYSLIP, JSON.stringify(cache.pendingPayslip));
+    if (cache.shiftTimer && typeof cache.shiftTimer === 'object') localStorage.setItem('gestore-shift-timer-v1', JSON.stringify(cache.shiftTimer));
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+function removeAccountDeviceCache(userId) {
+  try { localStorage.removeItem(getAccountDeviceCacheKey(userId)); } catch (err) {}
+}
+
+function clearGestOreDeviceCache(options) {
+  var opts = options || {};
+  var preserveAccountCaches = opts.preserveAccountCaches !== false;
   try {
     var keys = [];
     for (var i = 0; i < localStorage.length; i += 1) keys.push(localStorage.key(i));
     keys.forEach(function (key) {
-      if (key && key.indexOf('gestore-') === 0) localStorage.removeItem(key);
+      if (!key || key.indexOf('gestore-') !== 0) return;
+      if (preserveAccountCaches && key.indexOf(STORAGE_ACCOUNT_CACHE_PREFIX) === 0) return;
+      localStorage.removeItem(key);
     });
   } catch (err) {}
 }
 
-function resetRuntimeAccountData() {
-  state.entries = {};
-  state.settings = normalizeRuntimeSettings({});
+function resetRuntimeAccountData(options) {
+  var opts = options || {};
+  state.entries = opts.reloadFromDevice ? loadEntriesWithRecovery() : {};
+  state.settings = normalizeRuntimeSettings(opts.reloadFromDevice
+    ? loadWithMigration(STORAGE_SETTINGS, LEGACY_SETTINGS_KEYS, SETTINGS_BACKUP_KEYS, {}, 'settings')
+    : {});
   state.settingsDraft = Object.assign({}, state.settings);
-  state.payslips = [];
-  state.payslipDraft = null;
+  state.payslips = opts.reloadFromDevice ? normalizePayslipCollection(loadPayslipsWithRecovery()) : [];
+  state.payslipDraft = opts.reloadFromDevice && typeof loadPendingPayslipDraft === 'function' ? loadPendingPayslipDraft() : null;
   state.payslipDetailId = '';
   state.payslipEditorOpen = false;
   state.payslipStatsOpen = false;
   state.privacyLocked = false;
-  state.syncStatus = 'In attesa di accesso';
+  state.syncPending = opts.reloadFromDevice && typeof readPendingSyncRecord === 'function' ? Boolean(readPendingSyncRecord()) : false;
+  state.syncStatus = opts.reloadFromDevice && state.syncPending ? 'In attesa di sincronizzazione' : 'In attesa di accesso';
   state.lastSyncedAt = 0;
+  if (typeof loadShiftTimerState === 'function') state.shiftTimer = opts.reloadFromDevice ? loadShiftTimerState() : loadShiftTimerState(true);
   if (state.account && state.account.storage) {
     state.account.storage = {
       loaded: false,
@@ -84,18 +199,40 @@ function resetRuntimeAccountData() {
       bytes: 0,
       databaseBytes: 0,
       journalBytes: 0,
+      backupBytes: 0,
+      backups: 0,
       entries: 0,
       payslips: 0,
       updatedAt: 0,
       error: ''
     };
   }
+  if (state.account && state.account.backups) {
+    state.account.backups = {
+      loaded: false,
+      loading: false,
+      items: [],
+      bytes: 0,
+      error: ''
+    };
+    state.account.backupDecision = null;
+  }
 }
 
-function activateAccountOnDevice(userId) {
-  clearGestOreDeviceCache();
-  try { localStorage.setItem(STORAGE_ACTIVE_ACCOUNT, String(userId || '')); } catch (err) {}
-  resetRuntimeAccountData();
+function activateAccountOnDevice(userId, options) {
+  var opts = options || {};
+  var nextId = String(userId || '').trim();
+  var previousId = getStoredActiveAccountId();
+  if (accountCacheTimer) {
+    window.clearTimeout(accountCacheTimer);
+    accountCacheTimer = 0;
+  }
+  if (previousId && !opts.discardCurrentCache) persistAccountDeviceCache(previousId);
+  if (opts.removeTargetCache && nextId) removeAccountDeviceCache(nextId);
+  clearGestOreDeviceCache({ preserveAccountCaches: true });
+  try { localStorage.setItem(STORAGE_ACTIVE_ACCOUNT, nextId); } catch (err) {}
+  if (opts.restoreCache !== false) restoreAccountDeviceCache(nextId);
+  resetRuntimeAccountData({ reloadFromDevice: opts.restoreCache !== false });
 }
 
 function prepareDeviceForAuthenticatedUser(user) {
@@ -141,6 +278,8 @@ async function loadAccountStorageUsage(force) {
       bytes: Math.max(0, Number(payload.bytes) || 0),
       databaseBytes: Math.max(0, Number(payload.databaseBytes) || 0),
       journalBytes: Math.max(0, Number(payload.journalBytes) || 0),
+      backupBytes: Math.max(0, Number(payload.backupBytes) || 0),
+      backups: Math.max(0, Number(payload.backups) || 0),
       entries: Math.max(0, Number(payload.entries) || 0),
       payslips: Math.max(0, Number(payload.payslips) || 0),
       updatedAt: Math.max(0, Number(payload.updatedAt) || 0),
@@ -171,8 +310,22 @@ async function bootstrapAccountSession() {
 
     if (state.account.authenticated) {
       prepareDeviceForAuthenticatedUser(state.account.user);
+      var cachedDataAvailable = hasMeaningfulSnapshotData(buildStateSnapshot()) || Boolean(readPendingSyncRecord());
+      if (cachedDataAvailable) {
+        state.account.dataReady = true;
+        state.account.dataError = '';
+        if (typeof render === 'function') render();
+        window.dispatchEvent(new CustomEvent('gestore:account-ready'));
+      }
       var databaseReady = await bootstrapServerState();
       if (!databaseReady) {
+        if (cachedDataAvailable) {
+          state.account.dataReady = true;
+          state.account.dataError = '';
+          state.account.notice = 'Sto usando la copia protetta sul dispositivo. La sincronizzazione ripartira automaticamente.';
+          if (typeof render === 'function') render();
+          return;
+        }
         state.account.dataError = getServerSyncFailureMessage();
         if (typeof render === 'function') render();
         return;
@@ -189,7 +342,9 @@ async function bootstrapAccountSession() {
 
     serverSyncReady = false;
     if (state.account.hasAccounts) {
-      clearGestOreDeviceCache();
+      var previousAccountId = getStoredActiveAccountId();
+      if (previousAccountId) persistAccountDeviceCache(previousAccountId);
+      clearGestOreDeviceCache({ preserveAccountCaches: true });
       resetRuntimeAccountData();
     }
     state.account.dataReady = true;
@@ -301,7 +456,9 @@ async function logoutAccount() {
   try {
     await fetch(ACCOUNT_LOGOUT_URL, { method: 'POST', cache: 'no-store' });
   } catch (err) {}
-  clearGestOreDeviceCache();
+  var activeAccountId = getStoredActiveAccountId();
+  if (activeAccountId) persistAccountDeviceCache(activeAccountId);
+  clearGestOreDeviceCache({ preserveAccountCaches: true });
   resetRuntimeAccountData();
   window.location.reload();
 }
@@ -345,10 +502,125 @@ async function restoreAccountBackup(file) {
     });
     await readJsonResponse(response);
     var activeId = state.account.user && state.account.user.id;
-    activateAccountOnDevice(activeId);
+    activateAccountOnDevice(activeId, { discardCurrentCache: true, restoreCache: false, removeTargetCache: true });
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Ripristino non riuscito.' });
+  } finally {
+    endAccountTransfer(loadingToken);
+  }
+}
+
+function formatAccountBackupDate(value) {
+  var date = new Date(Math.max(0, Number(value) || 0));
+  if (!Number.isFinite(date.getTime())) return 'Data non disponibile';
+  return new Intl.DateTimeFormat('it-IT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+}
+
+function getAccountBackupKindLabel(kind) {
+  if (kind === 'manual') return 'Salvataggio manuale';
+  if (kind === 'pre-restore') return 'Prima del ripristino';
+  return 'Copia automatica';
+}
+
+async function loadVersionedAccountBackups(force) {
+  var backups = state.account && state.account.backups;
+  if (!backups || backups.loading || (!force && backups.loaded) || !state.account.authenticated) return;
+  backups.loading = true;
+  backups.error = '';
+  if (typeof render === 'function') render();
+  try {
+    var response = await fetch(ACCOUNT_BACKUPS_URL, { cache: 'no-store' });
+    var payload = await readJsonResponse(response);
+    state.account.backups = {
+      loaded: true,
+      loading: false,
+      items: Array.isArray(payload.backups) ? payload.backups : [],
+      bytes: Math.max(0, Number(payload.bytes) || 0),
+      error: ''
+    };
+  } catch (err) {
+    backups.loading = false;
+    backups.loaded = false;
+    backups.error = err.message || 'Salvataggi server non disponibili.';
+  }
+  if (typeof render === 'function') render();
+}
+
+async function createVersionedAccountBackup() {
+  if (state.account.busy) return;
+  setAccountUiState({ busy: true, error: '', notice: 'Creazione del punto di ripristino...' });
+  var loadingToken = beginAccountTransfer('Salvo il profilo', 'Creo una copia verificata nel server');
+  try {
+    if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
+    var response = await fetch(ACCOUNT_BACKUPS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: '{}'
+    });
+    await readJsonResponse(response);
+    state.account.backups.loaded = false;
+    state.account.storage.loaded = false;
+    setAccountUiState({ busy: false, error: '', notice: 'Punto di ripristino creato.' });
+    await loadVersionedAccountBackups(true);
+  } catch (err) {
+    setAccountUiState({ busy: false, notice: '', error: err.message || 'Impossibile creare il salvataggio.' });
+  } finally {
+    endAccountTransfer(loadingToken);
+  }
+}
+
+function requestVersionedBackupAction(type, backupId) {
+  var item = (state.account.backups.items || []).find(function (candidate) {
+    return String(candidate.id || '') === String(backupId || '');
+  });
+  if (!item) return;
+  state.account.backupDecision = { type: type === 'delete' ? 'delete' : 'restore', item: item };
+  render();
+}
+
+async function confirmVersionedBackupAction() {
+  var decision = state.account.backupDecision;
+  if (!decision || !decision.item || state.account.busy) return;
+  var isRestore = decision.type === 'restore';
+  setAccountUiState({
+    busy: true,
+    error: '',
+    notice: isRestore ? 'Ripristino del salvataggio...' : 'Eliminazione del salvataggio...'
+  });
+  var loadingToken = beginAccountTransfer(
+    isRestore ? 'Ripristino dati' : 'Elimino la copia',
+    isRestore ? 'Verifico il database e proteggo lo stato attuale' : 'Aggiorno lo storico dei salvataggi'
+  );
+  try {
+    var response = await fetch(isRestore ? ACCOUNT_BACKUP_RESTORE_URL : ACCOUNT_BACKUPS_URL, {
+      method: isRestore ? 'POST' : 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ backupId: decision.item.id })
+    });
+    await readJsonResponse(response);
+    state.account.backupDecision = null;
+    if (isRestore) {
+      var activeId = state.account.user && state.account.user.id;
+      activateAccountOnDevice(activeId, { discardCurrentCache: true, restoreCache: false, removeTargetCache: true });
+      window.location.reload();
+      return;
+    }
+    state.account.backups.loaded = false;
+    state.account.storage.loaded = false;
+    setAccountUiState({ busy: false, error: '', notice: 'Salvataggio eliminato.' });
+    await loadVersionedAccountBackups(true);
+  } catch (err) {
+    state.account.backupDecision = null;
+    setAccountUiState({ busy: false, notice: '', error: err.message || 'Operazione sul salvataggio non riuscita.' });
   } finally {
     endAccountTransfer(loadingToken);
   }
@@ -429,6 +701,7 @@ async function deleteManagedAccount(form) {
       body: JSON.stringify({ userId: account.id, confirmation: confirmation })
     });
     await readJsonResponse(response);
+    removeAccountDeviceCache(account.id);
     state.account.deleteCandidate = null;
     state.account.adminAccounts = null;
     setAccountUiState({ busy: false, notice: 'Account ' + account.username + ' eliminato definitivamente.', error: '' });
@@ -543,6 +816,21 @@ function renderAccountDataSettings() {
     : (storage.loaded
       ? (storage.entries + (storage.entries === 1 ? ' giornata' : ' giornate') + ' e ' + storage.payslips + (storage.payslips === 1 ? ' busta' : ' buste'))
       : 'Misurazione del database personale');
+  var backups = state.account.backups || {};
+  var backupItems = Array.isArray(backups.items) ? backups.items : [];
+  var backupList = backups.loading
+    ? '<div class="account-versioned-empty">Carico i punti di ripristino...</div>'
+    : (backups.error
+      ? '<div class="account-versioned-empty is-error">' + escapeHtml(backups.error) + '</div>'
+      : (backupItems.length
+        ? backupItems.map(function (item) {
+            return '<div class="account-versioned-row"><span class="account-versioned-icon">' + (item.kind === 'manual' ? icons.cloud : icons.history) + '</span><span class="account-versioned-copy"><strong>' + escapeHtml(getAccountBackupKindLabel(item.kind)) + '</strong><small>' + escapeHtml(formatAccountBackupDate(item.createdAt)) + ' - ' + escapeHtml(formatAccountStorageBytes(item.bytes)) + '</small></span><button data-restore-versioned-backup="' + escapeHtml(item.id) + '" aria-label="Ripristina questo salvataggio">' + icons.history + '</button><button class="is-danger" data-delete-versioned-backup="' + escapeHtml(item.id) + '" aria-label="Elimina questo salvataggio">' + icons.trash + '</button></div>';
+          }).join('')
+        : '<div class="account-versioned-empty">Nessun punto di ripristino disponibile.</div>'));
+  var backupDecision = state.account.backupDecision;
+  var backupDecisionDialog = backupDecision && backupDecision.item
+    ? '<div class="account-backup-decision-overlay" role="dialog" aria-modal="true" aria-labelledby="accountBackupDecisionTitle"><section class="account-backup-decision"><span>' + (backupDecision.type === 'restore' ? icons.history : icons.trash) + '</span><small>' + (backupDecision.type === 'restore' ? 'RIPRISTINO DATABASE' : 'ELIMINA COPIA') + '</small><h2 id="accountBackupDecisionTitle">' + (backupDecision.type === 'restore' ? 'Tornare a questo salvataggio?' : 'Eliminare questo salvataggio?') + '</h2><p>' + (backupDecision.type === 'restore' ? 'Prima del ripristino verra creata automaticamente una copia dei dati attuali.' : 'Viene eliminata soltanto questa copia. I dati attuali non cambiano.') + '</p><div><button data-cancel-versioned-backup="1">Annulla</button><button class="' + (backupDecision.type === 'delete' ? 'is-danger' : 'is-primary') + '" data-confirm-versioned-backup="1">' + (backupDecision.type === 'restore' ? 'Ripristina' : 'Elimina') + '</button></div></section></div>'
+    : '';
   var message = state.account.error
     ? '<div class="account-settings-message is-error">' + escapeHtml(state.account.error) + '</div>'
     : (state.account.notice ? '<div class="account-settings-message">' + escapeHtml(state.account.notice) + '</div>' : '');
@@ -550,7 +838,9 @@ function renderAccountDataSettings() {
     '<div class="settings-v2-section-title">Sincronizzazione</div>' +
     '<section class="settings-v2-group"><div class="settings-v2-sync-row"><span class="settings-v2-icon is-green">' + icons.check + '</span><span class="settings-v2-copy"><strong>Salvataggio automatico</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></span><span>ATTIVO</span></div></section>' +
     '<div class="settings-v2-section-title">Spazio sul server</div>' +
-    '<section class="account-storage-card"><span class="account-storage-icon">' + icons.receipt + '</span><div class="account-storage-copy"><small>DATABASE OCCUPATO</small><strong>' + storageValue + '</strong><p>' + storageMeta + '</p></div><button type="button" data-refresh-account-storage="1" aria-label="Aggiorna spazio database" ' + (storage.loading ? 'disabled' : '') + '>' + icons.activity + '<span>Aggiorna</span></button></section>' +
+    '<section class="account-storage-card"><span class="account-storage-icon">' + icons.receipt + '</span><div class="account-storage-copy"><small>SPAZIO TOTALE OCCUPATO</small><strong>' + storageValue + '</strong><p>' + storageMeta + (storage.loaded && storage.backups ? (' - ' + storage.backups + ' copie protette') : '') + '</p></div><button type="button" data-refresh-account-storage="1" aria-label="Aggiorna spazio database" ' + (storage.loading ? 'disabled' : '') + '>' + icons.activity + '<span>Aggiorna</span></button></section>' +
+    '<div class="settings-v2-section-title">Punti di ripristino</div>' +
+    '<section class="account-versioned-card"><div class="account-versioned-head"><div><strong>Storico protetto</strong><small>Copie automatiche e manuali del tuo account</small></div><button data-create-versioned-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.cloud + '<span>Crea copia</span></button></div><div class="account-versioned-list">' + backupList + '</div></section>' +
     '<div class="settings-v2-section-title">Backup sul telefono</div>' +
     '<section class="account-backup-card"><div class="account-backup-copy"><span class="settings-v2-icon is-blue">' + icons.download + '</span><div><strong>Il tuo database, sempre con te</strong><p>Scarica un file SQLite con ore, ferie, impostazioni e buste del solo account ' + escapeHtml(username) + '.</p></div></div>' +
       '<button class="account-backup-primary" data-download-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.download + '<span>Scarica database</span></button>' +
@@ -559,7 +849,8 @@ function renderAccountDataSettings() {
     '</section>' +
     message +
     '<div class="settings-v2-section-title">Sessione</div>' +
-    '<section class="settings-v2-group"><button class="account-logout-row" data-account-logout="1"><span class="settings-v2-icon is-violet">' + icons.user + '</span><span class="settings-v2-copy"><strong>Esci da ' + escapeHtml(username) + '</strong><small>Potrai accedere con un altro account</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>';
+    '<section class="settings-v2-group"><button class="account-logout-row" data-account-logout="1"><span class="settings-v2-icon is-violet">' + icons.user + '</span><span class="settings-v2-copy"><strong>Esci da ' + escapeHtml(username) + '</strong><small>Potrai accedere con un altro account</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+    backupDecisionDialog;
 }
 
 function bindAccountEvents() {
@@ -585,6 +876,19 @@ function bindAccountEvents() {
   if (logout) logout.onclick = logoutAccount;
   var refreshStorage = document.querySelector('[data-refresh-account-storage]');
   if (refreshStorage) refreshStorage.onclick = function () { loadAccountStorageUsage(true); };
+  var createVersioned = document.querySelector('[data-create-versioned-backup]');
+  if (createVersioned) createVersioned.onclick = createVersionedAccountBackup;
+  document.querySelectorAll('[data-restore-versioned-backup]').forEach(function (button) {
+    button.onclick = function () { requestVersionedBackupAction('restore', button.dataset.restoreVersionedBackup); };
+  });
+  document.querySelectorAll('[data-delete-versioned-backup]').forEach(function (button) {
+    button.onclick = function () { requestVersionedBackupAction('delete', button.dataset.deleteVersionedBackup); };
+  });
+  document.querySelectorAll('[data-cancel-versioned-backup]').forEach(function (button) {
+    button.onclick = function () { state.account.backupDecision = null; render(); };
+  });
+  var confirmVersioned = document.querySelector('[data-confirm-versioned-backup]');
+  if (confirmVersioned) confirmVersioned.onclick = confirmVersionedBackupAction;
   document.querySelectorAll('[data-admin-open-account]').forEach(function (button) {
     button.onclick = function () { openManagedAccount(button.dataset.adminOpenAccount); };
   });
@@ -604,5 +908,8 @@ function bindAccountEvents() {
   }
   if (state.activeTab === 'settings' && state.settingsSection === 'data' && state.account.authenticated && !state.account.storage.loaded && !state.account.storage.loading && !state.account.storage.error) {
     window.setTimeout(function () { loadAccountStorageUsage(false); }, 0);
+  }
+  if (state.activeTab === 'settings' && state.settingsSection === 'data' && state.account.authenticated && !state.account.backups.loaded && !state.account.backups.loading && !state.account.backups.error) {
+    window.setTimeout(function () { loadVersionedAccountBackups(false); }, 0);
   }
 }

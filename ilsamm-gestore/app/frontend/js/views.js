@@ -233,14 +233,18 @@ function renderPayslipsLegacy() {
           '<div class="go-stat-column">' +
             '<div class="go-stat-row go-stat-blue"><span class="go-stat-icon">' + icons.briefcase + '</span><span><em>' + ordinaryLabel + '</em><strong>' + ordinaryText + '</strong></span></div>' +
             '<div class="go-stat-row go-stat-violet"><span class="go-stat-icon">' + icons.activity + '</span><span><em>Extra</em><strong>' + overtimeText + '</strong></span></div>' +
-            '<div class="go-stat-row go-stat-orange"><span class="go-stat-icon">' + icons.coffee + '</span><span><em>Pausa</em><strong>' + pauseText + '</strong></span></div>' +
-          '</div>');
+             '<div class="go-stat-row go-stat-orange"><span class="go-stat-icon">' + icons.coffee + '</span><span><em>Pausa</em><strong>' + pauseText + '</strong></span></div>' +
+           '</div>');
+      var standardHomeDayCard = '<button class="go-card go-day-card go-day-card-v2' + daySummaryClass + '" data-day-type="' + (entry ? escapeHtml(entry.type) : 'empty') + '" data-open-date="' + key + '">' +
+        '<div class="go-day-head"><div class="go-day-title">' + dayTitleLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div>' +
+        dayCardContent +
+      '</button>';
+      var homeDayCard = state.settings.timerEnabled && typeof renderOptionalTimerHomeCard === 'function'
+        ? renderOptionalTimerHomeCard(now)
+        : standardHomeDayCard;
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
-          '<button class="go-card go-day-card go-day-card-v2' + daySummaryClass + '" data-day-type="' + (entry ? escapeHtml(entry.type) : 'empty') + '" data-open-date="' + key + '">' +
-            '<div class="go-day-head"><div class="go-day-title">' + dayTitleLabel + '</div><div class="go-day-date">' + fullDateLabel + '</div></div>' +
-            dayCardContent +
-          '</button>' +
+          homeDayCard +
           '<section class="go-card go-analytics-card go-analysis-card-v3 go-week-card">' +
             '<div class="go-card-head go-analysis-head-v3"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ritmo settimanale</div></div><div class="go-card-badge">' + weekPercentValue + '%</div></div>' +
             '<div class="go-week-summary-v3">' +
@@ -1346,7 +1350,7 @@ function renderOverlayLegacy() {
         var status = getPayslipStatus(item);
         return '<button class="paydesk-archive-card" data-open-payslip="' + item.id + '">' +
           '<div class="paydesk-archive-thumb' + (item.imageData ? '' : ' empty') + '">' +
-            (item.imageData ? '<img src="' + item.imageData + '" alt="Anteprima ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
+            (item.imageData ? '<img loading="lazy" decoding="async" src="' + item.imageData + '" alt="Anteprima ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
           '</div>' +
           '<div class="paydesk-archive-copy">' +
             '<div class="paydesk-archive-topline"><div><div class="paydesk-archive-month">' + getPayslipMonthLabel(item) + '</div><div class="paydesk-archive-company">' + escapeHtml(item.company || 'Ditta da controllare') + '</div></div><span class="paydesk-badge paydesk-badge-' + status.tone + '">' + status.label + '</span></div>' +
@@ -1422,7 +1426,7 @@ function renderOverlayLegacy() {
         : '';
       var gallery = photos.map(function (photo, index) {
         return '<div class="payvault-gallery-item">' +
-          '<button class="payvault-gallery-open" data-view-payslip-photo="' + index + '" aria-label="Apri foto ' + (index + 1) + '"><img src="' + photo.data + '" alt="Foto ' + (index + 1) + ' della busta paga"><span>' + (index + 1) + '</span></button>' +
+          '<button class="payvault-gallery-open" data-view-payslip-photo="' + index + '" aria-label="Apri foto ' + (index + 1) + '"><img loading="lazy" decoding="async" src="' + photo.data + '" alt="Foto ' + (index + 1) + ' della busta paga"><span>' + (index + 1) + '</span></button>' +
           '<button class="payvault-gallery-remove" data-remove-payslip-photo="' + index + '" aria-label="Rimuovi foto ' + (index + 1) + '">' + icons.x + '</button>' +
         '</div>';
       }).join('');
@@ -1431,7 +1435,7 @@ function renderOverlayLegacy() {
         var firstPhoto = itemPhotos[0] || null;
         return '<button class="payvault-item" data-open-payslip="' + item.id + '">' +
           '<span class="payvault-thumb' + (firstPhoto ? '' : ' is-empty') + '">' +
-            (firstPhoto ? '<img src="' + firstPhoto.data + '" alt="Busta paga ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
+            (firstPhoto ? '<img loading="lazy" decoding="async" src="' + firstPhoto.data + '" alt="Busta paga ' + escapeHtml(getPayslipMonthLabel(item)) + '">' : icons.receipt) +
             (itemPhotos.length > 1 ? '<b>' + itemPhotos.length + '</b>' : '') +
           '</span>' +
           '<span class="payvault-item-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' + itemPhotos.length + (itemPhotos.length === 1 ? ' foto salvata' : ' foto salvate') + '</small></span>' +
@@ -1468,7 +1472,7 @@ function renderOverlayLegacy() {
     function renderPayrollPhotoGrid(photos, source, payslipId, editable) {
       return (photos || []).map(function (photo, index) {
         return '<div class="payroll-photo-tile">' +
-          '<button class="payroll-photo-open" data-view-payslip-photo="' + index + '" data-payslip-source="' + source + '" data-payslip-id="' + escapeHtml(payslipId || '') + '" aria-label="Visualizza foto ' + (index + 1) + '"><img src="' + photo.data + '" alt="Foto ' + (index + 1) + ' della busta paga"><span>' + (index + 1) + '</span></button>' +
+          '<button class="payroll-photo-open" data-view-payslip-photo="' + index + '" data-payslip-source="' + source + '" data-payslip-id="' + escapeHtml(payslipId || '') + '" aria-label="Visualizza foto ' + (index + 1) + '"><img loading="lazy" decoding="async" src="' + photo.data + '" alt="Foto ' + (index + 1) + ' della busta paga"><span>' + (index + 1) + '</span></button>' +
           (editable ? '<button class="payroll-photo-remove" data-remove-payslip-photo="' + index + '" aria-label="Rimuovi foto ' + (index + 1) + '">' + icons.trash + '</button>' : '') +
         '</div>';
       }).join('');
@@ -1570,7 +1574,7 @@ function renderOverlayLegacy() {
           var photoCount = getPayslipPhotoCount(item);
           var cover = photos[0] || null;
           return '<button class="payroll-archive-row" data-open-payslip="' + escapeHtml(item.id) + '">' +
-            '<span class="payroll-archive-thumb' + (cover ? '' : ' is-empty') + '">' + (cover ? '<img src="' + cover.data + '" alt="Anteprima busta paga">' : icons.receipt) + (photoCount > 1 ? '<b>' + photoCount + '</b>' : '') + '</span>' +
+            '<span class="payroll-archive-thumb' + (cover ? '' : ' is-empty') + '">' + (cover ? '<img loading="lazy" decoding="async" src="' + cover.data + '" alt="Anteprima busta paga">' : icons.receipt) + (photoCount > 1 ? '<b>' + photoCount + '</b>' : '') + '</span>' +
             '<span class="payroll-archive-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' + photoCount + (photoCount === 1 ? ' foto' : ' foto') + ' salvate</small></span>' +
             '<span class="payroll-archive-amount">' + formatMoneyEuro(item.netto) + '</span><span class="payroll-archive-chevron">' + icons.right + '</span>' +
           '</button>';
@@ -1664,16 +1668,17 @@ function renderOverlayLegacy() {
         ? '<button class="profile-row profile-owner-row" data-open-profile-section="settings" data-settings-section="accounts"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Gestione account</strong><small>Visualizza, apri o elimina i profili registrati</small></span><span class="profile-row-value is-live">Proprietario</span><span class="profile-row-chevron">' + icons.right + '</span></button>'
         : '';
       return '<div class="profile-page profile-page-v2">' +
-        '<header class="profile-v2-top"><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Gest<span>Ore</span></div></div></header>' +
+        '<header class="profile-v2-top"><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Gest<span>Ore</span></div></div><button class="profile-search-button" data-open-global-search="1" aria-label="Cerca nell&apos;archivio">' + icons.search + '</button></header>' +
         '<section class="profile-v2-hero">' +
           '<div class="profile-v2-identity"><span class="profile-v2-avatar">' + escapeHtml(initials) + '</span><div class="profile-v2-copy"><span>IL TUO PROFILO</span><h1>Ciao, ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div></div>' +
-          '<div class="profile-v2-safe"><span>' + icons.check + '</span><div><strong>Dati al sicuro</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></div><i></i></div>' +
+          '<div class="profile-v2-safe"><span>' + icons.check + '</span><div><strong data-sync-status-state>Dati al sicuro</strong><small data-sync-status-label>' + escapeHtml(getSyncStatusMessage()) + '</small></div><i></i></div>' +
         '</section>' +
         '<section class="profile-v2-summary" aria-label="Riepilogo profilo">' +
           '<div><span>OGGI</span><strong>' + dailyTarget + '</strong><small>target</small></div>' +
           '<div><span>SETTIMANA</span><strong>' + weeklyTarget + '</strong><small>target</small></div>' +
           '<div><span>ARCHIVIO</span><strong>' + savedCount + '</strong><small>' + (savedCount === 1 ? 'busta' : 'buste') + '</small></div>' +
         '</section>' +
+        (typeof renderSmartAlerts === 'function' ? renderSmartAlerts() : '') +
         '<div class="profile-section-title">Gestione personale</div>' +
         '<section class="profile-group profile-v2-group">' +
           accountManagementRow +
@@ -1751,6 +1756,7 @@ function renderOverlayLegacy() {
       var activeRestDays = restDays.length ? restDays.map(function (index) { return weekNames[index]; }).join(', ') : 'Nessuno';
       var reminderStatus = state.settings.remindersEnabled ? ('Attivo alle ' + state.settings.reminderTime) : 'Disattivato';
       var privacyStatus = state.settings.lockApp ? 'Attiva' : 'Disattivata';
+      var timerStatus = state.settings.timerEnabled ? 'Attivo' : 'Disattivato';
       var targetStatus = (Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h al giorno';
       var topBar = function (title, isDetail) {
         return '<div class="settings-v2-top"><button ' + (isDetail ? 'data-back-settings="1"' : 'data-back-profile="1"') + ' aria-label="Torna al profilo">' + icons.left + '</button><div><span>IMPOSTAZIONI</span><h1>' + title + '</h1></div><i></i></div>';
@@ -1808,6 +1814,22 @@ function renderOverlayLegacy() {
         '</div>';
       }
 
+      if (section === 'timer') {
+        var timerRunning = Boolean(state.shiftTimer && state.shiftTimer.active);
+        var timerHelper = timerRunning
+          ? 'Un turno e in corso: terminalo o annullalo dalla Home prima di disattivare il timer.'
+          : (state.settings.timerEnabled
+            ? 'La Home mostra il timer. Puoi comunque inserire una giornata manualmente.'
+            : 'La Home resta identica a quella attuale e non cambia nulla nei dati salvati.');
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
+          topBar('Timer turno', true) +
+          intro('violet', icons.clock, 'HOME OPZIONALE', 'Registra mentre lavori', 'Attiva una modalita alternativa per misurare il turno, le pause e salvare la giornata.') +
+          '<div class="settings-v2-section-title">Modalita Home</div>' +
+          '<section class="settings-v2-group"><div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.play + '</span><span class="settings-v2-copy"><strong>Timer del turno</strong><small>' + escapeHtml(timerHelper) + '</small></span><button class="toggle-btn ' + (state.settings.timerEnabled ? 'on' : '') + '" data-toggle-shift-timer="1" aria-label="Timer del turno" aria-pressed="' + (state.settings.timerEnabled ? 'true' : 'false') + '"><span class="knob"></span></button></div></section>' +
+          '<section class="settings-v2-security-info"><span>' + icons.check + '</span><div><strong>I dati restano compatibili</strong><p>Quando termini il timer viene creata una normale giornata di lavoro, visibile in calendario, statistiche e PDF.</p></div></section>' +
+        '</div>';
+      }
+
       if (section === 'data') {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
           topBar('Account e backup', true) +
@@ -1832,6 +1854,7 @@ function renderOverlayLegacy() {
         '<section class="settings-hub-group">' +
           '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong><small>Nome, target giornaliero e settimanale</small></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="calendar"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Calendario di lavoro</strong><small>Giorni attivi, riposi e festivit&agrave;</small></span><span class="settings-hub-value">' + workdays.length + ' giorni</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="timer"><span class="settings-v2-icon is-violet">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Timer turno</strong><small>Modalita alternativa per la Home</small></span><span class="settings-hub-value">' + timerStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong><small>Promemoria per registrare la giornata</small></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="privacy"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Privacy e sicurezza</strong><small>Protezione quando riapri l&apos;app</small></span><span class="settings-hub-value">' + privacyStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
         '</section>' +
@@ -1861,7 +1884,7 @@ function renderOverlayLegacy() {
       return '<div class="bottom-nav nav-motion-v2"><div class="nav-grid nav-grid-v2' + animatedClass + '" style="--nav-x:' + (activeIndex * 100) + '%;--nav-from-x:' + (previousIndex * 100) + '%">' +
         '<span class="nav-active-indicator" aria-hidden="true"></span>' + items.map(function (i, index) {
         var className = 'nav-btn nav-btn-v2' + (i.key === 'home' ? ' nav-home' : '') + (navActiveTab === i.key ? ' active' : '') + (state.tabSwitchFx && previousIndex === index && previousIndex !== activeIndex ? ' was-active' : '');
-        return '<button class="' + className + '" data-tab="' + i.key + '"><span class="nav-icon-shell">' + i.icon + '</span><span class="nav-label">' + i.label + '</span></button>';
+        return '<button class="' + className + '" data-tab="' + i.key + '" aria-label="' + i.label + '" aria-current="' + (navActiveTab === i.key ? 'page' : 'false') + '"><span class="nav-icon-shell">' + i.icon + '</span><span class="nav-label">' + i.label + '</span></button>';
       }).join('') + '</div></div>';
     }
 
@@ -1878,7 +1901,7 @@ function renderOverlayLegacy() {
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
         '<section class="screen exports-screen ' + (state.activeTab === 'exports' ? ('active' + switchClass) : '') + '">' + renderExports() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '');
+        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '');
       bindEvents();
       if (typeof bindAccountEvents === 'function') bindAccountEvents();
       initHomeTitleMorph();

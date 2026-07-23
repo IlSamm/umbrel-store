@@ -10,6 +10,7 @@ var errorBox = document.getElementById('errorBox');
     var STORAGE_SETTINGS = 'gestore-settings';
     var STORAGE_PAYSLIPS = 'gestore-payslips';
     var STORAGE_PENDING_PAYSLIP = 'gestore-payslip-pending-v1';
+    var STORAGE_PENDING_SYNC = 'gestore-pending-sync-v2';
     var SERVER_SYNC_URL = '/api/snapshot';
     var PAYSLIP_RECORD_URL = '/api/payslip';
     var ENTRY_BACKUP_KEYS = ['gestore-entries-backup-v1', 'gestore-entries-backup-v2'];
@@ -23,6 +24,8 @@ var errorBox = document.getElementById('errorBox');
     var serverSyncReady = false;
     var serverSyncAllowEmptyEntries = false;
     var serverSyncLastError = '';
+    var serverSyncRetryTimer = 0;
+    var serverSyncRetryAttempt = 0;
     var runtimeServicesStarted = false;
     var reminderTimer = 0;
     var reminderLastSentKey = '';
@@ -53,10 +56,11 @@ var errorBox = document.getElementById('errorBox');
       workdays: [0,1,2,3,4],
       autoRestDays: [],
       holidayHoursOnOffDays: false,
+      timerEnabled: false,
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.139',
-      build: '20260723g',
+      version: '1.1.140',
+      build: '20260723h',
       appName: 'GestOre'
     };
 
@@ -97,6 +101,12 @@ var errorBox = document.getElementById('errorBox');
       ,umbrella: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0c-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0Z"></path><path d="M12 3v15a3 3 0 0 0 6 0"></path></svg>'
       ,user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>'
       ,download: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>'
+      ,search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>'
+      ,play: '<svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"></path></svg>'
+      ,pause: '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"></path></svg>'
+      ,stop: '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>'
+      ,cloud: '<svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .8-7.92A6 6 0 0 0 6.3 8.2 5 5 0 0 0 7 18Z"></path><path d="m9 13 2 2 4-4"></path></svg>'
+      ,history: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5M12 7v5l3 2"></path></svg>'
     };
 
     function loadStorage(key, fallback) {
@@ -219,6 +229,7 @@ var errorBox = document.getElementById('errorBox');
         normalizeWeekdayList(candidate.workdays || []).join(',') === normalizeWeekdayList(defaultSettings.workdays || []).join(',') &&
         normalizeWeekdayList(candidate.autoRestDays || []).join(',') === normalizeWeekdayList(defaultSettings.autoRestDays || []).join(',') &&
         Boolean(candidate.holidayHoursOnOffDays) === Boolean(defaultSettings.holidayHoursOnOffDays) &&
+        Boolean(candidate.timerEnabled) === Boolean(defaultSettings.timerEnabled) &&
         JSON.stringify(candidate.vacationAllowanceByYear || {}) === JSON.stringify(defaultSettings.vacationAllowanceByYear || {}) &&
         String(candidate.weekdayMode || '') === String(defaultSettings.weekdayMode || '') &&
         String(candidate.version || '') === String(defaultSettings.version || '') &&
@@ -285,6 +296,7 @@ var errorBox = document.getElementById('errorBox');
       persistEntriesLocally({ explicitEmpty: isExplicitlyEmpty });
       if (isExplicitlyEmpty) serverSyncAllowEmptyEntries = true;
       saveSafetyBundle();
+      if (typeof scheduleCurrentAccountDeviceCache === 'function') scheduleCurrentAccountDeviceCache();
       queueServerSync();
     }
     function saveSettings() {
@@ -294,9 +306,15 @@ var errorBox = document.getElementById('errorBox');
       }
       persistSettingsLocally();
       saveSafetyBundle();
+      if (typeof scheduleCurrentAccountDeviceCache === 'function') scheduleCurrentAccountDeviceCache();
       queueServerSync();
     }
-    function savePayslips() { persistPayslipsLocally(); saveSafetyBundle(); queueServerSync(); }
+    function savePayslips() {
+      persistPayslipsLocally();
+      saveSafetyBundle();
+      if (typeof scheduleCurrentAccountDeviceCache === 'function') scheduleCurrentAccountDeviceCache();
+      queueServerSync();
+    }
     function pad(v) { return String(v).padStart(2, '0'); }
     function toISODate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
     function mondayIndex(jsDay) { return (jsDay + 6) % 7; }
@@ -324,6 +342,7 @@ var errorBox = document.getElementById('errorBox');
       merged.workdays = normalizeWeekdayList(merged.workdays || defaultSettings.workdays || []);
       merged.autoRestDays = normalizeWeekdayList(merged.autoRestDays || []);
       merged.holidayHoursOnOffDays = Boolean(merged.holidayHoursOnOffDays);
+      merged.timerEnabled = Boolean(merged.timerEnabled);
       var rawVacationAllowances = merged.vacationAllowanceByYear && typeof merged.vacationAllowanceByYear === 'object' && !Array.isArray(merged.vacationAllowanceByYear)
         ? merged.vacationAllowanceByYear
         : {};
@@ -1285,6 +1304,71 @@ var errorBox = document.getElementById('errorBox');
         allowEmptyEntries: opts.allowEmptyEntries === true
       };
     }
+    function getActiveSyncAccountId() {
+      var accountId = state && state.account && state.account.user ? String(state.account.user.id || '') : '';
+      if (accountId) return accountId;
+      try { return String(localStorage.getItem('gestore-active-account-v1') || ''); }
+      catch (err) { return ''; }
+    }
+    function readPendingSyncRecord() {
+      var stored = readParsedStorage(STORAGE_PENDING_SYNC);
+      var record = stored && stored.parsed;
+      if (!record || typeof record !== 'object' || !record.snapshot || typeof record.snapshot !== 'object') return null;
+      var activeAccountId = getActiveSyncAccountId();
+      var recordAccountId = String(record.accountId || '');
+      if (activeAccountId && recordAccountId && activeAccountId !== recordAccountId) return null;
+      return {
+        accountId: recordAccountId,
+        savedAt: Math.max(0, Number(record.savedAt) || 0),
+        revision: Math.max(0, Number(record.revision) || 0),
+        snapshot: record.snapshot
+      };
+    }
+    function persistPendingSyncRecord() {
+      if (!state) return null;
+      var record = {
+        accountId: getActiveSyncAccountId(),
+        savedAt: Date.now(),
+        revision: Math.max(1, serverSyncRevision),
+        snapshot: buildStateSnapshot({ allowEmptyEntries: serverSyncAllowEmptyEntries })
+      };
+      try { localStorage.setItem(STORAGE_PENDING_SYNC, JSON.stringify(record)); }
+      catch (err) {}
+      state.syncPending = true;
+      return record;
+    }
+    function clearPendingSyncRecord(confirmedRevision) {
+      var record = readPendingSyncRecord();
+      if (record && confirmedRevision !== undefined && record.revision > Number(confirmedRevision || 0)) return;
+      try { localStorage.removeItem(STORAGE_PENDING_SYNC); } catch (err) {}
+      if (state) state.syncPending = false;
+    }
+    function mergePendingSnapshotWithServer(serverSnapshot, pendingRecord) {
+      var server = normalizeServerSnapshot(serverSnapshot);
+      var pendingSource = pendingRecord && pendingRecord.snapshot && typeof pendingRecord.snapshot === 'object'
+        ? pendingRecord.snapshot
+        : {};
+      var pending = normalizeServerSnapshot(pendingSource);
+      var mergedEntries = pendingSource.allowEmptyEntries === true
+        ? pending.entries
+        : Object.assign({}, server.entries, pending.entries);
+      var payslipsById = {};
+      (server.payslips || []).forEach(function (item, index) {
+        var id = String(item && item.id || ('server-' + index));
+        payslipsById[id] = item;
+      });
+      (pending.payslips || []).forEach(function (item, index) {
+        var id = String(item && item.id || ('pending-' + index));
+        payslipsById[id] = Object.assign({}, payslipsById[id] || {}, item);
+      });
+      return {
+        entries: mergedEntries,
+        settings: Object.keys(pending.settings || {}).length ? pending.settings : server.settings,
+        payslips: Object.keys(payslipsById).map(function (id) { return payslipsById[id]; }),
+        syncMeta: Object.assign({}, server.syncMeta, pending.syncMeta),
+        updatedAt: Math.max(server.updatedAt, pending.updatedAt, Number(pendingRecord && pendingRecord.savedAt) || 0)
+      };
+    }
     function applySnapshotLocally(snapshot, options) {
       var normalized = normalizeServerSnapshot(snapshot);
       var opts = options || {};
@@ -1306,6 +1390,40 @@ var errorBox = document.getElementById('errorBox');
       if (!state) return;
       state.syncStatus = label || 'Solo sul dispositivo';
       state.lastSyncedAt = syncedAt ? Math.max(0, Number(syncedAt) || 0) : 0;
+      refreshSyncStatusIndicators();
+    }
+    function refreshSyncStatusIndicators() {
+      if (!state || typeof document === 'undefined') return;
+      var message = getSyncStatusMessage();
+      document.querySelectorAll('[data-sync-status-label]').forEach(function (node) {
+        node.textContent = message;
+      });
+      document.querySelectorAll('[data-sync-status-state]').forEach(function (node) {
+        node.setAttribute('data-state', state.syncPending ? 'pending' : (serverSyncLastError ? 'offline' : 'synced'));
+        node.textContent = state.syncPending ? 'IN ATTESA' : (serverSyncLastError ? 'OFFLINE' : 'SALVATO');
+      });
+    }
+    function clearServerSyncRetry() {
+      if (!serverSyncRetryTimer) return;
+      window.clearTimeout(serverSyncRetryTimer);
+      serverSyncRetryTimer = 0;
+    }
+    function scheduleServerSyncRetry() {
+      clearServerSyncRetry();
+      serverSyncRetryAttempt = Math.min(serverSyncRetryAttempt + 1, 8);
+      var delay = Math.min(60000, 900 * Math.pow(2, Math.max(0, serverSyncRetryAttempt - 1)));
+      serverSyncRetryTimer = window.setTimeout(function () {
+        serverSyncRetryTimer = 0;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+          scheduleServerSyncRetry();
+          return;
+        }
+        if (!serverSyncReady && state && state.account && state.account.authenticated) {
+          bootstrapServerState();
+          return;
+        }
+        syncStateToServer();
+      }, delay);
     }
     function getSyncStatusMessage() {
       var label = state && state.syncStatus ? state.syncStatus : 'Solo sul dispositivo';
@@ -1361,12 +1479,18 @@ var errorBox = document.getElementById('errorBox');
     }
     async function syncStateToServer() {
       if (!serverSyncReady || serverSyncInFlight || !window.fetch) return false;
+      var pendingRecord = readPendingSyncRecord();
+      if (pendingRecord && serverSyncRevision <= serverSyncConfirmedRevision) {
+        serverSyncRevision = Math.max(serverSyncConfirmedRevision + 1, pendingRecord.revision || 1);
+      }
       serverSyncInFlight = true;
       var syncRevision = serverSyncRevision;
       var succeeded = false;
       try {
         var allowEmptyEntries = serverSyncAllowEmptyEntries;
         var outgoing = buildStateSnapshot({ allowEmptyEntries: allowEmptyEntries });
+        state.syncPending = true;
+        setSyncStatus('Salvataggio sul server', 0);
         await pushSnapshotToServer(outgoing, { minimal: true });
         // The compact ACK confirms SQLite without replacing newer in-memory edits.
         if (syncRevision === serverSyncRevision) {
@@ -1374,11 +1498,16 @@ var errorBox = document.getElementById('errorBox');
         }
         serverSyncLastError = '';
         serverSyncConfirmedRevision = Math.max(serverSyncConfirmedRevision, syncRevision);
-        setSyncStatus('Server locale attivo', Date.now());
+        serverSyncRetryAttempt = 0;
+        clearServerSyncRetry();
+        if (syncRevision === serverSyncRevision) clearPendingSyncRecord(syncRevision);
+        setSyncStatus('Salvato sul server', Date.now());
         succeeded = true;
       } catch (err) {
         serverSyncLastError = err && err.message ? err.message : 'Server non raggiungibile.';
-        setSyncStatus('Solo sul dispositivo', 0);
+        state.syncPending = true;
+        setSyncStatus('Offline, dati protetti sul dispositivo', 0);
+        scheduleServerSyncRetry();
       } finally {
         serverSyncInFlight = false;
         if (serverSyncRevision > syncRevision) {
@@ -1406,7 +1535,7 @@ var errorBox = document.getElementById('errorBox');
         }
         await new Promise(function (resolve) { window.setTimeout(resolve, 50); });
       }
-      if (!serverSyncInFlight && !serverSyncTimer && serverSyncRevision === serverSyncConfirmedRevision) return true;
+      if (!serverSyncInFlight && !serverSyncTimer && serverSyncRevision === serverSyncConfirmedRevision && !readPendingSyncRecord()) return true;
       for (var attempt = 0; attempt < 8; attempt += 1) {
         var waitStartedAt = Date.now();
         while (serverSyncInFlight) {
@@ -1429,8 +1558,10 @@ var errorBox = document.getElementById('errorBox');
       return false;
     }
     function queueServerSync() {
-      if (!serverSyncReady || !window.fetch) return;
       serverSyncRevision += 1;
+      persistPendingSyncRecord();
+      setSyncStatus('In attesa di sincronizzazione', 0);
+      if (!serverSyncReady || !window.fetch) return;
       if (serverSyncTimer) window.clearTimeout(serverSyncTimer);
       serverSyncTimer = window.setTimeout(function () {
         serverSyncTimer = 0;
@@ -1439,6 +1570,7 @@ var errorBox = document.getElementById('errorBox');
     }
     function persistPendingSnapshotOnPageHide() {
       saveSafetyBundle();
+      if (serverSyncRevision !== serverSyncConfirmedRevision) persistPendingSyncRecord();
       if (!serverSyncReady || serverSyncRevision === serverSyncConfirmedRevision) return;
       if (state && state.account && state.account.loaded && !state.account.authenticated) return;
       var snapshot = buildStateSnapshot({ allowEmptyEntries: serverSyncAllowEmptyEntries });
@@ -1529,9 +1661,23 @@ var errorBox = document.getElementById('errorBox');
         if (!response || bootstrapError) throw bootstrapError || new Error('Database del profilo non disponibile.');
         var serverSnapshot = normalizeServerSnapshot(await response.json());
         var localSnapshot = buildStateSnapshot({ includePayslipPhotos: true });
+        var pendingRecord = readPendingSyncRecord();
         var localHasData = hasMeaningfulSnapshotData(localSnapshot);
         var serverHasData = hasMeaningfulSnapshotData(serverSnapshot);
-        if (serverHasData) {
+        var pendingIsNewer = Boolean(pendingRecord && pendingRecord.savedAt >= serverSnapshot.updatedAt);
+        if (pendingIsNewer) {
+          var pendingMergedSnapshot = mergePendingSnapshotWithServer(serverSnapshot, pendingRecord);
+          applySnapshotLocally(pendingMergedSnapshot, { preserveLockState: true });
+          serverSyncRevision = Math.max(serverSyncRevision, pendingRecord.revision || 1);
+          await pushSnapshotToServer(
+            buildStateSnapshot({ allowEmptyEntries: pendingRecord.snapshot.allowEmptyEntries === true }),
+            { minimal: true, timeoutMs: 30000 }
+          );
+          serverSyncConfirmedRevision = serverSyncRevision;
+          clearPendingSyncRecord(serverSyncRevision);
+          setSyncStatus('Modifiche locali recuperate e salvate', Date.now());
+        } else if (serverHasData) {
+          if (pendingRecord) clearPendingSyncRecord(pendingRecord.revision);
           var merged = mergeServerSnapshotWithDeviceCache(serverSnapshot, localSnapshot);
           applySnapshotLocally(merged.snapshot);
           if (merged.recoveredEntries || merged.recoveredPayslips) {
@@ -1546,15 +1692,24 @@ var errorBox = document.getElementById('errorBox');
         } else if (localHasData) {
           await pushSnapshotToServer(localSnapshot, { minimal: true, timeoutMs: 30000 });
           applySnapshotLocally(localSnapshot, { preserveLockState: true });
+          if (pendingRecord) clearPendingSyncRecord(pendingRecord.revision);
           setSyncStatus('Dati recuperati dal dispositivo', Date.now());
         } else {
           setSyncStatus('Pronto per la sync locale', 0);
         }
         serverSyncLastError = '';
+        serverSyncRetryAttempt = 0;
+        clearServerSyncRetry();
         completed = true;
       } catch (err) {
         serverSyncLastError = err && err.message ? err.message : 'Database del profilo non disponibile.';
-        setSyncStatus('Solo sul dispositivo', 0);
+        if (hasMeaningfulSnapshotData(buildStateSnapshot()) || readPendingSyncRecord()) {
+          state.syncPending = Boolean(readPendingSyncRecord());
+          setSyncStatus('Offline, uso la copia protetta sul dispositivo', 0);
+          scheduleServerSyncRetry();
+        } else {
+          setSyncStatus('Solo sul dispositivo', 0);
+        }
       } finally {
         var hasRemoteAccount = Boolean(state && state.account && state.account.authenticated && state.account.user);
         serverSyncReady = completed || !hasRemoteAccount;
@@ -1637,12 +1792,27 @@ var errorBox = document.getElementById('errorBox');
           return;
         }
         updateReminderSchedule();
+        if (readPendingSyncRecord()) {
+          if (serverSyncReady) syncStateToServer();
+          else if (state.account && state.account.authenticated) bootstrapServerState();
+        }
         if (state.settings.lockApp && state.privacyLocked && typeof render === 'function') render();
       });
       window.addEventListener('pagehide', persistPendingSnapshotOnPageHide);
+      window.addEventListener('online', function () {
+        clearServerSyncRetry();
+        if (serverSyncReady) syncStateToServer();
+        else if (state && state.account && state.account.authenticated) bootstrapServerState();
+      });
+      window.addEventListener('offline', function () {
+        if (!state) return;
+        state.syncPending = Boolean(readPendingSyncRecord());
+        setSyncStatus('Offline, dati protetti sul dispositivo', 0);
+      });
       if (typeof bootstrapAccountSession === 'function') bootstrapAccountSession();
       else bootstrapServerState();
       updateReminderSchedule();
+      if (typeof initializeFeatureServices === 'function') initializeFeatureServices();
     }
     async function testNotification() {
       var permission = await ensureNotificationPermission(true);

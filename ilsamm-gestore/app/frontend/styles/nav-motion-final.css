@@ -14,6 +14,7 @@
 .nav-grid.nav-grid-v2,
 #app > .bottom-nav .nav-grid.nav-grid-v2 {
   --nav-inner-pad: 6px;
+  --nav-drag-stretch: 1;
   isolation: isolate !important;
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: 0 !important;
@@ -22,6 +23,9 @@
   border-color: rgba(112, 133, 218, 0.13) !important;
   background: linear-gradient(180deg, rgba(20, 30, 64, 0.16), rgba(4, 8, 20, 0.08)) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .nav-active-indicator {
@@ -40,32 +44,34 @@
   content: "";
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .nav-active-indicator::before {
-  top: 1px;
-  width: min(calc(100% - 2px), 70px);
-  height: 55px;
-  border: 1px solid rgba(159, 143, 255, 0.17);
-  border-radius: 23px;
+  width: min(calc(100% - 1px), 72px);
+  height: 58px;
+  border: 1px solid rgba(190, 202, 255, 0.2);
+  border-radius: 24px;
   background:
-    radial-gradient(circle at 50% -12%, rgba(157, 177, 255, 0.3), transparent 55%),
-    linear-gradient(145deg, rgba(109, 87, 225, 0.43), rgba(52, 102, 194, 0.29));
+    linear-gradient(156deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.025) 34%, transparent 50%),
+    radial-gradient(circle at 50% -12%, rgba(177, 194, 255, 0.32), transparent 56%),
+    linear-gradient(145deg, rgba(115, 94, 231, 0.39), rgba(47, 103, 192, 0.25));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -10px 20px rgba(13, 18, 61, 0.12),
-    0 9px 20px rgba(39, 43, 133, 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.17),
+    inset 0 -14px 24px rgba(8, 15, 48, 0.15),
+    0 10px 24px rgba(30, 39, 128, 0.26);
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
 }
 
 .nav-active-indicator::after {
-  top: 6px;
-  width: min(calc(100% - 8px), 62px);
-  height: 47px;
-  border-radius: 21px;
-  background: rgba(95, 90, 237, 0.2);
-  filter: blur(9px);
-  opacity: 0.72;
+  width: min(calc(100% - 7px), 65px);
+  height: 50px;
+  border-radius: 22px;
+  background: rgba(93, 95, 235, 0.18);
+  filter: blur(10px);
+  opacity: 0.68;
 }
 
 .nav-btn.nav-btn-v2,
@@ -132,7 +138,7 @@
 }
 
 .nav-btn-v2.active .nav-icon-shell {
-  transform: translate3d(0, -1px, 0) scale(1.12);
+  transform: translate3d(0, 0, 0) scale(1.12);
 }
 
 .nav-btn-v2.nav-home:not(.active) {
@@ -189,6 +195,38 @@
   animation: nav-icon-fluid-leave 260ms ease-out both;
 }
 
+.nav-grid-v2.nav-dragging .nav-active-indicator {
+  transform: translate3d(var(--nav-drag-x), 0, 0) !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+.nav-grid-v2.nav-dragging .nav-active-indicator::before {
+  transform: translate(-50%, -50%) scaleX(var(--nav-drag-stretch)) !important;
+  border-radius: 21px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -14px 24px rgba(8, 15, 48, 0.12),
+    0 12px 28px rgba(42, 50, 145, 0.31);
+  animation: none !important;
+}
+
+.nav-grid-v2.nav-dragging .nav-btn-v2 {
+  color: rgba(193, 203, 235, 0.38) !important;
+}
+
+.nav-grid-v2.nav-dragging .nav-btn-v2.nav-preview {
+  color: rgba(255, 255, 255, 0.99) !important;
+}
+
+.nav-grid-v2.nav-dragging .nav-btn-v2.nav-preview .nav-icon-shell {
+  transform: scale(1.13);
+}
+
+.nav-grid-v2.nav-dragging .nav-btn-v2.nav-preview .nav-label {
+  opacity: 1;
+}
+
 @media (max-width: 350px) {
   .nav-grid.nav-grid-v2,
   #app > .bottom-nav .nav-grid.nav-grid-v2 {
@@ -196,9 +234,8 @@
   }
 
   .nav-active-indicator::before {
-    top: 2px;
     width: min(calc(100% - 1px), 62px);
-    height: 52px;
+    height: 54px;
     border-radius: 22px;
   }
 
@@ -246,15 +283,15 @@
 @keyframes nav-fluid-shape {
   0% {
     border-radius: 24px;
-    transform: translateX(-50%) scaleX(0.78);
+    transform: translate(-50%, -50%) scaleX(0.78);
   }
   58% {
     border-radius: 18px;
-    transform: translateX(-50%) scaleX(1.13);
+    transform: translate(-50%, -50%) scaleX(1.13);
   }
   100% {
-    border-radius: 23px;
-    transform: translateX(-50%) scaleX(1);
+    border-radius: 24px;
+    transform: translate(-50%, -50%) scaleX(1);
   }
 }
 
@@ -263,16 +300,16 @@
     transform: scale(0.94);
   }
   72% {
-    transform: translate3d(0, -1px, 0) scale(1.16);
+    transform: translate3d(0, 0, 0) scale(1.16);
   }
   100% {
-    transform: translate3d(0, -1px, 0) scale(1.12);
+    transform: translate3d(0, 0, 0) scale(1.12);
   }
 }
 
 @keyframes nav-icon-fluid-leave {
   from {
-    transform: translate3d(0, -1px, 0) scale(1.12);
+    transform: translate3d(0, 0, 0) scale(1.12);
   }
   to {
     transform: scale(1);

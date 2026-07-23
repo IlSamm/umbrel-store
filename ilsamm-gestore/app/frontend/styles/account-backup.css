@@ -1014,3 +1014,242 @@
     animation: none;
   }
 }
+
+.account-versioned-card {
+  overflow: hidden;
+  border: 1px solid rgba(116, 139, 203, .18);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 90% 0, rgba(74, 99, 204, .14), transparent 42%),
+    rgba(9, 18, 42, .82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045);
+}
+
+.account-versioned-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(120, 141, 190, .12);
+}
+
+.account-versioned-head > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.account-versioned-head strong {
+  color: #f5f7ff;
+  font-size: 14px;
+}
+
+.account-versioned-head small {
+  color: #7f8dab;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.account-versioned-head > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(114, 132, 255, .25);
+  border-radius: 14px;
+  color: #eef1ff;
+  background: linear-gradient(135deg, rgba(79, 91, 211, .78), rgba(112, 68, 216, .76));
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.account-versioned-head svg {
+  width: 17px;
+  height: 17px;
+}
+
+.account-versioned-list {
+  display: grid;
+  padding: 5px 14px;
+}
+
+.account-versioned-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 38px 38px;
+  align-items: center;
+  gap: 8px;
+  min-height: 66px;
+  border-bottom: 1px solid rgba(124, 143, 185, .1);
+}
+
+.account-versioned-row:last-child {
+  border-bottom: 0;
+}
+
+.account-versioned-icon,
+.account-versioned-row > button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(119, 139, 210, .16);
+  border-radius: 13px;
+  color: #78a7ff;
+  background: rgba(42, 61, 113, .28);
+}
+
+.account-versioned-row > button {
+  padding: 0;
+  color: #9aa9ff;
+  font: inherit;
+}
+
+.account-versioned-row > button.is-danger {
+  color: #ff718c;
+  border-color: rgba(255, 91, 124, .16);
+  background: rgba(143, 31, 62, .14);
+}
+
+.account-versioned-icon svg,
+.account-versioned-row > button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.account-versioned-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.account-versioned-copy strong,
+.account-versioned-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-versioned-copy strong {
+  color: #edf2ff;
+  font-size: 12px;
+}
+
+.account-versioned-copy small {
+  color: #7987a7;
+  font-size: 9px;
+}
+
+.account-versioned-empty {
+  padding: 20px 8px;
+  color: #7f8dab;
+  font-size: 11px;
+  text-align: center;
+}
+
+.account-versioned-empty.is-error {
+  color: #ff8da5;
+}
+
+.account-backup-decision-overlay {
+  position: fixed;
+  z-index: 1800;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(1, 5, 16, .73);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.account-backup-decision {
+  display: grid;
+  width: min(100%, 340px);
+  padding: 24px;
+  border: 1px solid rgba(126, 146, 222, .24);
+  border-radius: 28px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 0, rgba(83, 94, 211, .2), transparent 44%),
+    linear-gradient(165deg, #121d3b, #070e22 74%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+.account-backup-decision > span {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+  border-radius: 19px;
+  color: #8ca9ff;
+  background: rgba(73, 89, 183, .2);
+}
+
+.account-backup-decision > span svg {
+  width: 27px;
+  height: 27px;
+}
+
+.account-backup-decision > small {
+  color: #8c9eff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.account-backup-decision h2 {
+  margin: 7px 0 7px;
+  color: #f8f9ff;
+  font-size: 21px;
+}
+
+.account-backup-decision p {
+  margin: 0;
+  color: #8f9bb7;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.account-backup-decision > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.account-backup-decision button {
+  min-height: 47px;
+  border: 1px solid rgba(126, 145, 194, .16);
+  border-radius: 15px;
+  color: #dce4f8;
+  background: rgba(31, 43, 75, .55);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.account-backup-decision button.is-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #5062d9, #7951df);
+}
+
+.account-backup-decision button.is-danger {
+  color: #fff;
+  background: linear-gradient(135deg, #c9385a, #e84f70);
+}
+
+@media (max-width: 350px) {
+  .account-versioned-row {
+    grid-template-columns: 36px minmax(0, 1fr) 36px 36px;
+    gap: 6px;
+  }
+
+  .account-versioned-head > button span {
+    display: none;
+  }
+}

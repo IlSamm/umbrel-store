@@ -133,27 +133,177 @@ function bindPayslipViewerZoom() {
       applyZoom(false);
     }
 
+var navInteractionLockUntil = 0;
+
+function getPrimaryNavOrder() {
+  return ['calendar', 'stats', 'home', 'vacations', 'profile'];
+}
+
+function getPrimaryNavTab(tab) {
+  return tab === 'payslips' || tab === 'settings' || tab === 'exports' ? 'profile' : tab;
+}
+
+function activatePrimaryTab(nextTab, pressedButton, delay) {
+  if (state.privacyLocked || !nextTab) return;
+  var order = getPrimaryNavOrder();
+  var currentPrimaryTab = getPrimaryNavTab(state.activeTab);
+  var currentIndex = order.indexOf(currentPrimaryTab);
+  var nextIndex = order.indexOf(nextTab);
+  if (nextIndex < 0 || currentPrimaryTab === nextTab) return;
+  var navGrid = pressedButton && pressedButton.closest ? pressedButton.closest('.nav-grid') : document.querySelector('.nav-grid-v2');
+  document.querySelectorAll('.nav-btn.nav-press').forEach(function (node) { node.classList.remove('nav-press'); });
+  if (navGrid) navGrid.classList.add('nav-switching');
+  if (pressedButton) pressedButton.classList.add('nav-press');
+  window.setTimeout(function () {
+    state.tabSwitchFx = true;
+    state.tabSwitchDir = nextIndex >= currentIndex ? 'forward' : 'back';
+    state.navPreviousIndex = currentIndex >= 0 ? currentIndex : nextIndex;
+    state.activeTab = nextTab;
+    render();
+  }, Math.max(0, Number(delay) || 0));
+}
+
+function bindFluidNavigation() {
+  var grid = document.querySelector('.nav-grid-v2');
+  if (!grid) return;
+  var buttons = Array.from(grid.querySelectorAll('.nav-btn[data-tab]'));
+  if (!buttons.length) return;
+
+  var session = null;
+  var holdTimer = 0;
+  var HOLD_MS = 170;
+  var DRAG_THRESHOLD = 7;
+
+  function clearHoldTimer() {
+    if (!holdTimer) return;
+    window.clearTimeout(holdTimer);
+    holdTimer = 0;
+  }
+
+  function getGeometry() {
+    var rect = grid.getBoundingClientRect();
+    var style = window.getComputedStyle(grid);
+    var padLeft = parseFloat(style.paddingLeft) || 0;
+    var padRight = parseFloat(style.paddingRight) || 0;
+    var usableWidth = Math.max(1, rect.width - padLeft - padRight);
+    return {
+      rect: rect,
+      padLeft: padLeft,
+      cellWidth: usableWidth / buttons.length
+    };
+  }
+
+  function indexFromClientX(clientX, geometry, fractional) {
+    var raw = (clientX - geometry.rect.left - geometry.padLeft) / geometry.cellWidth - 0.5;
+    var clamped = Math.max(0, Math.min(buttons.length - 1, raw));
+    return fractional ? clamped : Math.max(0, Math.min(buttons.length - 1, Math.round(clamped)));
+  }
+
+  function updateDragPreview(clientX) {
+    if (!session) return;
+    var geometry = getGeometry();
+    var floatingIndex = indexFromClientX(clientX, geometry, true);
+    var previewIndex = indexFromClientX(clientX, geometry, false);
+    var movement = Math.abs(clientX - session.lastX);
+    var stretch = 1 + Math.min(0.16, movement / Math.max(1, geometry.cellWidth) * 0.12);
+    session.lastX = clientX;
+    session.previewIndex = previewIndex;
+    grid.style.setProperty('--nav-drag-x', (floatingIndex * geometry.cellWidth).toFixed(2) + 'px');
+    grid.style.setProperty('--nav-drag-stretch', stretch.toFixed(3));
+    buttons.forEach(function (button, index) {
+      button.classList.toggle('nav-preview', index === previewIndex);
+    });
+  }
+
+  function beginDragging(clientX) {
+    if (!session || session.dragging) return;
+    session.dragging = true;
+    grid.classList.remove('nav-animated', 'nav-switching');
+    grid.classList.add('nav-dragging');
+    updateDragPreview(clientX);
+  }
+
+  function finishInteraction(event, cancelled) {
+    if (!session || event.pointerId !== session.pointerId) return;
+    clearHoldTimer();
+    var completed = session;
+    session = null;
+    navInteractionLockUntil = Date.now() + 520;
+    try {
+      if (typeof grid.releasePointerCapture === 'function' && grid.hasPointerCapture(event.pointerId)) {
+        grid.releasePointerCapture(event.pointerId);
+      }
+    } catch (err) {}
+
+    grid.classList.remove('nav-dragging');
+    grid.style.removeProperty('--nav-drag-x');
+    grid.style.removeProperty('--nav-drag-stretch');
+    buttons.forEach(function (button) { button.classList.remove('nav-preview'); });
+
+    if (cancelled) return;
+    var chosenIndex = completed.dragging ? completed.previewIndex : completed.startIndex;
+    var chosenButton = buttons[chosenIndex];
+    if (!chosenButton) return;
+    activatePrimaryTab(chosenButton.dataset.tab, chosenButton, completed.dragging ? 20 : 90);
+  }
+
+  grid.addEventListener('pointerdown', function (event) {
+    if (state.privacyLocked || session || event.button > 0) return;
+    var button = event.target.closest('.nav-btn[data-tab]');
+    if (!button || !grid.contains(button)) return;
+    var startIndex = buttons.indexOf(button);
+    if (startIndex < 0) return;
+    session = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      lastX: event.clientX,
+      startIndex: startIndex,
+      previewIndex: startIndex,
+      dragging: false
+    };
+    try {
+      if (typeof grid.setPointerCapture === 'function') grid.setPointerCapture(event.pointerId);
+    } catch (err) {}
+    holdTimer = window.setTimeout(function () {
+      if (session && session.pointerId === event.pointerId) beginDragging(session.lastX);
+    }, HOLD_MS);
+  });
+
+  grid.addEventListener('pointermove', function (event) {
+    if (!session || event.pointerId !== session.pointerId) return;
+    session.lastX = event.clientX;
+    if (!session.dragging && Math.abs(event.clientX - session.startX) >= DRAG_THRESHOLD) {
+      clearHoldTimer();
+      beginDragging(event.clientX);
+    }
+    if (session.dragging) {
+      event.preventDefault();
+      updateDragPreview(event.clientX);
+    }
+  }, { passive: false });
+
+  grid.addEventListener('pointerup', function (event) { finishInteraction(event, false); });
+  grid.addEventListener('pointercancel', function (event) { finishInteraction(event, true); });
+  grid.addEventListener('lostpointercapture', function (event) {
+    if (session && event.pointerId === session.pointerId) finishInteraction(event, true);
+  });
+
+  buttons.forEach(function (button) {
+    button.onclick = function (event) {
+      if (Date.now() < navInteractionLockUntil) {
+        event.preventDefault();
+        return;
+      }
+      activatePrimaryTab(button.dataset.tab, button, 90);
+    };
+  });
+}
+
 function bindEvents() {
-      document.querySelectorAll('[data-tab]').forEach(function (btn) {
+      bindFluidNavigation();
+      document.querySelectorAll('[data-tab]:not(.nav-btn)').forEach(function (btn) {
         btn.onclick = function () {
-          if (state.privacyLocked) return;
-          var nextTab = btn.dataset.tab;
-          if (!nextTab || state.activeTab === nextTab) return;
-          var order = ['calendar', 'stats', 'home', 'vacations', 'profile'];
-          var currentPrimaryTab = state.activeTab === 'payslips' || state.activeTab === 'settings' || state.activeTab === 'exports' ? 'profile' : state.activeTab;
-          var currentIndex = order.indexOf(currentPrimaryTab);
-          var nextIndex = order.indexOf(nextTab);
-          var navGrid = btn.closest('.nav-grid');
-          document.querySelectorAll('.nav-btn.nav-press').forEach(function (node) { node.classList.remove('nav-press'); });
-          if (navGrid) navGrid.classList.add('nav-switching');
-          btn.classList.add('nav-press');
-          setTimeout(function () {
-            state.tabSwitchFx = true;
-            state.tabSwitchDir = (nextIndex >= currentIndex ? 'forward' : 'back');
-            state.navPreviousIndex = currentIndex >= 0 ? currentIndex : nextIndex;
-            state.activeTab = nextTab;
-            render();
-          }, 120);
+          activatePrimaryTab(btn.dataset.tab, btn, 90);
         };
       });
       document.querySelectorAll('[data-open-profile-section]').forEach(function (btn) {
@@ -185,7 +335,7 @@ function bindEvents() {
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
           var section = btn.dataset.openSettingsSection;
-          if (['profile', 'calendar', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
+          if (['profile', 'calendar', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
           state.settingsSection = section;
           render();
         };
@@ -734,6 +884,116 @@ function bindEvents() {
         if (!state.settings.lockApp) state.privacyLocked = false;
         saveSettings(); render();
       };
+
+      var shiftTimerToggle = document.querySelector('[data-toggle-shift-timer]');
+      if (shiftTimerToggle) shiftTimerToggle.onclick = function () {
+        if (state.settings.timerEnabled && state.shiftTimer && state.shiftTimer.active) {
+          state.timerNotice = 'Termina o annulla il turno prima di disattivare il timer.';
+          state.activeTab = 'home';
+          render();
+          return;
+        }
+        state.settings.timerEnabled = !Boolean(state.settings.timerEnabled);
+        state.settingsDraft.timerEnabled = state.settings.timerEnabled;
+        saveSettings();
+        render();
+      };
+
+      document.querySelectorAll('[data-timer-start]').forEach(function (btn) {
+        btn.onclick = startShiftTimer;
+      });
+      document.querySelectorAll('[data-timer-toggle-pause]').forEach(function (btn) {
+        btn.onclick = function () {
+          if (state.shiftTimer && state.shiftTimer.status === 'paused') resumeShiftTimer();
+          else pauseShiftTimer();
+        };
+      });
+      document.querySelectorAll('[data-timer-finish]').forEach(function (btn) {
+        btn.onclick = finishShiftTimer;
+      });
+      document.querySelectorAll('[data-timer-discard-request]').forEach(function (btn) {
+        btn.onclick = function () { state.timerDiscardConfirm = true; render(); };
+      });
+      document.querySelectorAll('[data-timer-discard-cancel]').forEach(function (btn) {
+        btn.onclick = function () { state.timerDiscardConfirm = false; render(); };
+      });
+      document.querySelectorAll('[data-timer-discard-confirm]').forEach(function (btn) {
+        btn.onclick = discardShiftTimer;
+      });
+
+      document.querySelectorAll('[data-open-global-search]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.globalSearchOpen = true;
+          state.globalSearchQuery = '';
+          render();
+          window.setTimeout(function () {
+            var input = document.getElementById('globalSearchInput');
+            if (input) input.focus({ preventScroll: true });
+          }, 40);
+        };
+      });
+      document.querySelectorAll('[data-close-global-search]').forEach(function (btn) {
+        btn.onclick = function () { state.globalSearchOpen = false; state.globalSearchQuery = ''; render(); };
+      });
+      document.querySelectorAll('[data-clear-global-search]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.globalSearchQuery = '';
+          var input = document.getElementById('globalSearchInput');
+          var results = document.getElementById('globalSearchResults');
+          var caption = document.getElementById('globalSearchCaption');
+          if (input) { input.value = ''; input.focus({ preventScroll: true }); }
+          if (results) results.innerHTML = renderGlobalSearchResultsMarkup('');
+          if (caption) caption.textContent = 'ELEMENTI RECENTI';
+        };
+      });
+      var globalSearchInput = document.getElementById('globalSearchInput');
+      if (globalSearchInput) globalSearchInput.oninput = function (event) {
+        state.globalSearchQuery = String(event.target.value || '');
+        var results = document.getElementById('globalSearchResults');
+        var caption = document.getElementById('globalSearchCaption');
+        if (results) results.innerHTML = renderGlobalSearchResultsMarkup(state.globalSearchQuery);
+        if (caption) caption.textContent = state.globalSearchQuery.trim() ? 'RISULTATI' : 'ELEMENTI RECENTI';
+        bindGlobalSearchResultEvents();
+      };
+
+      function bindGlobalSearchResultEvents() {
+        document.querySelectorAll('[data-search-open-date]').forEach(function (btn) {
+          btn.onclick = function () {
+            state.globalSearchOpen = false;
+            openEditor(new Date(btn.dataset.searchOpenDate + 'T12:00:00'));
+          };
+        });
+        document.querySelectorAll('[data-search-open-payslip]').forEach(function (btn) {
+          btn.onclick = function () {
+            var found = (state.payslips || []).find(function (item) { return String(item.id || '') === String(btn.dataset.searchOpenPayslip || ''); });
+            if (!found) return;
+            state.globalSearchOpen = false;
+            state.payslipDetailId = found.id;
+            state.payslipEditorOpen = false;
+            state.payslipStatsOpen = false;
+            state.payslipViewer = null;
+            state.activeTab = 'payslips';
+            render();
+          };
+        });
+      }
+      bindGlobalSearchResultEvents();
+
+      document.querySelectorAll('[data-insight-date]').forEach(function (btn) {
+        btn.onclick = function () { openEditor(new Date(btn.dataset.insightDate + 'T12:00:00')); };
+      });
+      document.querySelectorAll('[data-insight-tab]').forEach(function (btn) {
+        btn.onclick = function () { activatePrimaryTab(btn.dataset.insightTab, btn, 60); };
+      });
+      document.querySelectorAll('[data-insight-payslips]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.activeTab = 'payslips';
+          state.payslipDetailId = '';
+          state.payslipEditorOpen = false;
+          state.payslipStatsOpen = false;
+          render();
+        };
+      });
 
       document.querySelectorAll('[data-select-type]').forEach(function (btn) {
         btn.onclick = function () {

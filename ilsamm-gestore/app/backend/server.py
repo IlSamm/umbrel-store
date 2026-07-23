@@ -29,14 +29,19 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.1.139"
-BUILD_CACHE = "20260723g"
+BUILD_VERSION = "1.1.140"
+BUILD_CACHE = "20260723h"
 AUTH_STORE = AuthStore(DATA_DIR)
 
 _DB_SCHEMA_LOCK = threading.Lock()
 _DB_SCHEMA_READY: set[str] = set()
 _SNAPSHOT_LOCKS_GUARD = threading.Lock()
 _SNAPSHOT_LOCKS: dict[str, threading.RLock] = {}
+_VERSIONED_BACKUP_LOCK = threading.RLock()
+AUTO_BACKUP_INTERVAL_MS = 20 * 60 * 60 * 1000
+AUTO_BACKUP_LIMIT = 14
+MANUAL_BACKUP_LIMIT = 8
+RESTORE_BACKUP_LIMIT = 4
 
 DEFAULT_SYNC_META = {
     "entriesUpdatedAt": 0,
@@ -437,10 +442,14 @@ def database_storage_summary(db_path: Path) -> dict:
     shm_path = Path(f"{db_path}-shm")
     wal_bytes = wal_path.stat().st_size if wal_path.exists() else 0
     shm_bytes = shm_path.stat().st_size if shm_path.exists() else 0
+    backups = list_versioned_backups(db_path)
+    backup_bytes = sum(int(item.get("bytes") or 0) for item in backups)
     return {
-        "bytes": database_bytes + wal_bytes + shm_bytes,
+        "bytes": database_bytes + wal_bytes + shm_bytes + backup_bytes,
         "databaseBytes": database_bytes,
         "journalBytes": wal_bytes + shm_bytes,
+        "backupBytes": backup_bytes,
+        "backups": len(backups),
         "entries": len(snapshot.get("entries") or {}),
         "payslips": len(snapshot.get("payslips") or []),
         "updatedAt": int(snapshot.get("updatedAt") or 0),
@@ -524,6 +533,119 @@ def read_backup_snapshot(raw: bytes) -> dict:
         if not temp_handle.closed:
             temp_handle.close()
         temp_path.unlink(missing_ok=True)
+
+
+def _versioned_backup_directory(db_path: Path) -> Path:
+    database = Path(db_path).resolve()
+    directory = (database.parent / "backups").resolve()
+    if directory.parent != database.parent:
+        raise ValueError("Percorso backup non valido.")
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def _versioned_backup_metadata(path: Path) -> dict | None:
+    name = path.name
+    if not name.endswith(".sqlite3"):
+        return None
+    backup_id = name[:-8]
+    separator = backup_id.find("-")
+    if separator <= 0:
+        return None
+    created_text = backup_id[:separator]
+    kind = backup_id[separator + 1:]
+    if not created_text.isdigit() or kind not in {"auto", "manual", "pre-restore"}:
+        return None
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return None
+    return {
+        "id": backup_id,
+        "kind": kind,
+        "createdAt": int(created_text),
+        "bytes": max(0, int(size)),
+    }
+
+
+def list_versioned_backups(db_path: Path) -> list[dict]:
+    directory = _versioned_backup_directory(db_path)
+    backups = []
+    for path in directory.glob("*.sqlite3"):
+        metadata = _versioned_backup_metadata(path)
+        if metadata:
+            backups.append(metadata)
+    backups.sort(key=lambda item: int(item["createdAt"]), reverse=True)
+    return backups
+
+
+def _prune_versioned_backups(db_path: Path) -> None:
+    limits = {
+        "auto": AUTO_BACKUP_LIMIT,
+        "manual": MANUAL_BACKUP_LIMIT,
+        "pre-restore": RESTORE_BACKUP_LIMIT,
+    }
+    directory = _versioned_backup_directory(db_path)
+    grouped: dict[str, list[dict]] = {kind: [] for kind in limits}
+    for item in list_versioned_backups(db_path):
+        grouped[item["kind"]].append(item)
+    for kind, items in grouped.items():
+        for stale in items[limits[kind]:]:
+            (directory / f"{stale['id']}.sqlite3").unlink(missing_ok=True)
+
+
+def create_versioned_backup(db_path: Path, kind: str = "manual", force: bool = False) -> dict | None:
+    kind = str(kind or "manual")
+    if kind not in {"auto", "manual", "pre-restore"}:
+        raise ValueError("Tipo di backup non valido.")
+    database = Path(db_path).resolve()
+    if not database.exists():
+        return None
+    with _VERSIONED_BACKUP_LOCK:
+        existing = list_versioned_backups(database)
+        if kind == "auto" and not force:
+            latest_auto = next((item for item in existing if item["kind"] == "auto"), None)
+            if latest_auto and int(time.time() * 1000) - int(latest_auto["createdAt"]) < AUTO_BACKUP_INTERVAL_MS:
+                return latest_auto
+        if not force and not snapshot_has_data(load_compact_snapshot(db_path=database)):
+            return None
+        created_at = int(time.time() * 1000)
+        directory = _versioned_backup_directory(database)
+        backup_id = f"{created_at}-{kind}"
+        while (directory / f"{backup_id}.sqlite3").exists():
+            created_at += 1
+            backup_id = f"{created_at}-{kind}"
+        target = directory / f"{backup_id}.sqlite3"
+        temporary = directory / f".{backup_id}.tmp"
+        try:
+            temporary.write_bytes(create_backup_bytes(database))
+            os.replace(temporary, target)
+        finally:
+            temporary.unlink(missing_ok=True)
+        _prune_versioned_backups(database)
+        return _versioned_backup_metadata(target)
+
+
+def delete_versioned_backup(db_path: Path, backup_id: str) -> dict:
+    clean_id = str(backup_id or "").strip()
+    directory = _versioned_backup_directory(db_path)
+    target = (directory / f"{clean_id}.sqlite3").resolve()
+    if target.parent != directory or _versioned_backup_metadata(target) is None:
+        raise ValueError("Backup non trovato.")
+    target.unlink(missing_ok=False)
+    return {"id": clean_id}
+
+
+def restore_versioned_backup(db_path: Path, backup_id: str) -> dict:
+    clean_id = str(backup_id or "").strip()
+    directory = _versioned_backup_directory(db_path)
+    target = (directory / f"{clean_id}.sqlite3").resolve()
+    if target.parent != directory or _versioned_backup_metadata(target) is None:
+        raise ValueError("Backup non trovato.")
+    create_versioned_backup(db_path, "pre-restore", force=True)
+    restored = read_backup_snapshot(target.read_bytes())
+    restored["allowEmptyEntries"] = True
+    return save_snapshot(restored, db_path=db_path, force_replace=True)
 
 
 class GestOreHandler(SimpleHTTPRequestHandler):
@@ -681,6 +803,17 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 return
             self._send_json(database_storage_summary(AUTH_STORE.user_db_path(user["id"])))
             return
+        if parsed.path == "/api/backups":
+            user = self._require_user()
+            if not user:
+                return
+            backups = list_versioned_backups(AUTH_STORE.user_db_path(user["id"]))
+            self._send_json({
+                "ok": True,
+                "backups": backups,
+                "bytes": sum(int(item.get("bytes") or 0) for item in backups),
+            })
+            return
         if parsed.path == "/api/snapshot":
             db_path = self._snapshot_db_for_request()
             if db_path is not None:
@@ -723,6 +856,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         try:
             payload = self._read_json_body()
+            create_versioned_backup(db_path, "auto")
             saved = save_snapshot(payload, db_path=db_path)
             prefer_minimal = "return=minimal" in str(self.headers.get("Prefer", "")).lower()
             if prefer_minimal:
@@ -742,6 +876,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             payload = self._read_json_body()
             payslip = payload.get("payslip")
             mutation_id = str(payload.get("mutationId") or self.headers.get("X-GestOre-Mutation-Id", ""))
+            create_versioned_backup(db_path, "auto")
             saved = save_payslip_record(payslip, db_path, payload.get("updatedAt"))
             self._send_json(self._snapshot_ack(
                 saved,
@@ -812,7 +947,29 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 raw = self._read_body(MAX_BACKUP_BYTES)
                 restored = read_backup_snapshot(raw)
                 restored["allowEmptyEntries"] = True
-                saved = save_snapshot(restored, db_path=AUTH_STORE.user_db_path(user["id"]), force_replace=True)
+                user_db_path = AUTH_STORE.user_db_path(user["id"])
+                create_versioned_backup(user_db_path, "pre-restore", force=True)
+                saved = save_snapshot(restored, db_path=user_db_path, force_replace=True)
+                self._send_json({
+                    "ok": True,
+                    "entries": len(saved.get("entries") or {}),
+                    "payslips": len(saved.get("payslips") or []),
+                    "updatedAt": saved.get("updatedAt", 0),
+                })
+                return
+            if parsed.path == "/api/backups":
+                user = self._require_user()
+                if not user:
+                    return
+                backup = create_versioned_backup(AUTH_STORE.user_db_path(user["id"]), "manual", force=True)
+                self._send_json({"ok": True, "backup": backup}, HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/backups/restore":
+                user = self._require_user()
+                if not user:
+                    return
+                payload = self._read_json_body()
+                saved = restore_versioned_backup(AUTH_STORE.user_db_path(user["id"]), payload.get("backupId", ""))
                 self._send_json({
                     "ok": True,
                     "entries": len(saved.get("entries") or {}),
@@ -843,8 +1000,17 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 payload = self._read_json_body()
                 mutation_id = str(payload.get("mutationId") or self.headers.get("X-GestOre-Mutation-Id", ""))
                 payslip_id = str(payload.get("payslipId") or "").strip()
+                create_versioned_backup(db_path, "auto")
                 saved = delete_payslip_record(payslip_id, db_path, payload.get("updatedAt"))
                 self._send_json(self._snapshot_ack(saved, mutation_id, payslipId=payslip_id, deleted=True))
+                return
+            if parsed.path == "/api/backups":
+                user = self._require_user()
+                if not user:
+                    return
+                payload = self._read_json_body()
+                deleted = delete_versioned_backup(AUTH_STORE.user_db_path(user["id"]), payload.get("backupId", ""))
+                self._send_json({"ok": True, "deleted": deleted})
                 return
             if parsed.path != "/api/admin/accounts":
                 self.send_error(HTTPStatus.NOT_FOUND, "Endpoint non trovato")
