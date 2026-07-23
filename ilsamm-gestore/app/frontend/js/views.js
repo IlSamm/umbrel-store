@@ -460,6 +460,9 @@ function renderCalendar() {
         var blockEnd = new Date(blockStart);
         blockEnd.setDate(blockStart.getDate() + blockLength - 1);
         var minutes = 0;
+        var normalMinutes = 0;
+        var overtimeMinutes = 0;
+        var coveredMinutes = 0;
         var workedDays = 0;
         for (var i = 0; i < blockLength; i += 1) {
           var current = new Date(blockStart);
@@ -467,11 +470,17 @@ function renderCalendar() {
           var entry = getEntryForDate(current);
           var breakdown = getBreakdown(entry);
           minutes += breakdown.total;
+          normalMinutes += breakdown.normal;
+          overtimeMinutes += breakdown.overtime;
+          coveredMinutes += breakdown.covered;
           if (entry) workedDays += 1;
         }
         blocks.push({
           label: blockStart.getDate() === blockEnd.getDate() ? String(blockStart.getDate()) : (blockStart.getDate() + '–' + blockEnd.getDate()),
           minutes: minutes,
+          normalMinutes: normalMinutes,
+          overtimeMinutes: overtimeMinutes,
+          coveredMinutes: coveredMinutes,
           workedDays: workedDays,
           startKey: toISODate(blockStart),
           endKey: toISODate(blockEnd)
@@ -598,7 +607,7 @@ function renderCalendar() {
       '</div>';
     }
 
-    function renderStats() {
+    function renderStatsLegacy() {
       var s = getMonthStats(state.currentMonth);
       var focus = getMonthFocus(state.currentMonth);
       var weekBlocks = getMonthWeekBlocks(state.currentMonth);
@@ -668,6 +677,331 @@ function renderCalendar() {
 
     function segmentsTotalDaysForStats(s) {
       return s.workedDays + s.ferie + s.malattia + s.permesso + (s.festivitaPagata || 0) + s.riposo;
+    }
+
+    function getStatsMonthTargetMinutes(date) {
+      var dailyTarget = getDailyTargetMinutes();
+      if (!dailyTarget) return 0;
+      var configuredDays = getConfiguredWorkdays();
+      var days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      var target = 0;
+      for (var day = 1; day <= days; day += 1) {
+        var current = new Date(date.getFullYear(), date.getMonth(), day);
+        var weekday = mondayIndex(current.getDay());
+        if (weekday < 5 && configuredDays.indexOf(weekday) !== -1) target += dailyTarget;
+      }
+      return target;
+    }
+
+    function getStatsYearTargetMinutes(date) {
+      var total = 0;
+      for (var month = 0; month < 12; month += 1) {
+        total += getStatsMonthTargetMinutes(new Date(date.getFullYear(), month, 1));
+      }
+      return total;
+    }
+
+    function getStatsDailySeries(date) {
+      var days = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      return Array.from({ length: days }, function (_, index) {
+        var current = new Date(date.getFullYear(), date.getMonth(), index + 1);
+        var key = toISODate(current);
+        var entry = getEntryForDate(current);
+        var breakdown = getBreakdown(entry);
+        return {
+          key: key,
+          day: index + 1,
+          entry: entry,
+          normal: breakdown.normal,
+          overtime: breakdown.overtime,
+          total: breakdown.total,
+          covered: breakdown.covered
+        };
+      });
+    }
+
+    function getStatsDaySegments(stats) {
+      return [
+        { label: 'Lavoro', value: stats.workedDays || 0, color: '#24d39a' },
+        { label: 'Ferie', value: stats.ferie || 0, color: '#56c7ff' },
+        { label: 'Malattia', value: stats.malattia || 0, color: '#ffad4d' },
+        { label: 'Permessi', value: stats.permesso || 0, color: '#bd6cff' },
+        { label: 'Festivi', value: stats.festivitaPagata || 0, color: '#ff6f91' },
+        { label: 'Riposo', value: stats.riposo || 0, color: '#72809e' }
+      ];
+    }
+
+    function formatStatsDelta(minutes) {
+      var value = Math.round(Number(minutes) || 0);
+      if (!value) return 'In linea';
+      return (value > 0 ? '+' : '-') + formatDuration(Math.abs(value));
+    }
+
+    function buildStatsDailyChart(series) {
+      var width = 320;
+      var height = 174;
+      var left = 31;
+      var top = 12;
+      var plotWidth = 278;
+      var plotHeight = 126;
+      var bottom = top + plotHeight;
+      var dailyTarget = getDailyTargetMinutes();
+      var maxRecorded = series.reduce(function (max, item) { return Math.max(max, item.total); }, 0);
+      var maxMinutes = Math.max(60, dailyTarget, maxRecorded);
+      maxMinutes = Math.ceil((maxMinutes * 1.12) / 60) * 60;
+      var step = plotWidth / Math.max(1, series.length);
+      var barWidth = Math.max(3.4, Math.min(7, step * .58));
+      var grid = [0, .5, 1].map(function (ratio) {
+        var y = bottom - (plotHeight * ratio);
+        var value = Math.round((maxMinutes * ratio) / 60);
+        return '<line class="analytics-chart-grid" x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotWidth) + '" y2="' + y.toFixed(1) + '"></line>' +
+          '<text class="analytics-chart-y-label" x="' + (left - 6) + '" y="' + (y + 3).toFixed(1) + '">' + value + 'h</text>';
+      }).join('');
+      var bars = series.map(function (item, index) {
+        var x = left + (step * index) + ((step - barWidth) / 2);
+        var normalHeight = (item.normal / maxMinutes) * plotHeight;
+        var extraHeight = (item.overtime / maxMinutes) * plotHeight;
+        var normalY = bottom - normalHeight;
+        var extraY = normalY - extraHeight;
+        var output = '<g><title>Giorno ' + item.day + ': ' + formatDuration(item.total) + '</title>';
+        if (normalHeight > 0) {
+          output += '<rect class="analytics-chart-bar-normal" x="' + x.toFixed(2) + '" y="' + normalY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + normalHeight.toFixed(2) + '" rx="2.5"></rect>';
+        }
+        if (extraHeight > 0) {
+          output += '<rect class="analytics-chart-bar-extra" x="' + x.toFixed(2) + '" y="' + extraY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + extraHeight.toFixed(2) + '" rx="2.5"></rect>';
+        }
+        if (item.entry && item.total === 0) {
+          var typeColor = dayTypes[item.entry.type] ? dayTypes[item.entry.type].dot : '#71809e';
+          output += '<circle cx="' + (x + barWidth / 2).toFixed(2) + '" cy="' + (bottom - 3) + '" r="2.5" fill="' + typeColor + '"></circle>';
+        }
+        return output + '</g>';
+      }).join('');
+      var labelDays = [1, 7, 14, 21, 28, series.length].filter(function (day, index, list) {
+        return day <= series.length && list.indexOf(day) === index;
+      });
+      var labels = labelDays.map(function (day) {
+        var x = left + (step * (day - 1)) + (step / 2);
+        return '<text class="analytics-chart-x-label" x="' + x.toFixed(2) + '" y="' + (height - 8) + '">' + day + '</text>';
+      }).join('');
+      var targetLine = '';
+      if (dailyTarget > 0) {
+        var targetY = bottom - ((dailyTarget / maxMinutes) * plotHeight);
+        targetLine = '<line class="analytics-chart-target" x1="' + left + '" y1="' + targetY.toFixed(2) + '" x2="' + (left + plotWidth) + '" y2="' + targetY.toFixed(2) + '"></line>' +
+          '<text class="analytics-chart-target-label" x="' + (left + plotWidth - 2) + '" y="' + (targetY - 5).toFixed(2) + '">target</text>';
+      }
+      return '<svg class="analytics-chart analytics-daily-chart" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Ore lavorate per giorno">' +
+        '<defs><linearGradient id="analyticsNormalBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#438dff"></stop><stop offset="1" stop-color="#66d8ff"></stop></linearGradient><linearGradient id="analyticsExtraBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7652ff"></stop><stop offset="1" stop-color="#bd6cff"></stop></linearGradient></defs>' +
+        grid + targetLine + bars + labels + '</svg>';
+    }
+
+    function buildStatsYearChart(summaries, targetMinutes) {
+      var width = 320;
+      var height = 184;
+      var left = 31;
+      var top = 12;
+      var plotWidth = 278;
+      var plotHeight = 134;
+      var bottom = top + plotHeight;
+      var maxRecorded = summaries.reduce(function (max, item) { return Math.max(max, item.stats.totalMinutes || 0); }, 0);
+      var monthTarget = targetMinutes / 12;
+      var maxMinutes = Math.max(60, monthTarget, maxRecorded);
+      maxMinutes = Math.ceil((maxMinutes * 1.12) / 600) * 600;
+      var step = plotWidth / 12;
+      var barWidth = Math.min(13, step * .58);
+      var grid = [0, .5, 1].map(function (ratio) {
+        var y = bottom - (plotHeight * ratio);
+        var value = Math.round((maxMinutes * ratio) / 60);
+        return '<line class="analytics-chart-grid" x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotWidth) + '" y2="' + y.toFixed(1) + '"></line>' +
+          '<text class="analytics-chart-y-label" x="' + (left - 6) + '" y="' + (y + 3).toFixed(1) + '">' + value + 'h</text>';
+      }).join('');
+      var bars = summaries.map(function (item, index) {
+        var normal = item.stats.normalMinutes || 0;
+        var overtime = item.stats.overtimeMinutes || 0;
+        var x = left + (step * index) + ((step - barWidth) / 2);
+        var normalHeight = (normal / maxMinutes) * plotHeight;
+        var extraHeight = (overtime / maxMinutes) * plotHeight;
+        var normalY = bottom - normalHeight;
+        var extraY = normalY - extraHeight;
+        return '<g><title>' + monthNames[index] + ': ' + formatDuration(normal + overtime) + '</title>' +
+          (normalHeight ? '<rect class="analytics-chart-bar-normal" x="' + x.toFixed(2) + '" y="' + normalY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + normalHeight.toFixed(2) + '" rx="3"></rect>' : '') +
+          (extraHeight ? '<rect class="analytics-chart-bar-extra" x="' + x.toFixed(2) + '" y="' + extraY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + extraHeight.toFixed(2) + '" rx="3"></rect>' : '') +
+          '<text class="analytics-chart-x-label" x="' + (x + barWidth / 2).toFixed(2) + '" y="' + (height - 8) + '">' + monthNames[index].slice(0, 1) + '</text></g>';
+      }).join('');
+      var targetLine = '';
+      if (monthTarget > 0) {
+        var targetY = bottom - ((monthTarget / maxMinutes) * plotHeight);
+        targetLine = '<line class="analytics-chart-target" x1="' + left + '" y1="' + targetY.toFixed(2) + '" x2="' + (left + plotWidth) + '" y2="' + targetY.toFixed(2) + '"></line>';
+      }
+      return '<svg class="analytics-chart analytics-year-chart" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Ore lavorate per mese">' +
+        '<defs><linearGradient id="analyticsYearNormalBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#438dff"></stop><stop offset="1" stop-color="#66d8ff"></stop></linearGradient><linearGradient id="analyticsYearExtraBar" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7652ff"></stop><stop offset="1" stop-color="#bd6cff"></stop></linearGradient></defs>' +
+        grid + targetLine + bars + '</svg>';
+    }
+
+    function renderStatsHero(options) {
+      var targetPercent = options.target > 0 ? Math.round((options.total / options.target) * 100) : 0;
+      var ringPercent = Math.max(0, Math.min(100, targetPercent));
+      var trendTone = options.delta > 0 ? ' is-positive' : (options.delta < 0 ? ' is-negative' : '');
+      return '<section class="analytics-hero">' +
+        '<div class="analytics-hero-head"><div><span>' + options.kicker + '</span><h2>' + options.title + '</h2></div><div class="analytics-trend' + trendTone + '">' + icons.arrowUp + '<span><strong>' + formatStatsDelta(options.delta) + '</strong><small>' + options.deltaLabel + '</small></span></div></div>' +
+        '<div class="analytics-hero-main"><div class="analytics-total"><span>ORE LAVORATE</span><strong>' + (options.total ? formatDuration(options.total) : '0h 0m') + '</strong><small>' + options.recordedDays + ' giorni registrati</small></div>' +
+          '<div class="analytics-target-ring" style="--analytics-progress:' + ringPercent + '%"><div><strong>' + targetPercent + '%</strong><span>target</span></div></div></div>' +
+        '<div class="analytics-hero-target"><span><i></i>Obiettivo stimato</span><strong>' + (options.target ? formatDuration(options.target) : '--') + '</strong></div>' +
+        '<div class="analytics-hero-metrics">' +
+          '<div><span class="is-blue">' + icons.briefcase + '</span><small>Ordinarie</small><strong>' + formatDuration(options.normal) + '</strong></div>' +
+          '<div><span class="is-violet">' + icons.star + '</span><small>Straordinarie</small><strong>' + formatDuration(options.overtime) + '</strong></div>' +
+          '<div><span class="is-green">' + icons.calendar + '</span><small>Giorni lavoro</small><strong>' + options.workedDays + '</strong></div>' +
+        '</div>' +
+      '</section>';
+    }
+
+    function renderStatsHoursComposition(normalMinutes, overtimeMinutes) {
+      var total = Math.max(0, normalMinutes + overtimeMinutes);
+      var normalPercent = total ? Math.round((normalMinutes / total) * 100) : 0;
+      var overtimePercent = total ? 100 - normalPercent : 0;
+      return '<section class="analytics-card analytics-composition-card">' +
+        '<div class="analytics-card-head"><div><span>COMPOSIZIONE</span><h3>Come sono divise le ore</h3></div><small>' + (total ? formatDuration(total) : 'Nessun dato') + '</small></div>' +
+        '<div class="analytics-composition">' +
+          '<div class="analytics-hours-donut' + (total ? '' : ' is-empty') + '" style="--analytics-normal:' + normalPercent + '%"><div><strong>' + (total ? normalPercent + '%' : '--') + '</strong><span>ordinarie</span></div></div>' +
+          '<div class="analytics-composition-list">' +
+            '<div><span><i class="is-normal"></i>Ordinarie</span><strong>' + formatDuration(normalMinutes) + '</strong><small>' + normalPercent + '% del totale</small></div>' +
+            '<div><span><i class="is-extra"></i>Straordinarie</span><strong>' + formatDuration(overtimeMinutes) + '</strong><small>' + overtimePercent + '% del totale</small></div>' +
+          '</div>' +
+        '</div>' +
+      '</section>';
+    }
+
+    function renderStatsDayDistribution(stats) {
+      var segments = getStatsDaySegments(stats);
+      var total = segments.reduce(function (sum, segment) { return sum + segment.value; }, 0);
+      var active = segments.filter(function (segment) { return segment.value > 0; });
+      var bar = active.length ? active.map(function (segment) {
+        return '<span style="width:' + ((segment.value / total) * 100).toFixed(2) + '%;background:' + segment.color + '"></span>';
+      }).join('') : '<span class="is-empty" style="width:100%"></span>';
+      return '<section class="analytics-card analytics-days-card">' +
+        '<div class="analytics-card-head"><div><span>GIORNATE</span><h3>Distribuzione del periodo</h3></div><small>' + total + ' segnate</small></div>' +
+        '<div class="analytics-days-bar">' + bar + '</div>' +
+        '<div class="analytics-days-grid">' + segments.map(function (segment) {
+          return '<div><span><i style="background:' + segment.color + '"></i>' + segment.label + '</span><strong>' + segment.value + '</strong></div>';
+        }).join('') + '</div>' +
+      '</section>';
+    }
+
+    function renderStatsInsightGrid(items) {
+      return '<section class="analytics-card analytics-insights-card">' +
+        '<div class="analytics-card-head"><div><span>INSIGHT</span><h3>Numeri da ricordare</h3></div></div>' +
+        '<div class="analytics-insight-grid">' + items.map(function (item) {
+          return '<div class="analytics-insight"><span class="' + item.tone + '">' + item.icon + '</span><div><small>' + item.label + '</small><strong>' + item.value + '</strong><em>' + item.sub + '</em></div></div>';
+        }).join('') + '</div>' +
+      '</section>';
+    }
+
+    function renderStatsMonth() {
+      var date = state.currentMonth;
+      var stats = getMonthStats(date);
+      var previousDate = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+      var previousStats = getMonthStats(previousDate);
+      var focus = getMonthFocus(date);
+      var dailySeries = getStatsDailySeries(date);
+      var weekBlocks = getMonthWeekBlocks(date);
+      var targetMinutes = getStatsMonthTargetMinutes(date);
+      var recordedDays = segmentsTotalDaysForStats(stats);
+      var average = stats.workedDays ? Math.round(stats.totalMinutes / stats.workedDays) : 0;
+      var weeklyTarget = Math.max(0, Number(state.settings.weeklyTarget) || 0) * 60;
+      var maxWeek = weekBlocks.reduce(function (max, block) { return Math.max(max, block.minutes); }, Math.max(1, weeklyTarget));
+      var weekRows = weekBlocks.map(function (block, index) {
+        var normalWidth = Math.max(0, (block.normalMinutes / maxWeek) * 100);
+        var extraWidth = Math.max(0, (block.overtimeMinutes / maxWeek) * 100);
+        var targetPosition = Math.min(100, (weeklyTarget / maxWeek) * 100);
+        return '<div class="analytics-week-row">' +
+          '<div class="analytics-week-copy"><span>SETTIMANA ' + (index + 1) + '</span><strong>' + (block.minutes ? formatDuration(block.minutes) : '--') + '</strong><small>giorni ' + block.label + ' &middot; ' + block.workedDays + ' registrati</small></div>' +
+          '<div class="analytics-week-chart"><div><span class="is-normal" style="width:' + normalWidth.toFixed(2) + '%"></span><span class="is-extra" style="width:' + extraWidth.toFixed(2) + '%"></span><i style="left:' + targetPosition.toFixed(2) + '%"></i></div></div>' +
+        '</div>';
+      }).join('');
+      var firstTime = focus.firstStart ? formatClockFromMinutes(focus.firstStart.minutes) : '--:--';
+      var lastTime = focus.lastEnd ? formatClockFromMinutes(focus.lastEnd.minutes) : '--:--';
+      var insights = [
+        { icon: icons.activity, tone: 'is-blue', label: 'Media lavorata', value: average ? formatDuration(average) : '--', sub: 'per giorno di lavoro' },
+        { icon: icons.star, tone: 'is-violet', label: 'Giornata migliore', value: focus.longest ? formatDuration(focus.longest.minutes) : '--', sub: focus.longest ? formatShortDateLabel(focus.longest.key) : 'nessun dato' },
+        { icon: icons.clock, tone: 'is-green', label: 'Finestra oraria', value: firstTime + ' - ' + lastTime, sub: 'prima entrata e ultima uscita' },
+        { icon: icons.arrowUp, tone: 'is-orange', label: 'Picco straordinari', value: focus.overtimePeak ? formatDuration(focus.overtimePeak.minutes) : '--', sub: focus.overtimePeak ? formatShortDateLabel(focus.overtimePeak.key) : 'nessun extra' }
+      ];
+      return renderStatsHero({
+        kicker: 'RIEPILOGO DEL MESE',
+        title: formatMonthYear(date),
+        total: stats.totalMinutes,
+        target: targetMinutes,
+        delta: stats.totalMinutes - previousStats.totalMinutes,
+        deltaLabel: 'rispetto a ' + monthNames[previousDate.getMonth()],
+        recordedDays: recordedDays,
+        normal: stats.normalMinutes,
+        overtime: stats.overtimeMinutes,
+        workedDays: stats.workedDays
+      }) +
+      '<section class="analytics-card analytics-chart-card">' +
+        '<div class="analytics-card-head"><div><span>ANDAMENTO GIORNALIERO</span><h3>Ore lavorate ogni giorno</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
+        '<div class="analytics-chart-wrap">' + buildStatsDailyChart(dailySeries) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico si riempie quando inserisci le giornate.</span></div>') + '</div>' +
+      '</section>' +
+      renderStatsHoursComposition(stats.normalMinutes, stats.overtimeMinutes) +
+      '<section class="analytics-card analytics-weeks-card">' +
+        '<div class="analytics-card-head"><div><span>CONFRONTO</span><h3>Settimane del mese</h3></div><small>linea = ' + formatHourValue(state.settings.weeklyTarget) + '</small></div>' +
+        '<div class="analytics-week-list">' + weekRows + '</div>' +
+      '</section>' +
+      renderStatsInsightGrid(insights) +
+      renderStatsDayDistribution(stats);
+    }
+
+    function renderStatsYear() {
+      var date = state.currentMonth;
+      var year = date.getFullYear();
+      var stats = getYearStats(date);
+      var previousStats = getYearStats(new Date(year - 1, 0, 1));
+      var summaries = getYearMonthSummaries(date);
+      var targetMinutes = getStatsYearTargetMinutes(date);
+      var activeMonths = summaries.filter(function (item) { return item.stats.totalMinutes > 0; });
+      var averageMonth = activeMonths.length ? Math.round(stats.totalMinutes / activeMonths.length) : 0;
+      var bestMonth = summaries.reduce(function (best, item) {
+        return !best || item.stats.totalMinutes > best.stats.totalMinutes ? item : best;
+      }, null);
+      var extraMonth = summaries.reduce(function (best, item) {
+        return !best || item.stats.overtimeMinutes > best.stats.overtimeMinutes ? item : best;
+      }, null);
+      var insights = [
+        { icon: icons.star, tone: 'is-violet', label: 'Mese migliore', value: bestMonth && bestMonth.stats.totalMinutes ? monthNames[bestMonth.date.getMonth()] : '--', sub: bestMonth && bestMonth.stats.totalMinutes ? formatDuration(bestMonth.stats.totalMinutes) : 'nessun dato' },
+        { icon: icons.activity, tone: 'is-blue', label: 'Media mensile', value: averageMonth ? formatDuration(averageMonth) : '--', sub: activeMonths.length + ' mesi con ore' },
+        { icon: icons.arrowUp, tone: 'is-orange', label: 'Mese piu extra', value: extraMonth && extraMonth.stats.overtimeMinutes ? monthNames[extraMonth.date.getMonth()] : '--', sub: extraMonth && extraMonth.stats.overtimeMinutes ? formatDuration(extraMonth.stats.overtimeMinutes) : 'nessun extra' },
+        { icon: icons.calendar, tone: 'is-green', label: 'Giorni lavorati', value: String(stats.workedDays || 0), sub: stats.recordedDays + ' giornate segnate' }
+      ];
+      return renderStatsHero({
+        kicker: 'RIEPILOGO ANNUALE',
+        title: String(year),
+        total: stats.totalMinutes,
+        target: targetMinutes,
+        delta: stats.totalMinutes - previousStats.totalMinutes,
+        deltaLabel: 'rispetto al ' + (year - 1),
+        recordedDays: stats.recordedDays,
+        normal: stats.normalMinutes,
+        overtime: stats.overtimeMinutes,
+        workedDays: stats.workedDays
+      }) +
+      '<section class="analytics-card analytics-chart-card">' +
+        '<div class="analytics-card-head"><div><span>ANDAMENTO ANNUALE</span><h3>Ore mese per mese</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
+        '<div class="analytics-chart-wrap">' + buildStatsYearChart(summaries, targetMinutes) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico annuale si aggiorna automaticamente.</span></div>') + '</div>' +
+      '</section>' +
+      renderStatsHoursComposition(stats.normalMinutes, stats.overtimeMinutes) +
+      renderStatsInsightGrid(insights) +
+      renderStatsDayDistribution(stats);
+    }
+
+    function renderStats() {
+      var range = state.statsRange === 'year' ? 'year' : 'month';
+      var periodLabel = range === 'year' ? String(state.currentMonth.getFullYear()) : formatMonthYear(state.currentMonth);
+      var periodName = range === 'year' ? 'Anno' : 'Mese';
+      return '<div class="month-page-top analytics-page-top"><div><span>ANALISI ORE</span><h1>Statistiche</h1></div><div class="month-page-switch"><button data-stats-prev="1" aria-label="' + periodName + ' precedente">' + icons.left + '</button><strong>' + periodLabel + '</strong><button data-stats-next="1" aria-label="' + periodName + ' successivo">' + icons.right + '</button></div></div>' +
+        '<div class="analytics-range" role="tablist" aria-label="Periodo statistiche">' +
+          '<button data-stats-range="month" class="' + (range === 'month' ? 'active' : '') + '" role="tab" aria-selected="' + (range === 'month') + '">Mese</button>' +
+          '<button data-stats-range="year" class="' + (range === 'year' ? 'active' : '') + '" role="tab" aria-selected="' + (range === 'year') + '">Anno</button>' +
+        '</div>' +
+        '<div class="analytics-stack">' + (range === 'year' ? renderStatsYear() : renderStatsMonth()) + '</div>';
     }
 
 function renderOverlayLegacy() {
@@ -1103,6 +1437,106 @@ function renderOverlayLegacy() {
       }).join('');
     }
 
+    function getPayslipStatsRows() {
+      return (state.payslips || []).map(function (item) {
+        return {
+          item: item,
+          year: Number(item.year) || 0,
+          month: Math.min(12, Math.max(1, Number(item.month) || 1)),
+          amount: Math.max(0, parseDecimalInput(item.netto, 0))
+        };
+      }).filter(function (row) {
+        return row.year > 0;
+      }).sort(function (a, b) {
+        return (a.year - b.year) || (a.month - b.month);
+      });
+    }
+
+    function formatPayslipChartValue(value) {
+      if (value >= 1000) {
+        var thousands = value / 1000;
+        return thousands.toLocaleString('it-IT', { maximumFractionDigits: thousands >= 10 ? 0 : 1 }) + 'k';
+      }
+      return Math.round(value).toLocaleString('it-IT');
+    }
+
+    function buildPayslipStatsChart(monthTotals, latestMonthIndex) {
+      var width = 344;
+      var height = 188;
+      var left = 32;
+      var right = 8;
+      var top = 12;
+      var bottom = 28;
+      var plotWidth = width - left - right;
+      var plotHeight = height - top - bottom;
+      var maximum = Math.max.apply(null, monthTotals.concat([0]));
+      var chartMaximum = Math.max(100, Math.ceil(maximum / 500) * 500);
+      var gridValues = [chartMaximum, chartMaximum / 2, 0];
+      var grid = gridValues.map(function (value) {
+        var y = top + plotHeight - ((value / chartMaximum) * plotHeight);
+        return '<line class="payroll-stats-grid-line" x1="' + left + '" y1="' + y.toFixed(1) + '" x2="' + (left + plotWidth) + '" y2="' + y.toFixed(1) + '"></line>' +
+          '<text class="payroll-stats-axis-label" x="' + (left - 6) + '" y="' + (y + 3).toFixed(1) + '">' + formatPayslipChartValue(value) + '</text>';
+      }).join('');
+      var slot = plotWidth / 12;
+      var barWidth = Math.min(15, slot * 0.58);
+      var bars = monthTotals.map(function (amount, index) {
+        var barHeight = amount > 0 ? Math.max(4, (amount / chartMaximum) * plotHeight) : 0;
+        var x = left + (slot * index) + ((slot - barWidth) / 2);
+        var y = top + plotHeight - barHeight;
+        return '<g class="payroll-stats-chart-month' + (index === latestMonthIndex ? ' is-latest' : '') + '">' +
+          (barHeight ? '<rect x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + barHeight.toFixed(2) + '" rx="' + (barWidth / 2).toFixed(2) + '"><title>' + monthNames[index] + ': ' + formatMoneyEuro(amount) + '</title></rect>' : '<circle cx="' + (x + barWidth / 2).toFixed(2) + '" cy="' + (top + plotHeight - 2) + '" r="1.5"></circle>') +
+          '<text x="' + (x + barWidth / 2).toFixed(2) + '" y="' + (height - 8) + '">' + monthNames[index].slice(0, 1) + '</text>' +
+        '</g>';
+      }).join('');
+      return '<svg class="payroll-stats-chart" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Andamento mensile degli importi netti">' +
+        '<defs><linearGradient id="payrollNetBars" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#386ff3"></stop><stop offset="58%" stop-color="#6d6bff"></stop><stop offset="100%" stop-color="#a66aff"></stop></linearGradient></defs>' +
+        grid + bars +
+      '</svg>';
+    }
+
+    function renderPayslipStatsV2() {
+      var rows = getPayslipStatsRows();
+      var availableYears = rows.map(function (row) { return row.year; }).filter(function (year, index, list) { return list.indexOf(year) === index; });
+      var selectedYear = Number(state.payslipStatsYear) || (availableYears.length ? availableYears[availableYears.length - 1] : new Date().getFullYear());
+      state.payslipStatsYear = selectedYear;
+      var yearRows = rows.filter(function (row) { return row.year === selectedYear; });
+      var monthTotals = monthNames.map(function () { return 0; });
+      yearRows.forEach(function (row) { monthTotals[row.month - 1] += row.amount; });
+      var filledMonths = monthTotals.map(function (amount, index) { return { amount: amount, index: index }; }).filter(function (month) { return month.amount > 0; });
+      var total = filledMonths.reduce(function (sum, month) { return sum + month.amount; }, 0);
+      var average = filledMonths.length ? total / filledMonths.length : 0;
+      var best = filledMonths.slice().sort(function (a, b) { return b.amount - a.amount; })[0] || null;
+      var latest = filledMonths[filledMonths.length - 1] || null;
+      var previous = filledMonths.length > 1 ? filledMonths[filledMonths.length - 2] : null;
+      var trendAmount = latest && previous ? latest.amount - previous.amount : 0;
+      var trendClass = trendAmount > 0 ? 'is-positive' : (trendAmount < 0 ? 'is-negative' : 'is-neutral');
+      var trendText = latest && previous
+        ? ((trendAmount > 0 ? '+' : (trendAmount < 0 ? '-' : '')) + formatMoneyEuro(Math.abs(trendAmount)) + ' rispetto a ' + monthNames[previous.index])
+        : (latest ? 'Aggiungi un altro mese per vedere il confronto' : 'Nessun importo salvato per questo anno');
+      var recentRows = filledMonths.slice().reverse().slice(0, 4).map(function (month) {
+        return '<div class="payroll-stats-month-row"><span><i style="--payroll-month-strength:' + Math.max(0.16, month.amount / Math.max(1, best ? best.amount : month.amount)).toFixed(2) + '"></i><strong>' + escapeHtml(monthNames[month.index]) + '</strong></span><b>' + formatMoneyEuro(month.amount) + '</b></div>';
+      }).join('');
+      return '<div class="profile-subpage-top payroll-page-top payroll-stats-top"><button data-close-payslip-stats="1" aria-label="Torna alle buste paga">' + icons.left + '</button><div><span>BUSTE PAGA</span><h1>Statistiche paga</h1></div><i></i></div>' +
+        '<div class="stack payroll-stats-stack">' +
+          '<section class="payroll-stats-hero">' +
+            '<div class="payroll-stats-hero-head"><div><small>NETTO RICEVUTO</small><h2>' + selectedYear + '</h2></div><div class="payroll-stats-year-control"><button data-payslip-stats-year="-1" aria-label="Anno precedente">' + icons.left + '</button><strong>' + selectedYear + '</strong><button data-payslip-stats-year="1" aria-label="Anno successivo">' + icons.right + '</button></div></div>' +
+            '<strong class="payroll-stats-total">' + (filledMonths.length ? formatMoneyEuro(total) : '--') + '</strong><p>' + (filledMonths.length ? ('Totale di ' + filledMonths.length + (filledMonths.length === 1 ? ' mese con importo salvato' : ' mesi con importo salvato')) : 'Salva una busta paga per iniziare a vedere l\'andamento.') + '</p>' +
+          '</section>' +
+          '<section class="payroll-stats-metrics" aria-label="Riepilogo statistiche paga">' +
+            '<div><span>MEDIA MESE</span><strong>' + (average ? formatMoneyEuro(average) : '--') + '</strong><small>mesi presenti</small></div>' +
+            '<div><span>MESE MIGLIORE</span><strong>' + (best ? escapeHtml(monthNames[best.index]) : '--') + '</strong><small>' + (best ? formatMoneyEuro(best.amount) : 'nessun dato') + '</small></div>' +
+            '<div><span>BUSTE</span><strong>' + yearRows.length + '</strong><small>nel ' + selectedYear + '</small></div>' +
+          '</section>' +
+          '<section class="payroll-stats-panel payroll-stats-chart-panel">' +
+            '<div class="payroll-stats-section-head"><div><small>ANDAMENTO</small><h2>Netto mese per mese</h2></div><span>EUR</span></div>' +
+            '<div class="payroll-stats-chart-wrap">' + buildPayslipStatsChart(monthTotals, latest ? latest.index : -1) + (filledMonths.length ? '' : '<div class="payroll-stats-empty-chart"><strong>Grafico ancora vuoto</strong><span>Compariranno qui solo gli importi che hai inserito.</span></div>') + '</div>' +
+          '</section>' +
+          '<section class="payroll-stats-trend ' + trendClass + '"><span>' + icons.activity + '</span><div><small>ULTIMO CONFRONTO</small><strong>' + escapeHtml(trendText) + '</strong></div></section>' +
+          (recentRows ? '<section class="payroll-stats-panel payroll-stats-months"><div class="payroll-stats-section-head"><div><small>ULTIMI MESI</small><h2>Importi archiviati</h2></div></div><div>' + recentRows + '</div></section>' : '') +
+          '<p class="payroll-stats-disclaimer">Le statistiche usano soltanto il netto che hai inserito nelle buste paga. Nessun dato viene stimato automaticamente.</p>' +
+        '</div>';
+    }
+
     function renderPayslipArchiveV2() {
       var items = (state.payslips || []).slice();
       var totalAmount = items.reduce(function (sum, item) { return sum + Math.max(0, parseDecimalInput(item.netto, 0)); }, 0);
@@ -1128,7 +1562,7 @@ function renderOverlayLegacy() {
       }).join('');
       return '<div class="profile-subpage-top payroll-page-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>DOCUMENTI</span><h1>Buste paga</h1></div><i></i></div>' +
         '<div class="stack payroll-stack">' +
-          '<section class="payroll-archive-hero"><div class="payroll-archive-hero-copy"><span class="payroll-hero-icon">' + icons.receipt + '</span><div><small>IL TUO ARCHIVIO</small><h2>Buste paga, senza confusione</h2><p>Ogni busta contiene soltanto le sue foto e l\'importo ricevuto.</p></div></div><button class="solid payroll-add-button" data-new-payslip="1"><b>+</b> Aggiungi busta</button></section>' +
+          '<section class="payroll-archive-hero"><div class="payroll-archive-hero-copy"><span class="payroll-hero-icon">' + icons.receipt + '</span><div><small>IL TUO ARCHIVIO</small><h2>Buste paga, senza confusione</h2><p>Ogni busta contiene soltanto le sue foto e l\'importo ricevuto.</p></div></div><div class="payroll-archive-actions"><button class="payroll-stats-button" data-open-payslip-stats="1"><span>' + icons.activity + '</span>Statistiche paga</button><button class="solid payroll-add-button" data-new-payslip="1"><b>+</b> Aggiungi busta</button></div></section>' +
           '<section class="payroll-overview" aria-label="Riepilogo archivio"><div><span>BUSTE</span><strong>' + items.length + '</strong><small>salvate</small></div><div><span>TOTALE</span><strong>' + (items.length ? formatMoneyEuro(totalAmount) : '--') + '</strong><small>importi archiviati</small></div><div><span>ULTIMA</span><strong>' + (latest ? escapeHtml(monthNames[Math.max(0, Number(latest.month || 1) - 1)].slice(0, 3)) : '--') + '</strong><small>' + (latest ? escapeHtml(String(latest.year || '')) : 'nessuna') + '</small></div></section>' +
           (items.length ? archiveHtml : '<section class="payroll-empty"><span>' + icons.receipt + '</span><h2>Archivio ancora vuoto</h2><p>Aggiungi la prima busta: bastano una foto e l\'importo ricevuto.</p><button class="solid" data-new-payslip="1">Aggiungi la prima busta</button></section>') +
         '</div>';
@@ -1191,6 +1625,7 @@ function renderOverlayLegacy() {
     }
 
     function renderPayslips() {
+      if (state.payslipStatsOpen) return renderPayslipStatsV2();
       if (state.payslipEditorOpen) return renderPayslipEditorV2();
       if (state.payslipDetailId) {
         var detail = (state.payslips || []).find(function (item) { return item.id === state.payslipDetailId; });

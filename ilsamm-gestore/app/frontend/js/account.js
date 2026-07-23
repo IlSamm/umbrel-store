@@ -73,6 +73,7 @@ function resetRuntimeAccountData() {
   state.payslipDraft = null;
   state.payslipDetailId = '';
   state.payslipEditorOpen = false;
+  state.payslipStatsOpen = false;
   state.privacyLocked = false;
   state.syncStatus = 'In attesa di accesso';
   state.lastSyncedAt = 0;

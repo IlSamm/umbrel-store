@@ -163,6 +163,7 @@ function bindEvents() {
           if (section === 'payslips') {
             state.payslipDetailId = '';
             state.payslipEditorOpen = false;
+            state.payslipStatsOpen = false;
             state.payslipViewer = null;
           }
           state.activeTab = section;
@@ -174,6 +175,7 @@ function bindEvents() {
           state.settingsSection = '';
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;
+          state.payslipStatsOpen = false;
           state.payslipViewer = null;
           state.activeTab = 'profile';
           render();
@@ -227,7 +229,31 @@ function bindEvents() {
           resetPayslipDraft();
           state.payslipDetailId = '';
           state.payslipEditorOpen = true;
+          state.payslipStatsOpen = false;
           state.payslipViewer = null;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-open-payslip-stats]').forEach(function (btn) {
+        btn.onclick = function () {
+          var years = (state.payslips || []).map(function (item) { return Number(item.year) || 0; }).filter(Boolean);
+          state.payslipStatsYear = years.length ? Math.max.apply(null, years) : new Date().getFullYear();
+          state.payslipDetailId = '';
+          state.payslipEditorOpen = false;
+          state.payslipStatsOpen = true;
+          state.payslipViewer = null;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-payslip-stats]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipStatsOpen = false;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-payslip-stats-year]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipStatsYear += Number(btn.dataset.payslipStatsYear) || 0;
           render();
         };
       });
@@ -237,6 +263,7 @@ function bindEvents() {
           if (!found) return;
           state.payslipDetailId = found.id;
           state.payslipEditorOpen = false;
+          state.payslipStatsOpen = false;
           state.payslipViewer = null;
           state.payslipStatus = '';
           render();
@@ -275,6 +302,7 @@ function bindEvents() {
           state.activeTab = 'payslips';
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;
+          state.payslipStatsOpen = false;
           render();
         };
       });
@@ -284,6 +312,7 @@ function bindEvents() {
           if (!found) return;
           state.payslipDetailId = found.id;
           state.payslipEditorOpen = false;
+          state.payslipStatsOpen = false;
           state.payslipViewer = null;
           state.payslipStatus = '';
           state.activeTab = 'payslips';
@@ -444,9 +473,25 @@ function bindEvents() {
       var calNext = document.querySelector('[data-calendar-next]');
       if (calNext) calNext.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1); render(); };
       var stPrev = document.querySelector('[data-stats-prev]');
-      if (stPrev) stPrev.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1); render(); };
+      if (stPrev) stPrev.onclick = function () {
+        var step = state.statsRange === 'year' ? -12 : -1;
+        state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + step, 1);
+        render();
+      };
       var stNext = document.querySelector('[data-stats-next]');
-      if (stNext) stNext.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1); render(); };
+      if (stNext) stNext.onclick = function () {
+        var step = state.statsRange === 'year' ? 12 : 1;
+        state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + step, 1);
+        render();
+      };
+      document.querySelectorAll('[data-stats-range]').forEach(function (btn) {
+        btn.onclick = function () {
+          var nextRange = btn.dataset.statsRange === 'year' ? 'year' : 'month';
+          if (state.statsRange === nextRange) return;
+          state.statsRange = nextRange;
+          render();
+        };
+      });
 
       var vacationYearPrev = document.querySelector('[data-vacation-year-prev]');
       if (vacationYearPrev) vacationYearPrev.onclick = function () { state.vacationScreenYear = (Number(state.vacationScreenYear) || new Date().getFullYear()) - 1; render(); };
