@@ -1,0 +1,220 @@
+/* Animated five-tab navigation. Home stays in the visual center. */
+.bottom-nav.nav-motion-v2,
+#app > .bottom-nav.nav-motion-v2 {
+  overflow: visible !important;
+}
+
+.nav-grid.nav-grid-v2,
+#app > .bottom-nav .nav-grid.nav-grid-v2 {
+  --nav-inner-pad: 6px;
+  isolation: isolate !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  padding: var(--nav-inner-pad) !important;
+  overflow: visible !important;
+}
+
+.nav-active-indicator {
+  position: absolute;
+  top: var(--nav-inner-pad);
+  bottom: var(--nav-inner-pad);
+  left: var(--nav-inner-pad);
+  z-index: 0;
+  display: block;
+  width: calc((100% - (var(--nav-inner-pad) * 2)) / 5);
+  border: 1px solid rgba(155, 132, 255, 0.17);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(125, 167, 255, 0.24), transparent 56%),
+    linear-gradient(180deg, rgba(124, 91, 238, 0.34), rgba(63, 105, 195, 0.22));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 10px 23px rgba(2, 5, 18, 0.3);
+  transform: translate3d(var(--nav-x), 0, 0);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.nav-btn.nav-btn-v2,
+#app > .bottom-nav .nav-btn.nav-btn-v2 {
+  z-index: 1 !important;
+  gap: 1px !important;
+  min-height: 52px !important;
+  padding: 4px 1px 3px !important;
+  border-radius: 19px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(197, 207, 239, 0.42) !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+  transform-origin: center bottom !important;
+  transition:
+    color 220ms ease,
+    transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-btn-v2 .nav-icon-shell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition:
+    width 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.nav-btn-v2.nav-home .nav-icon-shell {
+  width: 31px;
+  height: 31px;
+  margin-top: -3px;
+  border-color: rgba(132, 147, 218, 0.08);
+  border-radius: 12px;
+  background: rgba(80, 100, 164, 0.08);
+}
+
+.nav-btn-v2 .nav-icon-shell svg,
+#app > .bottom-nav .nav-btn.nav-btn-v2 .nav-icon-shell svg {
+  width: 20px !important;
+  height: 20px !important;
+  transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nav-btn-v2.nav-home .nav-icon-shell svg,
+#app > .bottom-nav .nav-btn.nav-btn-v2.nav-home .nav-icon-shell svg {
+  width: 21px !important;
+  height: 21px !important;
+}
+
+.nav-btn.nav-btn-v2.active,
+#app > .bottom-nav .nav-btn.nav-btn-v2.active {
+  color: #fff !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: translate3d(0, -3px, 0) scale(1.055) !important;
+}
+
+.nav-btn-v2.active .nav-icon-shell {
+  border-color: rgba(178, 165, 255, 0.12);
+  background: rgba(127, 101, 255, 0.14);
+  box-shadow: 0 7px 16px rgba(59, 65, 168, 0.2);
+}
+
+.nav-btn-v2.active .nav-icon-shell svg {
+  transform: scale(1.08);
+}
+
+.nav-btn-v2.nav-home.active .nav-icon-shell {
+  width: 35px;
+  height: 35px;
+  background: linear-gradient(145deg, rgba(126, 95, 255, 0.36), rgba(71, 135, 244, 0.26));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 8px 18px rgba(60, 70, 190, 0.27);
+}
+
+.nav-btn-v2 .nav-label,
+#app > .bottom-nav .nav-btn.nav-btn-v2 .nav-label {
+  font-size: 9.6px !important;
+  line-height: 1 !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.025em !important;
+  transition: opacity 180ms ease, transform 240ms ease;
+}
+
+.nav-btn-v2.active .nav-label {
+  font-weight: 820 !important;
+  transform: translateY(-1px);
+}
+
+.nav-btn.nav-btn-v2.nav-press,
+#app > .bottom-nav .nav-btn.nav-btn-v2.nav-press {
+  transform: translate3d(0, 1px, 0) scale(0.91) !important;
+}
+
+.nav-grid-v2.nav-animated .nav-active-indicator {
+  animation: nav-indicator-glide 390ms cubic-bezier(0.22, 0.78, 0.22, 1) both;
+}
+
+.nav-grid-v2.nav-animated .nav-btn-v2.active {
+  animation: nav-item-pop 390ms cubic-bezier(0.18, 0.82, 0.22, 1) both;
+}
+
+.nav-grid-v2.nav-animated .nav-btn-v2.was-active {
+  animation: nav-item-settle 300ms ease-out both;
+}
+
+@media (max-width: 350px) {
+  .nav-grid.nav-grid-v2,
+  #app > .bottom-nav .nav-grid.nav-grid-v2 {
+    --nav-inner-pad: 5px;
+  }
+
+  .nav-btn-v2 .nav-label,
+  #app > .bottom-nav .nav-btn.nav-btn-v2 .nav-label {
+    font-size: 8.8px !important;
+  }
+
+  .nav-btn-v2 .nav-icon-shell {
+    width: 25px;
+    height: 25px;
+  }
+
+  .nav-btn-v2.nav-home .nav-icon-shell {
+    width: 29px;
+    height: 29px;
+  }
+
+  .nav-btn-v2.nav-home.active .nav-icon-shell {
+    width: 33px;
+    height: 33px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-btn.nav-btn-v2,
+  .nav-active-indicator {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@keyframes nav-indicator-glide {
+  from {
+    transform: translate3d(var(--nav-from-x), 0, 0) scaleX(0.88);
+    opacity: 0.7;
+  }
+  52% {
+    transform: translate3d(var(--nav-x), 0, 0) scaleX(1.09);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(var(--nav-x), 0, 0) scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes nav-item-pop {
+  0% {
+    transform: translate3d(0, 2px, 0) scale(0.88);
+  }
+  68% {
+    transform: translate3d(0, -5px, 0) scale(1.09);
+  }
+  100% {
+    transform: translate3d(0, -3px, 0) scale(1.055);
+  }
+}
+
+@keyframes nav-item-settle {
+  from {
+    transform: translate3d(0, -3px, 0) scale(1.055);
+  }
+  to {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}

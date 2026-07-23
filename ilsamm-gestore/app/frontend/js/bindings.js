@@ -139,7 +139,7 @@ function bindEvents() {
           if (state.privacyLocked) return;
           var nextTab = btn.dataset.tab;
           if (!nextTab || state.activeTab === nextTab) return;
-          var order = ['home', 'calendar', 'stats', 'vacations', 'profile'];
+          var order = ['calendar', 'stats', 'home', 'vacations', 'profile'];
           var currentPrimaryTab = state.activeTab === 'payslips' || state.activeTab === 'settings' || state.activeTab === 'exports' ? 'profile' : state.activeTab;
           var currentIndex = order.indexOf(currentPrimaryTab);
           var nextIndex = order.indexOf(nextTab);
@@ -150,6 +150,7 @@ function bindEvents() {
           setTimeout(function () {
             state.tabSwitchFx = true;
             state.tabSwitchDir = (nextIndex >= currentIndex ? 'forward' : 'back');
+            state.navPreviousIndex = currentIndex >= 0 ? currentIndex : nextIndex;
             state.activeTab = nextTab;
             render();
           }, 120);

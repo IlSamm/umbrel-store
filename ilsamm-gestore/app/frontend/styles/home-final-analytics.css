@@ -1,197 +1,625 @@
-/* Home analytics: week and month cards under the main day card. */
-@media (max-width: 560px) {
-  .screen.home-screen .go-week-card,
-  .screen.home-screen .go-month-card {
-    padding: 13px !important;
-    border: 1px solid rgba(117, 141, 220, .22) !important;
-    border-radius: 23px !important;
-    background:
-      radial-gradient(circle at 92% 0%, rgba(103, 87, 211, .16), transparent 38%),
-      linear-gradient(155deg, rgba(23, 36, 70, .94), rgba(7, 15, 32, .98) 72%) !important;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, .055),
-      0 14px 32px rgba(0, 0, 0, .22) !important;
+/* Home analytics: two compact, readable charts with no legacy overrides. */
+.screen.home-screen .go-analysis-card-v3 {
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 16px !important;
+  border: 1px solid rgba(116, 145, 214, 0.2) !important;
+  border-radius: 25px !important;
+  background:
+    radial-gradient(circle at 94% -6%, rgba(120, 88, 255, 0.2), transparent 38%),
+    radial-gradient(circle at -8% 102%, rgba(56, 177, 255, 0.1), transparent 34%),
+    linear-gradient(150deg, rgba(22, 38, 76, 0.97), rgba(6, 14, 32, 0.99) 72%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 15px 34px rgba(0, 3, 14, 0.24) !important;
+}
+
+.screen.home-screen .go-analysis-card-v3::after {
+  content: "";
+  position: absolute;
+  right: -72px;
+  bottom: -92px;
+  width: 190px;
+  height: 190px;
+  border: 1px solid rgba(114, 98, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.screen.home-screen .go-analysis-card-v3 > * {
+  position: relative;
+  z-index: 1;
+}
+
+.screen.home-screen .go-analysis-head-v3 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.screen.home-screen .go-analysis-head-v3 .go-kicker {
+  margin: 0 0 4px !important;
+  color: #8daaff !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.18em !important;
+}
+
+.screen.home-screen .go-analysis-head-v3 .go-card-title {
+  color: #fff !important;
+  font-size: 18px !important;
+  line-height: 1.06 !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.04em !important;
+}
+
+.screen.home-screen .go-analysis-head-v3 .go-card-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  min-width: 46px !important;
+  min-height: 29px !important;
+  padding: 5px 9px !important;
+  border: 1px solid rgba(151, 171, 226, 0.15) !important;
+  border-radius: 11px !important;
+  background: rgba(9, 18, 42, 0.5) !important;
+  color: #dbe4fa !important;
+  font-size: 10.5px !important;
+  line-height: 1 !important;
+  font-weight: 850 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.screen.home-screen .go-week-summary-v3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, 0.82fr);
+  align-items: end;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.screen.home-screen .go-week-total-v3 {
+  min-width: 0;
+}
+
+.screen.home-screen .go-week-total-v3 > span,
+.screen.home-screen .go-month-footer-v3 > div:first-child > span {
+  display: block;
+  color: #7888a9;
+  font-size: 8.5px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.screen.home-screen .go-week-total-v3 > strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  font-size: clamp(28px, 8.2vw, 34px);
+  line-height: 0.98;
+  font-weight: 900;
+  letter-spacing: -0.065em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.screen.home-screen .go-week-total-v3 > small {
+  display: block;
+  margin-top: 5px;
+  color: #8e9bb7;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+.screen.home-screen .go-week-result-v3 {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 54px;
+  padding: 8px 9px;
+  border: 1px solid rgba(142, 111, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(91, 67, 183, 0.1);
+}
+
+.screen.home-screen .go-week-result-v3 > span {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 10px;
+  background: rgba(139, 99, 255, 0.14);
+  color: #a681ff;
+}
+
+.screen.home-screen .go-week-result-v3 > span svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.screen.home-screen .go-week-result-v3 strong,
+.screen.home-screen .go-week-result-v3 small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.screen.home-screen .go-week-result-v3 strong {
+  color: #f5f6ff;
+  font-size: 11px;
+  line-height: 1.15;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.screen.home-screen .go-week-result-v3 small {
+  margin-top: 3px;
+  color: #8290ad;
+  font-size: 9px;
+  line-height: 1.15;
+}
+
+.screen.home-screen .go-week-result-v3.is-complete {
+  border-color: rgba(42, 214, 159, 0.18);
+  background: rgba(26, 152, 113, 0.1);
+}
+
+.screen.home-screen .go-week-result-v3.is-complete > span {
+  background: rgba(39, 210, 157, 0.12);
+  color: #36dca8;
+}
+
+.screen.home-screen .go-week-progress-v3 {
+  height: 6px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(103, 125, 176, 0.14);
+}
+
+.screen.home-screen .go-week-progress-v3 > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #55caff, #637fff 58%, #a45fff);
+  box-shadow: 0 0 14px rgba(111, 111, 255, 0.28);
+}
+
+.screen.home-screen .go-week-chart-v3 {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 4px;
+  height: 116px;
+  margin-top: 11px;
+  padding: 9px 6px 7px;
+  border: 1px solid rgba(116, 142, 203, 0.11);
+  border-radius: 17px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 30px,
+      rgba(123, 146, 201, 0.075) 31px,
+      transparent 32px
+    ),
+    rgba(4, 11, 27, 0.28);
+}
+
+.screen.home-screen .go-week-day-v3 {
+  display: grid;
+  grid-template-rows: 15px 70px 14px;
+  justify-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.screen.home-screen .go-week-day-value-v3 {
+  align-self: start;
+  color: #e6ecfa;
+  font-size: 8.5px;
+  line-height: 1;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.screen.home-screen .go-week-bar-v3 {
+  position: relative;
+  display: block;
+  align-self: stretch;
+  width: 20px;
+  height: 70px;
+  overflow: hidden;
+  border: 1px solid rgba(118, 143, 202, 0.11);
+  border-radius: 8px 8px 4px 4px;
+  background: rgba(82, 103, 153, 0.1);
+}
+
+.screen.home-screen .go-week-bar-v3 > i {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--go-week-fill);
+  min-height: 0;
+  border-radius: 7px 7px 3px 3px;
+  background: var(--go-week-color);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--go-week-color), transparent 58%);
+}
+
+.screen.home-screen .go-week-day-v3.has-entry .go-week-bar-v3 > b {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #0a1530;
+  border-radius: 50%;
+  background: var(--go-week-color);
+}
+
+.screen.home-screen .go-week-day-v3.has-entry[style*="--go-week-fill:0.00%"] .go-week-bar-v3 > b {
+  display: block;
+}
+
+.screen.home-screen .go-week-day-v3.has-entry:not([style*="--go-week-fill:0.00%"]) .go-week-bar-v3 > b {
+  display: none;
+}
+
+.screen.home-screen .go-week-day-v3 > strong {
+  align-self: end;
+  color: #7786a3;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.screen.home-screen .go-week-day-v3.is-today > strong {
+  padding: 3px 5px;
+  border-radius: 7px;
+  background: rgba(107, 95, 255, 0.16);
+  color: #d9d5ff;
+}
+
+.screen.home-screen .go-month-overview-v3 {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 15px;
+  margin-top: 16px;
+}
+
+.screen.home-screen .go-month-ring-v3 {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  box-shadow: 0 15px 28px rgba(0, 3, 14, 0.28);
+}
+
+.screen.home-screen .go-month-ring-v3::after {
+  content: "";
+  position: absolute;
+  inset: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.035);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 42% 28%, rgba(31, 48, 91, 0.34), transparent 42%),
+    linear-gradient(180deg, #071022, #040914);
+}
+
+.screen.home-screen .go-month-ring-v3 > div {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  max-width: 82px;
+  text-align: center;
+}
+
+.screen.home-screen .go-month-ring-v3 strong {
+  color: #fff;
+  font-size: clamp(15px, 4.4vw, 18px);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.065em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.screen.home-screen .go-month-ring-v3 span {
+  margin-top: 4px;
+  color: #7d8ba8;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 750;
+}
+
+.screen.home-screen .go-month-breakdown-v3 {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.screen.home-screen .go-month-metric-v3 {
+  min-width: 0;
+}
+
+.screen.home-screen .go-month-metric-v3 > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.screen.home-screen .go-month-metric-v3 > div:first-child > span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  color: #a7b3cb;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 750;
+}
+
+.screen.home-screen .go-month-metric-v3 > div:first-child i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+}
+
+.screen.home-screen .go-month-metric-v3.is-normal > div:first-child i {
+  background: #59c8ff;
+  box-shadow: 0 0 9px rgba(89, 200, 255, 0.38);
+}
+
+.screen.home-screen .go-month-metric-v3.is-extra > div:first-child i {
+  background: #9863ff;
+  box-shadow: 0 0 9px rgba(152, 99, 255, 0.38);
+}
+
+.screen.home-screen .go-month-metric-v3 > div:first-child strong {
+  color: #f8f9ff;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.screen.home-screen .go-month-share-v3 {
+  height: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(103, 124, 174, 0.13);
+}
+
+.screen.home-screen .go-month-share-v3 > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.screen.home-screen .go-month-metric-v3.is-normal .go-month-share-v3 > span {
+  background: linear-gradient(90deg, #52c9ff, #527dff);
+}
+
+.screen.home-screen .go-month-metric-v3.is-extra .go-month-share-v3 > span {
+  background: linear-gradient(90deg, #7c6cff, #ac5dff);
+}
+
+.screen.home-screen .go-month-metric-v3 > small {
+  display: block;
+  margin-top: 5px;
+  color: #71809d;
+  font-size: 8.5px;
+  line-height: 1;
+  font-weight: 650;
+}
+
+.screen.home-screen .go-month-footer-v3 {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 11px;
+  border: 1px solid rgba(118, 143, 204, 0.11);
+  border-radius: 15px;
+  background: rgba(4, 11, 27, 0.3);
+}
+
+.screen.home-screen .go-month-footer-v3 > div:first-child {
+  padding-right: 10px;
+  border-right: 1px solid rgba(119, 143, 200, 0.12);
+}
+
+.screen.home-screen .go-month-footer-v3 > div:first-child > strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.screen.home-screen .go-month-activity-v3 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.screen.home-screen .go-month-activity-v3 > span {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 4px 5px;
+  border-radius: 7px;
+  background: rgba(114, 135, 184, 0.08);
+  color: #8592ad;
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.screen.home-screen .go-month-activity-v3 i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.screen.home-screen .go-month-activity-v3 strong {
+  color: #cdd5e8;
+  font-weight: 850;
+}
+
+.screen.home-screen .go-month-activity-v3 .is-more {
+  color: #a99aff;
+}
+
+.screen.home-screen .go-month-activity-v3 .is-empty {
+  color: #71809d;
+}
+
+.screen.home-screen .go-analytics-link-v3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 11px;
+  padding: 8px 10px 0;
+  border: 0;
+  border-top: 1px solid rgba(120, 145, 203, 0.1);
+  background: transparent;
+  color: #8c99b5;
+  font: inherit;
+  font-size: 9.5px;
+  line-height: 1;
+  font-weight: 800;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.screen.home-screen .go-analytics-link-v3 svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: #8795b2;
+  stroke-width: 2;
+}
+
+@media (max-width: 350px) {
+  .screen.home-screen .go-analysis-card-v3 {
+    padding: 14px 13px !important;
   }
 
-  .screen.home-screen .go-week-card .go-week-layout,
-  .screen.home-screen .go-month-layout {
-    grid-template-columns: 82px minmax(0, 1fr) !important;
-    gap: 12px !important;
-    margin-top: 10px !important;
+  .screen.home-screen .go-analysis-head-v3 .go-card-title {
+    font-size: 17px !important;
   }
 
-  .screen.home-screen .go-week-card .go-donut,
-  .screen.home-screen .go-month-card .go-donut {
-    position: relative !important;
-    display: grid !important;
-    place-items: center !important;
-    width: 82px !important;
-    height: 82px !important;
-    min-width: 82px !important;
-    overflow: visible !important;
+  .screen.home-screen .go-week-summary-v3 {
+    grid-template-columns: minmax(0, 1fr) 126px;
+    gap: 8px;
   }
 
-  .screen.home-screen .go-donut::after {
-    content: '' !important;
-    position: absolute !important;
-    inset: 14px !important;
-    z-index: 0 !important;
-    border-radius: 999px !important;
-    background: radial-gradient(circle at 50% 48%, rgba(4, 9, 22, .98), rgba(3, 7, 17, .96)) !important;
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, .035),
-      0 6px 16px rgba(0, 0, 0, .18) !important;
+  .screen.home-screen .go-week-total-v3 > strong {
+    font-size: 27px;
   }
 
-  .screen.home-screen .go-donut-inner {
-    position: absolute !important;
-    inset: 14px !important;
-    z-index: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 0 !important;
-    overflow: visible !important;
-    text-align: center !important;
-    border-radius: 999px !important;
-    pointer-events: none !important;
+  .screen.home-screen .go-week-result-v3 {
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 6px;
+    padding: 7px;
   }
 
-  .screen.home-screen .go-donut-inner strong {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: visible !important;
-    color: #fff !important;
-    font-size: clamp(18px, 4.9vw, 20px) !important;
-    line-height: 1.12 !important;
-    font-weight: 950 !important;
-    letter-spacing: -.07em !important;
-    text-align: center !important;
-    text-overflow: clip !important;
-    white-space: nowrap !important;
+  .screen.home-screen .go-week-result-v3 > span {
+    width: 24px;
+    height: 24px;
   }
 
-  .screen.home-screen .go-month-donut .go-donut-inner strong {
-    font-size: clamp(12px, 3.35vw, 13.5px) !important;
-    letter-spacing: -.075em !important;
+  .screen.home-screen .go-week-result-v3 strong {
+    font-size: 10px;
   }
 
-  .screen.home-screen .go-donut-inner span {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-top: 3px !important;
-    overflow: hidden !important;
-    color: rgba(219, 228, 255, .66) !important;
-    font-size: 9.4px !important;
-    line-height: 1 !important;
-    font-weight: 650 !important;
-    text-align: center !important;
-    text-overflow: clip !important;
-    white-space: nowrap !important;
+  .screen.home-screen .go-week-chart-v3 {
+    gap: 2px;
+    padding-inline: 3px;
   }
 
-  .screen.home-screen .go-card-title {
-    font-size: 16px !important;
-    line-height: 1.08 !important;
+  .screen.home-screen .go-week-bar-v3 {
+    width: 18px;
   }
 
-  .screen.home-screen .go-card-badge {
-    min-height: 28px !important;
-    padding: 5px 9px !important;
-    font-size: 10.6px !important;
+  .screen.home-screen .go-week-day-value-v3 {
+    font-size: 7.8px;
   }
 
-  .screen.home-screen .go-week-card .go-week-ratio {
-    display: flex !important;
-    align-items: baseline !important;
-    gap: 4px !important;
-    min-width: 0 !important;
-    white-space: nowrap !important;
+  .screen.home-screen .go-month-overview-v3 {
+    grid-template-columns: 98px minmax(0, 1fr);
+    gap: 11px;
   }
 
-  .screen.home-screen .go-week-card .go-week-ratio strong {
-    font-size: clamp(22px, 6vw, 25px) !important;
-    line-height: 1.18 !important;
+  .screen.home-screen .go-month-ring-v3 {
+    width: 98px;
+    height: 98px;
   }
 
-  .screen.home-screen .go-week-card .go-week-ratio span {
-    font-size: clamp(13px, 3.6vw, 15px) !important;
-    line-height: 1.1 !important;
+  .screen.home-screen .go-month-ring-v3::after {
+    inset: 13px;
   }
 
-  .screen.home-screen .go-progress {
-    height: 5px !important;
-    margin-top: 7px !important;
+  .screen.home-screen .go-month-metric-v3 > div:first-child > span {
+    font-size: 9.5px;
   }
 
-  .screen.home-screen .go-missing-box {
-    min-height: 44px !important;
-    margin-top: 8px !important;
-    padding: 7px 9px !important;
-    border-radius: 14px !important;
+  .screen.home-screen .go-month-metric-v3 > div:first-child strong {
+    font-size: 12px;
   }
+}
 
-  .screen.home-screen .go-missing-box strong {
-    font-size: 11.8px !important;
-    line-height: 1.16 !important;
+@media (prefers-reduced-motion: no-preference) {
+  .screen.home-screen.active .go-week-bar-v3 > i,
+  .screen.home-screen.active .go-month-share-v3 > span {
+    transform-origin: bottom;
+    animation: go-analysis-rise 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
+}
 
-  .screen.home-screen .go-missing-box em {
-    font-size: 10.4px !important;
-    line-height: 1.16 !important;
-  }
-
-  .screen.home-screen .go-card-head {
-    align-items: center !important;
-  }
-
-  .screen.home-screen .go-card-head .go-kicker {
-    font-size: 10px !important;
-    letter-spacing: .19em !important;
-  }
-
-  .screen.home-screen .go-month-list {
-    gap: 7px !important;
-  }
-
-  .screen.home-screen .go-month-row {
-    grid-template-columns: minmax(0, 1fr) auto 14px !important;
-    min-height: 27px !important;
-    gap: 7px !important;
-  }
-
-  .screen.home-screen .go-month-row span,
-  .screen.home-screen .go-month-row strong {
-    font-size: 12.6px !important;
-    line-height: 1.1 !important;
-  }
-
-  .screen.home-screen .go-row-dot {
-    width: 8px !important;
-    height: 8px !important;
-    flex: 0 0 8px !important;
-  }
-
-  .screen.home-screen .go-month-row svg {
-    width: 13px !important;
-    height: 13px !important;
-  }
-
-  .screen.home-screen .go-detail-btn {
-    grid-template-columns: 22px minmax(0, 1fr) 14px !important;
-    min-height: 38px !important;
-    margin-top: 10px !important;
-    padding: 7px 10px !important;
-    border-radius: 14px !important;
-    font-size: 12.4px !important;
-  }
-
-  .screen.home-screen .go-detail-btn span svg,
-  .screen.home-screen .go-detail-btn > svg {
-    width: 14px !important;
-    height: 14px !important;
+@keyframes go-analysis-rise {
+  from {
+    opacity: 0;
+    transform: scaleY(0.08);
   }
 }
