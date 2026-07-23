@@ -1,7 +1,14 @@
-/* Compact animated navigation. The shell and iPhone safe area never move. */
+/* Fluid glass navigation. The outer shell and iPhone safe area stay fixed. */
 .bottom-nav.nav-motion-v2,
 #app > .bottom-nav.nav-motion-v2 {
   overflow: hidden !important;
+  background:
+    radial-gradient(circle at 50% -28%, rgba(82, 112, 210, 0.18), transparent 58%),
+    linear-gradient(180deg, rgba(15, 23, 52, 0.96), rgba(5, 9, 23, 0.98)) !important;
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(111, 132, 224, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
 }
 
 .nav-grid.nav-grid-v2,
@@ -12,6 +19,9 @@
   gap: 0 !important;
   padding: var(--nav-inner-pad) !important;
   overflow: hidden !important;
+  border-color: rgba(112, 133, 218, 0.13) !important;
+  background: linear-gradient(180deg, rgba(20, 30, 64, 0.16), rgba(4, 8, 20, 0.08)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
 .nav-active-indicator {
@@ -25,49 +35,54 @@
   pointer-events: none;
 }
 
-.nav-active-indicator::before {
-  content: "";
-  position: absolute;
-  top: 5px;
-  left: 50%;
-  width: 39px;
-  height: 37px;
-  border: 1px solid rgba(160, 145, 255, 0.16);
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(142, 171, 255, 0.22), transparent 64%),
-    linear-gradient(150deg, rgba(117, 89, 235, 0.28), rgba(56, 104, 192, 0.17));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 7px 17px rgba(29, 35, 116, 0.2);
-  transform: translateX(-50%);
-}
-
+.nav-active-indicator::before,
 .nav-active-indicator::after {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: 1px;
-  width: 18px;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #69c9ff, #8c72ff);
-  box-shadow: 0 0 8px rgba(114, 129, 255, 0.52);
   transform: translateX(-50%);
+}
+
+.nav-active-indicator::before {
+  top: 3px;
+  width: min(calc(100% - 7px), 64px);
+  height: 51px;
+  border: 1px solid rgba(159, 143, 255, 0.17);
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 50% -12%, rgba(157, 177, 255, 0.3), transparent 55%),
+    linear-gradient(145deg, rgba(109, 87, 225, 0.43), rgba(52, 102, 194, 0.29));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -10px 20px rgba(13, 18, 61, 0.12),
+    0 9px 20px rgba(39, 43, 133, 0.24);
+}
+
+.nav-active-indicator::after {
+  top: 10px;
+  width: min(calc(100% - 15px), 54px);
+  height: 40px;
+  border-radius: 18px;
+  background: rgba(95, 90, 237, 0.2);
+  filter: blur(9px);
+  opacity: 0.72;
 }
 
 .nav-btn.nav-btn-v2,
 #app > .bottom-nav .nav-btn.nav-btn-v2 {
   z-index: 1 !important;
-  gap: 1px !important;
+  gap: 2px !important;
   min-height: 52px !important;
-  padding: 3px 1px 5px !important;
-  border-radius: 18px !important;
+  padding: 4px 1px 3px !important;
+  border-radius: 20px !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: rgba(197, 207, 239, 0.43) !important;
-  transform: none !important;
-  transition: color 200ms ease !important;
+  color: rgba(193, 203, 235, 0.43) !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+  transform-origin: center !important;
+  transition:
+    color 220ms ease,
+    transform 360ms cubic-bezier(0.18, 0.82, 0.22, 1) !important;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -75,34 +90,31 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 29px;
-  height: 29px;
-  border: 1px solid transparent;
-  border-radius: 11px;
+  width: 25px;
+  height: 25px;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
+  box-shadow: none;
   transform: translate3d(0, 0, 0) scale(1);
   transform-origin: center;
   transition:
-    transform 300ms cubic-bezier(0.18, 0.82, 0.22, 1),
-    color 200ms ease,
-    border-color 200ms ease,
-    background 200ms ease,
-    box-shadow 220ms ease;
+    transform 360ms cubic-bezier(0.18, 0.82, 0.22, 1),
+    color 220ms ease !important;
 }
 
 .nav-btn-v2.nav-home .nav-icon-shell {
-  width: 35px;
-  height: 35px;
-  margin-top: -3px;
-  border-color: rgba(135, 155, 230, 0.1);
-  border-radius: 13px;
-  background: linear-gradient(150deg, rgba(86, 102, 180, 0.14), rgba(57, 81, 146, 0.08));
+  width: 28px;
+  height: 28px;
+  margin-top: -1px;
+  background: transparent;
 }
 
 .nav-btn-v2 .nav-icon-shell svg,
 #app > .bottom-nav .nav-btn.nav-btn-v2 .nav-icon-shell svg {
   width: 20px !important;
   height: 20px !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.16));
 }
 
 .nav-btn-v2.nav-home .nav-icon-shell svg,
@@ -113,58 +125,62 @@
 
 .nav-btn.nav-btn-v2.active,
 #app > .bottom-nav .nav-btn.nav-btn-v2.active {
-  color: rgba(255, 255, 255, 0.98) !important;
+  color: rgba(255, 255, 255, 0.99) !important;
   background: transparent !important;
   box-shadow: none !important;
-  transform: none !important;
+  transform: translate3d(0, 0, 0) scale(1.035) !important;
 }
 
 .nav-btn-v2.active .nav-icon-shell {
-  border-color: rgba(178, 165, 255, 0.1);
-  background: rgba(122, 104, 244, 0.08);
-  box-shadow: 0 5px 13px rgba(48, 52, 145, 0.13);
-  transform: translate3d(0, -1px, 0) scale(1.09);
+  transform: translate3d(0, -1px, 0) scale(1.1);
 }
 
-.nav-btn-v2.nav-home.active .nav-icon-shell {
-  border-color: rgba(180, 168, 255, 0.16);
-  background: linear-gradient(150deg, rgba(129, 99, 255, 0.24), rgba(68, 129, 232, 0.17));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    0 7px 16px rgba(53, 61, 174, 0.19);
-  transform: translate3d(0, -1px, 0) scale(1.06);
+.nav-btn-v2.nav-home:not(.active) {
+  color: rgba(201, 211, 244, 0.58) !important;
+}
+
+.nav-btn-v2.nav-home:not(.active) .nav-icon-shell {
+  transform: scale(1.04);
 }
 
 .nav-btn-v2 .nav-label,
 #app > .bottom-nav .nav-btn.nav-btn-v2 .nav-label {
-  font-size: 9.5px !important;
+  font-size: 9.4px !important;
   line-height: 1 !important;
   font-weight: 650 !important;
-  letter-spacing: -0.02em !important;
-  opacity: 0.82;
-  transition: opacity 180ms ease, color 180ms ease !important;
+  letter-spacing: -0.018em !important;
+  opacity: 0.8;
+  transition:
+    opacity 200ms ease,
+    color 200ms ease,
+    transform 320ms cubic-bezier(0.18, 0.82, 0.22, 1) !important;
 }
 
 .nav-btn-v2.active .nav-label {
-  font-weight: 780 !important;
+  font-weight: 800 !important;
   opacity: 1;
+  transform: translateY(-1px);
 }
 
-.nav-btn.nav-btn-v2.nav-press .nav-icon-shell,
-#app > .bottom-nav .nav-btn.nav-btn-v2.nav-press .nav-icon-shell {
-  transform: scale(0.88) !important;
+.nav-btn.nav-btn-v2.nav-press,
+#app > .bottom-nav .nav-btn.nav-btn-v2.nav-press {
+  transform: scale(0.94) !important;
 }
 
 .nav-grid-v2.nav-animated .nav-active-indicator {
-  animation: nav-indicator-glide 360ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+  animation: nav-fluid-slide 480ms cubic-bezier(0.16, 0.82, 0.2, 1) both;
 }
 
-.nav-grid-v2.nav-animated .nav-btn-v2.active .nav-icon-shell {
-  animation: nav-icon-arrive 360ms cubic-bezier(0.16, 0.84, 0.2, 1) both;
+.nav-grid-v2.nav-animated .nav-active-indicator::before {
+  animation: nav-fluid-shape 480ms cubic-bezier(0.16, 0.82, 0.2, 1) both;
 }
 
-.nav-grid-v2.nav-animated .nav-btn-v2.was-active .nav-icon-shell {
-  animation: nav-icon-leave 240ms ease-out both;
+.nav-grid-v2.nav-animated .nav-btn-v2.active {
+  animation: nav-content-arrive 420ms cubic-bezier(0.16, 0.84, 0.2, 1) both;
+}
+
+.nav-grid-v2.nav-animated .nav-btn-v2.was-active {
+  animation: nav-content-leave 260ms ease-out both;
 }
 
 @media (max-width: 350px) {
@@ -173,67 +189,88 @@
     --nav-inner-pad: 5px;
   }
 
+  .nav-active-indicator::before {
+    top: 4px;
+    width: min(calc(100% - 5px), 58px);
+    height: 49px;
+  }
+
   .nav-btn-v2 .nav-label,
   #app > .bottom-nav .nav-btn.nav-btn-v2 .nav-label {
-    font-size: 8.7px !important;
+    font-size: 8.6px !important;
   }
 
   .nav-btn-v2 .nav-icon-shell {
-    width: 27px;
-    height: 27px;
+    width: 23px;
+    height: 23px;
   }
 
   .nav-btn-v2.nav-home .nav-icon-shell {
-    width: 33px;
-    height: 33px;
-  }
-
-  .nav-active-indicator::before {
-    top: 6px;
-    width: 37px;
-    height: 35px;
+    width: 26px;
+    height: 26px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .nav-btn.nav-btn-v2,
   .nav-btn-v2 .nav-icon-shell,
-  .nav-active-indicator {
+  .nav-active-indicator,
+  .nav-active-indicator::before {
     transition: none !important;
     animation: none !important;
   }
 }
 
-@keyframes nav-indicator-glide {
-  from {
+@keyframes nav-fluid-slide {
+  0% {
     transform: translate3d(var(--nav-from-x), 0, 0);
-    opacity: 0.58;
+    opacity: 0.72;
   }
-  70% {
+  64% {
+    transform: translate3d(var(--nav-x), 0, 0);
     opacity: 1;
   }
-  to {
+  100% {
     transform: translate3d(var(--nav-x), 0, 0);
     opacity: 1;
   }
 }
 
-@keyframes nav-icon-arrive {
+@keyframes nav-fluid-shape {
   0% {
-    transform: translate3d(0, 0, 0) scale(0.92);
+    border-radius: 24px;
+    transform: translateX(-50%) scaleX(0.78);
   }
-  72% {
-    transform: translate3d(0, -1px, 0) scale(1.12);
+  58% {
+    border-radius: 18px;
+    transform: translateX(-50%) scaleX(1.13);
   }
   100% {
-    transform: translate3d(0, -1px, 0) scale(1.09);
+    border-radius: 21px;
+    transform: translateX(-50%) scaleX(1);
   }
 }
 
-@keyframes nav-icon-leave {
+@keyframes nav-content-arrive {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.76;
+  }
+  72% {
+    transform: scale(1.055);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.035);
+    opacity: 1;
+  }
+}
+
+@keyframes nav-content-leave {
   from {
-    transform: translate3d(0, -1px, 0) scale(1.09);
+    transform: scale(1.035);
   }
   to {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
   }
 }
