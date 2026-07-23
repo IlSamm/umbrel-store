@@ -931,7 +931,15 @@ function renderOverlayLegacy() {
         '<button class="payvault-viewer-backdrop" data-close-payslip-viewer="1" aria-label="Chiudi foto"></button>' +
         '<div class="payvault-viewer-stage">' +
           '<div class="payvault-viewer-head"><div><em>' + viewerMode + '</em><strong>Foto ' + (index + 1) + ' di ' + photos.length + '</strong><span>' + escapeHtml(photo.fileName || 'Busta paga') + '</span></div><button data-close-payslip-viewer="1">' + icons.x + '</button></div>' +
-          '<div class="payvault-viewer-image"><img src="' + photo.data + '" alt="Foto ingrandita della busta paga"></div>' +
+          '<div class="payvault-viewer-image" data-payslip-zoom-surface="1">' +
+            '<img data-payslip-zoom-image="1" src="' + photo.data + '" alt="Foto ingrandita della busta paga">' +
+            '<span class="payvault-viewer-zoom-hint">Pizzica o fai doppio tocco</span>' +
+            '<div class="payvault-viewer-zoom-tools" aria-label="Controlli zoom">' +
+              '<button type="button" data-payslip-zoom-out="1" aria-label="Riduci zoom">-</button>' +
+              '<button type="button" class="payvault-viewer-zoom-level" data-payslip-zoom-reset="1" aria-label="Reimposta zoom"><span data-payslip-zoom-label="1">100%</span></button>' +
+              '<button type="button" data-payslip-zoom-in="1" aria-label="Aumenta zoom">+</button>' +
+            '</div>' +
+          '</div>' +
           (photos.length > 1 ? '<div class="payvault-viewer-nav"><button data-payslip-viewer-prev="1">' + icons.left + '<span>Precedente</span></button><div>' + (index + 1) + ' / ' + photos.length + '</div><button data-payslip-viewer-next="1"><span>Successiva</span>' + icons.right + '</button></div>' : '') +
         '</div>' +
       '</div>';

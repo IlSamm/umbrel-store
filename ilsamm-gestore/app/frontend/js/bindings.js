@@ -1,3 +1,138 @@
+function bindPayslipViewerZoom() {
+      var surface = document.querySelector('[data-payslip-zoom-surface]');
+      var image = surface && surface.querySelector('[data-payslip-zoom-image]');
+      if (!surface || !image) return;
+
+      var label = surface.querySelector('[data-payslip-zoom-label]');
+      var zoomIn = surface.querySelector('[data-payslip-zoom-in]');
+      var zoomOut = surface.querySelector('[data-payslip-zoom-out]');
+      var zoomReset = surface.querySelector('[data-payslip-zoom-reset]');
+      var pointers = new Map();
+      var scale = 1;
+      var translateX = 0;
+      var translateY = 0;
+      var pinchStart = null;
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function clampTranslation() {
+        if (scale <= 1.001) {
+          translateX = 0;
+          translateY = 0;
+          return;
+        }
+        var rect = surface.getBoundingClientRect();
+        var maxX = Math.max(0, rect.width * (scale - 1) / 2);
+        var maxY = Math.max(0, rect.height * (scale - 1) / 2);
+        translateX = clamp(translateX, -maxX, maxX);
+        translateY = clamp(translateY, -maxY, maxY);
+      }
+
+      function applyZoom(animate) {
+        clampTranslation();
+        image.style.transition = animate ? 'transform .22s cubic-bezier(.2,.8,.25,1)' : 'none';
+        image.style.transform = 'translate3d(' + translateX.toFixed(1) + 'px,' + translateY.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
+        if (label) label.textContent = Math.round(scale * 100) + '%';
+        surface.classList.toggle('is-zoomed', scale > 1.01);
+      }
+
+      function setScale(nextScale, clientX, clientY, animate) {
+        var previousScale = scale;
+        var next = clamp(nextScale, 1, 5);
+        if (Math.abs(next - previousScale) < .001) return;
+        var rect = surface.getBoundingClientRect();
+        var focusX = Number.isFinite(clientX) ? clientX - (rect.left + rect.width / 2) : 0;
+        var focusY = Number.isFinite(clientY) ? clientY - (rect.top + rect.height / 2) : 0;
+        var ratio = next / previousScale;
+        translateX = focusX - (focusX - translateX) * ratio;
+        translateY = focusY - (focusY - translateY) * ratio;
+        scale = next;
+        applyZoom(animate);
+      }
+
+      function resetZoom(animate) {
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        applyZoom(animate);
+      }
+
+      function distance(a, b) {
+        return Math.hypot(b.x - a.x, b.y - a.y);
+      }
+
+      function midpoint(a, b) {
+        return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      }
+
+      surface.addEventListener('pointerdown', function (event) {
+        if (event.target.closest('.payvault-viewer-zoom-tools')) return;
+        event.preventDefault();
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (typeof surface.setPointerCapture === 'function') {
+          try { surface.setPointerCapture(event.pointerId); } catch (err) {}
+        }
+        if (pointers.size === 2) {
+          var pair = Array.from(pointers.values());
+          pinchStart = {
+            distance: Math.max(1, distance(pair[0], pair[1])),
+            scale: scale,
+            center: midpoint(pair[0], pair[1]),
+            translateX: translateX,
+            translateY: translateY
+          };
+        }
+      });
+
+      surface.addEventListener('pointermove', function (event) {
+        var previous = pointers.get(event.pointerId);
+        if (!previous) return;
+        event.preventDefault();
+        var current = { x: event.clientX, y: event.clientY };
+        pointers.set(event.pointerId, current);
+        if (pointers.size >= 2 && pinchStart) {
+          var pair = Array.from(pointers.values()).slice(0, 2);
+          var center = midpoint(pair[0], pair[1]);
+          scale = clamp(pinchStart.scale * distance(pair[0], pair[1]) / pinchStart.distance, 1, 5);
+          translateX = pinchStart.translateX + (center.x - pinchStart.center.x);
+          translateY = pinchStart.translateY + (center.y - pinchStart.center.y);
+          applyZoom(false);
+          return;
+        }
+        if (pointers.size === 1 && scale > 1.01) {
+          translateX += current.x - previous.x;
+          translateY += current.y - previous.y;
+          applyZoom(false);
+        }
+      });
+
+      function releasePointer(event) {
+        pointers.delete(event.pointerId);
+        if (pointers.size < 2) pinchStart = null;
+        if (scale <= 1.01) resetZoom(true);
+      }
+
+      surface.addEventListener('pointerup', releasePointer);
+      surface.addEventListener('pointercancel', releasePointer);
+      surface.addEventListener('dblclick', function (event) {
+        if (event.target.closest('.payvault-viewer-zoom-tools')) return;
+        event.preventDefault();
+        if (scale > 1.01) resetZoom(true);
+        else setScale(2.5, event.clientX, event.clientY, true);
+      });
+      surface.addEventListener('wheel', function (event) {
+        event.preventDefault();
+        setScale(scale + (event.deltaY < 0 ? .35 : -.35), event.clientX, event.clientY, false);
+      }, { passive: false });
+
+      if (zoomIn) zoomIn.onclick = function (event) { event.stopPropagation(); setScale(scale + .5, NaN, NaN, true); };
+      if (zoomOut) zoomOut.onclick = function (event) { event.stopPropagation(); setScale(scale - .5, NaN, NaN, true); };
+      if (zoomReset) zoomReset.onclick = function (event) { event.stopPropagation(); resetZoom(true); };
+      applyZoom(false);
+    }
+
 function bindEvents() {
       document.querySelectorAll('[data-tab]').forEach(function (btn) {
         btn.onclick = function () {
@@ -194,6 +329,7 @@ function bindEvents() {
       document.querySelectorAll('[data-close-payslip-viewer]').forEach(function (btn) {
         btn.onclick = function () { state.payslipViewer = null; render(); };
       });
+      bindPayslipViewerZoom();
       var viewerPrev = document.querySelector('[data-payslip-viewer-prev]');
       if (viewerPrev) viewerPrev.onclick = function () {
         if (!state.payslipViewer) return;
