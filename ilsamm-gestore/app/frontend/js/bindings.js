@@ -335,7 +335,7 @@ function bindEvents() {
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
           var section = btn.dataset.openSettingsSection;
-          if (['profile', 'calendar', 'shifts', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
+          if (['profile', 'calendar', 'shifts', 'planning', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
           state.settingsSection = section;
           render();
         };
@@ -630,9 +630,21 @@ function bindEvents() {
       var calToday = document.querySelector('[data-calendar-today]');
       if (calToday) calToday.onclick = function () { var now = new Date(); state.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1); render(); };
       var calPrev = document.querySelector('[data-calendar-prev]');
-      if (calPrev) calPrev.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1); render(); };
+      if (calPrev) calPrev.onclick = function () {
+        state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1);
+        state.calendarSelectionMode = false;
+        state.calendarSelectedDates = [];
+        state.calendarBulkDialogOpen = false;
+        render();
+      };
       var calNext = document.querySelector('[data-calendar-next]');
-      if (calNext) calNext.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1); render(); };
+      if (calNext) calNext.onclick = function () {
+        state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1);
+        state.calendarSelectionMode = false;
+        state.calendarSelectedDates = [];
+        state.calendarBulkDialogOpen = false;
+        render();
+      };
       document.querySelectorAll('[data-calendar-filter]').forEach(function (btn) {
         btn.onclick = function () {
           var nextFilter = btn.dataset.calendarFilter;
@@ -640,6 +652,44 @@ function bindEvents() {
           state.calendarFilter = nextFilter;
           render();
         };
+      });
+      var calendarSelectionToggle = document.querySelector('[data-toggle-calendar-selection]');
+      if (calendarSelectionToggle) calendarSelectionToggle.onclick = function () {
+        if (state.calendarSelectionMode) stopCalendarSelection();
+        else startCalendarSelection();
+      };
+      document.querySelectorAll('[data-calendar-select-date]').forEach(function (btn) {
+        btn.onclick = function () { toggleCalendarSelectedDate(btn.dataset.calendarSelectDate); };
+      });
+      document.querySelectorAll('[data-cancel-calendar-selection]').forEach(function (btn) {
+        btn.onclick = stopCalendarSelection;
+      });
+      document.querySelectorAll('[data-open-calendar-bulk]').forEach(function (btn) {
+        btn.onclick = openCalendarBulkDialog;
+      });
+      document.querySelectorAll('[data-close-calendar-bulk]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.calendarBulkDialogOpen = false;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-calendar-bulk-choice]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.calendarBulkChoice = btn.dataset.calendarBulkChoice;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-apply-calendar-bulk]').forEach(function (btn) {
+        btn.onclick = applyCalendarBulkChoice;
+      });
+      document.querySelectorAll('[data-open-month-plan]').forEach(function (btn) {
+        btn.onclick = function () { openMonthPlanPreview(state.currentMonth); };
+      });
+      document.querySelectorAll('[data-close-month-plan]').forEach(function (btn) {
+        btn.onclick = closeMonthPlanPreview;
+      });
+      document.querySelectorAll('[data-apply-month-plan]').forEach(function (btn) {
+        btn.onclick = applyMonthlyTemplate;
       });
       var stPrev = document.querySelector('[data-stats-prev]');
       if (stPrev) stPrev.onclick = function () {
@@ -867,6 +917,18 @@ function bindEvents() {
           queueSettingsAutosave(140);
         };
       });
+      document.querySelectorAll('[data-weekly-template-day]').forEach(function (select) {
+        select.onchange = function (event) {
+          var index = Number(select.dataset.weeklyTemplateDay);
+          if (!Number.isInteger(index) || index < 0 || index > 6) return;
+          var template = getWeeklyTemplate(state.settingsDraft);
+          var value = String(event.target.value || '');
+          template[index] = value === 'rest' ? 'rest' : (value === '' ? null : Number(value));
+          state.settingsDraft.weeklyTemplate = template;
+          commitSettingsDraft();
+          render();
+        };
+      });
       var holidayOffDaysToggle = document.querySelector('[data-toggle-holiday-offdays]');
       if (holidayOffDaysToggle) holidayOffDaysToggle.onclick = function () {
         state.settingsDraft.holidayHoursOnOffDays = !Boolean(state.settingsDraft.holidayHoursOnOffDays);
@@ -924,6 +986,69 @@ function bindEvents() {
       };
       var testBtn = document.querySelector('[data-test-notification]');
       if (testBtn) testBtn.onclick = testNotification;
+      document.querySelectorAll('[data-toggle-smart-reminder]').forEach(function (btn) {
+        btn.onclick = function () {
+          var kind = btn.dataset.toggleSmartReminder;
+          var settingKey = kind === 'weekly'
+            ? 'smartReminderWeeklyReview'
+            : (kind === 'payslips' ? 'smartReminderPayslips' : 'smartReminderMissingDays');
+          state.settings[settingKey] = !Boolean(state.settings[settingKey]);
+          state.settingsDraft[settingKey] = state.settings[settingKey];
+          saveSettings();
+          updateReminderSchedule();
+          render();
+        };
+      });
+
+      document.querySelectorAll('[data-open-onboarding]').forEach(function (btn) {
+        btn.onclick = openOnboarding;
+      });
+      document.querySelectorAll('[data-skip-onboarding]').forEach(function (btn) {
+        btn.onclick = function () { closeOnboarding(true); };
+      });
+      document.querySelectorAll('[data-onboarding-field]').forEach(function (input) {
+        input.oninput = function (event) {
+          if (!state.onboardingDraft) state.onboardingDraft = createOnboardingDraft();
+          var key = input.dataset.onboardingField;
+          var numericFields = ['dailyTarget', 'weeklyTarget', 'presetBreak', 'vacationDays'];
+          state.onboardingDraft[key] = numericFields.indexOf(key) !== -1
+            ? parseDecimalInput(event.target.value, 0)
+            : String(event.target.value || '');
+        };
+      });
+      document.querySelectorAll('[data-onboarding-workday]').forEach(function (btn) {
+        btn.onclick = function () {
+          if (!state.onboardingDraft) state.onboardingDraft = createOnboardingDraft();
+          var index = Number(btn.dataset.onboardingWorkday);
+          var workdays = normalizeWeekdayList(state.onboardingDraft.workdays || []);
+          var position = workdays.indexOf(index);
+          if (position === -1) workdays.push(index);
+          else workdays.splice(position, 1);
+          state.onboardingDraft.workdays = normalizeWeekdayList(workdays);
+          render();
+        };
+      });
+      var onboardingReminderToggle = document.querySelector('[data-onboarding-reminders]');
+      if (onboardingReminderToggle) onboardingReminderToggle.onclick = function () {
+        if (!state.onboardingDraft) state.onboardingDraft = createOnboardingDraft();
+        state.onboardingDraft.remindersEnabled = !Boolean(state.onboardingDraft.remindersEnabled);
+        render();
+      };
+      document.querySelectorAll('[data-onboarding-prev]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.onboardingStep = Math.max(0, Number(state.onboardingStep || 0) - 1);
+          render();
+        };
+      });
+      document.querySelectorAll('[data-onboarding-next]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.onboardingStep = Math.min(2, Number(state.onboardingStep || 0) + 1);
+          render();
+        };
+      });
+      document.querySelectorAll('[data-complete-onboarding]').forEach(function (btn) {
+        btn.onclick = completeOnboarding;
+      });
 
       var lockToggle = document.querySelector('[data-toggle-lock]');
       if (lockToggle) lockToggle.onclick = function () {

@@ -29,8 +29,8 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.1.142"
-BUILD_CACHE = "20260724b"
+BUILD_VERSION = "1.1.143"
+BUILD_CACHE = "20260724c"
 AUTH_STORE = AuthStore(DATA_DIR)
 
 _DB_SCHEMA_LOCK = threading.Lock()
@@ -856,8 +856,19 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         try:
             payload = self._read_json_body()
-            create_versioned_backup(db_path, "auto")
-            saved = save_snapshot(payload, db_path=db_path)
+            with _snapshot_lock(db_path):
+                existing = load_snapshot(db_path=db_path)
+                base_updated_at = max(0, int(payload.get("baseUpdatedAt") or 0))
+                current_updated_at = max(0, int(existing.get("updatedAt") or 0))
+                if base_updated_at and current_updated_at > base_updated_at:
+                    self._send_json({
+                        "error": "Il database e cambiato su un altro dispositivo.",
+                        "code": "snapshot_conflict",
+                        "serverSnapshot": existing,
+                    }, HTTPStatus.CONFLICT)
+                    return
+                create_versioned_backup(db_path, "auto")
+                saved = save_snapshot(payload, db_path=db_path, _existing_snapshot=existing)
             prefer_minimal = "return=minimal" in str(self.headers.get("Prefer", "")).lower()
             if prefer_minimal:
                 self._send_json(self._snapshot_ack(saved, self.headers.get("X-GestOre-Mutation-Id", "")))

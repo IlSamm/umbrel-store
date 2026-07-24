@@ -190,7 +190,9 @@ function resetRuntimeAccountData(options) {
   state.privacyLocked = false;
   state.syncPending = opts.reloadFromDevice && typeof readPendingSyncRecord === 'function' ? Boolean(readPendingSyncRecord()) : false;
   state.syncStatus = opts.reloadFromDevice && state.syncPending ? 'In attesa di sincronizzazione' : 'In attesa di accesso';
+  state.syncConflictNotice = '';
   state.lastSyncedAt = 0;
+  serverSnapshotUpdatedAt = 0;
   if (typeof loadShiftTimerState === 'function') state.shiftTimer = opts.reloadFromDevice ? loadShiftTimerState() : loadShiftTimerState(true);
   if (state.account && state.account.storage) {
     state.account.storage = {
@@ -841,12 +843,16 @@ function renderAccountDataSettings() {
   var message = state.account.error
     ? '<div class="account-settings-message is-error">' + escapeHtml(state.account.error) + '</div>'
     : (state.account.notice ? '<div class="account-settings-message">' + escapeHtml(state.account.notice) + '</div>' : '');
+  var conflictNotice = state.syncConflictNotice
+    ? '<section class="account-sync-conflict" role="status" aria-live="polite"><span>' + icons.activity + '</span><div><strong>Dati uniti in sicurezza</strong><p>' + escapeHtml(state.syncConflictNotice) + '</p></div><button data-retry-server-sync="1">Verifica ora</button><button data-dismiss-sync-conflict="1" aria-label="Chiudi avviso">' + icons.x + '</button></section>'
+    : '';
   return '<section class="account-current-card"><span>' + escapeHtml(initial) + '</span><div><small>ACCOUNT ATTIVO</small><strong>' + escapeHtml(username) + '</strong><p>Database personale collegato</p></div><i>' + icons.check + '</i></section>' +
     '<div class="settings-v2-section-title">Stato dei dati</div>' +
     '<section class="account-sync-health' + syncHealthTone + '">' +
-      '<div class="account-sync-health-head"><span>' + (isOnline ? icons.cloud : icons.activity) + '</span><div><small>SINCRONIZZAZIONE</small><strong>' + syncHealthTitle + '</strong><p data-sync-status-label>' + escapeHtml(getSyncStatusMessage()) + '</p></div><b data-sync-status-state data-state="' + (isSyncPending ? 'pending' : (!isOnline ? 'offline' : 'synced')) + '">' + (isSyncPending ? 'IN ATTESA' : (!isOnline ? 'OFFLINE' : 'SALVATO')) + '</b></div>' +
+      '<div class="account-sync-health-head"><span>' + (isOnline ? icons.cloud : icons.activity) + '</span><div><small>SINCRONIZZAZIONE</small><strong>' + syncHealthTitle + '</strong><p data-sync-status-label aria-live="polite">' + escapeHtml(getSyncStatusMessage()) + '</p></div><b data-sync-status-state data-state="' + (isSyncPending ? 'pending' : (!isOnline ? 'offline' : 'synced')) + '">' + (isSyncPending ? 'IN ATTESA' : (!isOnline ? 'OFFLINE' : 'SALVATO')) + '</b></div>' +
       '<div class="account-sync-health-grid"><div><span>Server</span><strong>' + (isOnline ? 'Online' : 'Offline') + '</strong></div><div><span>Ultimo invio</span><strong>' + escapeHtml(lastSyncLabel) + '</strong></div><div><span>Copie protette</span><strong>' + backupItems.length + '</strong></div></div>' +
     '</section>' +
+    conflictNotice +
     '<div class="settings-v2-section-title">Spazio sul server</div>' +
     '<section class="account-storage-card"><span class="account-storage-icon">' + icons.receipt + '</span><div class="account-storage-copy"><small>SPAZIO TOTALE OCCUPATO</small><strong>' + storageValue + '</strong><p>' + storageMeta + (storage.loaded && storage.backups ? (' - ' + storage.backups + ' copie protette') : '') + '</p></div><button type="button" data-refresh-account-storage="1" aria-label="Aggiorna spazio database" ' + (storage.loading ? 'disabled' : '') + '>' + icons.activity + '<span>Aggiorna</span></button></section>' +
     '<div class="settings-v2-section-title">Punti di ripristino</div>' +
@@ -884,6 +890,17 @@ function bindAccountEvents() {
   if (input) input.onchange = function () { restoreAccountBackup(input.files && input.files[0]); };
   var logout = document.querySelector('[data-account-logout]');
   if (logout) logout.onclick = logoutAccount;
+  var retrySync = document.querySelector('[data-retry-server-sync]');
+  if (retrySync) retrySync.onclick = function () {
+    state.syncConflictNotice = '';
+    queueServerSync();
+    render();
+  };
+  var dismissConflict = document.querySelector('[data-dismiss-sync-conflict]');
+  if (dismissConflict) dismissConflict.onclick = function () {
+    state.syncConflictNotice = '';
+    render();
+  };
   var refreshStorage = document.querySelector('[data-refresh-account-storage]');
   if (refreshStorage) refreshStorage.onclick = function () { loadAccountStorageUsage(true); };
   var createVersioned = document.querySelector('[data-create-versioned-backup]');

@@ -71,6 +71,8 @@ var state = {
       vacationScreenYear: new Date().getFullYear(),
       privacyLocked: false,
       syncStatus: 'Solo sul dispositivo',
+      syncPending: false,
+      syncConflictNotice: '',
       lastSyncedAt: 0
     };
     state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
@@ -190,6 +192,7 @@ var state = {
             throw new Error('Il server ha confermato una busta diversa.');
           }
           serverSyncLastError = '';
+          serverSnapshotUpdatedAt = Math.max(serverSnapshotUpdatedAt, Number(result.updatedAt) || 0);
           setSyncStatus('Server locale attivo', Number(result.updatedAt) || Date.now());
           return result;
         } catch (err) {

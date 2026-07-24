@@ -254,6 +254,7 @@ function renderPayslipsLegacy() {
       '</section>';
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
+          (typeof renderOnboardingInvite === 'function' ? renderOnboardingInvite() : '') +
           homeDayCard +
           homeQuickActions +
           '<section class="go-card go-analytics-card go-analysis-card-v3 go-week-card">' +
@@ -477,7 +478,8 @@ function renderCalendar() {
       }).join('');
       return '<div class="month-page-top"><div><span>GESTIONE MENSILE</span><h1>Calendario</h1></div><div class="month-page-switch"><button data-calendar-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-calendar-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
         '<div class="stack">' +
-          '<div class="calendar-filter-bar" role="group" aria-label="Filtra giornate">' + calendarFilterHtml + '</div>' +
+          '<div class="calendar-tools-row"><div class="calendar-filter-bar" role="group" aria-label="Filtra giornate">' + calendarFilterHtml + '</div><button class="calendar-select-toggle ' + (state.calendarSelectionMode ? 'is-active' : '') + '" data-toggle-calendar-selection="1" aria-pressed="' + (state.calendarSelectionMode ? 'true' : 'false') + '">' + icons.check + '<span>' + (state.calendarSelectionMode ? 'Annulla' : 'Seleziona') + '</span></button></div>' +
+          (typeof renderCalendarPlanningSuggestion === 'function' ? renderCalendarPlanningSuggestion() : '') +
           '<div class="card calendar-month-card"><div class="card-body compact">' +
             '<div class="week-grid">' + weekNames.map(function (n) { return '<div class="weekday">' + n + '</div>'; }).join('') + '</div>' +
             '<div class="calendar-grid">' + grid.map(function (date) {
@@ -487,9 +489,14 @@ function renderCalendar() {
               var isToday = key === todayKey;
               var entryGroup = getCalendarEntryGroup(entry);
               var isFilteredOut = entry && calendarFilter !== 'all' && entryGroup !== calendarFilter;
-              return '<button class="cell ' + (!isCurrent ? 'out' : '') + ' ' + (isToday ? 'today' : '') + ' ' + (isFilteredOut ? 'is-filtered-out' : '') + '" data-open-date="' + key + '"><span>' + date.getDate() + '</span>' + (entry ? ('<span class="dot" style="background:' + ((dayTypes[entry.type] && dayTypes[entry.type].dot) ? dayTypes[entry.type].dot : '#a78bfa') + ';"></span>') : '') + '</button>';
+              var isSelected = state.calendarSelectionMode && Array.isArray(state.calendarSelectedDates) && state.calendarSelectedDates.indexOf(key) !== -1;
+              var action = state.calendarSelectionMode
+                ? (isCurrent ? (' data-calendar-select-date="' + key + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"') : ' disabled')
+                : (' data-open-date="' + key + '"');
+              return '<button class="cell ' + (!isCurrent ? 'out' : '') + ' ' + (isToday ? 'today' : '') + ' ' + (isFilteredOut ? 'is-filtered-out' : '') + ' ' + (isSelected ? 'is-selected' : '') + '"' + action + '><span>' + date.getDate() + '</span>' + (entry ? ('<span class="dot" style="background:' + ((dayTypes[entry.type] && dayTypes[entry.type].dot) ? dayTypes[entry.type].dot : '#a78bfa') + ';"></span>') : '') + (isSelected ? '<span class="calendar-cell-check">' + icons.check + '</span>' : '') + '</button>';
             }).join('') + '</div>' +
           '</div></div>' +
+          (typeof renderCalendarSelectionToolbar === 'function' ? renderCalendarSelectionToolbar() : '') +
           '<div class="card"><div class="card-body"><div class="two">' +
             '<div class="mini center"><div class="big">' + formatDuration(stats.totalMinutes) + '</div><div class="small muted">Ore mese</div></div>' +
             '<div class="mini center"><div class="big">' + recordedDays + '</div><div class="small muted">Giorni segnati</div></div>' +
@@ -1840,6 +1847,9 @@ function renderOverlayLegacy() {
       var timerStatus = state.settings.timerEnabled ? 'Attivo' : 'Disattivato';
       var shiftPresets = getShiftPresets(state.settingsDraft);
       var shiftStatus = shiftPresets.length + (shiftPresets.length === 1 ? ' turno' : ' turni');
+      var weeklyTemplate = typeof getWeeklyTemplate === 'function' ? getWeeklyTemplate(state.settingsDraft) : [0, 0, 0, 0, 0, null, null];
+      var plannedTemplateDays = weeklyTemplate.filter(function (choice) { return choice !== null && choice !== undefined && choice !== ''; }).length;
+      var templateStatus = plannedTemplateDays ? (plannedTemplateDays + ' giorni configurati') : 'Da configurare';
       var targetStatus = (Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h al giorno';
       var topBar = function (title, isDetail) {
         return '<div class="settings-v2-top"><button ' + (isDetail ? 'data-back-settings="1"' : 'data-back-profile="1"') + ' aria-label="Torna al profilo">' + icons.left + '</button><div><span>IMPOSTAZIONI</span><h1>' + title + '</h1></div><i></i></div>';
@@ -1882,6 +1892,14 @@ function renderOverlayLegacy() {
             '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Promemoria locale</strong><small>' + reminderHelper + '</small></span><button class="toggle-btn ' + (state.settings.remindersEnabled ? 'on' : '') + '" data-toggle-reminders="1" aria-label="Promemoria locale"><span class="knob"></span></button></div>' +
             '<div class="settings-v2-divider"></div>' +
             '<div class="settings-v2-time-row"><label><span>ORARIO</span><input id="reminderTimeInput" type="time" value="' + state.settings.reminderTime + '"></label><button data-test-notification="1">' + icons.bell + '<span>Invia notifica di prova</span></button></div>' +
+          '</section>' +
+          '<div class="settings-v2-section-title">Quando avvisarti</div>' +
+          '<section class="settings-v2-group smart-reminder-group">' +
+            '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Giornata mancante</strong><small>Solo nei giorni lavorativi ancora da compilare</small></span><button class="toggle-btn ' + (state.settings.smartReminderMissingDays ? 'on' : '') + '" data-toggle-smart-reminder="missing" aria-label="Promemoria giornata mancante"><span class="knob"></span></button></div>' +
+            '<div class="settings-v2-divider"></div>' +
+            '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.activity + '</span><span class="settings-v2-copy"><strong>Controllo settimanale</strong><small>Sabato o luned&igrave;, soltanto se manca qualcosa</small></span><button class="toggle-btn ' + (state.settings.smartReminderWeeklyReview ? 'on' : '') + '" data-toggle-smart-reminder="weekly" aria-label="Promemoria controllo settimanale"><span class="knob"></span></button></div>' +
+            '<div class="settings-v2-divider"></div>' +
+            '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-green">' + icons.receipt + '</span><span class="settings-v2-copy"><strong>Busta paga assente</strong><small>Dal giorno 10, se manca quella del mese precedente</small></span><button class="toggle-btn ' + (state.settings.smartReminderPayslips ? 'on' : '') + '" data-toggle-smart-reminder="payslips" aria-label="Promemoria busta paga"><span class="knob"></span></button></div>' +
           '</section>' +
           '<div class="settings-v2-note"><span>' + icons.bell + '</span><p>Le notifiche vengono gestite dal dispositivo. Potrebbe essere necessario consentirle nelle impostazioni di iPhone.</p></div>' +
         '</div>';
@@ -1933,6 +1951,27 @@ function renderOverlayLegacy() {
         '</div>';
       }
 
+      if (section === 'planning') {
+        var templateRows = weekNamesFull.map(function (label, index) {
+          var choice = weeklyTemplate[index];
+          var options = '<option value="" ' + (choice === null || choice === undefined || choice === '' ? 'selected' : '') + '>Non pianificato</option>' +
+            '<option value="rest" ' + (choice === 'rest' ? 'selected' : '') + '>Riposo</option>' +
+            shiftPresets.map(function (preset, presetIndex) {
+              return '<option value="' + presetIndex + '" ' + (Number(choice) === presetIndex && choice !== null && choice !== '' ? 'selected' : '') + '>' + escapeHtml(preset.label + ' · ' + preset.start + ' - ' + preset.end) + '</option>';
+            }).join('');
+          var choiceLabel = typeof getTemplateChoiceLabel === 'function' ? getTemplateChoiceLabel(choice) : 'Non pianificato';
+          return '<label class="weekly-template-row"><span><strong>' + escapeHtml(label) + '</strong><small>' + escapeHtml(choiceLabel) + '</small></span><select data-weekly-template-day="' + index + '" aria-label="Pianificazione ' + escapeHtml(label) + '">' + options + '</select></label>';
+        }).join('');
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page weekly-template-page">' +
+          topBar('Settimana tipo', true) +
+          intro('blue', icons.calendar, 'PIANIFICAZIONE', 'Prepara il mese in pochi tocchi', 'Associa un turno o un riposo a ogni giorno. Prima di applicare vedrai sempre un&apos;anteprima sicura.') +
+          '<div class="settings-v2-section-title">Modello settimanale</div>' +
+          '<section class="weekly-template-card">' + templateRows + '</section>' +
+          '<button class="weekly-template-preview" data-open-month-plan="1"><span>' + icons.calendar + '</span><div><small>ANTEPRIMA DEL MESE</small><strong>Prepara ' + escapeHtml(formatMonthYear(state.currentMonth)) + '</strong><p>Le giornate gi&agrave; presenti non verranno modificate.</p></div>' + icons.right + '</button>' +
+          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>La settimana tipo &egrave; solo un modello: nessuna giornata viene aggiunta senza la tua conferma.</p></div>' +
+        '</div>';
+      }
+
       if (section === 'data') {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
           topBar('Account e backup', true) +
@@ -1958,8 +1997,10 @@ function renderOverlayLegacy() {
           '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong><small>Nome, target giornaliero e settimanale</small></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="calendar"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Calendario di lavoro</strong><small>Giorni attivi, riposi e festivit&agrave;</small></span><span class="settings-hub-value">' + workdays.length + ' giorni</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="shifts"><span class="settings-v2-icon is-green">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Turni rapidi</strong><small>Orari e pause che usi pi&ugrave; spesso</small></span><span class="settings-hub-value">' + escapeHtml(shiftStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="planning"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Settimana tipo</strong><small>Prepara il mese senza sovrascrivere dati</small></span><span class="settings-hub-value">' + escapeHtml(templateStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="timer"><span class="settings-v2-icon is-violet">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Timer turno</strong><small>Modalita alternativa per la Home</small></span><span class="settings-hub-value">' + timerStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong><small>Promemoria per registrare la giornata</small></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-onboarding="1"><span class="settings-v2-icon is-green">' + icons.check + '</span><span class="settings-v2-copy"><strong>Configurazione guidata</strong><small>Rivedi obiettivi, turno, ferie e promemoria</small></span><span class="settings-hub-value">3 passaggi</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="privacy"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Privacy e sicurezza</strong><small>Protezione quando riapri l&apos;app</small></span><span class="settings-hub-value">' + privacyStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
         '</section>' +
         '<div class="settings-v2-section-title">Dati e app</div>' +
@@ -2005,7 +2046,7 @@ function renderOverlayLegacy() {
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
         '<section class="screen exports-screen ' + (state.activeTab === 'exports' ? ('active' + switchClass) : '') + '">' + renderExports() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '');
+        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') + (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '');
       bindEvents();
       if (typeof bindAccountEvents === 'function') bindAccountEvents();
       initHomeTitleMorph();

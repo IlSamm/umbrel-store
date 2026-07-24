@@ -406,6 +406,7 @@ function getWeeklyReviewStorageKey(descriptor) {
 
 function maybeOpenWeeklyReview(referenceDate, forceOpen) {
   if (!state || !state.account || state.account.authenticated !== true || state.account.dataReady !== true) return false;
+  if (!forceOpen && state.settings && state.settings.smartReminderWeeklyReview === false) return false;
   if (state.weeklyReviewOpen || state.globalSearchOpen || state.editingDate || state.vacationManagerOpen || state.payslipEditorOpen || state.privacyLocked) return false;
   var descriptor = getWeeklyReviewDescriptor(referenceDate);
   if (!descriptor) return false;

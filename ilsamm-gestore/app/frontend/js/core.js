@@ -26,6 +26,7 @@ var errorBox = document.getElementById('errorBox');
     var serverSyncLastError = '';
     var serverSyncRetryTimer = 0;
     var serverSyncRetryAttempt = 0;
+    var serverSnapshotUpdatedAt = 0;
     var runtimeServicesStarted = false;
     var reminderTimer = 0;
     var reminderLastSentKey = '';
@@ -57,15 +58,20 @@ var errorBox = document.getElementById('errorBox');
       autoRestDays: [],
       holidayHoursOnOffDays: false,
       timerEnabled: false,
+      onboardingCompleted: false,
+      smartReminderMissingDays: true,
+      smartReminderWeeklyReview: true,
+      smartReminderPayslips: true,
       shiftPresets: [
         { id: 'standard', label: 'Standard', start: '08:00', end: '17:00', breakHours: 1 },
         { id: 'mattina', label: 'Mattina', start: '06:00', end: '14:00', breakHours: 0.5 },
         { id: 'pomeriggio', label: 'Pomeriggio', start: '14:00', end: '22:00', breakHours: 0.5 }
       ],
+      weeklyTemplate: [0, 0, 0, 0, 0, null, null],
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.142',
-      build: '20260724b',
+      version: '1.1.143',
+      build: '20260724c',
       appName: 'GestOre'
     };
 
@@ -235,7 +241,12 @@ var errorBox = document.getElementById('errorBox');
         normalizeWeekdayList(candidate.autoRestDays || []).join(',') === normalizeWeekdayList(defaultSettings.autoRestDays || []).join(',') &&
         Boolean(candidate.holidayHoursOnOffDays) === Boolean(defaultSettings.holidayHoursOnOffDays) &&
         Boolean(candidate.timerEnabled) === Boolean(defaultSettings.timerEnabled) &&
+        Boolean(candidate.onboardingCompleted) === Boolean(defaultSettings.onboardingCompleted) &&
+        Boolean(candidate.smartReminderMissingDays) === Boolean(defaultSettings.smartReminderMissingDays) &&
+        Boolean(candidate.smartReminderWeeklyReview) === Boolean(defaultSettings.smartReminderWeeklyReview) &&
+        Boolean(candidate.smartReminderPayslips) === Boolean(defaultSettings.smartReminderPayslips) &&
         JSON.stringify(candidate.shiftPresets || []) === JSON.stringify(defaultSettings.shiftPresets || []) &&
+        JSON.stringify(candidate.weeklyTemplate || []) === JSON.stringify(defaultSettings.weeklyTemplate || []) &&
         JSON.stringify(candidate.vacationAllowanceByYear || {}) === JSON.stringify(defaultSettings.vacationAllowanceByYear || {}) &&
         String(candidate.weekdayMode || '') === String(defaultSettings.weekdayMode || '') &&
         String(candidate.version || '') === String(defaultSettings.version || '') &&
@@ -363,6 +374,15 @@ var errorBox = document.getElementById('errorBox');
         };
       });
     }
+    function normalizeWeeklyTemplate(value) {
+      var source = Array.isArray(value) && value.length === 7 ? value : defaultSettings.weeklyTemplate;
+      return source.map(function (item) {
+        if (item === 'rest') return 'rest';
+        if (item === null || item === undefined || item === '') return null;
+        var index = Number(item);
+        return Number.isInteger(index) && index >= 0 && index < 4 ? index : null;
+      });
+    }
     function normalizeRuntimeSettings(source) {
       var raw = source && typeof source === 'object' ? source : {};
       var merged = Object.assign({}, defaultSettings, raw);
@@ -374,7 +394,12 @@ var errorBox = document.getElementById('errorBox');
       merged.autoRestDays = normalizeWeekdayList(merged.autoRestDays || []);
       merged.holidayHoursOnOffDays = Boolean(merged.holidayHoursOnOffDays);
       merged.timerEnabled = Boolean(merged.timerEnabled);
+      merged.onboardingCompleted = Boolean(merged.onboardingCompleted);
+      merged.smartReminderMissingDays = merged.smartReminderMissingDays !== false;
+      merged.smartReminderWeeklyReview = merged.smartReminderWeeklyReview !== false;
+      merged.smartReminderPayslips = merged.smartReminderPayslips !== false;
       merged.shiftPresets = normalizeShiftPresets(merged.shiftPresets);
+      merged.weeklyTemplate = normalizeWeeklyTemplate(merged.weeklyTemplate);
       var rawVacationAllowances = merged.vacationAllowanceByYear && typeof merged.vacationAllowanceByYear === 'object' && !Array.isArray(merged.vacationAllowanceByYear)
         ? merged.vacationAllowanceByYear
         : {};
@@ -392,6 +417,10 @@ var errorBox = document.getElementById('errorBox');
     function getShiftPresets(source) {
       var settingsSource = normalizeRuntimeSettings(source || (state && state.settings) || defaultSettings);
       return settingsSource.shiftPresets.map(function (item) { return Object.assign({}, item); });
+    }
+    function getWeeklyTemplate(source) {
+      var settingsSource = normalizeRuntimeSettings(source || (state && state.settings) || defaultSettings);
+      return settingsSource.weeklyTemplate.slice();
     }
     function getAutoRestDays(source) {
       var settingsSource = normalizeRuntimeSettings(source || (state && state.settings) || defaultSettings);
@@ -1336,6 +1365,7 @@ var errorBox = document.getElementById('errorBox');
         settings: state && state.settings && typeof state.settings === 'object' ? normalizeRuntimeSettings(state.settings) : {},
         payslips: payslips,
         payslipsDeferred: opts.includePayslipPhotos !== true,
+        baseUpdatedAt: Math.max(0, Number(serverSnapshotUpdatedAt) || 0),
         updatedAt: Date.now(),
         allowEmptyEntries: opts.allowEmptyEntries === true
       };
@@ -1496,6 +1526,10 @@ var errorBox = document.getElementById('errorBox');
         if (!response.ok) {
           var responseError = new Error(payload.error || 'Il server ha rifiutato il salvataggio.');
           responseError.status = response.status;
+          responseError.code = String(payload.code || '');
+          if (payload.serverSnapshot && typeof payload.serverSnapshot === 'object') {
+            responseError.serverSnapshot = normalizeServerSnapshot(payload.serverSnapshot);
+          }
           throw responseError;
         }
         if (opts.minimal === true) {
@@ -1503,15 +1537,50 @@ var errorBox = document.getElementById('errorBox');
           if (snapshot.payslipsDeferred !== true && Number(payload.payslips) !== (Array.isArray(snapshot.payslips) ? snapshot.payslips.length : 0)) {
             throw new Error('Il numero di buste nel database non coincide.');
           }
+          serverSnapshotUpdatedAt = Math.max(serverSnapshotUpdatedAt, Number(payload.updatedAt) || 0);
           return payload;
         }
-        return normalizeServerSnapshot(payload);
+        var normalizedPayload = normalizeServerSnapshot(payload);
+        serverSnapshotUpdatedAt = Math.max(serverSnapshotUpdatedAt, normalizedPayload.updatedAt);
+        return normalizedPayload;
       } catch (err) {
         if (err && err.name === 'AbortError') throw new Error('Il server sta impiegando troppo tempo. Riprova.');
         throw err;
       } finally {
         if (timeout) window.clearTimeout(timeout);
       }
+    }
+    async function pushSnapshotWithConflictRecovery(snapshot, options) {
+      var outgoing = snapshot && typeof snapshot === 'object' ? snapshot : buildStateSnapshot();
+      var opts = options || {};
+      for (var attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          return await pushSnapshotToServer(outgoing, opts);
+        } catch (err) {
+          if (!err || err.code !== 'snapshot_conflict' || !err.serverSnapshot || attempt > 0) throw err;
+          var serverSnapshot = normalizeServerSnapshot(err.serverSnapshot);
+          serverSnapshotUpdatedAt = serverSnapshot.updatedAt;
+          var latestLocal = buildStateSnapshot({
+            includePayslipPhotos: outgoing.payslipsDeferred !== true,
+            allowEmptyEntries: outgoing.allowEmptyEntries === true
+          });
+          var merged = mergePendingSnapshotWithServer(serverSnapshot, {
+            snapshot: latestLocal,
+            savedAt: Date.now(),
+            revision: serverSyncRevision
+          });
+          applySnapshotLocally(merged, { preserveLockState: true });
+          if (state) {
+            state.syncConflictNotice = 'Due dispositivi hanno salvato insieme: GestOre ha unito i dati senza eliminare le giornate presenti.';
+          }
+          setSyncStatus('Modifiche unite, conferma sul server', 0);
+          outgoing = buildStateSnapshot({
+            includePayslipPhotos: latestLocal.payslipsDeferred !== true,
+            allowEmptyEntries: latestLocal.allowEmptyEntries === true
+          });
+        }
+      }
+      throw new Error('Impossibile completare la sincronizzazione.');
     }
     async function syncStateToServer() {
       if (!serverSyncReady || serverSyncInFlight || !window.fetch) return false;
@@ -1527,7 +1596,7 @@ var errorBox = document.getElementById('errorBox');
         var outgoing = buildStateSnapshot({ allowEmptyEntries: allowEmptyEntries });
         state.syncPending = true;
         setSyncStatus('Salvataggio sul server', 0);
-        await pushSnapshotToServer(outgoing, { minimal: true });
+        await pushSnapshotWithConflictRecovery(outgoing, { minimal: true });
         // The compact ACK confirms SQLite without replacing newer in-memory edits.
         if (syncRevision === serverSyncRevision) {
           if (allowEmptyEntries) serverSyncAllowEmptyEntries = false;
@@ -1696,6 +1765,7 @@ var errorBox = document.getElementById('errorBox');
         }
         if (!response || bootstrapError) throw bootstrapError || new Error('Database del profilo non disponibile.');
         var serverSnapshot = normalizeServerSnapshot(await response.json());
+        serverSnapshotUpdatedAt = serverSnapshot.updatedAt;
         var localSnapshot = buildStateSnapshot({ includePayslipPhotos: true });
         var pendingRecord = readPendingSyncRecord();
         var localHasData = hasMeaningfulSnapshotData(localSnapshot);
@@ -1705,7 +1775,7 @@ var errorBox = document.getElementById('errorBox');
           var pendingMergedSnapshot = mergePendingSnapshotWithServer(serverSnapshot, pendingRecord);
           applySnapshotLocally(pendingMergedSnapshot, { preserveLockState: true });
           serverSyncRevision = Math.max(serverSyncRevision, pendingRecord.revision || 1);
-          await pushSnapshotToServer(
+          await pushSnapshotWithConflictRecovery(
             buildStateSnapshot({ allowEmptyEntries: pendingRecord.snapshot.allowEmptyEntries === true }),
             { minimal: true, timeoutMs: 30000 }
           );
@@ -1717,7 +1787,7 @@ var errorBox = document.getElementById('errorBox');
           var merged = mergeServerSnapshotWithDeviceCache(serverSnapshot, localSnapshot);
           applySnapshotLocally(merged.snapshot);
           if (merged.recoveredEntries || merged.recoveredPayslips) {
-            await pushSnapshotToServer(
+            await pushSnapshotWithConflictRecovery(
               buildStateSnapshot({ includePayslipPhotos: merged.recoveredPayslips }),
               { minimal: true, timeoutMs: 30000 }
             );
@@ -1726,7 +1796,7 @@ var errorBox = document.getElementById('errorBox');
             setSyncStatus('Dati ripristinati dal server', Date.now());
           }
         } else if (localHasData) {
-          await pushSnapshotToServer(localSnapshot, { minimal: true, timeoutMs: 30000 });
+          await pushSnapshotWithConflictRecovery(localSnapshot, { minimal: true, timeoutMs: 30000 });
           applySnapshotLocally(localSnapshot, { preserveLockState: true });
           if (pendingRecord) clearPendingSyncRecord(pendingRecord.revision);
           setSyncStatus('Dati recuperati dal dispositivo', Date.now());
@@ -1779,15 +1849,69 @@ var errorBox = document.getElementById('errorBox');
         reminderTimer = 0;
       }
     }
+    function getSmartReminderContent(referenceDate) {
+      var now = referenceDate instanceof Date ? new Date(referenceDate.getTime()) : new Date();
+      var settingsSource = state && state.settings ? state.settings : defaultSettings;
+      var weekday = now.getDay();
+
+      if (settingsSource.smartReminderWeeklyReview !== false && (weekday === 6 || weekday === 1)) {
+        var weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+        weekStart.setDate(weekStart.getDate() - mondayIndex(weekStart.getDay()));
+        if (weekday === 1) weekStart.setDate(weekStart.getDate() - 7);
+        var missingWeekDays = [];
+        for (var offset = 0; offset < 7; offset += 1) {
+          var weekDate = new Date(weekStart);
+          weekDate.setDate(weekStart.getDate() + offset);
+          if (!isConfiguredWorkday(weekDate, settingsSource)) continue;
+          if (!getEntryForDate(weekDate)) missingWeekDays.push(weekDate);
+        }
+        if (missingWeekDays.length) {
+          return {
+            kind: 'weekly',
+            title: 'Riepilogo settimanale',
+            body: missingWeekDays.length + (missingWeekDays.length === 1 ? ' giornata lavorativa da controllare.' : ' giornate lavorative da controllare.')
+          };
+        }
+      }
+
+      if (settingsSource.smartReminderMissingDays !== false && isConfiguredWorkday(now, settingsSource) && !getEntryForDate(now)) {
+        return {
+          kind: 'missing-day',
+          title: settingsSource.appName || 'GestOre',
+          body: 'La giornata di oggi non e ancora registrata.'
+        };
+      }
+
+      if (settingsSource.smartReminderPayslips !== false && now.getDate() >= 10) {
+        var previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        var payslipFound = (state && Array.isArray(state.payslips) ? state.payslips : []).some(function (item) {
+          return Number(item && item.year) === previousMonth.getFullYear() &&
+            Number(item && item.month) === previousMonth.getMonth() + 1;
+        });
+        if (!payslipFound) {
+          return {
+            kind: 'payslip',
+            title: 'Archivio buste paga',
+            body: 'La busta di ' + monthNames[previousMonth.getMonth()] + ' non e ancora presente.'
+          };
+        }
+      }
+      return null;
+    }
     function sendReminderNotification(source) {
       if (!('Notification' in window) || Notification.permission !== 'granted') return false;
       var reminderTime = getReminderTimeValue();
       if (!reminderTime) return false;
-      var reminderKey = toISODate(new Date()) + '|' + reminderTime;
+      var content = source === 'manual'
+        ? { kind: 'test', title: state.settings.appName, body: 'Notifiche attive. GestOre ti avvisera solo quando serve.' }
+        : getSmartReminderContent(new Date());
+      if (!content) return false;
+      var reminderKey = toISODate(new Date()) + '|' + reminderTime + '|' + content.kind;
       if (source !== 'manual' && reminderLastSentKey === reminderKey) return false;
       if (source !== 'manual') reminderLastSentKey = reminderKey;
-      new Notification(state.settings.appName, {
-        body: 'Promemoria alle ' + reminderTime + '. Apri GestOre e registra la giornata.'
+      new Notification(content.title || state.settings.appName, {
+        body: content.body,
+        tag: 'gestore-' + content.kind
       });
       return true;
     }
@@ -1809,7 +1933,7 @@ var errorBox = document.getElementById('errorBox');
       if (Notification.permission !== 'granted') return 'Serve il permesso notifiche per far partire il promemoria automatico.';
       var nextReminder = getNextReminderDate(new Date());
       if (!nextReminder) return 'Imposta un orario valido per il promemoria.';
-      return 'Prossimo promemoria alle ' + pad(nextReminder.getHours()) + ':' + pad(nextReminder.getMinutes()) + '. Funziona mentre GestOre resta aperta.';
+      return "Controllo alle " + pad(nextReminder.getHours()) + ':' + pad(nextReminder.getMinutes()) + ": la notifica appare solo se c'e qualcosa da completare.";
     }
     function unlockPrivacyScreen() {
       if (!state) return;
