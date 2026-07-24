@@ -70,8 +70,8 @@ var errorBox = document.getElementById('errorBox');
       weeklyTemplate: [0, 0, 0, 0, 0, null, null],
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.147',
-      build: '20260724g',
+      version: '1.1.148',
+      build: '20260724h',
       appName: 'GestOre'
     };
 

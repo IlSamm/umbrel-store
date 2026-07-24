@@ -648,7 +648,7 @@
   position: absolute;
   right: 12px;
   left: 12px;
-  z-index: 1;
+  z-index: 4;
   border-top: 1px dashed rgba(206, 187, 255, 0.62);
   pointer-events: none;
 }
@@ -661,6 +661,7 @@
   border: 1px solid rgba(160, 128, 255, 0.19);
   border-radius: 7px;
   background: rgba(8, 17, 39, 0.94);
+  box-shadow: 0 4px 12px rgba(1, 5, 17, 0.38);
   color: #cdbdff;
   font-size: 9px;
   line-height: 1;
