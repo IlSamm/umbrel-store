@@ -818,6 +818,13 @@ function renderAccountDataSettings() {
       : 'Misurazione del database personale');
   var backups = state.account.backups || {};
   var backupItems = Array.isArray(backups.items) ? backups.items : [];
+  var isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
+  var isSyncPending = Boolean(state.syncPending);
+  var syncHealthTone = !isOnline ? ' is-offline' : (isSyncPending ? ' is-pending' : ' is-synced');
+  var syncHealthTitle = !isOnline ? 'Connessione assente' : (isSyncPending ? 'Salvataggio in corso' : 'Database aggiornato');
+  var lastSyncLabel = state.lastSyncedAt
+    ? new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' }).format(new Date(state.lastSyncedAt))
+    : 'Non ancora';
   var backupList = backups.loading
     ? '<div class="account-versioned-empty">Carico i punti di ripristino...</div>'
     : (backups.error
@@ -835,8 +842,11 @@ function renderAccountDataSettings() {
     ? '<div class="account-settings-message is-error">' + escapeHtml(state.account.error) + '</div>'
     : (state.account.notice ? '<div class="account-settings-message">' + escapeHtml(state.account.notice) + '</div>' : '');
   return '<section class="account-current-card"><span>' + escapeHtml(initial) + '</span><div><small>ACCOUNT ATTIVO</small><strong>' + escapeHtml(username) + '</strong><p>Database personale collegato</p></div><i>' + icons.check + '</i></section>' +
-    '<div class="settings-v2-section-title">Sincronizzazione</div>' +
-    '<section class="settings-v2-group"><div class="settings-v2-sync-row"><span class="settings-v2-icon is-green">' + icons.check + '</span><span class="settings-v2-copy"><strong>Salvataggio automatico</strong><small>' + escapeHtml(getSyncStatusMessage()) + '</small></span><span>ATTIVO</span></div></section>' +
+    '<div class="settings-v2-section-title">Stato dei dati</div>' +
+    '<section class="account-sync-health' + syncHealthTone + '">' +
+      '<div class="account-sync-health-head"><span>' + (isOnline ? icons.cloud : icons.activity) + '</span><div><small>SINCRONIZZAZIONE</small><strong>' + syncHealthTitle + '</strong><p data-sync-status-label>' + escapeHtml(getSyncStatusMessage()) + '</p></div><b data-sync-status-state data-state="' + (isSyncPending ? 'pending' : (!isOnline ? 'offline' : 'synced')) + '">' + (isSyncPending ? 'IN ATTESA' : (!isOnline ? 'OFFLINE' : 'SALVATO')) + '</b></div>' +
+      '<div class="account-sync-health-grid"><div><span>Server</span><strong>' + (isOnline ? 'Online' : 'Offline') + '</strong></div><div><span>Ultimo invio</span><strong>' + escapeHtml(lastSyncLabel) + '</strong></div><div><span>Copie protette</span><strong>' + backupItems.length + '</strong></div></div>' +
+    '</section>' +
     '<div class="settings-v2-section-title">Spazio sul server</div>' +
     '<section class="account-storage-card"><span class="account-storage-icon">' + icons.receipt + '</span><div class="account-storage-copy"><small>SPAZIO TOTALE OCCUPATO</small><strong>' + storageValue + '</strong><p>' + storageMeta + (storage.loaded && storage.backups ? (' - ' + storage.backups + ' copie protette') : '') + '</p></div><button type="button" data-refresh-account-storage="1" aria-label="Aggiorna spazio database" ' + (storage.loading ? 'disabled' : '') + '>' + icons.activity + '<span>Aggiorna</span></button></section>' +
     '<div class="settings-v2-section-title">Punti di ripristino</div>' +

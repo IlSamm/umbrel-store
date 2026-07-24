@@ -242,9 +242,20 @@ function renderPayslipsLegacy() {
       var homeDayCard = state.settings.timerEnabled && typeof renderOptionalTimerHomeCard === 'function'
         ? renderOptionalTimerHomeCard(now)
         : standardHomeDayCard;
+      var homeShiftPresets = getShiftPresets();
+      var primaryShiftPreset = homeShiftPresets[0];
+      var primaryHomeAction = entry
+        ? '<button data-open-date="' + key + '"><span class="go-home-action-icon is-blue">' + icons.note + '</span><span><strong>Modifica oggi</strong><small>Aggiorna la giornata</small></span></button>'
+        : '<button data-home-shift-preset="0" data-home-shift-date="' + key + '"><span class="go-home-action-icon is-green">' + icons.clock + '</span><span><strong>' + escapeHtml(primaryShiftPreset.label) + '</strong><small>' + escapeHtml(primaryShiftPreset.start + ' - ' + primaryShiftPreset.end) + '</small></span></button>';
+      var homeQuickActions = '<section class="go-home-quick-actions" aria-label="Azioni rapide">' +
+        primaryHomeAction +
+        '<button data-home-quick-type="ferie" data-home-quick-date="' + key + '"><span class="go-home-action-icon is-violet">' + icons.umbrella + '</span><span><strong>Ferie</strong><small>Segna oggi</small></span></button>' +
+        '<button data-open-global-search="1"><span class="go-home-action-icon is-blue">' + icons.search + '</span><span><strong>Cerca</strong><small>Ore e buste</small></span></button>' +
+      '</section>';
       return '<div class="top home-top gestore-static-top go-home-logo"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></div>' +
         '<div class="stack home-stack go-home-stack">' +
           homeDayCard +
+          homeQuickActions +
           '<section class="go-card go-analytics-card go-analysis-card-v3 go-week-card">' +
             '<div class="go-card-head go-analysis-head-v3"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ritmo settimanale</div></div><div class="go-card-badge">' + weekPercentValue + '%</div></div>' +
             '<div class="go-week-summary-v3">' +
@@ -441,8 +452,32 @@ function renderCalendar() {
       var grid = buildMonthGrid(state.currentMonth);
       var stats = getMonthStats(state.currentMonth);
       var recordedDays = stats.workedDays + stats.ferie + stats.malattia + stats.permesso + (stats.festivitaPagata || 0) + stats.riposo;
+      var allowedFilters = ['all', 'work', 'absence', 'rest'];
+      var calendarFilter = allowedFilters.indexOf(state.calendarFilter) !== -1 ? state.calendarFilter : 'all';
+      var getCalendarEntryGroup = function (entry) {
+        if (!entry) return '';
+        if (entry.type === 'lavoro' || entry.type === 'lavoro_ferie') return 'work';
+        if (entry.type === 'ferie' || entry.type === 'malattia' || entry.type === 'permesso') return 'absence';
+        if (entry.type === 'riposo' || entry.type === 'festivita_pagata') return 'rest';
+        return '';
+      };
+      var filterCounts = getMonthEntries(state.currentMonth).reduce(function (counts, pair) {
+        var group = getCalendarEntryGroup(pair[1]);
+        counts.all += 1;
+        if (group) counts[group] += 1;
+        return counts;
+      }, { all: 0, work: 0, absence: 0, rest: 0 });
+      var calendarFilterHtml = [
+        { key: 'all', label: 'Tutti' },
+        { key: 'work', label: 'Lavoro' },
+        { key: 'absence', label: 'Assenze' },
+        { key: 'rest', label: 'Riposi' }
+      ].map(function (item) {
+        return '<button data-calendar-filter="' + item.key + '" class="' + (calendarFilter === item.key ? 'is-active' : '') + '" aria-pressed="' + (calendarFilter === item.key ? 'true' : 'false') + '"><span>' + item.label + '</span><strong>' + filterCounts[item.key] + '</strong></button>';
+      }).join('');
       return '<div class="month-page-top"><div><span>GESTIONE MENSILE</span><h1>Calendario</h1></div><div class="month-page-switch"><button data-calendar-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-calendar-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
         '<div class="stack">' +
+          '<div class="calendar-filter-bar" role="group" aria-label="Filtra giornate">' + calendarFilterHtml + '</div>' +
           '<div class="card calendar-month-card"><div class="card-body compact">' +
             '<div class="week-grid">' + weekNames.map(function (n) { return '<div class="weekday">' + n + '</div>'; }).join('') + '</div>' +
             '<div class="calendar-grid">' + grid.map(function (date) {
@@ -450,7 +485,9 @@ function renderCalendar() {
               var entry = getEntryForDate(date);
               var isCurrent = date.getMonth() === state.currentMonth.getMonth();
               var isToday = key === todayKey;
-              return '<button class="cell ' + (!isCurrent ? 'out' : '') + ' ' + (isToday ? 'today' : '') + '" data-open-date="' + key + '"><span>' + date.getDate() + '</span>' + (entry ? ('<span class="dot" style="background:' + ((dayTypes[entry.type] && dayTypes[entry.type].dot) ? dayTypes[entry.type].dot : '#a78bfa') + ';"></span>') : '') + '</button>';
+              var entryGroup = getCalendarEntryGroup(entry);
+              var isFilteredOut = entry && calendarFilter !== 'all' && entryGroup !== calendarFilter;
+              return '<button class="cell ' + (!isCurrent ? 'out' : '') + ' ' + (isToday ? 'today' : '') + ' ' + (isFilteredOut ? 'is-filtered-out' : '') + '" data-open-date="' + key + '"><span>' + date.getDate() + '</span>' + (entry ? ('<span class="dot" style="background:' + ((dayTypes[entry.type] && dayTypes[entry.type].dot) ? dayTypes[entry.type].dot : '#a78bfa') + ';"></span>') : '') + '</button>';
             }).join('') + '</div>' +
           '</div></div>' +
           '<div class="card"><div class="card-body"><div class="two">' +
@@ -635,6 +672,24 @@ function renderCalendar() {
         '</button>';
       }).join('');
       var status = state.vacationStatus ? '<div class="vacation-page-status">' + escapeHtml(state.vacationStatus) + '</div>' : '';
+      var todayKey = toISODate(new Date());
+      var plannedMinutes = details.reduce(function (total, item) {
+        return total + (item.key > todayKey ? item.minutes : 0);
+      }, 0);
+      var usedToDateMinutes = Math.max(0, balance.usedMinutes - plannedMinutes);
+      var allowanceMinutes = balance.allowanceDays * balance.dailyMinutes;
+      var availableTodayDays = hasAllowance ? ((allowanceMinutes - usedToDateMinutes) / balance.dailyMinutes) : 0;
+      var plannedDays = plannedMinutes / balance.dailyMinutes;
+      var projectedDays = hasAllowance ? ((allowanceMinutes - balance.usedMinutes) / balance.dailyMinutes) : 0;
+      var forecastTone = projectedDays < 0 ? ' is-warning' : '';
+      var vacationForecast = '<section class="vacation-forecast-card' + forecastTone + '">' +
+        '<div class="vacation-forecast-head"><span>' + icons.activity + '</span><div><small>PREVISIONE</small><strong>Come cambia il tuo saldo</strong></div></div>' +
+        '<div class="vacation-forecast-grid">' +
+          '<div><span>Disponibili oggi</span><strong>' + (hasAllowance ? formatVacationDayValue(availableTodayDays) + ' gg' : '--') + '</strong><small>Senza le ferie future</small></div>' +
+          '<div><span>Gia programmate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong><small>' + (plannedMinutes ? formatDuration(plannedMinutes) : 'Nessun periodo futuro') + '</small></div>' +
+          '<div><span>Saldo previsto</span><strong>' + (hasAllowance ? formatVacationDayValue(projectedDays) + ' gg' : '--') + '</strong><small>' + (hasAllowance ? (projectedDays < 0 ? 'Oltre la disponibilita' : 'Dopo i periodi inseriti') : 'Imposta prima il totale') + '</small></div>' +
+        '</div>' +
+      '</section>';
       return '<div class="vacation-page">' +
         '<div class="vacation-page-top"><div><span>GESTIONE ANNUALE</span><h1>Ferie</h1></div><div class="vacation-year-switch"><button data-vacation-year-prev="1" aria-label="Anno precedente">' + icons.left + '</button><strong>' + year + '</strong><button data-vacation-year-next="1" aria-label="Anno successivo">' + icons.right + '</button></div></div>' +
         '<section class="vacation-page-hero' + (over ? ' is-over' : '') + '">' +
@@ -644,6 +699,7 @@ function renderCalendar() {
           '<button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><div><strong>Gestisci disponibilita</strong><small>Modifica il totale annuale</small></div>' + icons.right + '</button>' +
           status +
         '</section>' +
+        vacationForecast +
         '<button class="vacation-page-action" data-open-vacation-range="' + year + '"><span class="vacation-page-action-icon">' + icons.umbrella + '</span><span><span>NUOVO PERIODO</span><strong>Inserisci le ferie</strong><small>Scegli le date e controlla subito i giorni conteggiati</small></span><span class="vacation-page-action-arrow">' + icons.right + '</span></button>' +
         '<div class="vacation-page-section-head"><div><span>STORICO</span><h2>Ferie utilizzate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
         '<section class="vacation-page-history">' + (recentRows || '<div class="vacation-page-empty"><span>' + icons.calendar + '</span><strong>Nessuna ferie registrata</strong><small>Quando inserisci una giornata, la ritroverai qui.</small></div>') + '</section>' +
@@ -924,6 +980,23 @@ function renderCalendar() {
       '</section>';
     }
 
+    function renderStatsNarrative(totalMinutes, previousMinutes, averageMinutes, overtimeMinutes, periodLabel) {
+      if (!totalMinutes) {
+        return '<section class="analytics-narrative is-empty"><span>' + icons.activity + '</span><div><small>LETTURA RAPIDA</small><strong>Il periodo e pronto</strong><p>Inserisci le giornate e GestOre trasformera automaticamente i dati in un riepilogo leggibile.</p></div></section>';
+      }
+      var delta = totalMinutes - previousMinutes;
+      var deltaCopy = delta === 0
+        ? 'in linea con il periodo precedente'
+        : ((delta > 0 ? '+' : '-') + formatDuration(Math.abs(delta)) + ' rispetto al periodo precedente');
+      var overtimeShare = Math.round((Math.max(0, overtimeMinutes) / Math.max(1, totalMinutes)) * 100);
+      var overtimeCopy = overtimeShare
+        ? (overtimeShare + '% delle ore e straordinario')
+        : 'nessuna ora straordinaria';
+      return '<section class="analytics-narrative' + (delta > 0 ? ' is-positive' : (delta < 0 ? ' is-negative' : '')) + '">' +
+        '<span>' + (delta >= 0 ? icons.arrowUp : icons.activity) + '</span><div><small>LETTURA RAPIDA</small><strong>' + escapeHtml(periodLabel) + ': ' + formatDuration(totalMinutes) + '</strong><p>Media ' + (averageMinutes ? formatDuration(averageMinutes) : '--') + ', ' + deltaCopy + '; ' + overtimeCopy + '.</p></div>' +
+      '</section>';
+    }
+
     function renderStatsMonth() {
       var date = state.currentMonth;
       var stats = getMonthStats(date);
@@ -967,6 +1040,7 @@ function renderCalendar() {
         overtime: stats.overtimeMinutes,
         workedDays: stats.workedDays
       }) +
+      renderStatsNarrative(stats.totalMinutes, previousStats.totalMinutes, average, stats.overtimeMinutes, monthNames[date.getMonth()]) +
       '<section class="analytics-card analytics-chart-card">' +
         '<div class="analytics-card-head"><div><span>ANDAMENTO GIORNALIERO</span><h3>Ore lavorate ogni giorno</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
         '<div class="analytics-chart-wrap">' + buildStatsDailyChart(dailySeries) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico si riempie quando inserisci le giornate.</span></div>') + '</div>' +
@@ -1023,6 +1097,7 @@ function renderCalendar() {
         overtime: stats.overtimeMinutes,
         workedDays: stats.workedDays
       }) +
+      renderStatsNarrative(stats.totalMinutes, previousStats.totalMinutes, averageMonth, stats.overtimeMinutes, String(year)) +
       '<section class="analytics-card analytics-chart-card">' +
         '<div class="analytics-card-head"><div><span>ANDAMENTO ANNUALE</span><h3>Ore mese per mese</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
         '<div class="analytics-chart-wrap">' + buildStatsYearChart(summaries, targetMinutes) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico annuale si aggiorna automaticamente.</span></div>') + '</div>' +
@@ -1106,6 +1181,13 @@ function renderOverlayLegacy() {
       var isMixed = isMixedType(d.type);
       var holidayName = d.type === 'festivita_pagata' ? getHolidayDisplayName(d, date) : '';
       var editorDateLabel = label + ' ' + date.getDate() + ' ' + monthNames[date.getMonth()] + ' ' + date.getFullYear();
+      var editorShiftPresets = getShiftPresets();
+      var editorShiftPresetsHtml = editorShiftPresets.map(function (preset, index) {
+        var isActive = normalizeTimeInputValue(d.start || '') === preset.start &&
+          normalizeTimeInputValue(d.end || '') === preset.end &&
+          Math.abs(parseDecimalInput(d.breakHours || 0, 0) - preset.breakHours) < 0.01;
+        return '<button type="button" data-apply-shift-preset="' + index + '" class="' + (isActive ? 'is-active' : '') + '" aria-pressed="' + (isActive ? 'true' : 'false') + '"><strong>' + escapeHtml(preset.label) + '</strong><small>' + escapeHtml(preset.start + ' - ' + preset.end) + '</small></button>';
+      }).join('');
       var typeSubtitle = 'Giornata lavorativa';
       if (d.type === 'lavoro_ferie') typeSubtitle = 'Lavoro con ore di ferie';
       if (d.type === 'ferie') typeSubtitle = 'Giornata di ferie';
@@ -1135,7 +1217,7 @@ function renderOverlayLegacy() {
       } else if (isStateOnly) {
         dynamicSections = '<section class="day-editor-card day-editor-quantity-card"><div class="day-editor-kicker">QUANTITA</div><div class="day-editor-quantity-row"><span class="day-editor-round-icon is-blue">' + icons.clock + '</span><div class="day-editor-quantity-copy"><strong>' + getEditorQuantityLabel(d.type) + '</strong><small>' + getEditorQuantityHint(d.type) + '</small></div><div class="day-editor-number-field"><input id="editorQuantityHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.quantityHours || 0) + '" aria-label="' + getEditorQuantityLabel(d.type) + '"><span>h</span></div></div></section>';
       } else {
-        dynamicSections = '<section class="day-editor-card day-editor-schedule-card"><div class="day-editor-kicker">ORARIO</div><div class="day-editor-time-grid">' +
+        dynamicSections = '<section class="day-editor-card day-editor-schedule-card"><div class="day-editor-kicker">ORARIO</div><div class="day-editor-shift-presets" aria-label="Turni rapidi">' + editorShiftPresetsHtml + '</div><div class="day-editor-time-grid">' +
           '<label class="time-box day-editor-time-field ' + (normalizeTimeInputValue(d.start || '') ? 'has-time' : 'empty-time') + '"><span class="day-editor-round-icon is-green">' + icons.right + '</span><span class="day-editor-time-label">Entrata</span><span class="time-field"><input id="editorStart" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.start || '') + '" aria-label="Orario di entrata"><span class="time-placeholder" aria-hidden="true">--:--</span></span></label>' +
           '<label class="time-box day-editor-time-field ' + (normalizeTimeInputValue(d.end || '') ? 'has-time' : 'empty-time') + '"><span class="day-editor-round-icon is-violet">' + icons.left + '</span><span class="day-editor-time-label">Uscita</span><span class="time-field"><input id="editorEnd" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.end || '') + '" aria-label="Orario di uscita"><span class="time-placeholder" aria-hidden="true">--:--</span></span></label>' +
         '</div><div class="day-editor-inline-row"><span class="day-editor-round-icon is-blue">' + icons.clock + '</span><div class="day-editor-inline-copy"><strong>Pausa</strong><small>Durata non lavorata</small></div><div class="day-editor-stepper"><button type="button" data-adjust-editor-hours="breakHours" data-editor-delta="-0.5" aria-label="Riduci pausa">-</button><div class="day-editor-step-value"><input id="editorBreakHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.breakHours || 0) + '" aria-label="Ore di pausa"><span>h</span></div><button type="button" data-adjust-editor-hours="breakHours" data-editor-delta="0.5" aria-label="Aumenta pausa">+</button></div></div>' +
@@ -1756,6 +1838,8 @@ function renderOverlayLegacy() {
       var reminderStatus = state.settings.remindersEnabled ? ('Attivo alle ' + state.settings.reminderTime) : 'Disattivato';
       var privacyStatus = state.settings.lockApp ? 'Attiva' : 'Disattivata';
       var timerStatus = state.settings.timerEnabled ? 'Attivo' : 'Disattivato';
+      var shiftPresets = getShiftPresets(state.settingsDraft);
+      var shiftStatus = shiftPresets.length + (shiftPresets.length === 1 ? ' turno' : ' turni');
       var targetStatus = (Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h al giorno';
       var topBar = function (title, isDetail) {
         return '<div class="settings-v2-top"><button ' + (isDetail ? 'data-back-settings="1"' : 'data-back-profile="1"') + ' aria-label="Torna al profilo">' + icons.left + '</button><div><span>IMPOSTAZIONI</span><h1>' + title + '</h1></div><i></i></div>';
@@ -1829,6 +1913,26 @@ function renderOverlayLegacy() {
         '</div>';
       }
 
+      if (section === 'shifts') {
+        var shiftCards = shiftPresets.map(function (preset, index) {
+          return '<section class="shift-preset-settings-card">' +
+            '<div class="shift-preset-settings-head"><span>' + icons.clock + '</span><label><small>NOME TURNO</small><input type="text" maxlength="18" value="' + escapeHtml(preset.label) + '" data-shift-preset-label="' + index + '" aria-label="Nome turno ' + (index + 1) + '"></label><b>' + (index + 1) + '</b></div>' +
+            '<div class="shift-preset-settings-fields">' +
+              '<label><span>ENTRATA</span><input type="time" value="' + escapeHtml(preset.start) + '" data-shift-preset-start="' + index + '"></label>' +
+              '<label><span>USCITA</span><input type="time" value="' + escapeHtml(preset.end) + '" data-shift-preset-end="' + index + '"></label>' +
+              '<label><span>PAUSA</span><div><input type="number" inputmode="decimal" min="0" max="12" step="0.25" value="' + escapeHtml(String(preset.breakHours)) + '" data-shift-preset-break="' + index + '"><b>h</b></div></label>' +
+            '</div>' +
+          '</section>';
+        }).join('');
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page shift-settings-page">' +
+          topBar('Turni rapidi', true) +
+          intro('green', icons.clock, 'SCORCIATOIE', 'I tuoi orari abituali', 'Configura i modelli che trovi nella Home e nella schermata Inserisci giornata.') +
+          '<div class="settings-v2-section-title">Modelli disponibili</div>' +
+          '<div class="shift-preset-settings-list">' + shiftCards + '</div>' +
+          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>Applicare un turno compila entrata, uscita e pausa. Puoi sempre correggere i valori prima o dopo.</p></div>' +
+        '</div>';
+      }
+
       if (section === 'data') {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
           topBar('Account e backup', true) +
@@ -1853,6 +1957,7 @@ function renderOverlayLegacy() {
         '<section class="settings-hub-group">' +
           '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong><small>Nome, target giornaliero e settimanale</small></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="calendar"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Calendario di lavoro</strong><small>Giorni attivi, riposi e festivit&agrave;</small></span><span class="settings-hub-value">' + workdays.length + ' giorni</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="shifts"><span class="settings-v2-icon is-green">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Turni rapidi</strong><small>Orari e pause che usi pi&ugrave; spesso</small></span><span class="settings-hub-value">' + escapeHtml(shiftStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="timer"><span class="settings-v2-icon is-violet">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Timer turno</strong><small>Modalita alternativa per la Home</small></span><span class="settings-hub-value">' + timerStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong><small>Promemoria per registrare la giornata</small></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="privacy"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Privacy e sicurezza</strong><small>Protezione quando riapri l&apos;app</small></span><span class="settings-hub-value">' + privacyStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +

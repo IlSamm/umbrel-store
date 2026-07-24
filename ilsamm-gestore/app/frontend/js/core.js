@@ -57,10 +57,15 @@ var errorBox = document.getElementById('errorBox');
       autoRestDays: [],
       holidayHoursOnOffDays: false,
       timerEnabled: false,
+      shiftPresets: [
+        { id: 'standard', label: 'Standard', start: '08:00', end: '17:00', breakHours: 1 },
+        { id: 'mattina', label: 'Mattina', start: '06:00', end: '14:00', breakHours: 0.5 },
+        { id: 'pomeriggio', label: 'Pomeriggio', start: '14:00', end: '22:00', breakHours: 0.5 }
+      ],
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.141',
-      build: '20260724a',
+      version: '1.1.142',
+      build: '20260724b',
       appName: 'GestOre'
     };
 
@@ -230,6 +235,7 @@ var errorBox = document.getElementById('errorBox');
         normalizeWeekdayList(candidate.autoRestDays || []).join(',') === normalizeWeekdayList(defaultSettings.autoRestDays || []).join(',') &&
         Boolean(candidate.holidayHoursOnOffDays) === Boolean(defaultSettings.holidayHoursOnOffDays) &&
         Boolean(candidate.timerEnabled) === Boolean(defaultSettings.timerEnabled) &&
+        JSON.stringify(candidate.shiftPresets || []) === JSON.stringify(defaultSettings.shiftPresets || []) &&
         JSON.stringify(candidate.vacationAllowanceByYear || {}) === JSON.stringify(defaultSettings.vacationAllowanceByYear || {}) &&
         String(candidate.weekdayMode || '') === String(defaultSettings.weekdayMode || '') &&
         String(candidate.version || '') === String(defaultSettings.version || '') &&
@@ -332,6 +338,31 @@ var errorBox = document.getElementById('errorBox');
       var workdaySignature = normalizeWeekdayList(source.workdays || []).join(',');
       return workdaySignature === '1,2,3,4,5' || workdaySignature === '1,2,3,4,5,6';
     }
+    function normalizeShiftPresetTime(value, fallback) {
+      var match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return fallback;
+      var hours = Number(match[1]);
+      var minutes = Number(match[2]);
+      if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return fallback;
+      return pad(hours) + ':' + pad(minutes);
+    }
+    function normalizeShiftPresets(value) {
+      var source = Array.isArray(value) && value.length ? value : defaultSettings.shiftPresets;
+      return source.slice(0, 4).map(function (item, index) {
+        var fallback = defaultSettings.shiftPresets[index] || defaultSettings.shiftPresets[0];
+        var current = item && typeof item === 'object' ? item : {};
+        var label = String(current.label || fallback.label || ('Turno ' + (index + 1))).trim().slice(0, 18);
+        var breakHours = Number(current.breakHours);
+        if (!Number.isFinite(breakHours)) breakHours = Number(fallback.breakHours) || 0;
+        return {
+          id: String(current.id || fallback.id || ('turno-' + (index + 1))).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || ('turno-' + (index + 1)),
+          label: label || ('Turno ' + (index + 1)),
+          start: normalizeShiftPresetTime(current.start, fallback.start || '08:00'),
+          end: normalizeShiftPresetTime(current.end, fallback.end || '17:00'),
+          breakHours: Math.min(12, Math.max(0, Math.round(breakHours * 4) / 4))
+        };
+      });
+    }
     function normalizeRuntimeSettings(source) {
       var raw = source && typeof source === 'object' ? source : {};
       var merged = Object.assign({}, defaultSettings, raw);
@@ -343,6 +374,7 @@ var errorBox = document.getElementById('errorBox');
       merged.autoRestDays = normalizeWeekdayList(merged.autoRestDays || []);
       merged.holidayHoursOnOffDays = Boolean(merged.holidayHoursOnOffDays);
       merged.timerEnabled = Boolean(merged.timerEnabled);
+      merged.shiftPresets = normalizeShiftPresets(merged.shiftPresets);
       var rawVacationAllowances = merged.vacationAllowanceByYear && typeof merged.vacationAllowanceByYear === 'object' && !Array.isArray(merged.vacationAllowanceByYear)
         ? merged.vacationAllowanceByYear
         : {};
@@ -356,6 +388,10 @@ var errorBox = document.getElementById('errorBox');
       merged.version = defaultSettings.version;
       merged.build = defaultSettings.build;
       return merged;
+    }
+    function getShiftPresets(source) {
+      var settingsSource = normalizeRuntimeSettings(source || (state && state.settings) || defaultSettings);
+      return settingsSource.shiftPresets.map(function (item) { return Object.assign({}, item); });
     }
     function getAutoRestDays(source) {
       var settingsSource = normalizeRuntimeSettings(source || (state && state.settings) || defaultSettings);

@@ -42,6 +42,7 @@ var state = {
       settingsDraft: {},
       currentMonth: new Date(),
       statsRange: 'month',
+      calendarFilter: 'all',
       editingDate: null,
       draft: null,
       typeOpen: false,

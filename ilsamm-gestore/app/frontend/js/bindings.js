@@ -335,7 +335,7 @@ function bindEvents() {
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
           var section = btn.dataset.openSettingsSection;
-          if (['profile', 'calendar', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
+          if (['profile', 'calendar', 'shifts', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
           state.settingsSection = section;
           render();
         };
@@ -349,6 +349,16 @@ function bindEvents() {
       });
       document.querySelectorAll('[data-open-date]').forEach(function (btn) {
         btn.onclick = function () { openEditor(new Date(btn.dataset.openDate + 'T12:00:00')); };
+      });
+      document.querySelectorAll('[data-home-quick-type]').forEach(function (btn) {
+        btn.onclick = function () {
+          openEditorWithType(new Date(btn.dataset.homeQuickDate + 'T12:00:00'), btn.dataset.homeQuickType);
+        };
+      });
+      document.querySelectorAll('[data-home-shift-preset]').forEach(function (btn) {
+        btn.onclick = function () {
+          openEditorWithPreset(new Date(btn.dataset.homeShiftDate + 'T12:00:00'), Number(btn.dataset.homeShiftPreset));
+        };
       });
       var unlockBtn = document.querySelector('[data-unlock-app]');
       if (unlockBtn) unlockBtn.onclick = unlockPrivacyScreen;
@@ -623,6 +633,14 @@ function bindEvents() {
       if (calPrev) calPrev.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1); render(); };
       var calNext = document.querySelector('[data-calendar-next]');
       if (calNext) calNext.onclick = function () { state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1); render(); };
+      document.querySelectorAll('[data-calendar-filter]').forEach(function (btn) {
+        btn.onclick = function () {
+          var nextFilter = btn.dataset.calendarFilter;
+          if (['all', 'work', 'absence', 'rest'].indexOf(nextFilter) === -1) return;
+          state.calendarFilter = nextFilter;
+          render();
+        };
+      });
       var stPrev = document.querySelector('[data-stats-prev]');
       if (stPrev) stPrev.onclick = function () {
         var step = state.statsRange === 'year' ? -12 : -1;
@@ -819,6 +837,36 @@ function bindEvents() {
         state.settingsDraft.dailyTarget = Number(e.target.value) || 0;
         queueSettingsAutosave(120);
       };
+      var updateShiftPresetDraft = function (index, key, value) {
+        var presets = getShiftPresets(state.settingsDraft);
+        if (!presets[index]) return;
+        presets[index][key] = value;
+        state.settingsDraft.shiftPresets = presets;
+      };
+      document.querySelectorAll('[data-shift-preset-label]').forEach(function (input) {
+        input.oninput = function (event) {
+          updateShiftPresetDraft(Number(input.dataset.shiftPresetLabel), 'label', String(event.target.value || '').slice(0, 18));
+          queueSettingsAutosave(220);
+        };
+      });
+      document.querySelectorAll('[data-shift-preset-start]').forEach(function (input) {
+        input.onchange = function (event) {
+          updateShiftPresetDraft(Number(input.dataset.shiftPresetStart), 'start', event.target.value);
+          queueSettingsAutosave(80);
+        };
+      });
+      document.querySelectorAll('[data-shift-preset-end]').forEach(function (input) {
+        input.onchange = function (event) {
+          updateShiftPresetDraft(Number(input.dataset.shiftPresetEnd), 'end', event.target.value);
+          queueSettingsAutosave(80);
+        };
+      });
+      document.querySelectorAll('[data-shift-preset-break]').forEach(function (input) {
+        input.oninput = function (event) {
+          updateShiftPresetDraft(Number(input.dataset.shiftPresetBreak), 'breakHours', parseDecimalInput(event.target.value, 0));
+          queueSettingsAutosave(140);
+        };
+      });
       var holidayOffDaysToggle = document.querySelector('[data-toggle-holiday-offdays]');
       if (holidayOffDaysToggle) holidayOffDaysToggle.onclick = function () {
         state.settingsDraft.holidayHoursOnOffDays = !Boolean(state.settingsDraft.holidayHoursOnOffDays);
@@ -1009,41 +1057,11 @@ function bindEvents() {
 
       document.querySelectorAll('[data-select-type]').forEach(function (btn) {
         btn.onclick = function () {
-          if (!state.draft) return;
-          var nextType = btn.dataset.selectType;
-          state.draft.type = nextType;
-          if (nextType === 'riposo') {
-            state.draft.start = '';
-            state.draft.end = '';
-            state.draft.breakHours = 0;
-            state.draft.overtimeHours = 0;
-            state.draft.overtimeManual = false;
-            state.draft.leaveHours = 0;
-            state.draft.quantityHours = 0;
-            delete state.draft.holidayName;
-          } else if (isStateOnlyType(nextType)) {
-            state.draft.start = '';
-            state.draft.end = '';
-            state.draft.breakHours = 0;
-            state.draft.overtimeHours = 0;
-            state.draft.overtimeManual = false;
-            state.draft.leaveHours = 0;
-            if (nextType === 'festivita_pagata') {
-              state.draft.quantityHours = getAutoHolidayHours(state.editingDate || new Date());
-              var holidayInfo = state.editingDate ? getItalianHolidayInfo(state.editingDate) : null;
-              state.draft.holidayName = holidayInfo && holidayInfo.name ? holidayInfo.name : (state.draft.holidayName || '');
-            } else {
-              delete state.draft.holidayName;
-            }
-          } else {
-            state.draft.quantityHours = 0;
-            delete state.draft.holidayName;
-            if (!state.draft.overtimeManual) state.draft.overtimeHours = minutesToHours(getAutoOvertimeMinutes(state.draft));
-          }
-          state.typeOpen = false;
-          scheduleEditorAutosave();
-          render();
+          applyEditorDayType(btn.dataset.selectType);
         };
+      });
+      document.querySelectorAll('[data-apply-shift-preset]').forEach(function (btn) {
+        btn.onclick = function () { applyShiftPresetToEditor(Number(btn.dataset.applyShiftPreset)); };
       });
       var toggleType = document.querySelector('[data-toggle-type-open]');
       if (toggleType) toggleType.onclick = function () { state.typeOpen = !state.typeOpen; render(); };

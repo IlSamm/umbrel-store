@@ -26,6 +26,66 @@ var editorAutosaveTimer = 0;
       document.body.classList.add('editor-open');
       render();
     }
+    function applyEditorDayType(nextType) {
+      if (!state.draft || !dayTypes[nextType]) return;
+      state.draft.type = nextType;
+      if (nextType === 'riposo') {
+        state.draft.start = '';
+        state.draft.end = '';
+        state.draft.breakHours = 0;
+        state.draft.overtimeHours = 0;
+        state.draft.overtimeManual = false;
+        state.draft.leaveHours = 0;
+        state.draft.quantityHours = 0;
+        delete state.draft.holidayName;
+      } else if (isStateOnlyType(nextType)) {
+        state.draft.start = '';
+        state.draft.end = '';
+        state.draft.breakHours = 0;
+        state.draft.overtimeHours = 0;
+        state.draft.overtimeManual = false;
+        state.draft.leaveHours = 0;
+        if (nextType === 'festivita_pagata') {
+          state.draft.quantityHours = getAutoHolidayHours(state.editingDate || new Date());
+          var holidayInfo = state.editingDate ? getItalianHolidayInfo(state.editingDate) : null;
+          state.draft.holidayName = holidayInfo && holidayInfo.name ? holidayInfo.name : (state.draft.holidayName || '');
+        } else {
+          if (parseDecimalInput(state.draft.quantityHours, 0) <= 0) state.draft.quantityHours = getDefaultPaidDayHours();
+          delete state.draft.holidayName;
+        }
+      } else {
+        state.draft.quantityHours = 0;
+        delete state.draft.holidayName;
+        if (!state.draft.overtimeManual) state.draft.overtimeHours = minutesToHours(getAutoOvertimeMinutes(state.draft));
+      }
+      state.typeOpen = false;
+      scheduleEditorAutosave();
+      render();
+    }
+    function applyShiftPresetToEditor(index) {
+      if (!state.draft) return;
+      var presets = getShiftPresets();
+      var preset = presets[Number(index)];
+      if (!preset) return;
+      if (isStateOnlyType(state.draft.type) || state.draft.type === 'riposo') state.draft.type = 'lavoro';
+      state.draft.start = preset.start;
+      state.draft.end = preset.end;
+      state.draft.breakHours = preset.breakHours;
+      state.draft.quantityHours = 0;
+      state.draft.overtimeManual = false;
+      state.draft.overtimeHours = minutesToHours(getAutoOvertimeMinutes(state.draft));
+      delete state.draft.holidayName;
+      scheduleEditorAutosave();
+      render();
+    }
+    function openEditorWithType(date, type) {
+      openEditor(date);
+      applyEditorDayType(type);
+    }
+    function openEditorWithPreset(date, index) {
+      openEditor(date);
+      applyShiftPresetToEditor(index);
+    }
     function closeEditor(options) {
       var opts = options && typeof options === 'object' ? options : {};
       if (opts.skipAutosave) {
