@@ -195,6 +195,50 @@
   background: rgba(26, 151, 118, .1);
 }
 
+.calendar-advanced-link {
+  display: grid;
+  width: 100%;
+  min-height: 54px;
+  grid-template-columns: 30px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  color: rgba(203, 216, 246, .68);
+  text-align: left;
+  border: 1px solid rgba(113, 143, 207, .13);
+  border-radius: 18px;
+  background: rgba(8, 15, 35, .48);
+}
+
+.calendar-advanced-link > svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.calendar-advanced-link > svg:last-child {
+  width: 15px;
+  color: rgba(180, 197, 232, .38);
+}
+
+.calendar-advanced-link > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.calendar-advanced-link strong {
+  color: rgba(233, 239, 255, .84);
+  font-size: 11px;
+}
+
+.calendar-advanced-link small {
+  color: rgba(170, 187, 222, .48);
+  font-size: 8px;
+}
+
 .calendar-grid .cell.is-selected {
   color: #fff;
   background: linear-gradient(145deg, rgba(48, 139, 255, .54), rgba(132, 76, 245, .52));
@@ -324,6 +368,86 @@
     radial-gradient(circle at 15% 0, rgba(67, 136, 255, .18), transparent 34%),
     linear-gradient(155deg, #142347, #080f25 60%, #080c1d);
   box-shadow: 0 30px 70px rgba(0, 3, 16, .6), inset 0 1px rgba(255, 255, 255, .07);
+}
+
+.calendar-actions-dialog {
+  max-width: 360px;
+}
+
+.calendar-actions-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 17px;
+}
+
+.calendar-actions-list > button {
+  display: grid;
+  width: 100%;
+  min-height: 67px;
+  grid-template-columns: 39px minmax(0, 1fr) 17px;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  color: #fff;
+  text-align: left;
+  border: 1px solid rgba(120, 150, 218, .14);
+  border-radius: 18px;
+  background: rgba(8, 16, 38, .58);
+}
+
+.calendar-actions-list > button > span {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  color: #72aaff;
+  border-radius: 13px;
+  background: rgba(86, 132, 255, .12);
+}
+
+.calendar-actions-list > button > span.is-violet {
+  color: #a879ff;
+  background: rgba(136, 87, 244, .13);
+}
+
+.calendar-actions-list > button > span.is-green {
+  color: #42dcb3;
+  background: rgba(31, 185, 143, .12);
+}
+
+.calendar-actions-list svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.calendar-actions-list > button > svg {
+  width: 16px;
+  color: rgba(190, 205, 238, .46);
+}
+
+.calendar-actions-list > button > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.calendar-actions-list strong,
+.calendar-actions-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-actions-list strong {
+  font-size: 13px;
+}
+
+.calendar-actions-list small {
+  color: rgba(187, 201, 233, .58);
+  font-size: 9px;
+  line-height: 1.35;
 }
 
 .planning-dialog-close {

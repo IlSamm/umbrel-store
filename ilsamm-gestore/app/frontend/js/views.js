@@ -453,55 +453,53 @@ function renderCalendar() {
       var grid = buildMonthGrid(state.currentMonth);
       var stats = getMonthStats(state.currentMonth);
       var recordedDays = stats.workedDays + stats.ferie + stats.malattia + stats.permesso + (stats.festivitaPagata || 0) + stats.riposo;
-      var now = new Date();
-      var isCurrentMonth = state.currentMonth.getFullYear() === now.getFullYear() && state.currentMonth.getMonth() === now.getMonth();
-      var legendItems = [
-        { key: 'lavoro', label: 'Lavoro' },
-        { key: 'ferie', label: 'Ferie' },
-        { key: 'malattia', label: 'Malattia' },
-        { key: 'permesso', label: 'Permesso' },
-        { key: 'festivita_pagata', label: 'Festivita' },
-        { key: 'riposo', label: 'Riposo' }
+      var allowedFilters = ['all', 'work', 'absence', 'rest'];
+      var calendarFilter = allowedFilters.indexOf(state.calendarFilter) !== -1 ? state.calendarFilter : 'all';
+      var getCalendarEntryGroup = function (entry) {
+        if (!entry) return '';
+        if (entry.type === 'lavoro' || entry.type === 'lavoro_ferie') return 'work';
+        if (entry.type === 'ferie' || entry.type === 'malattia' || entry.type === 'permesso') return 'absence';
+        if (entry.type === 'riposo' || entry.type === 'festivita_pagata') return 'rest';
+        return '';
+      };
+      var filterCounts = getMonthEntries(state.currentMonth).reduce(function (counts, pair) {
+        var group = getCalendarEntryGroup(pair[1]);
+        counts.all += 1;
+        if (group) counts[group] += 1;
+        return counts;
+      }, { all: 0, work: 0, absence: 0, rest: 0 });
+      var calendarFilterHtml = [
+        { key: 'all', label: 'Tutti' },
+        { key: 'work', label: 'Lavoro' },
+        { key: 'absence', label: 'Assenze' },
+        { key: 'rest', label: 'Riposi' }
       ].map(function (item) {
-        return '<span><i style="background:' + dayTypes[item.key].dot + '"></i>' + escapeHtml(item.label) + '</span>';
+        return '<button data-calendar-filter="' + item.key + '" class="' + (calendarFilter === item.key ? 'is-active' : '') + '" aria-pressed="' + (calendarFilter === item.key ? 'true' : 'false') + '"><span>' + item.label + '</span><strong>' + filterCounts[item.key] + '</strong></button>';
       }).join('');
-      var manageButton = state.calendarSelectionMode
-        ? '<button class="calendar-manage-button is-active" data-toggle-calendar-selection="1">' + icons.x + '<span>Annulla</span></button>'
-        : '<button class="calendar-manage-button" data-open-calendar-actions="1">' + icons.settings + '<span>Gestisci</span></button>';
       return '<div class="month-page-top"><div><span>GESTIONE MENSILE</span><h1>Calendario</h1></div><div class="month-page-switch"><button data-calendar-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-calendar-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
-        '<div class="stack calendar-clean-stack">' +
+        '<div class="stack">' +
           (state.monthPlanNotice ? '<div class="calendar-plan-notice" role="status">' + escapeHtml(state.monthPlanNotice) + '</div>' : '') +
-          '<div class="calendar-compact-toolbar">' +
-            '<button class="calendar-today-button" data-calendar-today="1" ' + (isCurrentMonth ? 'disabled' : '') + '>' + icons.calendar + '<span>Oggi</span></button>' +
-            '<p><strong>' + recordedDays + '</strong> giornate segnate</p>' +
-            manageButton +
-          '</div>' +
-          '<div class="card calendar-month-card calendar-month-card-clean"><div class="card-body compact">' +
+          '<div class="calendar-filter-bar" role="group" aria-label="Filtra giornate">' + calendarFilterHtml + '</div>' +
+          '<div class="card calendar-month-card"><div class="card-body compact">' +
             '<div class="week-grid">' + weekNames.map(function (n) { return '<div class="weekday">' + n + '</div>'; }).join('') + '</div>' +
             '<div class="calendar-grid">' + grid.map(function (date) {
               var key = toISODate(date);
               var entry = getEntryForDate(date);
               var isCurrent = date.getMonth() === state.currentMonth.getMonth();
               var isToday = key === todayKey;
-              var isSelected = state.calendarSelectionMode && Array.isArray(state.calendarSelectedDates) && state.calendarSelectedDates.indexOf(key) !== -1;
-              var action = !isCurrent
-                ? ' disabled'
-                : (state.calendarSelectionMode
-                  ? (' data-calendar-select-date="' + key + '" aria-pressed="' + (isSelected ? 'true' : 'false') + '"')
-                  : (' data-open-date="' + key + '"'));
-              var entryLabel = entry && dayTypes[entry.type] ? dayTypes[entry.type].label : 'Nessuna registrazione';
-              var ariaLabel = date.getDate() + ' ' + monthNames[date.getMonth()] + ', ' + entryLabel;
-              return '<button class="cell calendar-day-cell ' + (!isCurrent ? 'out' : '') + ' ' + (isToday ? 'today' : '') + ' ' + (entry ? 'has-entry' : '') + ' ' + (isSelected ? 'is-selected' : '') + '" aria-label="' + escapeHtml(ariaLabel) + '"' + action + '><span>' + date.getDate() + '</span>' + (entry ? ('<span class="dot" style="background:' + ((dayTypes[entry.type] && dayTypes[entry.type].dot) ? dayTypes[entry.type].dot : '#a78bfa') + ';"></span>') : '') + (isSelected ? '<span class="calendar-cell-check">' + icons.check + '</span>' : '') + '</button>';
+              var entryGroup = getCalendarEntryGroup(entry);
+              var isFilteredOut = entry && calendarFilter !== 'all' && entryGroup !== calendarFilter;
+              return '<button class="cell ' + (!isCurrent ? 'out' : '') + ' ' + (isToday ? 'today' : '') + ' ' + (isFilteredOut ? 'is-filtered-out' : '') + '" data-open-date="' + key + '"><span>' + date.getDate() + '</span>' + (entry ? ('<span class="dot" style="background:' + ((dayTypes[entry.type] && dayTypes[entry.type].dot) ? dayTypes[entry.type].dot : '#a78bfa') + ';"></span>') : '') + '</button>';
             }).join('') + '</div>' +
-            '<p class="calendar-month-hint">' + (state.calendarSelectionMode ? 'Tocca i giorni che vuoi selezionare' : 'Tocca un giorno per aprirlo o modificarlo') + '</p>' +
           '</div></div>' +
-          (typeof renderCalendarSelectionToolbar === 'function' ? renderCalendarSelectionToolbar() : '') +
-          '<section class="calendar-month-summary" aria-label="Riepilogo del mese">' +
-            '<div><small>ORE LAVORATE</small><strong>' + formatDuration(stats.totalMinutes) + '</strong></div>' +
-            '<div><small>GIORNI LAVORO</small><strong>' + stats.workedDays + '</strong></div>' +
-            '<div><small>STRAORDINARI</small><strong>' + formatDuration(stats.overtimeMinutes) + '</strong></div>' +
-          '</section>' +
-          '<section class="calendar-legend-clean"><strong>Legenda</strong><div>' + legendItems + '</div></section>' +
+          '<div class="card"><div class="card-body"><div class="two">' +
+            '<div class="mini center"><div class="big">' + formatDuration(stats.totalMinutes) + '</div><div class="small muted">Ore mese</div></div>' +
+            '<div class="mini center"><div class="big">' + recordedDays + '</div><div class="small muted">Giorni segnati</div></div>' +
+          '</div></div></div>' +
+          '<div class="card"><div class="card-body"><div class="section-title" style="margin-top:0">Legenda</div><div class="legend-grid">' +
+            Object.keys(dayTypes).map(function (key) { return '<div class="legend-item"><span class="legend-dot" style="background:' + dayTypes[key].dot + '"></span><span>' + dayTypes[key].label + '</span></div>'; }).join('') +
+          '</div></div></div>' +
+          '<button class="calendar-advanced-link" data-open-calendar-actions="1">' + icons.settings + '<span><strong>Gestisci calendario</strong><small>Selezione, copia settimana e pianificazione</small></span>' + icons.right + '</button>' +
         '</div>';
     }
 
