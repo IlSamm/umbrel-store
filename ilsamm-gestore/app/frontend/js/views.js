@@ -854,7 +854,9 @@ function renderCalendar() {
       maxMinutes = Math.ceil((maxMinutes * 1.12) / 60) * 60;
       var barAreaHeight = 142;
       var targetTop = dailyTarget > 0 ? 26 + (barAreaHeight - ((dailyTarget / maxMinutes) * barAreaHeight)) : -1;
-      var plotWidth = Math.max(312, series.length * 50);
+      // Include both plot gutters: without them the last day overflows the
+      // calculated flex width and is clipped at the end of the scroller.
+      var plotWidth = Math.max(312, (series.length * 50) + 24);
       var columns = series.map(function (item) {
         var normalPercent = Math.max(0, Math.min(100, (item.normal / maxMinutes) * 100));
         var overtimePercent = Math.max(0, Math.min(100 - normalPercent, (item.overtime / maxMinutes) * 100));

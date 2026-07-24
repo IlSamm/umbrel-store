@@ -6,6 +6,7 @@
   --stats-green: #2bd8a0;
   --stats-orange: #ffad55;
   overflow-x: hidden;
+  scroll-padding-bottom: calc(var(--shell-content-bottom) + 14px) !important;
 }
 
 .stats-screen .analytics-page-top {
@@ -48,7 +49,7 @@
   display: grid;
   gap: 14px;
   min-width: 0;
-  padding-bottom: 24px;
+  padding-bottom: 14px;
 }
 
 .analytics-hero,
@@ -414,6 +415,7 @@
 }
 
 .analytics-card-head > div {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -527,7 +529,7 @@
   overflow-x: auto;
   overflow-y: hidden;
   padding: 2px 0 7px;
-  scroll-padding-inline: 8px;
+  scroll-padding-inline: 12px;
   scroll-snap-type: x proximity;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
@@ -545,7 +547,7 @@
   gap: 8px;
   min-width: 100%;
   height: 204px;
-  padding: 0 8px;
+  padding: 0 12px;
   border-radius: 16px;
   background:
     repeating-linear-gradient(
@@ -644,8 +646,8 @@
 
 .analytics-daily-target-line {
   position: absolute;
-  right: 0;
-  left: 0;
+  right: 12px;
+  left: 12px;
   z-index: 1;
   border-top: 1px dashed rgba(206, 187, 255, 0.62);
   pointer-events: none;
@@ -654,7 +656,7 @@
 .analytics-daily-target-line > span {
   position: absolute;
   top: -18px;
-  left: 8px;
+  left: 0;
   padding: 3px 6px;
   border: 1px solid rgba(160, 128, 255, 0.19);
   border-radius: 7px;
@@ -1279,6 +1281,20 @@
     font-size: 17px;
   }
 
+  .analytics-chart-card .analytics-card-head {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .analytics-chart-card .analytics-card-head > div {
+    max-width: calc(100% - 72px);
+  }
+
+  .analytics-chart-legend {
+    gap: 4px;
+    font-size: 9px;
+  }
+
   .analytics-chart-summary span {
     font-size: 8px;
   }
@@ -1335,6 +1351,45 @@
 
   .analytics-month-copy small {
     font-size: 9px;
+  }
+}
+
+@media (max-width: 340px) {
+  .analytics-composition {
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 11px;
+  }
+
+  .analytics-hours-donut {
+    width: 92px;
+    height: 92px;
+  }
+
+  .analytics-hours-donut::before {
+    inset: 10px;
+  }
+
+  .analytics-hours-donut strong {
+    font-size: 20px;
+  }
+
+  .analytics-composition-list > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 10px 0;
+  }
+
+  .analytics-composition-list strong {
+    font-size: 14px;
+    text-align: left;
+  }
+
+  .analytics-composition-list small {
+    grid-column: auto;
+  }
+
+  .analytics-month-row {
+    grid-template-columns: minmax(0, 1fr) 82px;
   }
 }
 

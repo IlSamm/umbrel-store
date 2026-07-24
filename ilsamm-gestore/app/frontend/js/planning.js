@@ -508,6 +508,9 @@ function closeOnboarding(markComplete) {
     state.settings.onboardingCompleted = true;
     state.settingsDraft = Object.assign({}, state.settings);
     saveSettings();
+    if (typeof clearPendingAccountOnboarding === 'function') {
+      clearPendingAccountOnboarding(state.account && state.account.user && state.account.user.id);
+    }
   }
   render();
 }
@@ -544,6 +547,9 @@ async function completeOnboarding() {
   state.onboardingOpen = false;
   state.onboardingStep = 0;
   state.onboardingDraft = null;
+  if (typeof clearPendingAccountOnboarding === 'function') {
+    clearPendingAccountOnboarding(state.account && state.account.user && state.account.user.id);
+  }
   saveSettings();
   if (state.settings.remindersEnabled) await ensureNotificationPermission(true);
   updateReminderSchedule();

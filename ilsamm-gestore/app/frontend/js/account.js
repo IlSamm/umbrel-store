@@ -12,6 +12,7 @@ var ACCOUNT_ADMIN_ACCESS_URL = '/api/admin/access';
 var ACCOUNT_ADMIN_RETURN_URL = '/api/admin/return';
 var STORAGE_ACTIVE_ACCOUNT = 'gestore-active-account-v1';
 var STORAGE_ACCOUNT_CACHE_PREFIX = 'gestore-account-device-cache-v2:';
+var STORAGE_PENDING_ONBOARDING = 'gestore-pending-onboarding-v1';
 var accountCacheTimer = 0;
 
 function beginAccountTransfer(title, message) {
@@ -72,6 +73,59 @@ state.account = {
 function getStoredActiveAccountId() {
   try { return String(localStorage.getItem(STORAGE_ACTIVE_ACCOUNT) || ''); }
   catch (err) { return ''; }
+}
+
+function readPendingAccountOnboarding() {
+  try {
+    var raw = localStorage.getItem(STORAGE_PENDING_ONBOARDING);
+    var marker = raw ? JSON.parse(raw) : null;
+    if (!marker || !marker.userId) return null;
+    if (Date.now() - (Number(marker.createdAt) || 0) > 7 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_PENDING_ONBOARDING);
+      return null;
+    }
+    return marker;
+  } catch (err) {
+    return null;
+  }
+}
+
+function markPendingAccountOnboarding(userId) {
+  var cleanId = String(userId || '').trim();
+  if (!cleanId) return;
+  try {
+    localStorage.setItem(STORAGE_PENDING_ONBOARDING, JSON.stringify({
+      userId: cleanId,
+      createdAt: Date.now()
+    }));
+  } catch (err) {}
+}
+
+function clearPendingAccountOnboarding(userId) {
+  var marker = readPendingAccountOnboarding();
+  var cleanId = String(userId || '').trim();
+  if (!marker || (cleanId && String(marker.userId) !== cleanId)) return;
+  try { localStorage.removeItem(STORAGE_PENDING_ONBOARDING); } catch (err) {}
+}
+
+function maybeOpenRegistrationOnboarding() {
+  var marker = readPendingAccountOnboarding();
+  var accountId = String(state.account && state.account.user && state.account.user.id || '');
+  if (!marker || !accountId || String(marker.userId) !== accountId) return false;
+  if (!state.account.authenticated || !state.account.dataReady || state.onboardingOpen) return false;
+
+  if (state.settings && state.settings.onboardingCompleted) {
+    state.settings.onboardingCompleted = false;
+    state.settingsDraft = Object.assign({}, state.settings);
+    saveSettings();
+  }
+
+  window.setTimeout(function () {
+    var currentId = String(state.account && state.account.user && state.account.user.id || '');
+    if (currentId !== accountId || state.onboardingOpen || typeof openOnboarding !== 'function') return;
+    openOnboarding();
+  }, 0);
+  return true;
 }
 
 function getAccountDeviceCacheKey(userId) {
@@ -364,6 +418,7 @@ async function bootstrapAccountSession() {
     if (splashStatus) splashStatus.textContent = state.account.dataReady ? 'Dati pronti' : 'Connessione da riprovare';
     if (typeof render === 'function') render();
     window.dispatchEvent(new CustomEvent('gestore:account-ready'));
+    maybeOpenRegistrationOnboarding();
   }
 }
 
@@ -419,7 +474,9 @@ async function submitAccountRegistration(form) {
       body: JSON.stringify({ username: username, password: password, snapshot: buildStateSnapshot({ includePayslipPhotos: true }) })
     });
     var payload = await readJsonResponse(response);
-    activateAccountOnDevice(payload.user && payload.user.id);
+    var newAccountId = payload.user && payload.user.id;
+    activateAccountOnDevice(newAccountId);
+    markPendingAccountOnboarding(newAccountId);
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Registrazione non riuscita.' });
