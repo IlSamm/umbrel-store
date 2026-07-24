@@ -1,6 +1,7 @@
 var ACCOUNT_STATUS_URL = '/api/auth/status';
 var ACCOUNT_REGISTER_URL = '/api/auth/register';
 var ACCOUNT_LOGIN_URL = '/api/auth/login';
+var ACCOUNT_RECOVER_URL = '/api/auth/recover';
 var ACCOUNT_LOGOUT_URL = '/api/auth/logout';
 var ACCOUNT_BACKUP_URL = '/api/backup';
 var ACCOUNT_RESTORE_URL = '/api/backup/restore';
@@ -475,11 +476,43 @@ async function submitAccountRegistration(form) {
     });
     var payload = await readJsonResponse(response);
     var newAccountId = payload.user && payload.user.id;
+    if (typeof cachePendingRecoveryCode === 'function') cachePendingRecoveryCode(payload.recoveryCode || '');
     activateAccountOnDevice(newAccountId);
     markPendingAccountOnboarding(newAccountId);
     window.location.reload();
   } catch (err) {
     setAccountUiState({ busy: false, notice: '', error: err.message || 'Registrazione non riuscita.' });
+  }
+}
+
+async function submitAccountRecovery(form) {
+  if (state.account.busy) return;
+  var username = String(form.querySelector('[name="username"]').value || '').trim();
+  var recoveryCode = String(form.querySelector('[name="recoveryCode"]').value || '').trim();
+  var password = String(form.querySelector('[name="password"]').value || '');
+  var confirmPassword = String(form.querySelector('[name="confirmPassword"]').value || '');
+  if (password !== confirmPassword) {
+    setAccountUiState({ error: 'Le due password non coincidono.' });
+    return;
+  }
+  setAccountUiState({ busy: true, error: '', notice: 'Verifico il codice di recupero...' });
+  try {
+    var response = await fetch(ACCOUNT_RECOVER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        username: username,
+        recoveryCode: recoveryCode,
+        password: password
+      })
+    });
+    var payload = await readJsonResponse(response);
+    if (typeof cachePendingRecoveryCode === 'function') cachePendingRecoveryCode(payload.recoveryCode || '');
+    activateAccountOnDevice(payload.user && payload.user.id);
+    window.location.reload();
+  } catch (err) {
+    setAccountUiState({ busy: false, notice: '', error: err.message || 'Recupero account non riuscito.' });
   }
 }
 
@@ -790,25 +823,36 @@ function renderAccountGate() {
   }
   if (!state.account.loaded) return '';
   var registerMode = state.account.mode === 'register';
+  var recoverMode = state.account.mode === 'recover';
   var firstSetup = state.account.setupRequired;
-  var title = registerMode ? (firstSetup ? 'Crea il tuo account' : 'Nuovo account') : 'Bentornato';
-  var copy = registerMode
-    ? (firstSetup && state.account.hasLegacyData ? 'I dati gia presenti verranno collegati automaticamente a questo primo account.' : 'Ogni account usa un database personale e separato.')
-    : 'Accedi con il tuo nome utente per aprire il database corretto.';
+  var title = recoverMode
+    ? 'Recupera account'
+    : (registerMode ? (firstSetup ? 'Crea il tuo account' : 'Nuovo account') : 'Bentornato');
+  var copy = recoverMode
+    ? 'Inserisci il codice personale salvato durante la registrazione e scegli una nuova password.'
+    : (registerMode
+      ? (firstSetup && state.account.hasLegacyData ? 'I dati gia presenti verranno collegati automaticamente a questo primo account.' : 'Ogni account usa un database personale e separato.')
+      : 'Accedi con il tuo nome utente per aprire il database corretto.');
   var status = state.account.error
     ? '<div class="account-form-message is-error">' + escapeHtml(state.account.error) + '</div>'
     : (state.account.notice ? '<div class="account-form-message">' + escapeHtml(state.account.notice) + '</div>' : '');
   return '<div class="account-gate"><div class="account-gate-panel">' +
     '<div class="account-brand"><span class="account-brand-icon">' + icons.user + '</span><div><span>GESTORE PERSONALE</span><div>Gest<strong>Ore</strong></div></div></div>' +
-    '<div class="account-gate-copy"><span>' + (registerMode ? 'REGISTRAZIONE' : 'ACCESSO') + '</span><h1>' + title + '</h1><p>' + copy + '</p></div>' +
-    '<form class="account-form" data-account-form="' + (registerMode ? 'register' : 'login') + '">' +
+    '<div class="account-gate-copy"><span>' + (recoverMode ? 'RECUPERO SICURO' : (registerMode ? 'REGISTRAZIONE' : 'ACCESSO')) + '</span><h1>' + title + '</h1><p>' + copy + '</p></div>' +
+    '<form class="account-form" data-account-form="' + (recoverMode ? 'recover' : (registerMode ? 'register' : 'login')) + '">' +
       '<label><span>Nome utente</span><input name="username" type="text" minlength="3" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="es. samuele" required></label>' +
-      '<label><span>Password</span><input name="password" type="password" minlength="8" maxlength="128" autocomplete="' + (registerMode ? 'new-password' : 'current-password') + '" placeholder="Almeno 8 caratteri" required></label>' +
-      (registerMode ? '<label><span>Ripeti password</span><input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Ripeti la password" required></label>' : '') +
+      (recoverMode ? '<label><span>Codice di recupero</span><input name="recoveryCode" type="text" minlength="20" maxlength="32" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required></label>' : '') +
+      '<label><span>' + (recoverMode ? 'Nuova password' : 'Password') + '</span><input name="password" type="password" minlength="8" maxlength="128" autocomplete="' + (registerMode || recoverMode ? 'new-password' : 'current-password') + '" placeholder="Almeno 8 caratteri" required></label>' +
+      (registerMode || recoverMode ? '<label><span>Ripeti password</span><input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Ripeti la password" required></label>' : '') +
       status +
-      '<button class="account-primary" type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Attendi...' : (registerMode ? 'Crea account' : 'Accedi')) + '</button>' +
+      '<button class="account-primary" type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Attendi...' : (recoverMode ? 'Imposta nuova password' : (registerMode ? 'Crea account' : 'Accedi'))) + '</button>' +
     '</form>' +
-    (firstSetup ? '' : '<button class="account-mode-switch" data-account-mode="' + (registerMode ? 'login' : 'register') + '">' + (registerMode ? 'Hai gia un account? Accedi' : 'Non hai un account? Registrati') + '</button>') +
+    (firstSetup ? '' : (
+      recoverMode
+        ? '<button class="account-mode-switch" data-account-mode="login">Torna all&apos;accesso</button>'
+        : '<button class="account-mode-switch" data-account-mode="' + (registerMode ? 'login' : 'register') + '">' + (registerMode ? 'Hai gia un account? Accedi' : 'Non hai un account? Registrati') + '</button>' +
+          (!registerMode ? '<button class="account-recovery-switch" data-account-mode="recover">Password dimenticata?</button>' : '')
+    )) +
     '<div class="account-security-note">' + icons.lock + '<span>Password protetta e database separato per ogni utente.</span></div>' +
   '</div></div>';
 }
@@ -936,6 +980,7 @@ function bindAccountEvents() {
     form.onsubmit = function (event) {
       event.preventDefault();
       if (form.dataset.accountForm === 'register') submitAccountRegistration(form);
+      else if (form.dataset.accountForm === 'recover') submitAccountRecovery(form);
       else submitAccountLogin(form);
     };
   });

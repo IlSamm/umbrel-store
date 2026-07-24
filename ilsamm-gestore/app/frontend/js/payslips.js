@@ -48,6 +48,7 @@ var state = {
       typeOpen: false,
       notesOpen: false,
       confirmClearOpen: false,
+      editorValidationIssues: [],
       payslips: normalizePayslipCollection(loadPayslipsWithRecovery()),
       payslipDraft: loadPendingPayslipDraft(),
       payslipBusy: false,

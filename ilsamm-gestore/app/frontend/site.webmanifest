@@ -1,10 +1,37 @@
-﻿{
+{
   "name": "GestOre",
   "short_name": "GestOre",
-  "start_url": "/?v=20260724h",
+  "id": "/",
+  "start_url": "/?v=20260724j",
+  "scope": "/",
+  "description": "Ore, ferie, statistiche e buste paga in un unico spazio personale.",
+  "lang": "it-IT",
+  "categories": ["productivity", "business", "finance"],
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "background_color": "#030711",
   "theme_color": "#030711",
+  "shortcuts": [
+    {
+      "name": "Inserisci giornata",
+      "short_name": "Oggi",
+      "url": "/?open=today",
+      "icons": [{"src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]
+    },
+    {
+      "name": "Apri calendario",
+      "short_name": "Calendario",
+      "url": "/?open=calendar",
+      "icons": [{"src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]
+    },
+    {
+      "name": "Buste paga",
+      "short_name": "Buste",
+      "url": "/?open=payslips",
+      "icons": [{"src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png"}]
+    }
+  ],
   "icons": [
     {
       "src": "assets/icons/icon-192.png",

@@ -563,21 +563,21 @@ body.keyboard-open .day-editor-scroll {
 .day-editor-stepper,
 .day-editor-overtime-stepper {
   display: grid !important;
-  grid-template-columns: 34px minmax(38px, 1fr) 34px !important;
+  grid-template-columns: 42px minmax(42px, 1fr) 42px !important;
   align-items: center !important;
   gap: 4px !important;
 }
 
 .day-editor-stepper {
-  width: 116px !important;
+  width: 134px !important;
 }
 
 .day-editor-stepper button,
 .day-editor-overtime-stepper button {
   display: grid !important;
   place-items: center !important;
-  width: 34px !important;
-  height: 34px !important;
+  width: 42px !important;
+  height: 42px !important;
   padding: 0 !important;
   border: 1px solid rgba(116, 150, 222, .18) !important;
   border-radius: 999px !important;
@@ -614,7 +614,8 @@ body.keyboard-open .day-editor-scroll {
 }
 
 .day-editor-step-value input {
-  width: 38px !important;
+  width: 42px !important;
+  height: 42px !important;
   font-size: 20px !important;
 }
 
@@ -1010,7 +1011,18 @@ body.keyboard-open .day-editor-scroll {
   }
 
   .day-editor-stepper {
-    width: 108px !important;
+    grid-template-columns: 36px minmax(32px, 1fr) 36px !important;
+    width: 112px !important;
+  }
+
+  .day-editor-stepper button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .day-editor-step-value input {
+    width: 32px !important;
+    height: 36px !important;
   }
 
   .day-editor-summary-stat {

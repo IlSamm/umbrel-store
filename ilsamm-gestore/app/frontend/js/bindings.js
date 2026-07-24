@@ -1243,6 +1243,8 @@ function bindEvents() {
       if (toggleNotes) toggleNotes.onclick = function () { state.notesOpen = !state.notesOpen; render(); };
       var closeBtn = document.querySelector('[data-close-editor]');
       if (closeBtn) closeBtn.onclick = function () { closeEditor(); };
+      var discardInvalidEditor = document.querySelector('[data-discard-invalid-editor]');
+      if (discardInvalidEditor) discardInvalidEditor.onclick = function () { closeEditor({ skipAutosave: true }); };
       var start = document.getElementById('editorStart');
       if (start) {
         var syncStart = function (value) {

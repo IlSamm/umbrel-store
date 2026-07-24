@@ -51,6 +51,7 @@ var errorBox = document.getElementById('errorBox');
       weeklyTarget: 40,
       dailyTarget: 8,
       remindersEnabled: false,
+      pushEnabled: false,
       reminderTime: '20:00',
       userName: 'Utente',
       lockApp: false,
@@ -70,8 +71,8 @@ var errorBox = document.getElementById('errorBox');
       weeklyTemplate: [0, 0, 0, 0, 0, null, null],
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.1.148',
-      build: '20260724h',
+      version: '1.2.0',
+      build: '20260724j',
       appName: 'GestOre'
     };
 
@@ -234,6 +235,7 @@ var errorBox = document.getElementById('errorBox');
       return Number(candidate.weeklyTarget) === Number(defaultSettings.weeklyTarget) &&
         Number(candidate.dailyTarget) === Number(defaultSettings.dailyTarget) &&
         Boolean(candidate.remindersEnabled) === Boolean(defaultSettings.remindersEnabled) &&
+        Boolean(candidate.pushEnabled) === Boolean(defaultSettings.pushEnabled) &&
         String(candidate.reminderTime || '') === String(defaultSettings.reminderTime || '') &&
         String(candidate.userName || '') === String(defaultSettings.userName || '') &&
         Boolean(candidate.lockApp) === Boolean(defaultSettings.lockApp) &&
@@ -394,6 +396,7 @@ var errorBox = document.getElementById('errorBox');
       merged.autoRestDays = normalizeWeekdayList(merged.autoRestDays || []);
       merged.holidayHoursOnOffDays = Boolean(merged.holidayHoursOnOffDays);
       merged.timerEnabled = Boolean(merged.timerEnabled);
+      merged.pushEnabled = Boolean(merged.pushEnabled);
       merged.onboardingCompleted = Boolean(merged.onboardingCompleted);
       merged.smartReminderMissingDays = merged.smartReminderMissingDays !== false;
       merged.smartReminderWeeklyReview = merged.smartReminderWeeklyReview !== false;
@@ -644,8 +647,10 @@ var errorBox = document.getElementById('errorBox');
       var s = parseTimeToMinutes(entry.start);
       var en = parseTimeToMinutes(entry.end);
       var b = hoursToMinutes(entry.breakHours || 0);
-      if (s === null || en === null || en <= s) return 0;
-      return Math.max(0, en - s - b);
+      if (s === null || en === null) return 0;
+      var gross = en - s;
+      if (gross <= 0) gross += 1440;
+      return Math.max(0, gross - b);
     }
     function isStateOnlyType(type) {
       return type === 'ferie' || type === 'malattia' || type === 'permesso' || type === 'festivita_pagata' || type === 'riposo';
@@ -1973,6 +1978,7 @@ var errorBox = document.getElementById('errorBox');
       else bootstrapServerState();
       updateReminderSchedule();
       if (typeof initializeFeatureServices === 'function') initializeFeatureServices();
+      if (typeof initializePlatformServices === 'function') initializePlatformServices();
     }
     async function testNotification() {
       var permission = await ensureNotificationPermission(true);

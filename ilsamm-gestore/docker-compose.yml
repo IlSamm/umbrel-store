@@ -1,4 +1,4 @@
-﻿version: "3.7"
+version: "3.7"
 
 services:
   app_proxy:
@@ -7,7 +7,7 @@ services:
       APP_PORT: 8080
 
   server:
-    image: ilsammm/gestore:1.1.148
+    image: ilsammm/gestore:1.2.0
     restart: on-failure
     stop_grace_period: 1m
     environment:

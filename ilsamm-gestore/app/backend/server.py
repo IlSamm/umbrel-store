@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import posixpath
@@ -17,6 +18,14 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from auth_store import AuthError, AuthStore
+from history_store import (
+    list_history,
+    mark_reverted,
+    read_history_item,
+    record_payslip_change,
+    record_snapshot_changes,
+)
+from push_service import PushService
 
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -29,9 +38,10 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.1.148"
-BUILD_CACHE = "20260724h"
+BUILD_VERSION = "1.2.0"
+BUILD_CACHE = "20260724j"
 AUTH_STORE = AuthStore(DATA_DIR)
+PUSH_SERVICE = PushService(AUTH_STORE, DATA_DIR)
 
 _DB_SCHEMA_LOCK = threading.Lock()
 _DB_SCHEMA_READY: set[str] = set()
@@ -42,6 +52,10 @@ AUTO_BACKUP_INTERVAL_MS = 20 * 60 * 60 * 1000
 AUTO_BACKUP_LIMIT = 14
 MANUAL_BACKUP_LIMIT = 8
 RESTORE_BACKUP_LIMIT = 4
+AUTH_RATE_WINDOW_MS = 10 * 60 * 1000
+AUTH_RATE_MAX_ATTEMPTS = 6
+_AUTH_RATE_LOCK = threading.Lock()
+_AUTH_RATE_ATTEMPTS: dict[str, list[int]] = {}
 
 DEFAULT_SYNC_META = {
     "entriesUpdatedAt": 0,
@@ -49,6 +63,35 @@ DEFAULT_SYNC_META = {
     "payslipsUpdatedAt": 0,
     "lastServerSyncAt": 0,
 }
+
+
+def _rate_limit_key(scope: str, client: str, identity: str = "") -> str:
+    return f"{scope}:{str(client or 'unknown')[:120]}:{str(identity or '').casefold()[:80]}"
+
+
+def check_auth_rate_limit(key: str) -> int:
+    now = int(time.time() * 1000)
+    cutoff = now - AUTH_RATE_WINDOW_MS
+    with _AUTH_RATE_LOCK:
+        attempts = [value for value in _AUTH_RATE_ATTEMPTS.get(key, []) if value > cutoff]
+        _AUTH_RATE_ATTEMPTS[key] = attempts
+        if len(attempts) < AUTH_RATE_MAX_ATTEMPTS:
+            return 0
+        return max(1, int((attempts[0] + AUTH_RATE_WINDOW_MS - now + 999) / 1000))
+
+
+def register_auth_failure(key: str) -> None:
+    now = int(time.time() * 1000)
+    cutoff = now - AUTH_RATE_WINDOW_MS
+    with _AUTH_RATE_LOCK:
+        attempts = [value for value in _AUTH_RATE_ATTEMPTS.get(key, []) if value > cutoff]
+        attempts.append(now)
+        _AUTH_RATE_ATTEMPTS[key] = attempts[-AUTH_RATE_MAX_ATTEMPTS:]
+
+
+def clear_auth_failures(key: str) -> None:
+    with _AUTH_RATE_LOCK:
+        _AUTH_RATE_ATTEMPTS.pop(key, None)
 
 
 def empty_snapshot() -> dict:
@@ -456,6 +499,38 @@ def database_storage_summary(db_path: Path) -> dict:
     }
 
 
+def database_diagnostics(db_path: Path) -> dict:
+    path = Path(db_path).resolve()
+    started = time.perf_counter()
+    with closing(get_db(path)) as conn:
+        integrity_row = conn.execute("PRAGMA quick_check").fetchone()
+        journal_row = conn.execute("PRAGMA journal_mode").fetchone()
+        history_row = conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'change_history'"
+        ).fetchone()
+        history_count = 0
+        history_bytes = 0
+        if history_row and int(history_row[0] or 0):
+            history_summary = conn.execute(
+                "SELECT COUNT(*) AS count, COALESCE(SUM(LENGTH(before_blob)), 0) AS bytes FROM change_history"
+            ).fetchone()
+            history_count = int(history_summary[0] or 0)
+            history_bytes = int(history_summary[1] or 0)
+    storage = database_storage_summary(path)
+    return {
+        "ok": str((integrity_row or [""])[0]).lower() == "ok",
+        "integrity": str((integrity_row or ["unknown"])[0]),
+        "journalMode": str((journal_row or ["unknown"])[0]),
+        "checkedAt": int(time.time() * 1000),
+        "durationMs": round((time.perf_counter() - started) * 1000, 2),
+        "historyItems": history_count,
+        "historyBytes": history_bytes,
+        "serverVersion": BUILD_VERSION,
+        "serverCache": BUILD_CACHE,
+        **storage,
+    }
+
+
 def merge_snapshots(legacy: dict, device: dict | None) -> dict:
     device = device if isinstance(device, dict) else {}
     legacy = legacy if isinstance(legacy, dict) else empty_snapshot()
@@ -652,15 +727,39 @@ class GestOreHandler(SimpleHTTPRequestHandler):
     server_version = "GestOreHTTP/3.0"
 
     def end_headers(self) -> None:
-        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-        self.send_header("Pragma", "no-cache")
-        self.send_header("Expires", "0")
+        path = urlparse(self.path).path
+        if path.startswith("/api/") or path in ("", "/", "/index.html"):
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        elif path == "/service-worker.js":
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+            self.send_header("Service-Worker-Allowed", "/")
+        elif path.endswith(".webmanifest"):
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+        elif any(path.endswith(extension) for extension in (".css", ".js", ".png", ".svg")):
+            self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+        else:
+            self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "same-origin")
+        self.send_header("Permissions-Policy", "camera=(self), fullscreen=(self), geolocation=(), microphone=()")
+        if str(self.headers.get("X-Forwarded-Proto", "")).lower() == "https":
+            self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         super().end_headers()
 
     def _send_json(self, payload: dict, status: int = HTTPStatus.OK, cookie: str | None = None) -> None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        accepts_gzip = "gzip" in str(self.headers.get("Accept-Encoding", "")).lower()
+        compressed = accepts_gzip and len(data) >= 1024
+        if compressed:
+            data = gzip.compress(data, compresslevel=5)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Vary", "Accept-Encoding")
+        if compressed:
+            self.send_header("Content-Encoding", "gzip")
         self.send_header("Content-Length", str(len(data)))
         if cookie:
             self.send_header("Set-Cookie", cookie)
@@ -702,6 +801,15 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return morsel.value if morsel else ""
         except Exception:
             return ""
+
+    def _client_identifier(self) -> str:
+        forwarded = str(self.headers.get("X-Forwarded-For", "")).split(",", 1)[0].strip()
+        if forwarded:
+            return forwarded[:120]
+        return str((self.client_address or ("unknown", 0))[0])[:120]
+
+    def _device_label(self) -> str:
+        return str(self.headers.get("X-GestOre-Device", "")).strip()[:80]
 
     def _session_cookie(self, token: str, clear: bool = False) -> str:
         value = "" if clear else token
@@ -785,6 +893,13 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 "hasLegacyData": has_legacy_data,
             })
             return
+        if parsed.path == "/api/auth/sessions":
+            try:
+                sessions = AUTH_STORE.list_sessions(self._session_token())
+                self._send_json({"ok": True, "sessions": sessions})
+            except AuthError as exc:
+                self._send_auth_error(exc)
+            return
         if parsed.path == "/api/admin/accounts":
             try:
                 accounts = [account_snapshot_summary(account) for account in AUTH_STORE.list_accounts(self._session_token())]
@@ -797,11 +912,48 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             except AuthError as exc:
                 self._send_auth_error(exc)
             return
+        if parsed.path == "/api/admin/audit":
+            try:
+                query = parse_qs(parsed.query or "")
+                limit = int((query.get("limit") or ["50"])[0])
+                self._send_json({"ok": True, "items": AUTH_STORE.list_audit(self._session_token(), limit)})
+            except (AuthError, ValueError) as exc:
+                if isinstance(exc, AuthError):
+                    self._send_auth_error(exc)
+                else:
+                    self._send_json({"error": "Limite non valido."}, HTTPStatus.BAD_REQUEST)
+            return
         if parsed.path == "/api/storage":
             user = self._require_user()
             if not user:
                 return
             self._send_json(database_storage_summary(AUTH_STORE.user_db_path(user["id"])))
+            return
+        if parsed.path == "/api/diagnostics":
+            user = self._require_user()
+            if not user:
+                return
+            self._send_json(database_diagnostics(AUTH_STORE.user_db_path(user["id"])))
+            return
+        if parsed.path == "/api/history":
+            user = self._require_user()
+            if not user:
+                return
+            query = parse_qs(parsed.query or "")
+            try:
+                limit = int((query.get("limit") or ["30"])[0])
+            except ValueError:
+                limit = 30
+            self._send_json({
+                "ok": True,
+                "items": list_history(AUTH_STORE.user_db_path(user["id"]), limit),
+            })
+            return
+        if parsed.path == "/api/push/config":
+            user = self._require_user()
+            if not user:
+                return
+            self._send_json({"ok": True, **PUSH_SERVICE.configuration(str(user["id"]))})
             return
         if parsed.path == "/api/backups":
             user = self._require_user()
@@ -856,6 +1008,8 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         try:
             payload = self._read_json_body()
+            mutation_id = str(payload.get("mutationId") or self.headers.get("X-GestOre-Mutation-Id", ""))
+            current_user = self._current_user() or {}
             with _snapshot_lock(db_path):
                 existing = load_snapshot(db_path=db_path)
                 base_updated_at = max(0, int(payload.get("baseUpdatedAt") or 0))
@@ -869,9 +1023,16 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                     return
                 create_versioned_backup(db_path, "auto")
                 saved = save_snapshot(payload, db_path=db_path, _existing_snapshot=existing)
+                record_snapshot_changes(
+                    db_path,
+                    existing,
+                    saved,
+                    mutation_id=mutation_id,
+                    actor=str(current_user.get("username") or "Dispositivo"),
+                )
             prefer_minimal = "return=minimal" in str(self.headers.get("Prefer", "")).lower()
             if prefer_minimal:
-                self._send_json(self._snapshot_ack(saved, self.headers.get("X-GestOre-Mutation-Id", "")))
+                self._send_json(self._snapshot_ack(saved, mutation_id))
             else:
                 self._send_json(saved)
         except ValueError as exc:
@@ -887,12 +1048,32 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             payload = self._read_json_body()
             payslip = payload.get("payslip")
             mutation_id = str(payload.get("mutationId") or self.headers.get("X-GestOre-Mutation-Id", ""))
+            payslip_id = _payslip_key(payslip)
+            before_snapshot = load_snapshot(db_path=db_path)
+            before_payslip = next(
+                (item for item in before_snapshot.get("payslips") or [] if _payslip_key(item) == payslip_id),
+                None,
+            )
             create_versioned_backup(db_path, "auto")
             saved = save_payslip_record(payslip, db_path, payload.get("updatedAt"))
+            after_snapshot = load_snapshot(db_path=db_path)
+            after_payslip = next(
+                (item for item in after_snapshot.get("payslips") or [] if _payslip_key(item) == payslip_id),
+                None,
+            )
+            current_user = self._current_user() or {}
+            record_payslip_change(
+                db_path,
+                payslip_id=payslip_id,
+                before=before_payslip,
+                after=after_payslip,
+                mutation_id=mutation_id,
+                actor=str(current_user.get("username") or "Dispositivo"),
+            )
             self._send_json(self._snapshot_ack(
                 saved,
                 mutation_id,
-                payslipId=_payslip_key(payslip),
+                payslipId=payslip_id,
             ))
         except ValueError as exc:
             self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
@@ -920,7 +1101,26 @@ class GestOreHandler(SimpleHTTPRequestHandler):
         try:
             if parsed.path == "/api/auth/register":
                 payload = self._read_json_body()
-                user, token, first_account = AUTH_STORE.create_account(payload.get("username", ""), payload.get("password", ""))
+                register_key = _rate_limit_key("register", self._client_identifier(), payload.get("username", ""))
+                retry_after = check_auth_rate_limit(register_key)
+                if retry_after:
+                    self._send_json({
+                        "error": f"Troppi tentativi. Riprova tra {retry_after} secondi.",
+                        "code": "rate_limited",
+                        "retryAfter": retry_after,
+                    }, HTTPStatus.TOO_MANY_REQUESTS)
+                    return
+                try:
+                    user, token, first_account, recovery_code = AUTH_STORE.create_account(
+                        payload.get("username", ""),
+                        payload.get("password", ""),
+                        self.headers.get("User-Agent", ""),
+                        self._device_label(),
+                    )
+                except AuthError:
+                    register_auth_failure(register_key)
+                    raise
+                clear_auth_failures(register_key)
                 user_db = AUTH_STORE.user_db_path(user["id"])
                 if first_account:
                     initial = merge_snapshots(load_snapshot(db_path=DB_PATH), payload.get("snapshot"))
@@ -928,15 +1128,74 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 else:
                     get_db(user_db).close()
                 self._send_json(
-                    {"ok": True, "user": user, "importedLegacyData": first_account},
+                    {
+                        "ok": True,
+                        "user": user,
+                        "importedLegacyData": first_account,
+                        "recoveryCode": recovery_code,
+                    },
                     HTTPStatus.CREATED,
                     self._session_cookie(token),
                 )
                 return
             if parsed.path == "/api/auth/login":
                 payload = self._read_json_body()
-                user, token = AUTH_STORE.login(payload.get("username", ""), payload.get("password", ""))
+                login_key = _rate_limit_key("login", self._client_identifier(), payload.get("username", ""))
+                retry_after = check_auth_rate_limit(login_key)
+                if retry_after:
+                    self._send_json({
+                        "error": f"Troppi tentativi. Riprova tra {retry_after} secondi.",
+                        "code": "rate_limited",
+                        "retryAfter": retry_after,
+                    }, HTTPStatus.TOO_MANY_REQUESTS)
+                    return
+                try:
+                    user, token = AUTH_STORE.login(
+                        payload.get("username", ""),
+                        payload.get("password", ""),
+                        self.headers.get("User-Agent", ""),
+                        self._device_label(),
+                    )
+                except AuthError:
+                    register_auth_failure(login_key)
+                    AUTH_STORE.log_audit(None, None, "session.login_failed", {
+                        "username": str(payload.get("username", ""))[:24],
+                    })
+                    raise
+                clear_auth_failures(login_key)
                 self._send_json({"ok": True, "user": user}, cookie=self._session_cookie(token))
+                return
+            if parsed.path == "/api/auth/recover":
+                payload = self._read_json_body()
+                recover_key = _rate_limit_key("recover", self._client_identifier(), payload.get("username", ""))
+                retry_after = check_auth_rate_limit(recover_key)
+                if retry_after:
+                    self._send_json({
+                        "error": f"Troppi tentativi. Riprova tra {retry_after} secondi.",
+                        "code": "rate_limited",
+                        "retryAfter": retry_after,
+                    }, HTTPStatus.TOO_MANY_REQUESTS)
+                    return
+                try:
+                    user, token, recovery_code = AUTH_STORE.recover_account(
+                        payload.get("username", ""),
+                        payload.get("recoveryCode", ""),
+                        payload.get("password", ""),
+                        self.headers.get("User-Agent", ""),
+                        self._device_label(),
+                    )
+                except AuthError:
+                    register_auth_failure(recover_key)
+                    raise
+                clear_auth_failures(recover_key)
+                self._send_json(
+                    {"ok": True, "user": user, "recoveryCode": recovery_code},
+                    cookie=self._session_cookie(token),
+                )
+                return
+            if parsed.path == "/api/auth/recovery-code":
+                recovery_code = AUTH_STORE.issue_recovery_code(self._session_token())
+                self._send_json({"ok": True, "recoveryCode": recovery_code}, HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/auth/logout":
                 AUTH_STORE.logout(self._session_token())
@@ -961,6 +1220,10 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 user_db_path = AUTH_STORE.user_db_path(user["id"])
                 create_versioned_backup(user_db_path, "pre-restore", force=True)
                 saved = save_snapshot(restored, db_path=user_db_path, force_replace=True)
+                AUTH_STORE.log_audit(str(user["id"]), str(user["id"]), "backup.file_restored", {
+                    "entries": len(saved.get("entries") or {}),
+                    "payslips": len(saved.get("payslips") or []),
+                })
                 self._send_json({
                     "ok": True,
                     "entries": len(saved.get("entries") or {}),
@@ -973,6 +1236,9 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 if not user:
                     return
                 backup = create_versioned_backup(AUTH_STORE.user_db_path(user["id"]), "manual", force=True)
+                AUTH_STORE.log_audit(str(user["id"]), str(user["id"]), "backup.created", {
+                    "backupId": str((backup or {}).get("id") or ""),
+                })
                 self._send_json({"ok": True, "backup": backup}, HTTPStatus.CREATED)
                 return
             if parsed.path == "/api/backups/restore":
@@ -981,12 +1247,106 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                     return
                 payload = self._read_json_body()
                 saved = restore_versioned_backup(AUTH_STORE.user_db_path(user["id"]), payload.get("backupId", ""))
+                AUTH_STORE.log_audit(str(user["id"]), str(user["id"]), "backup.restored", {
+                    "backupId": str(payload.get("backupId") or ""),
+                })
                 self._send_json({
                     "ok": True,
                     "entries": len(saved.get("entries") or {}),
                     "payslips": len(saved.get("payslips") or []),
                     "updatedAt": saved.get("updatedAt", 0),
                 })
+                return
+            if parsed.path == "/api/history/restore":
+                user = self._require_user()
+                if not user:
+                    return
+                payload = self._read_json_body()
+                db_path = AUTH_STORE.user_db_path(user["id"])
+                history_item = read_history_item(db_path, payload.get("historyId", ""))
+                current = load_snapshot(db_path=db_path)
+                next_snapshot = {
+                    "entries": dict(current.get("entries") or {}),
+                    "settings": current.get("settings"),
+                    "payslips": list(current.get("payslips") or []),
+                    "syncMeta": current.get("syncMeta") or {},
+                    "updatedAt": int(time.time() * 1000),
+                    "allowEmptyEntries": True,
+                }
+                before = history_item.get("before") or {}
+                kind = history_item.get("kind")
+                entity_id = str(history_item.get("entityId") or "")
+                if kind == "entry":
+                    if before.get("exists"):
+                        next_snapshot["entries"][entity_id] = before.get("value")
+                    else:
+                        next_snapshot["entries"].pop(entity_id, None)
+                elif kind == "settings":
+                    next_snapshot["settings"] = before.get("value") if before.get("exists") else None
+                elif kind == "payslip":
+                    next_snapshot["payslips"] = [
+                        item for item in next_snapshot["payslips"] if _payslip_key(item) != entity_id
+                    ]
+                    if before.get("exists") and isinstance(before.get("value"), dict):
+                        next_snapshot["payslips"].insert(0, before["value"])
+                else:
+                    raise ValueError("Tipo di modifica non supportato.")
+                create_versioned_backup(db_path, "pre-restore", force=True)
+                saved = save_snapshot(next_snapshot, db_path=db_path, force_replace=True)
+                record_snapshot_changes(
+                    db_path,
+                    current,
+                    saved,
+                    mutation_id=f"undo-{history_item['id']}",
+                    actor=str(user.get("username") or "Utente"),
+                )
+                if kind == "payslip":
+                    before_current = next(
+                        (item for item in current.get("payslips") or [] if _payslip_key(item) == entity_id),
+                        None,
+                    )
+                    after_current = next(
+                        (item for item in saved.get("payslips") or [] if _payslip_key(item) == entity_id),
+                        None,
+                    )
+                    record_payslip_change(
+                        db_path,
+                        payslip_id=entity_id,
+                        before=before_current,
+                        after=after_current,
+                        mutation_id=f"undo-{history_item['id']}",
+                        actor=str(user.get("username") or "Utente"),
+                    )
+                mark_reverted(db_path, history_item["id"])
+                AUTH_STORE.log_audit(str(user["id"]), str(user["id"]), "history.restored", {
+                    "historyId": history_item["id"],
+                    "kind": kind,
+                    "entityId": entity_id,
+                })
+                self._send_json({"ok": True, "snapshot": compact_snapshot(saved)})
+                return
+            if parsed.path == "/api/push/subscribe":
+                user = self._require_user()
+                if not user:
+                    return
+                payload = self._read_json_body()
+                stored = AUTH_STORE.save_push_subscription(
+                    self._session_token(),
+                    payload.get("subscription") or {},
+                )
+                self._send_json({"ok": True, "subscription": stored}, HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/push/test":
+                user = self._require_user()
+                if not user:
+                    return
+                result = PUSH_SERVICE.send_to_user(str(user["id"]), {
+                    "title": "GestOre e pronto",
+                    "body": "Le notifiche dal server funzionano correttamente.",
+                    "url": "/",
+                    "tag": f"test-{int(time.time())}",
+                })
+                self._send_json({"ok": bool(result.get("sent")), **result})
                 return
             if parsed.path == "/api/snapshot":
                 self._handle_snapshot_write()
@@ -1004,6 +1364,16 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         parsed = urlparse(self.path)
         try:
+            if parsed.path == "/api/auth/sessions":
+                payload = self._read_json_body()
+                revoked = AUTH_STORE.revoke_session(self._session_token(), payload.get("sessionId", ""))
+                self._send_json({"ok": True, "revoked": revoked})
+                return
+            if parsed.path == "/api/push/subscribe":
+                payload = self._read_json_body()
+                AUTH_STORE.remove_push_subscription(self._session_token(), payload.get("endpoint", ""))
+                self._send_json({"ok": True})
+                return
             if parsed.path == "/api/payslip":
                 db_path = self._snapshot_db_for_request()
                 if db_path is None:
@@ -1011,8 +1381,22 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 payload = self._read_json_body()
                 mutation_id = str(payload.get("mutationId") or self.headers.get("X-GestOre-Mutation-Id", ""))
                 payslip_id = str(payload.get("payslipId") or "").strip()
+                before_snapshot = load_snapshot(db_path=db_path)
+                before_payslip = next(
+                    (item for item in before_snapshot.get("payslips") or [] if _payslip_key(item) == payslip_id),
+                    None,
+                )
                 create_versioned_backup(db_path, "auto")
                 saved = delete_payslip_record(payslip_id, db_path, payload.get("updatedAt"))
+                current_user = self._current_user() or {}
+                record_payslip_change(
+                    db_path,
+                    payslip_id=payslip_id,
+                    before=before_payslip,
+                    after=None,
+                    mutation_id=mutation_id,
+                    actor=str(current_user.get("username") or "Dispositivo"),
+                )
                 self._send_json(self._snapshot_ack(saved, mutation_id, payslipId=payslip_id, deleted=True))
                 return
             if parsed.path == "/api/backups":
@@ -1021,6 +1405,9 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                     return
                 payload = self._read_json_body()
                 deleted = delete_versioned_backup(AUTH_STORE.user_db_path(user["id"]), payload.get("backupId", ""))
+                AUTH_STORE.log_audit(str(user["id"]), str(user["id"]), "backup.deleted", {
+                    "backupId": str(payload.get("backupId") or ""),
+                })
                 self._send_json({"ok": True, "deleted": deleted})
                 return
             if parsed.path != "/api/admin/accounts":
@@ -1065,6 +1452,7 @@ def main() -> int:
 
     os.chdir(FRONTEND_DIR)
     httpd = ThreadingHTTPServer((args.host, args.port), GestOreHandler)
+    PUSH_SERVICE.start(load_compact_snapshot, AUTH_STORE.user_db_path)
     print(f"GestOre attivo su http://{args.host}:{args.port}")
     print(f"Frontend: {FRONTEND_DIR}")
     print(f"Database legacy: {DB_PATH}")
@@ -1074,6 +1462,7 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\nChiusura server...")
     finally:
+        PUSH_SERVICE.stop()
         httpd.server_close()
     return 0
 

@@ -3,3 +3,4 @@
 **/*.py[cod]
 **/*.sqlite3-shm
 **/*.sqlite3-wal
+ilsamm-gestore/tmp/gestore-*/

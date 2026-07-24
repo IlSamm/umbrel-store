@@ -1,0 +1,643 @@
+/* PWA updates, history, diagnostics, sessions, recovery and audit. */
+.account-recovery-switch {
+  width: 100%;
+  margin: -5px 0 4px;
+  padding: 8px;
+  color: #94b8ff;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.platform-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--go-space-3);
+  padding: 15px 16px 13px;
+  border-bottom: 1px solid rgba(122, 153, 221, .12);
+}
+
+.platform-card-head > div {
+  min-width: 0;
+}
+
+.platform-card-head strong,
+.platform-card-head small {
+  display: block;
+}
+
+.platform-card-head strong {
+  color: var(--go-text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.platform-card-head small {
+  margin-top: 4px;
+  color: var(--go-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.platform-card-head > button {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  color: #8caeff;
+  border: 1px solid rgba(119, 151, 229, .2);
+  border-radius: 12px;
+  background: rgba(31, 48, 91, .42);
+}
+
+.platform-card-head svg,
+.platform-diagnostics svg,
+.platform-history-row svg,
+.platform-session-row svg,
+.platform-audit-row svg,
+.platform-security-action svg,
+.platform-inline-action svg,
+.platform-update-toast svg,
+.platform-message svg,
+.platform-release-dialog svg,
+.platform-recovery-dialog svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.platform-diagnostics,
+.platform-history-card,
+.platform-session-card,
+.platform-audit-card,
+.platform-security-action {
+  overflow: hidden;
+  border: 1px solid var(--go-border);
+  border-radius: var(--go-radius-card);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(74, 127, 237, .13), transparent 42%),
+    linear-gradient(145deg, rgba(23, 38, 75, .78), rgba(7, 14, 34, .9));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .025);
+}
+
+.platform-diagnostics {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+}
+
+.platform-diagnostics-icon,
+.platform-security-action > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: var(--go-blue);
+  border: 1px solid rgba(88, 157, 255, .22);
+  border-radius: 15px;
+  background: rgba(38, 91, 187, .18);
+}
+
+.platform-diagnostics.is-ok .platform-diagnostics-icon {
+  color: var(--go-green);
+  border-color: rgba(53, 213, 160, .22);
+  background: rgba(19, 145, 111, .16);
+}
+
+.platform-diagnostics.is-error .platform-diagnostics-icon {
+  color: var(--go-red);
+}
+
+.platform-diagnostics > div,
+.platform-security-action > div {
+  min-width: 0;
+}
+
+.platform-diagnostics small,
+.platform-diagnostics strong,
+.platform-diagnostics p,
+.platform-security-action strong,
+.platform-security-action p {
+  display: block;
+  margin: 0;
+}
+
+.platform-diagnostics small {
+  color: #7da6ff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.platform-diagnostics strong,
+.platform-security-action strong {
+  margin-top: 4px;
+  color: #f8fbff;
+  font-size: 14px;
+}
+
+.platform-diagnostics p,
+.platform-security-action p {
+  margin-top: 4px;
+  color: var(--go-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.platform-diagnostics > button,
+.platform-security-action > button {
+  min-height: 38px;
+  padding: 0 13px;
+  color: #e8f1ff;
+  border: 1px solid rgba(105, 151, 255, .28);
+  border-radius: 13px;
+  background: rgba(50, 85, 166, .28);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.platform-diagnostics > button svg {
+  display: none;
+}
+
+.platform-history-list,
+.platform-session-card > div:last-child,
+.platform-audit-card > div:last-child {
+  display: grid;
+}
+
+.platform-history-row,
+.platform-session-row,
+.platform-audit-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  min-height: 64px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(122, 153, 221, .1);
+}
+
+.platform-history-row:last-child,
+.platform-session-row:last-child,
+.platform-audit-row:last-child {
+  border-bottom: 0;
+}
+
+.platform-history-row > span,
+.platform-session-row > span,
+.platform-audit-row > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #89aaff;
+  border-radius: 13px;
+  background: rgba(50, 80, 153, .22);
+}
+
+.platform-history-row > div,
+.platform-session-row > div,
+.platform-audit-row > div {
+  min-width: 0;
+}
+
+.platform-history-row strong,
+.platform-history-row small,
+.platform-session-row strong,
+.platform-session-row small,
+.platform-audit-row strong,
+.platform-audit-row small {
+  display: block;
+}
+
+.platform-history-row strong,
+.platform-session-row strong,
+.platform-audit-row strong {
+  overflow: hidden;
+  color: #f7f9ff;
+  font-size: 12px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-history-row small,
+.platform-session-row small,
+.platform-audit-row small {
+  overflow: hidden;
+  margin-top: 4px;
+  color: #8998ba;
+  font-size: 9px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-history-row > button,
+.platform-session-row > button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  color: #aebfff;
+  border: 1px solid rgba(127, 144, 255, .22);
+  border-radius: 11px;
+  background: rgba(66, 64, 158, .2);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.platform-history-row > button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.platform-history-row > b,
+.platform-session-row strong b {
+  color: #72809e;
+  font-size: 7px;
+  letter-spacing: .08em;
+}
+
+.platform-history-row.is-reverted {
+  opacity: .62;
+}
+
+.platform-session-row > i {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: var(--go-green);
+}
+
+.platform-empty {
+  padding: 22px 16px;
+  color: #8593b3;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.platform-empty.is-error {
+  color: #ff8ca0;
+}
+
+.platform-push-card {
+  overflow: hidden;
+}
+
+.platform-inline-action {
+  display: grid;
+  width: 100%;
+  min-height: 54px;
+  grid-template-columns: 34px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px;
+  color: #eef4ff;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.platform-inline-action > span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.platform-security-action {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  padding: 15px;
+}
+
+.platform-security-action > button {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.platform-update-toast,
+.platform-message {
+  position: fixed;
+  right: 14px;
+  left: 14px;
+  z-index: var(--go-z-toast);
+  width: min(calc(100% - 28px), 402px);
+  margin: 0 auto;
+  border: 1px solid rgba(136, 154, 255, .32);
+  border-radius: 19px;
+  background: rgba(10, 17, 41, .91);
+  box-shadow: 0 20px 54px rgba(0, 0, 0, .5);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  backdrop-filter: blur(22px) saturate(145%);
+}
+
+.platform-offline {
+  position: fixed;
+  z-index: 1700;
+  right: max(12px, calc((100vw - 430px) / 2 + 12px));
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  left: max(12px, calc((100vw - 430px) / 2 + 12px));
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 9px 12px;
+  border: 1px solid rgba(96, 165, 250, .28);
+  border-radius: 18px;
+  color: #fff;
+  background: rgba(8, 17, 38, .92);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  backdrop-filter: blur(22px) saturate(1.25);
+}
+
+.platform-offline > span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  color: #69b7ff;
+  background: rgba(59, 130, 246, .13);
+}
+
+.platform-offline svg {
+  width: 20px;
+  height: 20px;
+}
+
+.platform-offline div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.platform-offline strong {
+  font-size: 13px;
+}
+
+.platform-offline small {
+  color: rgba(209, 220, 244, .7);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.platform-update-toast {
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+}
+
+.platform-update-toast > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #a983ff;
+  border-radius: 13px;
+  background: rgba(113, 71, 220, .22);
+}
+
+.platform-update-toast strong,
+.platform-update-toast small {
+  display: block;
+}
+
+.platform-update-toast strong {
+  color: #fff;
+  font-size: 12px;
+}
+
+.platform-update-toast small {
+  margin-top: 3px;
+  color: #929fbd;
+  font-size: 8px;
+}
+
+.platform-update-toast > button {
+  min-height: 36px;
+  padding: 0 12px;
+  color: #fff;
+  border: 1px solid rgba(155, 129, 255, .35);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4f66de, #7552d8);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.platform-message {
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  color: var(--go-green);
+}
+
+.platform-message p {
+  margin: 0;
+  color: #f4f8ff;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.platform-overlay {
+  position: fixed;
+  z-index: var(--go-z-dialog);
+  display: grid;
+  inset: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  place-items: center;
+  background: rgba(1, 5, 16, .72);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.platform-release-dialog,
+.platform-recovery-dialog {
+  position: relative;
+  width: min(100%, 380px);
+  padding: 25px 20px 20px;
+  border: 1px solid rgba(135, 153, 255, .3);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(78, 121, 245, .21), transparent 42%),
+    linear-gradient(155deg, #142348, #070d20 68%);
+  box-shadow: 0 32px 90px rgba(0, 0, 0, .58);
+  text-align: center;
+}
+
+.platform-release-dialog > button:first-child {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  color: #9cabc9;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .05);
+}
+
+.platform-release-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+  place-items: center;
+  color: #8f80ff;
+  border: 1px solid rgba(144, 127, 255, .3);
+  border-radius: 20px;
+  background: rgba(88, 65, 192, .23);
+}
+
+.platform-release-icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+.platform-release-dialog > small,
+.platform-recovery-dialog > small {
+  color: #86a9ff;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .18em;
+}
+
+.platform-release-dialog h2,
+.platform-recovery-dialog h2 {
+  margin: 7px 0 15px;
+  color: #fff;
+  font-size: 25px;
+  letter-spacing: -.045em;
+}
+
+.platform-release-dialog > div:not(:last-child) {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.platform-release-dialog p {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: #c7d2e8;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.platform-release-dialog p span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: var(--go-green);
+  border-radius: 9px;
+  background: rgba(35, 177, 131, .13);
+}
+
+.platform-release-dialog p svg {
+  width: 13px;
+  height: 13px;
+}
+
+.platform-release-dialog .is-primary,
+.platform-recovery-dialog .is-primary {
+  width: 100%;
+  min-height: 48px;
+  color: #fff;
+  border: 1px solid rgba(146, 131, 255, .38);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4c6fe2, #754ed9);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.platform-recovery-dialog > p {
+  margin: 0 0 16px;
+  color: #9ca9c4;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.platform-recovery-dialog > strong {
+  display: block;
+  padding: 15px 9px;
+  color: #fff;
+  border: 1px solid rgba(126, 155, 255, .27);
+  border-radius: 15px;
+  background: rgba(4, 10, 26, .55);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(15px, 5vw, 19px);
+  letter-spacing: .05em;
+  user-select: text;
+}
+
+.platform-recovery-dialog > div {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.platform-recovery-dialog > div > button:first-child {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #cbd7ef;
+  border: 1px solid rgba(128, 154, 217, .2);
+  border-radius: 16px;
+  background: rgba(31, 47, 84, .5);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 350px) {
+  .platform-diagnostics {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .platform-diagnostics > button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .platform-history-row,
+  .platform-session-row {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .platform-history-row > button,
+  .platform-history-row > b,
+  .platform-session-row > button,
+  .platform-session-row > i {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

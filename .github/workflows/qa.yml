@@ -1,0 +1,31 @@
+name: GestOre QA
+
+on:
+  push:
+    paths:
+      - "ilsamm-gestore/**"
+      - ".github/workflows/qa.yml"
+  pull_request:
+    paths:
+      - "ilsamm-gestore/**"
+      - ".github/workflows/qa.yml"
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ilsamm-gestore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install backend dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Run core regression suite
+        run: python tmp/run_core_qa.py

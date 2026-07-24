@@ -23,6 +23,7 @@ var editorAutosaveTimer = 0;
       state.typeOpen = false;
       state.notesOpen = Boolean((state.draft.notes || '').trim());
       state.confirmClearOpen = false;
+      state.editorValidationIssues = [];
       document.body.classList.add('editor-open');
       render();
     }
@@ -92,7 +93,10 @@ var editorAutosaveTimer = 0;
         clearEditorAutosaveTimer();
         editorDraftDirty = false;
       } else {
-        flushEditorAutosave();
+        if (!flushEditorAutosave()) {
+          updateEditorValidationUI();
+          return;
+        }
       }
       var activeEl = document.activeElement;
       if (activeEl && typeof activeEl.blur === 'function') activeEl.blur();
@@ -103,6 +107,7 @@ var editorAutosaveTimer = 0;
       state.typeOpen = false;
       state.notesOpen = false;
       state.confirmClearOpen = false;
+      state.editorValidationIssues = [];
       render();
     }
     function syncTimeFieldState(input) {
@@ -148,14 +153,15 @@ var editorAutosaveTimer = 0;
       }
       if (overtimeMode) overtimeMode.textContent = state.draft.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti';
       if (typeof updateEditorTimelineUI === 'function') updateEditorTimelineUI();
+      if (typeof updateEditorValidationUI === 'function') updateEditorValidationUI();
     }
     function setEditorAutosaveStatus(status) {
       var indicator = document.querySelector('[data-editor-autosave]');
       if (!indicator) return;
-      var normalized = status === 'saving' || status === 'saved' ? status : 'ready';
+      var normalized = status === 'saving' || status === 'saved' || status === 'error' ? status : 'ready';
       indicator.setAttribute('data-status', normalized);
       var label = indicator.querySelector('[data-editor-autosave-label]');
-      if (label) label.textContent = normalized === 'saving' ? 'Salvo...' : (normalized === 'saved' ? 'Salvato' : 'Auto');
+      if (label) label.textContent = normalized === 'saving' ? 'Salvo...' : (normalized === 'saved' ? 'Salvato' : (normalized === 'error' ? 'Controlla' : 'Auto'));
     }
     function sanitizeEditorDraft() {
       if (!state.draft) return null;
@@ -190,6 +196,14 @@ var editorAutosaveTimer = 0;
       var key = toISODate(state.editingDate);
       var sanitizedDraft = sanitizeEditorDraft();
       if (!sanitizedDraft) return false;
+      var issues = typeof getDayDraftValidationIssues === 'function' ? getDayDraftValidationIssues(sanitizedDraft) : [];
+      state.editorValidationIssues = issues;
+      if (typeof hasBlockingDayDraftIssues === 'function' && hasBlockingDayDraftIssues(issues)) {
+        state.draft = Object.assign({}, sanitizedDraft);
+        setEditorAutosaveStatus('error');
+        if (typeof updateEditorValidationUI === 'function') updateEditorValidationUI();
+        return false;
+      }
       if (!hasMeaningfulDayData(sanitizedDraft)) delete state.entries[key];
       else state.entries[key] = sanitizedDraft;
       state.draft = Object.assign({}, sanitizedDraft);
