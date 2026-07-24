@@ -92,6 +92,7 @@ function getMonthlyTemplatePreview(month) {
 }
 
 function openMonthPlanPreview(month) {
+  state.calendarActionsOpen = false;
   state.monthPlanMonth = getPlanningMonth(month || state.currentMonth);
   state.monthPlanPreviewOpen = true;
   state.monthPlanNotice = '';
@@ -160,6 +161,7 @@ function renderMonthPlanDialog() {
 }
 
 function startCalendarSelection() {
+  state.calendarActionsOpen = false;
   state.calendarSelectionMode = true;
   state.calendarSelectedDates = [];
   state.calendarBulkDialogOpen = false;
@@ -373,6 +375,7 @@ function formatPlanningDayLabel(date) {
 }
 
 function openCalendarWeekCopy() {
+  state.calendarActionsOpen = false;
   state.calendarCopyTargetMonday = getDefaultCalendarCopyMonday(state.currentMonth);
   state.calendarCopyWeekOpen = true;
   render();
@@ -435,6 +438,33 @@ function renderCalendarWeekCopyDialog() {
       '<div class="week-copy-list">' + rows + '</div>' +
       '<div class="calendar-bulk-result"><span>Turni da copiare</span><strong>' + preview.writable.length + '</strong><small>' + preview.protectedDates.length + ' protetti</small></div>' +
       '<div class="planning-dialog-actions"><button data-close-calendar-week-copy="1">Annulla</button><button class="is-primary" data-apply-calendar-week-copy="1" ' + (!preview.writable.length ? 'disabled' : '') + '>Conferma</button></div>' +
+    '</section>' +
+  '</div>';
+}
+
+function openCalendarActions() {
+  state.calendarActionsOpen = true;
+  render();
+}
+
+function closeCalendarActions() {
+  state.calendarActionsOpen = false;
+  render();
+}
+
+function renderCalendarActionsDialog() {
+  if (!state.calendarActionsOpen) return '';
+  var preview = getMonthlyTemplatePreview(state.currentMonth);
+  return '<div class="planning-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="calendarActionsTitle">' +
+    '<section class="planning-dialog calendar-actions-dialog">' +
+      '<button class="planning-dialog-close" data-close-calendar-actions="1" aria-label="Chiudi">' + icons.x + '</button>' +
+      '<span class="planning-dialog-icon is-blue">' + icons.calendar + '</span><small>GESTIONE MESE</small><h2 id="calendarActionsTitle">Cosa vuoi fare?</h2>' +
+      '<p>Le operazioni avanzate sono raccolte qui. I dati gia presenti non vengono mai sovrascritti senza conferma.</p>' +
+      '<div class="calendar-actions-list">' +
+        '<button data-toggle-calendar-selection="1"><span class="is-blue">' + icons.check + '</span><div><strong>Seleziona piu giorni</strong><small>Applica un turno, ferie, permesso o riposo</small></div>' + icons.right + '</button>' +
+        '<button data-open-calendar-week-copy="1"><span class="is-violet">' + icons.activity + '</span><div><strong>Copia una settimana</strong><small>Riporta turni e riposi nella settimana successiva</small></div>' + icons.right + '</button>' +
+        '<button data-open-month-plan="1"><span class="is-green">' + icons.calendar + '</span><div><strong>Prepara il mese</strong><small>' + preview.candidates.length + ' giornate disponibili dalla settimana tipo</small></div>' + icons.right + '</button>' +
+      '</div>' +
     '</section>' +
   '</div>';
 }
@@ -564,7 +594,7 @@ function renderOnboardingOverlay() {
 }
 
 function renderPlanningOverlays() {
-  return renderMonthPlanDialog() + renderCalendarBulkDialog() + renderCalendarWeekCopyDialog() + renderOnboardingOverlay();
+  return renderCalendarActionsDialog() + renderMonthPlanDialog() + renderCalendarBulkDialog() + renderCalendarWeekCopyDialog() + renderOnboardingOverlay();
 }
 
 state.monthPlanMonth = getPlanningMonth(state.currentMonth);
@@ -574,6 +604,7 @@ state.calendarSelectionMode = false;
 state.calendarSelectedDates = [];
 state.calendarBulkDialogOpen = false;
 state.calendarBulkChoice = 'preset:0';
+state.calendarActionsOpen = false;
 state.calendarCopyWeekOpen = false;
 state.calendarCopyTargetMonday = getDefaultCalendarCopyMonday(state.currentMonth);
 state.onboardingOpen = false;

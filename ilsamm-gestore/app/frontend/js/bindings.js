@@ -635,6 +635,7 @@ function bindEvents() {
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
+        state.calendarActionsOpen = false;
         state.calendarCopyWeekOpen = false;
         render();
       };
@@ -644,9 +645,15 @@ function bindEvents() {
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
+        state.calendarActionsOpen = false;
         state.calendarCopyWeekOpen = false;
         render();
       };
+      var calendarActions = document.querySelector('[data-open-calendar-actions]');
+      if (calendarActions) calendarActions.onclick = openCalendarActions;
+      document.querySelectorAll('[data-close-calendar-actions]').forEach(function (btn) {
+        btn.onclick = closeCalendarActions;
+      });
       document.querySelectorAll('[data-calendar-filter]').forEach(function (btn) {
         btn.onclick = function () {
           var nextFilter = btn.dataset.calendarFilter;
