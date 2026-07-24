@@ -480,6 +480,7 @@ function renderCalendar() {
         '<div class="stack">' +
           '<div class="calendar-tools-row"><div class="calendar-filter-bar" role="group" aria-label="Filtra giornate">' + calendarFilterHtml + '</div><button class="calendar-select-toggle ' + (state.calendarSelectionMode ? 'is-active' : '') + '" data-toggle-calendar-selection="1" aria-pressed="' + (state.calendarSelectionMode ? 'true' : 'false') + '">' + icons.check + '<span>' + (state.calendarSelectionMode ? 'Annulla' : 'Seleziona') + '</span></button></div>' +
           (typeof renderCalendarPlanningSuggestion === 'function' ? renderCalendarPlanningSuggestion() : '') +
+          (typeof renderCalendarWeekCopyAction === 'function' ? renderCalendarWeekCopyAction() : '') +
           '<div class="card calendar-month-card"><div class="card-body compact">' +
             '<div class="week-grid">' + weekNames.map(function (n) { return '<div class="weekday">' + n + '</div>'; }).join('') + '</div>' +
             '<div class="calendar-grid">' + grid.map(function (date) {
@@ -869,18 +870,18 @@ function renderCalendar() {
           var type = dayTypes[item.entry.type] || { label: 'Segnato', dot: '#71809e' };
           stateDot = '<i class="analytics-daily-state" style="background:' + type.dot + '" title="' + escapeHtml(type.label) + '"></i>';
         }
-        return '<div class="analytics-daily-column" aria-label="' + escapeHtml(weekday + ' ' + item.day + ': ' + (item.total ? formatDuration(item.total) : 'nessuna ora')) + '">' +
+        return '<button type="button" class="analytics-daily-column" data-open-stats-day="' + item.key + '" aria-label="' + escapeHtml(weekday + ' ' + item.day + ': ' + (item.total ? formatDuration(item.total) : 'nessuna ora') + '. Tocca per il dettaglio') + '">' +
           '<span class="analytics-daily-value">' + formatStatsCompactDuration(item.total) + '</span>' +
           '<div class="analytics-daily-bar"><i class="is-normal" style="height:' + normalPercent.toFixed(2) + '%"></i><i class="is-extra" style="height:' + overtimePercent.toFixed(2) + '%"></i>' + stateDot + '</div>' +
           '<small>' + weekday + '</small><strong>' + item.day + '</strong>' +
-        '</div>';
+        '</button>';
       }).join('');
       return '<div class="analytics-chart analytics-daily-readable-chart" role="img" aria-label="Ore lavorate per giorno, scorri orizzontalmente">' +
         '<div class="analytics-daily-scroll"><div class="analytics-daily-plot" style="width:' + plotWidth + 'px">' +
           (dailyTarget > 0 ? '<div class="analytics-daily-target-line" style="top:' + targetTop.toFixed(2) + 'px"><span>' + formatStatsCompactDuration(dailyTarget) + ' obiettivo</span></div>' : '') +
           columns +
         '</div></div>' +
-        '<div class="analytics-daily-scroll-hint"><span>Scorri per vedere tutti i giorni</span>' + icons.right + '</div>' +
+        '<div class="analytics-daily-scroll-hint"><span>Scorri e tocca un giorno per il dettaglio</span>' + icons.right + '</div>' +
       '</div>';
     }
 
@@ -912,7 +913,8 @@ function renderCalendar() {
         var extraHeight = (overtime / maxMinutes) * plotHeight;
         var normalY = bottom - normalHeight;
         var extraY = normalY - extraHeight;
-        return '<g><title>' + monthNames[index] + ': ' + formatDuration(normal + overtime) + '</title>' +
+        var monthKey = item.date.getFullYear() + '-' + pad(item.date.getMonth() + 1);
+        return '<g class="analytics-year-point" role="button" tabindex="0" data-open-stats-month="' + monthKey + '" aria-label="' + escapeHtml(monthNames[index] + ': ' + formatDuration(normal + overtime) + '. Apri dettaglio') + '"><title>' + monthNames[index] + ': ' + formatDuration(normal + overtime) + '</title>' +
           (normalHeight ? '<rect class="analytics-chart-bar-normal" x="' + x.toFixed(2) + '" y="' + normalY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + normalHeight.toFixed(2) + '" rx="3"></rect>' : '') +
           (extraHeight ? '<rect class="analytics-chart-bar-extra" x="' + x.toFixed(2) + '" y="' + extraY.toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + extraHeight.toFixed(2) + '" rx="3"></rect>' : '') +
           '<text class="analytics-chart-x-label" x="' + (x + barWidth / 2).toFixed(2) + '" y="' + (height - 8) + '">' + monthNames[index].slice(0, 1) + '</text></g>';
@@ -1021,10 +1023,10 @@ function renderCalendar() {
         var normalWidth = Math.max(0, (block.normalMinutes / maxWeek) * 100);
         var extraWidth = Math.max(0, (block.overtimeMinutes / maxWeek) * 100);
         var targetPosition = Math.min(100, (weeklyTarget / maxWeek) * 100);
-        return '<div class="analytics-week-row">' +
+        return '<button type="button" class="analytics-week-row" data-open-stats-period="1" data-stats-start="' + block.startKey + '" data-stats-end="' + block.endKey + '" data-stats-title="Settimana ' + (index + 1) + '">' +
           '<div class="analytics-week-copy"><span>SETTIMANA ' + (index + 1) + '</span><strong>' + (block.minutes ? formatDuration(block.minutes) : '--') + '</strong><small>giorni ' + block.label + ' &middot; ' + block.workedDays + ' registrati</small></div>' +
           '<div class="analytics-week-chart"><div><span class="is-normal" style="width:' + normalWidth.toFixed(2) + '%"></span><span class="is-extra" style="width:' + extraWidth.toFixed(2) + '%"></span><i style="left:' + targetPosition.toFixed(2) + '%"></i></div></div>' +
-        '</div>';
+        '</button>';
       }).join('');
       var firstTime = focus.firstStart ? formatClockFromMinutes(focus.firstStart.minutes) : '--:--';
       var lastTime = focus.lastEnd ? formatClockFromMinutes(focus.lastEnd.minutes) : '--:--';
@@ -1084,7 +1086,8 @@ function renderCalendar() {
         var normal = item.stats.normalMinutes || 0;
         var overtime = item.stats.overtimeMinutes || 0;
         var maxMonth = Math.max(1, summaries.reduce(function (max, summary) { return Math.max(max, summary.stats.totalMinutes || 0); }, 0));
-        return '<div class="analytics-month-row"><div class="analytics-month-copy"><span>' + monthNames[item.date.getMonth()].slice(0, 3) + '</span><div><strong>' + monthNames[item.date.getMonth()] + '</strong><small>Ord. ' + formatDuration(normal) + ' &middot; Extra ' + formatDuration(overtime) + '</small></div></div><div class="analytics-month-value"><strong>' + formatDuration(total) + '</strong><span><i style="width:' + ((total / maxMonth) * 100).toFixed(2) + '%"></i></span></div></div>';
+        var monthKey = item.date.getFullYear() + '-' + pad(item.date.getMonth() + 1);
+        return '<button type="button" class="analytics-month-row" data-open-stats-month="' + monthKey + '"><div class="analytics-month-copy"><span>' + monthNames[item.date.getMonth()].slice(0, 3) + '</span><div><strong>' + monthNames[item.date.getMonth()] + '</strong><small>Ord. ' + formatDuration(normal) + ' &middot; Extra ' + formatDuration(overtime) + '</small></div></div><div class="analytics-month-value"><strong>' + formatDuration(total) + '</strong><span><i style="width:' + ((total / maxMonth) * 100).toFixed(2) + '%"></i></span></div></button>';
       }).join('');
       var insights = [
         { icon: icons.star, tone: 'is-violet', label: 'Mese migliore', value: bestMonth && bestMonth.stats.totalMinutes ? monthNames[bestMonth.date.getMonth()] : '--', sub: bestMonth && bestMonth.stats.totalMinutes ? formatDuration(bestMonth.stats.totalMinutes) : 'nessun dato' },
@@ -1229,6 +1232,7 @@ function renderOverlayLegacy() {
           '<label class="time-box day-editor-time-field ' + (normalizeTimeInputValue(d.end || '') ? 'has-time' : 'empty-time') + '"><span class="day-editor-round-icon is-violet">' + icons.left + '</span><span class="day-editor-time-label">Uscita</span><span class="time-field"><input id="editorEnd" class="time-input-big" type="time" step="60" value="' + normalizeTimeInputValue(d.end || '') + '" aria-label="Orario di uscita"><span class="time-placeholder" aria-hidden="true">--:--</span></span></label>' +
         '</div><div class="day-editor-inline-row"><span class="day-editor-round-icon is-blue">' + icons.clock + '</span><div class="day-editor-inline-copy"><strong>Pausa</strong><small>Durata non lavorata</small></div><div class="day-editor-stepper"><button type="button" data-adjust-editor-hours="breakHours" data-editor-delta="-0.5" aria-label="Riduci pausa">-</button><div class="day-editor-step-value"><input id="editorBreakHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.breakHours || 0) + '" aria-label="Ore di pausa"><span>h</span></div><button type="button" data-adjust-editor-hours="breakHours" data-editor-delta="0.5" aria-label="Aumenta pausa">+</button></div></div>' +
         (isMixed ? '<div class="day-editor-inline-row day-editor-leave-row"><span class="day-editor-round-icon is-blue">' + icons.calendar + '</span><div class="day-editor-inline-copy"><strong>Ferie</strong><small>Ore coperte nella giornata</small></div><div class="day-editor-stepper"><button type="button" data-adjust-editor-hours="leaveHours" data-editor-delta="-0.5" aria-label="Riduci ferie">-</button><div class="day-editor-step-value"><input id="editorLeaveHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.leaveHours || 0) + '" aria-label="Ore di ferie"><span>h</span></div><button type="button" data-adjust-editor-hours="leaveHours" data-editor-delta="0.5" aria-label="Aumenta ferie">+</button></div></div>' : '') +
+        (typeof renderEditorTimeline === 'function' ? renderEditorTimeline(d) : '') +
         '</section><section class="day-editor-card day-editor-overtime-card"><div class="day-editor-kicker">STRAORDINARI</div><div class="day-editor-overtime-head"><span class="day-editor-round-icon is-violet">' + icons.star + '</span><div class="day-editor-inline-copy"><strong>Ore straordinarie</strong><small data-editor-overtime-mode>' + (d.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti') + '</small></div><button type="button" class="day-editor-auto-toggle ' + (!d.overtimeManual ? 'is-on' : '') + '" data-toggle-editor-overtime-auto="1" aria-pressed="' + (!d.overtimeManual ? 'true' : 'false') + '" aria-label="Calcolo automatico straordinari"><span></span></button></div><div class="day-editor-overtime-stepper"><button type="button" data-adjust-editor-hours="overtimeHours" data-editor-delta="-0.5" aria-label="Riduci straordinari">-</button><div class="day-editor-overtime-value"><input id="editorOvertimeHours" class="textual" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="' + formatEditorDecimal(d.overtimeHours || 0) + '" aria-label="Ore straordinarie"><span>h</span></div><button type="button" data-adjust-editor-hours="overtimeHours" data-editor-delta="0.5" aria-label="Aumenta straordinari">+</button></div></section>';
       }
 
@@ -2046,7 +2050,7 @@ function renderOverlayLegacy() {
         '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
         '<section class="screen exports-screen ' + (state.activeTab === 'exports' ? ('active' + switchClass) : '') + '">' + renderExports() + '</section>' +
         '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') + (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '');
+        renderNav() + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') + (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') + (typeof renderStatsInsightOverlay === 'function' ? renderStatsInsightOverlay() : '') + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '');
       bindEvents();
       if (typeof bindAccountEvents === 'function') bindAccountEvents();
       initHomeTitleMorph();

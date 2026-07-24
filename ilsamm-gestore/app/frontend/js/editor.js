@@ -147,6 +147,7 @@ var editorAutosaveTimer = 0;
         autoToggle.setAttribute('aria-pressed', state.draft.overtimeManual ? 'false' : 'true');
       }
       if (overtimeMode) overtimeMode.textContent = state.draft.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti';
+      if (typeof updateEditorTimelineUI === 'function') updateEditorTimelineUI();
     }
     function setEditorAutosaveStatus(status) {
       var indicator = document.querySelector('[data-editor-autosave]');

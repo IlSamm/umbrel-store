@@ -635,6 +635,7 @@ function bindEvents() {
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
+        state.calendarCopyWeekOpen = false;
         render();
       };
       var calNext = document.querySelector('[data-calendar-next]');
@@ -643,6 +644,7 @@ function bindEvents() {
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
+        state.calendarCopyWeekOpen = false;
         render();
       };
       document.querySelectorAll('[data-calendar-filter]').forEach(function (btn) {
@@ -691,6 +693,18 @@ function bindEvents() {
       document.querySelectorAll('[data-apply-month-plan]').forEach(function (btn) {
         btn.onclick = applyMonthlyTemplate;
       });
+      document.querySelectorAll('[data-open-calendar-week-copy]').forEach(function (btn) {
+        btn.onclick = openCalendarWeekCopy;
+      });
+      document.querySelectorAll('[data-close-calendar-week-copy]').forEach(function (btn) {
+        btn.onclick = closeCalendarWeekCopy;
+      });
+      document.querySelectorAll('[data-shift-calendar-week-copy]').forEach(function (btn) {
+        btn.onclick = function () { shiftCalendarCopyWeek(Number(btn.dataset.shiftCalendarWeekCopy) || 0); };
+      });
+      document.querySelectorAll('[data-apply-calendar-week-copy]').forEach(function (btn) {
+        btn.onclick = applyCalendarWeekCopy;
+      });
       var stPrev = document.querySelector('[data-stats-prev]');
       if (stPrev) stPrev.onclick = function () {
         var step = state.statsRange === 'year' ? -12 : -1;
@@ -709,6 +723,34 @@ function bindEvents() {
           if (state.statsRange === nextRange) return;
           state.statsRange = nextRange;
           render();
+        };
+      });
+      document.querySelectorAll('[data-open-stats-day]').forEach(function (btn) {
+        btn.onclick = function () { openStatsDayDetail(btn.dataset.openStatsDay); };
+      });
+      document.querySelectorAll('[data-open-stats-period]').forEach(function (btn) {
+        btn.onclick = function () {
+          openStatsPeriodDetail(btn.dataset.statsStart, btn.dataset.statsEnd, btn.dataset.statsTitle);
+        };
+      });
+      document.querySelectorAll('[data-open-stats-month]').forEach(function (node) {
+        var openMonth = function () { openStatsMonthDetail(node.dataset.openStatsMonth); };
+        node.onclick = openMonth;
+        node.onkeydown = function (event) {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          openMonth();
+        };
+      });
+      document.querySelectorAll('[data-close-stats-detail]').forEach(function (btn) {
+        btn.onclick = closeStatsDetail;
+      });
+      document.querySelectorAll('[data-stats-open-date]').forEach(function (btn) {
+        btn.onclick = function () {
+          var date = parseLocalDateKey(btn.dataset.statsOpenDate);
+          if (!date) return;
+          state.statsDetail = null;
+          openEditor(date);
         };
       });
 
