@@ -1,0 +1,356 @@
+/* GestOre 1.3 Home: one strong focal card, readable insights, compact actions. */
+@media (max-width: 560px) {
+  :root {
+    --home-rail: min(394px, calc(100vw - 20px));
+  }
+
+  .screen.home-screen .go-home-header-v13 {
+    position: relative !important;
+    display: grid !important;
+    place-items: center !important;
+    min-height: 52px !important;
+    margin-bottom: 7px !important;
+  }
+
+  .screen.home-screen .go-home-header-v13 .gestore-static-title {
+    min-height: 48px !important;
+    padding: 0 52px 2px !important;
+    font-family: var(--go-font-sans) !important;
+    font-size: clamp(39px, 10.8vw, 45px) !important;
+    line-height: 1 !important;
+    font-weight: 820 !important;
+    letter-spacing: -0.06em !important;
+  }
+
+  .screen.home-screen .go-home-search-v13 {
+    position: absolute !important;
+    top: 50% !important;
+    right: 3px !important;
+    z-index: 3 !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    border: 1px solid rgba(141, 164, 228, 0.16) !important;
+    border-radius: 15px !important;
+    background: rgba(10, 20, 45, 0.64) !important;
+    color: #aebbd8 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+    transform: translateY(-50%) !important;
+  }
+
+  .screen.home-screen .go-home-search-v13 svg {
+    width: 19px !important;
+    height: 19px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+  }
+
+  .screen.home-screen .go-home-v13 {
+    gap: 12px !important;
+    font-family: var(--go-font-sans) !important;
+  }
+
+  .screen.home-screen .go-home-v13 .go-card {
+    border-color: var(--go-line-strong) !important;
+    box-shadow: var(--go-shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.065) !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 {
+    min-height: 342px !important;
+    padding: 18px 18px 14px !important;
+    border-radius: 27px !important;
+    font-family: var(--go-font-sans) !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-day-head {
+    gap: 4px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-day-title {
+    font-size: clamp(38px, 10.4vw, 43px) !important;
+    line-height: 1 !important;
+    font-weight: 820 !important;
+    letter-spacing: -0.052em !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-day-date {
+    color: var(--go-text-3) !important;
+    font-size: 12.5px !important;
+    line-height: 16px !important;
+    font-weight: 600 !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-hero-core {
+    margin-top: 16px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-label {
+    color: var(--go-text-2) !important;
+    font-size: 13px !important;
+    line-height: 18px !important;
+    font-weight: 600 !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-total-number {
+    margin-top: 5px !important;
+    font-size: clamp(58px, 16.1vw, 66px) !important;
+    line-height: 0.96 !important;
+    font-weight: 850 !important;
+    letter-spacing: -0.068em !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-day-target-copy {
+    margin-top: 7px !important;
+    color: var(--go-text-2) !important;
+    font-size: 13px !important;
+    line-height: 18px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-stat-column {
+    gap: 5px !important;
+    margin-top: 18px !important;
+    padding: 7px !important;
+    border: 1px solid rgba(151, 174, 235, 0.1) !important;
+    border-radius: 18px !important;
+    background: rgba(4, 10, 25, 0.25) !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-stat-row {
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    gap: 7px !important;
+    min-height: 58px !important;
+    padding: 7px 5px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-stat-row + .go-stat-row {
+    border-left: 1px solid rgba(142, 163, 219, 0.1) !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-stat-icon {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 10px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-stat-row em {
+    color: var(--go-text-3) !important;
+    font-size: 9px !important;
+    line-height: 11px !important;
+    font-weight: 760 !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-stat-row strong {
+    margin-top: 4px !important;
+    font-size: clamp(13.5px, 3.7vw, 15px) !important;
+    line-height: 17px !important;
+    font-weight: 790 !important;
+  }
+
+  .screen.home-screen .go-day-card-cue {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    min-height: 32px !important;
+    margin: 9px auto -4px !important;
+    color: rgba(174, 189, 224, 0.7) !important;
+    font-size: 11px !important;
+    line-height: 14px !important;
+    font-weight: 700 !important;
+  }
+
+  .screen.home-screen .go-day-card-cue svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13.is-state-summary {
+    min-height: 342px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-state-hero {
+    margin-top: 10px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-state-emoji-shell {
+    width: 88px !important;
+    height: 88px !important;
+    border-radius: 29px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-state-emoji {
+    font-size: 45px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-state-eyebrow {
+    margin-top: 12px !important;
+    font-size: 10px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-state-title {
+    margin-top: 6px !important;
+    font-size: clamp(27px, 7.3vw, 31px) !important;
+    font-weight: 820 !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-state-message {
+    margin-top: 6px !important;
+    color: var(--go-text-2) !important;
+    font-size: 12.5px !important;
+    line-height: 17px !important;
+  }
+
+  .screen.home-screen .go-home-quick-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: var(--home-rail) !important;
+    margin: 0 auto !important;
+  }
+
+  .screen.home-screen .go-home-quick-actions > button {
+    display: grid !important;
+    grid-template-columns: 32px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    min-height: 64px !important;
+    padding: 8px !important;
+    border: 1px solid rgba(145, 167, 225, 0.13) !important;
+    border-radius: 18px !important;
+    background: linear-gradient(145deg, rgba(19, 33, 67, 0.82), rgba(5, 13, 31, 0.9)) !important;
+    color: var(--go-text-1) !important;
+    text-align: left !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
+  }
+
+  .screen.home-screen .go-home-action-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 11px !important;
+  }
+
+  .screen.home-screen .go-home-action-icon svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .screen.home-screen .go-home-quick-actions strong {
+    overflow: hidden !important;
+    font-size: 11.5px !important;
+    line-height: 14px !important;
+    font-weight: 750 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .screen.home-screen .go-home-quick-actions small {
+    margin-top: 2px !important;
+    overflow: hidden !important;
+    color: var(--go-text-3) !important;
+    font-size: 9.5px !important;
+    line-height: 12px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .screen.home-screen .go-analysis-card-v3 {
+    padding: 17px !important;
+    border-radius: 25px !important;
+  }
+
+  .screen.home-screen .go-analysis-head-v3 .go-kicker {
+    font-size: 10px !important;
+    line-height: 12px !important;
+  }
+
+  .screen.home-screen .go-analysis-head-v3 .go-card-title {
+    font-size: 19px !important;
+    line-height: 22px !important;
+    font-weight: 780 !important;
+  }
+
+  .screen.home-screen .go-analysis-head-v3 .go-card-badge {
+    min-height: 32px !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .screen.home-screen .go-week-total-v3 > span,
+  .screen.home-screen .go-month-footer-v3 > div:first-child > span {
+    font-size: 9.5px !important;
+    line-height: 11px !important;
+  }
+
+  .screen.home-screen .go-week-total-v3 > small,
+  .screen.home-screen .go-week-result-v3 small,
+  .screen.home-screen .go-month-metric-v3 > small {
+    font-size: 10.5px !important;
+    line-height: 14px !important;
+  }
+
+  .screen.home-screen .go-week-result-v3 strong {
+    font-size: 11.5px !important;
+    line-height: 14px !important;
+  }
+
+  .screen.home-screen .go-week-chart-v3 {
+    height: 122px !important;
+  }
+
+  .screen.home-screen .go-week-day-value-v3,
+  .screen.home-screen .go-week-day-v3 > strong {
+    font-size: 9.5px !important;
+  }
+
+  .screen.home-screen .go-month-metric-v3 > div:first-child > span {
+    font-size: 11.5px !important;
+  }
+
+  .screen.home-screen .go-month-metric-v3 > div:first-child strong {
+    font-size: 13.5px !important;
+  }
+
+  .screen.home-screen .go-month-ring-v3 span,
+  .screen.home-screen .go-month-activity-v3 > span,
+  .screen.home-screen .go-analytics-link-v3 {
+    font-size: 10.5px !important;
+    line-height: 13px !important;
+  }
+
+  .screen.home-screen .go-analytics-link-v3 {
+    min-height: 44px !important;
+    margin-top: 8px !important;
+    padding-top: 9px !important;
+  }
+}
+
+@media (max-width: 370px) {
+  .screen.home-screen .go-day-card-v13 {
+    min-height: 328px !important;
+    padding-inline: 15px !important;
+  }
+
+  .screen.home-screen .go-day-card-v13 .go-total-number {
+    font-size: 56px !important;
+  }
+
+  .screen.home-screen .go-home-quick-actions > button {
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    gap: 5px !important;
+    padding: 7px 5px !important;
+  }
+
+  .screen.home-screen .go-home-quick-actions strong {
+    font-size: 10.5px !important;
+  }
+
+  .screen.home-screen .go-home-quick-actions small {
+    font-size: 8.8px !important;
+  }
+}

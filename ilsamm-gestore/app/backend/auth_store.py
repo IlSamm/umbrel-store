@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -157,6 +158,41 @@ class AuthStore:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS passkey_credentials (
+                credential_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                public_key BLOB NOT NULL,
+                sign_count INTEGER NOT NULL DEFAULT 0,
+                transports_json TEXT NOT NULL DEFAULT '[]',
+                name TEXT NOT NULL,
+                aaguid TEXT NOT NULL DEFAULT '',
+                device_type TEXT NOT NULL DEFAULT '',
+                backed_up INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                last_used_at INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS passkey_credentials_user_idx ON passkey_credentials(user_id)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS webauthn_challenges (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                challenge BLOB NOT NULL,
+                rp_id TEXT NOT NULL,
+                origin TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS webauthn_challenges_expiry_idx ON webauthn_challenges(expires_at)")
         conn.commit()
 
     @staticmethod
@@ -219,6 +255,20 @@ class AuthStore:
         return hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
 
     @staticmethod
+    def encode_credential_id(value: bytes) -> str:
+        return base64.urlsafe_b64encode(bytes(value or b"")).rstrip(b"=").decode("ascii")
+
+    @staticmethod
+    def decode_credential_id(value: str) -> bytes:
+        clean = str(value or "").strip()
+        if not clean:
+            raise AuthError("Credenziale passkey non valida.", code="invalid_passkey")
+        try:
+            return base64.urlsafe_b64decode(clean + ("=" * (-len(clean) % 4)))
+        except (ValueError, TypeError) as exc:
+            raise AuthError("Credenziale passkey non valida.", code="invalid_passkey") from exc
+
+    @staticmethod
     def _public_user(row: sqlite3.Row) -> dict:
         return {
             "id": str(row["id"]),
@@ -226,6 +276,17 @@ class AuthStore:
             "role": str(row["role"] or "user"),
             "createdAt": int(row["created_at"] or 0),
         }
+
+    def get_account_by_username(self, username: str) -> dict | None:
+        _, key = self.normalize_username(username)
+        with closing(self._connect()) as conn:
+            row = conn.execute("SELECT * FROM users WHERE username_key = ?", (key,)).fetchone()
+        return self._public_user(row) if row else None
+
+    def get_account_by_id(self, user_id: str) -> dict | None:
+        with closing(self._connect()) as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (str(user_id or ""),)).fetchone()
+        return self._public_user(row) if row else None
 
     def has_accounts(self) -> bool:
         with closing(self._connect()) as conn:
@@ -311,6 +372,229 @@ class AuthStore:
             )
             conn.commit()
         return token
+
+    def create_webauthn_challenge(
+        self,
+        user_id: str,
+        kind: str,
+        challenge: bytes,
+        rp_id: str,
+        origin: str,
+        ttl_ms: int = 120_000,
+    ) -> str:
+        clean_kind = str(kind or "").strip()
+        if clean_kind not in {"register", "authenticate"}:
+            raise AuthError("Tipo di richiesta passkey non valido.", code="invalid_passkey_request")
+        now = int(time.time() * 1000)
+        challenge_id = uuid.uuid4().hex
+        with closing(self._connect()) as conn:
+            conn.execute("DELETE FROM webauthn_challenges WHERE expires_at <= ?", (now,))
+            conn.execute(
+                """
+                INSERT INTO webauthn_challenges (
+                    id, user_id, kind, challenge, rp_id, origin, created_at, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    challenge_id,
+                    str(user_id or ""),
+                    clean_kind,
+                    bytes(challenge),
+                    str(rp_id or ""),
+                    str(origin or ""),
+                    now,
+                    now + max(30_000, int(ttl_ms or 120_000)),
+                ),
+            )
+            conn.commit()
+        return challenge_id
+
+    def consume_webauthn_challenge(
+        self,
+        challenge_id: str,
+        kind: str,
+        user_id: str | None = None,
+    ) -> dict:
+        clean_id = str(challenge_id or "").strip()
+        now = int(time.time() * 1000)
+        with closing(self._connect()) as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT * FROM webauthn_challenges WHERE id = ?",
+                (clean_id,),
+            ).fetchone()
+            conn.execute("DELETE FROM webauthn_challenges WHERE id = ? OR expires_at <= ?", (clean_id, now))
+            conn.commit()
+        if not row or int(row["expires_at"] or 0) <= now:
+            raise AuthError("La richiesta passkey e scaduta. Riprova.", status=409, code="passkey_challenge_expired")
+        if str(row["kind"] or "") != str(kind or ""):
+            raise AuthError("Richiesta passkey non valida.", status=409, code="invalid_passkey_request")
+        if user_id is not None and str(row["user_id"] or "") != str(user_id or ""):
+            raise AuthError("La passkey non appartiene a questo account.", status=403, code="passkey_user_mismatch")
+        return {
+            "id": str(row["id"]),
+            "userId": str(row["user_id"]),
+            "challenge": bytes(row["challenge"]),
+            "rpId": str(row["rp_id"]),
+            "origin": str(row["origin"]),
+        }
+
+    def passkey_descriptors(self, user_id: str) -> list[dict]:
+        with closing(self._connect()) as conn:
+            rows = conn.execute(
+                "SELECT credential_id, transports_json FROM passkey_credentials WHERE user_id = ? ORDER BY created_at ASC",
+                (str(user_id or ""),),
+            ).fetchall()
+        descriptors = []
+        for row in rows:
+            try:
+                transports = json.loads(str(row["transports_json"] or "[]"))
+            except json.JSONDecodeError:
+                transports = []
+            descriptors.append({
+                "id": self.decode_credential_id(str(row["credential_id"])),
+                "transports": transports if isinstance(transports, list) else [],
+            })
+        return descriptors
+
+    def save_passkey(
+        self,
+        user_id: str,
+        credential_id: bytes,
+        public_key: bytes,
+        sign_count: int,
+        transports: list[str] | None = None,
+        name: str = "",
+        aaguid: str = "",
+        device_type: str = "",
+        backed_up: bool = False,
+    ) -> dict:
+        account = self.get_account_by_id(user_id)
+        if not account:
+            raise AuthError("Account non trovato.", status=404, code="account_not_found")
+        encoded_id = self.encode_credential_id(credential_id)
+        now = int(time.time() * 1000)
+        clean_name = str(name or "Passkey").strip()[:80] or "Passkey"
+        clean_transports = [
+            str(item)[:32] for item in (transports or [])
+            if str(item) in {"ble", "cable", "hybrid", "internal", "nfc", "smart-card", "usb"}
+        ]
+        try:
+            with closing(self._connect()) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO passkey_credentials (
+                        credential_id, user_id, public_key, sign_count, transports_json,
+                        name, aaguid, device_type, backed_up, created_at, last_used_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                    """,
+                    (
+                        encoded_id,
+                        str(user_id),
+                        bytes(public_key),
+                        max(0, int(sign_count or 0)),
+                        json.dumps(clean_transports),
+                        clean_name,
+                        str(aaguid or "")[:80],
+                        str(device_type or "")[:40],
+                        1 if backed_up else 0,
+                        now,
+                    ),
+                )
+                conn.commit()
+        except sqlite3.IntegrityError as exc:
+            raise AuthError("Questa passkey e gia registrata.", status=409, code="passkey_exists") from exc
+        self.log_audit(str(user_id), str(user_id), "security.passkey_added", {"name": clean_name})
+        return {
+            "id": encoded_id,
+            "name": clean_name,
+            "createdAt": now,
+            "lastUsedAt": 0,
+            "backedUp": bool(backed_up),
+        }
+
+    def get_passkey(self, credential_id: str) -> dict | None:
+        clean_id = str(credential_id or "").strip()
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                """
+                SELECT passkey_credentials.*, users.username, users.role, users.created_at AS user_created_at
+                FROM passkey_credentials
+                JOIN users ON users.id = passkey_credentials.user_id
+                WHERE passkey_credentials.credential_id = ?
+                """,
+                (clean_id,),
+            ).fetchone()
+        if not row:
+            return None
+        return {
+            "id": str(row["credential_id"]),
+            "userId": str(row["user_id"]),
+            "publicKey": bytes(row["public_key"]),
+            "signCount": int(row["sign_count"] or 0),
+            "user": {
+                "id": str(row["user_id"]),
+                "username": str(row["username"]),
+                "role": str(row["role"] or "user"),
+                "createdAt": int(row["user_created_at"] or 0),
+            },
+        }
+
+    def mark_passkey_used(self, credential_id: str, sign_count: int) -> None:
+        with closing(self._connect()) as conn:
+            conn.execute(
+                "UPDATE passkey_credentials SET sign_count = ?, last_used_at = ? WHERE credential_id = ?",
+                (
+                    max(0, int(sign_count or 0)),
+                    int(time.time() * 1000),
+                    str(credential_id or ""),
+                ),
+            )
+            conn.commit()
+
+    def list_passkeys(self, token: str) -> list[dict]:
+        session_user = self.get_user_for_token(token)
+        if not session_user:
+            raise AuthError("Accedi per gestire le passkey.", status=401, code="authentication_required")
+        with closing(self._connect()) as conn:
+            rows = conn.execute(
+                """
+                SELECT credential_id, name, backed_up, created_at, last_used_at
+                FROM passkey_credentials
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                """,
+                (str(session_user["id"]),),
+            ).fetchall()
+        return [
+            {
+                "id": str(row["credential_id"]),
+                "name": str(row["name"] or "Passkey"),
+                "backedUp": bool(row["backed_up"]),
+                "createdAt": int(row["created_at"] or 0),
+                "lastUsedAt": int(row["last_used_at"] or 0),
+            }
+            for row in rows
+        ]
+
+    def delete_passkey(self, token: str, credential_id: str) -> dict:
+        session_user = self.get_user_for_token(token)
+        if not session_user:
+            raise AuthError("Accedi per gestire le passkey.", status=401, code="authentication_required")
+        clean_id = str(credential_id or "").strip()
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                "SELECT credential_id, name FROM passkey_credentials WHERE credential_id = ? AND user_id = ?",
+                (clean_id, str(session_user["id"])),
+            ).fetchone()
+            if not row:
+                raise AuthError("Passkey non trovata.", status=404, code="passkey_not_found")
+            conn.execute("DELETE FROM passkey_credentials WHERE credential_id = ?", (clean_id,))
+            conn.commit()
+        self.log_audit(str(session_user["id"]), str(session_user["id"]), "security.passkey_removed", {
+            "name": str(row["name"] or "Passkey"),
+        })
+        return {"id": clean_id, "name": str(row["name"] or "Passkey")}
 
     def get_user_for_token(self, token: str) -> dict | None:
         if not token:

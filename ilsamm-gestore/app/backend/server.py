@@ -26,6 +26,20 @@ from history_store import (
     record_snapshot_changes,
 )
 from push_service import PushService
+from webauthn import (
+    generate_authentication_options,
+    generate_registration_options,
+    options_to_json,
+    verify_authentication_response,
+    verify_registration_response,
+)
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    AuthenticatorTransport,
+    PublicKeyCredentialDescriptor,
+    ResidentKeyRequirement,
+    UserVerificationRequirement,
+)
 
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -38,8 +52,8 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.2.0"
-BUILD_CACHE = "20260724j"
+BUILD_VERSION = "1.3.0"
+BUILD_CACHE = "20260725a"
 AUTH_STORE = AuthStore(DATA_DIR)
 PUSH_SERVICE = PushService(AUTH_STORE, DATA_DIR)
 
@@ -744,7 +758,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "same-origin")
-        self.send_header("Permissions-Policy", "camera=(self), fullscreen=(self), geolocation=(), microphone=()")
+        self.send_header("Permissions-Policy", "camera=(self), fullscreen=(self), geolocation=(), microphone=(), publickey-credentials-get=(self)")
         if str(self.headers.get("X-Forwarded-Proto", "")).lower() == "https":
             self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         super().end_headers()
@@ -810,6 +824,34 @@ class GestOreHandler(SimpleHTTPRequestHandler):
 
     def _device_label(self) -> str:
         return str(self.headers.get("X-GestOre-Device", "")).strip()[:80]
+
+    def _webauthn_context(self) -> tuple[str, str]:
+        forwarded_host = str(self.headers.get("X-Forwarded-Host", "")).split(",", 1)[0].strip()
+        request_host = forwarded_host or str(self.headers.get("Host", "")).strip()
+        host_name = urlparse(f"//{request_host}").hostname or ""
+        if not host_name:
+            raise AuthError("Dominio passkey non valido.", status=400, code="invalid_passkey_domain")
+        forwarded_proto = str(self.headers.get("X-Forwarded-Proto", "")).split(",", 1)[0].strip().lower()
+        scheme = forwarded_proto if forwarded_proto in {"http", "https"} else "http"
+        origin_header = str(self.headers.get("Origin", "")).strip().rstrip("/")
+        origin = origin_header or f"{scheme}://{request_host}"
+        return host_name, origin
+
+    @staticmethod
+    def _passkey_descriptors(items: list[dict]) -> list[PublicKeyCredentialDescriptor]:
+        descriptors = []
+        for item in items:
+            transports = []
+            for value in item.get("transports") or []:
+                try:
+                    transports.append(AuthenticatorTransport(str(value)))
+                except ValueError:
+                    continue
+            descriptors.append(PublicKeyCredentialDescriptor(
+                id=bytes(item.get("id") or b""),
+                transports=transports or None,
+            ))
+        return descriptors
 
     def _session_cookie(self, token: str, clear: bool = False) -> str:
         value = "" if clear else token
@@ -897,6 +939,12 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             try:
                 sessions = AUTH_STORE.list_sessions(self._session_token())
                 self._send_json({"ok": True, "sessions": sessions})
+            except AuthError as exc:
+                self._send_auth_error(exc)
+            return
+        if parsed.path == "/api/auth/passkeys":
+            try:
+                self._send_json({"ok": True, "passkeys": AUTH_STORE.list_passkeys(self._session_token())})
             except AuthError as exc:
                 self._send_auth_error(exc)
             return
@@ -1099,6 +1147,164 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         parsed = urlparse(self.path)
         try:
+            if parsed.path == "/api/auth/passkeys/register/options":
+                user = self._require_user()
+                if not user:
+                    return
+                rp_id, origin = self._webauthn_context()
+                descriptors = self._passkey_descriptors(AUTH_STORE.passkey_descriptors(str(user["id"])))
+                options = generate_registration_options(
+                    rp_id=rp_id,
+                    rp_name="GestOre",
+                    user_id=bytes.fromhex(str(user["id"])),
+                    user_name=str(user["username"]),
+                    user_display_name=str(user["username"]),
+                    timeout=120_000,
+                    authenticator_selection=AuthenticatorSelectionCriteria(
+                        resident_key=ResidentKeyRequirement.PREFERRED,
+                        user_verification=UserVerificationRequirement.REQUIRED,
+                    ),
+                    exclude_credentials=descriptors,
+                )
+                challenge_id = AUTH_STORE.create_webauthn_challenge(
+                    str(user["id"]),
+                    "register",
+                    options.challenge,
+                    rp_id,
+                    origin,
+                )
+                self._send_json({
+                    "ok": True,
+                    "challengeId": challenge_id,
+                    "options": json.loads(options_to_json(options)),
+                }, HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/auth/passkeys/register/verify":
+                user = self._require_user()
+                if not user:
+                    return
+                payload = self._read_json_body()
+                challenge = AUTH_STORE.consume_webauthn_challenge(
+                    payload.get("challengeId", ""),
+                    "register",
+                    str(user["id"]),
+                )
+                credential = payload.get("credential")
+                if not isinstance(credential, dict):
+                    raise AuthError("Risposta passkey non valida.", code="invalid_passkey")
+                try:
+                    verified = verify_registration_response(
+                        credential=credential,
+                        expected_challenge=challenge["challenge"],
+                        expected_rp_id=challenge["rpId"],
+                        expected_origin=challenge["origin"],
+                        require_user_verification=True,
+                    )
+                except Exception as exc:
+                    raise AuthError("Non e stato possibile verificare la passkey.", status=401, code="passkey_verification_failed") from exc
+                response_payload = credential.get("response") if isinstance(credential.get("response"), dict) else {}
+                passkey = AUTH_STORE.save_passkey(
+                    str(user["id"]),
+                    verified.credential_id,
+                    verified.credential_public_key,
+                    verified.sign_count,
+                    transports=response_payload.get("transports") if isinstance(response_payload.get("transports"), list) else [],
+                    name=payload.get("name") or self._device_label() or "Passkey",
+                    aaguid=str(verified.aaguid or ""),
+                    device_type=str(getattr(verified.credential_device_type, "value", verified.credential_device_type) or ""),
+                    backed_up=bool(verified.credential_backed_up),
+                )
+                self._send_json({
+                    "ok": True,
+                    "passkey": passkey,
+                    "passkeys": AUTH_STORE.list_passkeys(self._session_token()),
+                }, HTTPStatus.CREATED)
+                return
+            if parsed.path == "/api/auth/passkeys/login/options":
+                payload = self._read_json_body()
+                username = str(payload.get("username") or "")
+                rate_key = _rate_limit_key("passkey", self._client_identifier(), username)
+                retry_after = check_auth_rate_limit(rate_key)
+                if retry_after:
+                    self._send_json({
+                        "error": f"Troppi tentativi. Riprova tra {retry_after} secondi.",
+                        "code": "rate_limited",
+                        "retryAfter": retry_after,
+                    }, HTTPStatus.TOO_MANY_REQUESTS)
+                    return
+                account = AUTH_STORE.get_account_by_username(username)
+                descriptors = AUTH_STORE.passkey_descriptors(str((account or {}).get("id") or "")) if account else []
+                if not account or not descriptors:
+                    register_auth_failure(rate_key)
+                    raise AuthError("Nessuna passkey disponibile per questo account.", status=404, code="passkey_not_available")
+                rp_id, origin = self._webauthn_context()
+                options = generate_authentication_options(
+                    rp_id=rp_id,
+                    timeout=120_000,
+                    allow_credentials=self._passkey_descriptors(descriptors),
+                    user_verification=UserVerificationRequirement.REQUIRED,
+                )
+                challenge_id = AUTH_STORE.create_webauthn_challenge(
+                    str(account["id"]),
+                    "authenticate",
+                    options.challenge,
+                    rp_id,
+                    origin,
+                )
+                self._send_json({
+                    "ok": True,
+                    "challengeId": challenge_id,
+                    "options": json.loads(options_to_json(options)),
+                })
+                return
+            if parsed.path == "/api/auth/passkeys/login/verify":
+                payload = self._read_json_body()
+                challenge = AUTH_STORE.consume_webauthn_challenge(
+                    payload.get("challengeId", ""),
+                    "authenticate",
+                )
+                credential = payload.get("credential")
+                if not isinstance(credential, dict):
+                    raise AuthError("Risposta passkey non valida.", code="invalid_passkey")
+                credential_id = str(credential.get("id") or "")
+                saved_passkey = AUTH_STORE.get_passkey(credential_id)
+                if not saved_passkey or str(saved_passkey["userId"]) != str(challenge["userId"]):
+                    raise AuthError("Passkey non riconosciuta.", status=401, code="passkey_not_found")
+                try:
+                    verified = verify_authentication_response(
+                        credential=credential,
+                        expected_challenge=challenge["challenge"],
+                        expected_rp_id=challenge["rpId"],
+                        expected_origin=challenge["origin"],
+                        credential_public_key=saved_passkey["publicKey"],
+                        credential_current_sign_count=saved_passkey["signCount"],
+                        require_user_verification=True,
+                    )
+                except Exception as exc:
+                    AUTH_STORE.log_audit(None, str(challenge["userId"]), "session.passkey_failed")
+                    raise AuthError("Passkey non valida o scaduta.", status=401, code="passkey_verification_failed") from exc
+                AUTH_STORE.mark_passkey_used(credential_id, verified.new_sign_count)
+                token = AUTH_STORE.create_session(
+                    str(saved_passkey["userId"]),
+                    user_agent=self.headers.get("User-Agent", ""),
+                    device_label=self._device_label(),
+                )
+                AUTH_STORE.log_audit(
+                    str(saved_passkey["userId"]),
+                    str(saved_passkey["userId"]),
+                    "session.passkey_login",
+                    {"device": self._device_label() or "Dispositivo"},
+                )
+                clear_auth_failures(_rate_limit_key(
+                    "passkey",
+                    self._client_identifier(),
+                    str(saved_passkey["user"]["username"]),
+                ))
+                self._send_json({
+                    "ok": True,
+                    "user": saved_passkey["user"],
+                }, cookie=self._session_cookie(token))
+                return
             if parsed.path == "/api/auth/register":
                 payload = self._read_json_body()
                 register_key = _rate_limit_key("register", self._client_identifier(), payload.get("username", ""))
@@ -1368,6 +1574,15 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 payload = self._read_json_body()
                 revoked = AUTH_STORE.revoke_session(self._session_token(), payload.get("sessionId", ""))
                 self._send_json({"ok": True, "revoked": revoked})
+                return
+            if parsed.path == "/api/auth/passkeys":
+                payload = self._read_json_body()
+                deleted = AUTH_STORE.delete_passkey(self._session_token(), payload.get("credentialId", ""))
+                self._send_json({
+                    "ok": True,
+                    "deleted": deleted,
+                    "passkeys": AUTH_STORE.list_passkeys(self._session_token()),
+                })
                 return
             if parsed.path == "/api/push/subscribe":
                 payload = self._read_json_body()

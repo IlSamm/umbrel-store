@@ -71,8 +71,8 @@ var errorBox = document.getElementById('errorBox');
       weeklyTemplate: [0, 0, 0, 0, 0, null, null],
       vacationAllowanceByYear: {},
       weekdayMode: 'monday',
-      version: '1.2.0',
-      build: '20260724j',
+      version: '1.3.0',
+      build: '20260725a',
       appName: 'GestOre'
     };
 
@@ -109,7 +109,8 @@ var errorBox = document.getElementById('errorBox');
       x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg>',
       lock: '<svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 1 1 8 0v3"></path></svg>',
       bell: '<svg viewBox="0 0 24 24"><path d="M15 17H5l2-2v-4a5 5 0 1 1 10 0v4l2 2h-4"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg>',
-      check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>'
+      check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>',
+      plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>'
       ,umbrella: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0c-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0-2-1.6-4-1.6-6 0Z"></path><path d="M12 3v15a3 3 0 0 0 6 0"></path></svg>'
       ,user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>'
       ,download: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>'
@@ -1335,13 +1336,73 @@ var errorBox = document.getElementById('errorBox');
       var content = [state.settings.appName + ' - ' + formatMonthYear(state.currentMonth), ''].concat(rows).join('\n');
       downloadTextFile('gestore-report.txt', content, 'text/plain;charset=utf-8');
     }
-    function exportReport() {
-      var reportMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
-      downloadBlobFile(getMonthlyReportPdfFilename(reportMonth), window.GestOrePdfReports.monthly(reportMonth));
+    var pdfReportModulesPromise = null;
+    function loadExternalScript(source) {
+      return new Promise(function (resolve, reject) {
+        var existing = document.querySelector('script[data-gestore-module="' + source + '"]');
+        if (existing) {
+          if (existing.dataset.loaded === 'true') resolve();
+          else {
+            existing.addEventListener('load', resolve, { once: true });
+            existing.addEventListener('error', reject, { once: true });
+          }
+          return;
+        }
+        var script = document.createElement('script');
+        script.src = source;
+        script.async = false;
+        script.dataset.gestoreModule = source;
+        script.addEventListener('load', function () {
+          script.dataset.loaded = 'true';
+          resolve();
+        }, { once: true });
+        script.addEventListener('error', function () {
+          reject(new Error('Impossibile caricare il generatore PDF.'));
+        }, { once: true });
+        document.head.appendChild(script);
+      });
     }
-    function exportYearReport() {
+    function loadPdfReportModules() {
+      if (window.GestOrePdfReports && typeof window.GestOrePdfReports.monthly === 'function' && typeof window.GestOrePdfReports.yearly === 'function') {
+        return Promise.resolve(window.GestOrePdfReports);
+      }
+      if (pdfReportModulesPromise) return pdfReportModulesPromise;
+      var buildMeta = document.querySelector('meta[name="gestore-build"]');
+      var buildValue = String(buildMeta && buildMeta.content || '');
+      var cacheToken = buildValue.indexOf('-') >= 0 ? buildValue.slice(buildValue.lastIndexOf('-') + 1) : buildValue;
+      var query = cacheToken ? ('?v=' + encodeURIComponent(cacheToken)) : '';
+      pdfReportModulesPromise = loadExternalScript('js/pdf/engine.js' + query)
+        .then(function () { return loadExternalScript('js/pdf/monthly.js' + query); })
+        .then(function () { return loadExternalScript('js/pdf/yearly.js' + query); })
+        .then(function () {
+          if (!window.GestOrePdfReports || typeof window.GestOrePdfReports.monthly !== 'function' || typeof window.GestOrePdfReports.yearly !== 'function') {
+            throw new Error('Il generatore PDF non e disponibile.');
+          }
+          return window.GestOrePdfReports;
+        })
+        .catch(function (error) {
+          pdfReportModulesPromise = null;
+          throw error;
+        });
+      return pdfReportModulesPromise;
+    }
+    async function exportReport() {
+      var reportMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
+      try {
+        var reports = await loadPdfReportModules();
+        downloadBlobFile(getMonthlyReportPdfFilename(reportMonth), reports.monthly(reportMonth));
+      } catch (error) {
+        toast(error && error.message ? error.message : 'Non riesco a creare il PDF.');
+      }
+    }
+    async function exportYearReport() {
       var reportYear = new Date(state.currentMonth.getFullYear(), 0, 1);
-      downloadBlobFile(getYearlyReportPdfFilename(reportYear), window.GestOrePdfReports.yearly(reportYear));
+      try {
+        var reports = await loadPdfReportModules();
+        downloadBlobFile(getYearlyReportPdfFilename(reportYear), reports.yearly(reportYear));
+      } catch (error) {
+        toast(error && error.message ? error.message : 'Non riesco a creare il PDF annuale.');
+      }
     }
     function normalizeServerSnapshot(payload) {
       var source = payload && typeof payload === 'object' ? payload : {};

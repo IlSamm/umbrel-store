@@ -1,4 +1,5 @@
 var editorAutosaveTimer = 0;
+    var editorAutosaveFeedbackTimer = 0;
     var editorDraftDirty = false;
 
     function clearEditorAutosaveTimer() {
@@ -136,6 +137,7 @@ var editorAutosaveTimer = 0;
       var totalEl = document.getElementById('editorSummaryTotal');
       var normalEl = document.getElementById('editorSummaryNormal');
       var overtimeEl = document.getElementById('editorSummaryExtra');
+      var overtimeSummaryEl = document.getElementById('editorOvertimeSummary');
       var leaveEl = document.getElementById('editorSummaryLeave');
       var coveredEl = document.getElementById('editorSummaryCovered');
       var breakEl = document.getElementById('editorSummaryBreak');
@@ -144,6 +146,7 @@ var editorAutosaveTimer = 0;
       if (totalEl) totalEl.textContent = formatDuration(isStateOnlyType(state.draft.type) ? breakdown.covered : breakdown.total);
       if (normalEl) normalEl.textContent = formatDuration(breakdown.normal);
       if (overtimeEl) overtimeEl.textContent = formatDuration(breakdown.overtime);
+      if (overtimeSummaryEl) overtimeSummaryEl.textContent = formatDuration(breakdown.overtime);
       if (leaveEl) leaveEl.textContent = formatDuration(breakdown.leave);
       if (coveredEl) coveredEl.textContent = formatDuration(breakdown.leave);
       if (breakEl) breakEl.textContent = formatDuration(hoursToMinutes(state.draft.breakHours || 0));
@@ -158,10 +161,21 @@ var editorAutosaveTimer = 0;
     function setEditorAutosaveStatus(status) {
       var indicator = document.querySelector('[data-editor-autosave]');
       if (!indicator) return;
+      if (editorAutosaveFeedbackTimer) {
+        window.clearTimeout(editorAutosaveFeedbackTimer);
+        editorAutosaveFeedbackTimer = 0;
+      }
       var normalized = status === 'saving' || status === 'saved' || status === 'error' ? status : 'ready';
       indicator.setAttribute('data-status', normalized);
       var label = indicator.querySelector('[data-editor-autosave-label]');
-      if (label) label.textContent = normalized === 'saving' ? 'Salvo...' : (normalized === 'saved' ? 'Salvato' : (normalized === 'error' ? 'Controlla' : 'Auto'));
+      if (label) label.textContent = normalized === 'saving' ? 'Salvo...' : (normalized === 'saved' ? 'Salvato' : (normalized === 'error' ? 'Controlla' : ''));
+      if (normalized === 'saved') {
+        editorAutosaveFeedbackTimer = window.setTimeout(function () {
+          editorAutosaveFeedbackTimer = 0;
+          var current = document.querySelector('[data-editor-autosave]');
+          if (current && current.getAttribute('data-status') === 'saved') current.setAttribute('data-status', 'ready');
+        }, 1300);
+      }
     }
     function sanitizeEditorDraft() {
       if (!state.draft) return null;

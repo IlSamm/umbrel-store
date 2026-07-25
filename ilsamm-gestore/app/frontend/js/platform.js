@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.2.0-20260724j';
+var PLATFORM_BUILD = '1.3.0-20260725a';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,12 +26,12 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Cronologia delle modifiche con annullamento sicuro.',
-  'Diagnostica del database e stato sincronizzazione piu chiaro.',
-  'Dispositivi collegati, revoca sessioni e recupero account.',
-  'Notifiche dal server anche quando GestOre e chiusa.',
-  'Aggiornamenti PWA controllati e funzionamento offline.',
-  'Controlli intelligenti sugli orari prima del salvataggio.'
+  'Home piu leggibile con riepiloghi immediati e card giornaliera rifinita.',
+  'Inserimento ore piu compatto con salvataggio automatico discreto.',
+  'Statistiche e grafici piu grandi, ordinati e accessibili.',
+  'Accesso opzionale con Face ID, Touch ID o passkey.',
+  'PDF caricati solo quando servono e archivio buste piu rapido.',
+  'Cache offline consolidata senza modificare i dati esistenti.'
 ];
 
 async function readPlatformJson(response) {
@@ -92,6 +92,10 @@ function platformAuditLabel(action) {
     'history.restored': 'Modifica annullata',
     'security.recovery_code_issued': 'Codice di recupero rinnovato',
     'security.account_recovered': 'Account recuperato',
+    'security.passkey_added': 'Passkey aggiunta',
+    'security.passkey_removed': 'Passkey rimossa',
+    'session.passkey_login': 'Accesso con passkey',
+    'session.passkey_failed': 'Accesso passkey non riuscito',
     'push.enabled': 'Notifiche server attivate',
     'push.disabled': 'Notifiche server disattivate',
     'push.sent': 'Notifica server inviata'
@@ -563,7 +567,8 @@ function renderAccountSecuritySettings() {
             '</article>';
           }).join('')
         : '<div class="platform-empty">Nessun dispositivo collegato.</div>'));
-  return '<div class="settings-v2-section-title">Notifiche dal server</div>' +
+  return (typeof renderPasskeySettings === 'function' ? renderPasskeySettings() : '') +
+    '<div class="settings-v2-section-title">Notifiche dal server</div>' +
     '<section class="settings-v2-group platform-push-card">' +
       '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Avvisi anche ad app chiusa</strong><small>' + pushHelp + '</small></span><button class="toggle-btn ' + (pushEnabled ? 'on' : '') + '" data-platform-push-toggle="1" aria-label="Avvisi anche ad app chiusa" aria-pressed="' + (pushEnabled ? 'true' : 'false') + '" ' + (push.busy || !push.available ? 'disabled' : '') + '><span class="knob"></span></button></div>' +
       (pushEnabled ? '<div class="settings-v2-divider"></div><button class="platform-inline-action" data-platform-push-test="1" ' + (push.busy ? 'disabled' : '') + '>' + icons.bell + '<span>Invia una notifica di prova</span>' + icons.right + '</button>' : '') +

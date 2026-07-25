@@ -11,6 +11,11 @@ var ACCOUNT_STORAGE_URL = '/api/storage';
 var ACCOUNT_ADMIN_URL = '/api/admin/accounts';
 var ACCOUNT_ADMIN_ACCESS_URL = '/api/admin/access';
 var ACCOUNT_ADMIN_RETURN_URL = '/api/admin/return';
+var ACCOUNT_PASSKEYS_URL = '/api/auth/passkeys';
+var ACCOUNT_PASSKEY_REGISTER_OPTIONS_URL = '/api/auth/passkeys/register/options';
+var ACCOUNT_PASSKEY_REGISTER_VERIFY_URL = '/api/auth/passkeys/register/verify';
+var ACCOUNT_PASSKEY_LOGIN_OPTIONS_URL = '/api/auth/passkeys/login/options';
+var ACCOUNT_PASSKEY_LOGIN_VERIFY_URL = '/api/auth/passkeys/login/verify';
 var STORAGE_ACTIVE_ACCOUNT = 'gestore-active-account-v1';
 var STORAGE_ACCOUNT_CACHE_PREFIX = 'gestore-account-device-cache-v2:';
 var STORAGE_PENDING_ONBOARDING = 'gestore-pending-onboarding-v1';
@@ -66,6 +71,14 @@ state.account = {
     error: ''
   },
   backupDecision: null,
+  passkeys: {
+    loaded: false,
+    loading: false,
+    items: [],
+    error: ''
+  },
+  passkeyBusy: false,
+  passkeyDeleteCandidate: null,
   adminAccounts: null,
   adminLoading: false,
   deleteCandidate: null
@@ -274,6 +287,16 @@ function resetRuntimeAccountData(options) {
     };
     state.account.backupDecision = null;
   }
+  if (state.account && state.account.passkeys) {
+    state.account.passkeys = {
+      loaded: false,
+      loading: false,
+      items: [],
+      error: ''
+    };
+    state.account.passkeyBusy = false;
+    state.account.passkeyDeleteCandidate = null;
+  }
 }
 
 function activateAccountOnDevice(userId, options) {
@@ -310,6 +333,243 @@ async function readJsonResponse(response) {
     throw error;
   }
   return payload;
+}
+
+function supportsAccountPasskeys() {
+  return Boolean(
+    window.isSecureContext &&
+    window.PublicKeyCredential &&
+    navigator.credentials &&
+    typeof navigator.credentials.create === 'function' &&
+    typeof navigator.credentials.get === 'function'
+  );
+}
+
+function accountBase64UrlToBuffer(value) {
+  var clean = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  while (clean.length % 4) clean += '=';
+  var binary = window.atob(clean);
+  var bytes = new Uint8Array(binary.length);
+  for (var index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes.buffer;
+}
+
+function accountBufferToBase64Url(value) {
+  if (!value) return '';
+  var bytes = new Uint8Array(value);
+  var binary = '';
+  for (var index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+  return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function normalizePasskeyCredentialDescriptor(item) {
+  var descriptor = Object.assign({}, item || {});
+  descriptor.id = accountBase64UrlToBuffer(descriptor.id);
+  return descriptor;
+}
+
+function normalizePasskeyCreationOptions(options) {
+  var normalized = Object.assign({}, options || {});
+  normalized.challenge = accountBase64UrlToBuffer(normalized.challenge);
+  normalized.user = Object.assign({}, normalized.user || {}, {
+    id: accountBase64UrlToBuffer(normalized.user && normalized.user.id)
+  });
+  normalized.excludeCredentials = (normalized.excludeCredentials || []).map(normalizePasskeyCredentialDescriptor);
+  return normalized;
+}
+
+function normalizePasskeyRequestOptions(options) {
+  var normalized = Object.assign({}, options || {});
+  normalized.challenge = accountBase64UrlToBuffer(normalized.challenge);
+  normalized.allowCredentials = (normalized.allowCredentials || []).map(normalizePasskeyCredentialDescriptor);
+  return normalized;
+}
+
+function serializeAccountPasskeyCredential(credential) {
+  var response = credential && credential.response;
+  var serializedResponse = {
+    clientDataJSON: accountBufferToBase64Url(response && response.clientDataJSON)
+  };
+  if (response && response.attestationObject) {
+    serializedResponse.attestationObject = accountBufferToBase64Url(response.attestationObject);
+    if (typeof response.getTransports === 'function') serializedResponse.transports = response.getTransports();
+  } else {
+    serializedResponse.authenticatorData = accountBufferToBase64Url(response && response.authenticatorData);
+    serializedResponse.signature = accountBufferToBase64Url(response && response.signature);
+    serializedResponse.userHandle = accountBufferToBase64Url(response && response.userHandle);
+  }
+  return {
+    id: String(credential && credential.id || ''),
+    rawId: accountBufferToBase64Url(credential && credential.rawId),
+    type: String(credential && credential.type || 'public-key'),
+    authenticatorAttachment: credential && credential.authenticatorAttachment || null,
+    response: serializedResponse,
+    clientExtensionResults: credential && typeof credential.getClientExtensionResults === 'function'
+      ? credential.getClientExtensionResults()
+      : {}
+  };
+}
+
+function getPasskeyErrorMessage(error, fallback) {
+  if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+    return 'Operazione annullata. Puoi riprovare quando vuoi.';
+  }
+  if (error && error.name === 'InvalidStateError') {
+    return 'Questa passkey risulta gia collegata al profilo.';
+  }
+  return error && error.message ? error.message : fallback;
+}
+
+async function loginWithAccountPasskey() {
+  if (state.account.passkeyBusy || state.account.busy) return;
+  if (!supportsAccountPasskeys()) {
+    setAccountUiState({ error: 'Le passkey richiedono Safari aggiornato e una connessione HTTPS.' });
+    return;
+  }
+  var usernameInput = document.querySelector('[data-account-form="login"] [name="username"]');
+  var username = String(usernameInput && usernameInput.value || '').trim();
+  if (!username) {
+    setAccountUiState({ error: 'Inserisci prima il nome utente, poi usa Face ID o Touch ID.' });
+    if (usernameInput) usernameInput.focus();
+    return;
+  }
+  setAccountUiState({ passkeyBusy: true, error: '', notice: 'Conferma l accesso sul dispositivo...' });
+  try {
+    var optionsResponse = await fetch(ACCOUNT_PASSKEY_LOGIN_OPTIONS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ username: username })
+    });
+    var optionsPayload = await readJsonResponse(optionsResponse);
+    var credential = await navigator.credentials.get({
+      publicKey: normalizePasskeyRequestOptions(optionsPayload.options)
+    });
+    if (!credential) throw new Error('Nessuna passkey selezionata.');
+    var verifyResponse = await fetch(ACCOUNT_PASSKEY_LOGIN_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        challengeId: optionsPayload.challengeId,
+        credential: serializeAccountPasskeyCredential(credential)
+      })
+    });
+    var payload = await readJsonResponse(verifyResponse);
+    activateAccountOnDevice(payload.user && payload.user.id);
+    window.location.reload();
+  } catch (err) {
+    setAccountUiState({
+      passkeyBusy: false,
+      notice: '',
+      error: getPasskeyErrorMessage(err, 'Accesso con passkey non riuscito.')
+    });
+  }
+}
+
+async function loadAccountPasskeys(force) {
+  var passkeys = state.account && state.account.passkeys;
+  if (!state.account.authenticated || !passkeys || passkeys.loading || (!force && passkeys.loaded)) return;
+  passkeys.loading = true;
+  passkeys.error = '';
+  if (typeof render === 'function') render();
+  try {
+    var response = await fetch(ACCOUNT_PASSKEYS_URL, { cache: 'no-store' });
+    var payload = await readJsonResponse(response);
+    state.account.passkeys = {
+      loaded: true,
+      loading: false,
+      items: Array.isArray(payload.passkeys) ? payload.passkeys : [],
+      error: ''
+    };
+  } catch (err) {
+    state.account.passkeys = {
+      loaded: false,
+      loading: false,
+      items: [],
+      error: err.message || 'Passkey non disponibili.'
+    };
+  }
+  if (typeof render === 'function') render();
+}
+
+async function registerAccountPasskey() {
+  if (state.account.passkeyBusy || state.account.busy || !state.account.authenticated) return;
+  if (!supportsAccountPasskeys()) {
+    setAccountUiState({ error: 'Le passkey richiedono Safari aggiornato e una connessione HTTPS.' });
+    return;
+  }
+  setAccountUiState({ passkeyBusy: true, error: '', notice: '' });
+  try {
+    var optionsResponse = await fetch(ACCOUNT_PASSKEY_REGISTER_OPTIONS_URL, {
+      method: 'POST',
+      cache: 'no-store'
+    });
+    var optionsPayload = await readJsonResponse(optionsResponse);
+    var credential = await navigator.credentials.create({
+      publicKey: normalizePasskeyCreationOptions(optionsPayload.options)
+    });
+    if (!credential) throw new Error('Nessuna passkey creata.');
+    var verifyResponse = await fetch(ACCOUNT_PASSKEY_REGISTER_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({
+        challengeId: optionsPayload.challengeId,
+        credential: serializeAccountPasskeyCredential(credential)
+      })
+    });
+    var payload = await readJsonResponse(verifyResponse);
+    state.account.passkeys = {
+      loaded: true,
+      loading: false,
+      items: Array.isArray(payload.passkeys) ? payload.passkeys : [],
+      error: ''
+    };
+    setAccountUiState({
+      passkeyBusy: false,
+      notice: 'Passkey aggiunta. Ora puoi entrare con Face ID o Touch ID.',
+      error: ''
+    });
+  } catch (err) {
+    setAccountUiState({
+      passkeyBusy: false,
+      notice: '',
+      error: getPasskeyErrorMessage(err, 'Non e stato possibile aggiungere la passkey.')
+    });
+  }
+}
+
+async function deleteAccountPasskey() {
+  var candidate = state.account.passkeyDeleteCandidate;
+  if (!candidate || state.account.passkeyBusy) return;
+  setAccountUiState({ passkeyBusy: true, error: '', notice: '' });
+  try {
+    var response = await fetch(ACCOUNT_PASSKEYS_URL, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ id: candidate.id })
+    });
+    var payload = await readJsonResponse(response);
+    state.account.passkeys = {
+      loaded: true,
+      loading: false,
+      items: Array.isArray(payload.passkeys) ? payload.passkeys : [],
+      error: ''
+    };
+    setAccountUiState({
+      passkeyBusy: false,
+      passkeyDeleteCandidate: null,
+      notice: 'Passkey rimossa.',
+      error: ''
+    });
+  } catch (err) {
+    setAccountUiState({
+      passkeyBusy: false,
+      error: err.message || 'Non e stato possibile rimuovere la passkey.'
+    });
+  }
 }
 
 function formatAccountStorageBytes(value) {
@@ -846,6 +1106,9 @@ function renderAccountGate() {
       (registerMode || recoverMode ? '<label><span>Ripeti password</span><input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Ripeti la password" required></label>' : '') +
       status +
       '<button class="account-primary" type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Attendi...' : (recoverMode ? 'Imposta nuova password' : (registerMode ? 'Crea account' : 'Accedi'))) + '</button>' +
+      (!registerMode && !recoverMode && supportsAccountPasskeys()
+        ? '<div class="account-passkey-divider"><span>oppure</span></div><button class="account-passkey-login" type="button" data-account-passkey-login="1" ' + (state.account.passkeyBusy ? 'disabled' : '') + '>' + icons.lock + '<span>' + (state.account.passkeyBusy ? 'Conferma sul dispositivo...' : 'Accedi con Face ID o passkey') + '</span></button>'
+        : '') +
     '</form>' +
     (firstSetup ? '' : (
       recoverMode
@@ -853,8 +1116,65 @@ function renderAccountGate() {
         : '<button class="account-mode-switch" data-account-mode="' + (registerMode ? 'login' : 'register') + '">' + (registerMode ? 'Hai gia un account? Accedi' : 'Non hai un account? Registrati') + '</button>' +
           (!registerMode ? '<button class="account-recovery-switch" data-account-mode="recover">Password dimenticata?</button>' : '')
     )) +
-    '<div class="account-security-note">' + icons.lock + '<span>Password protetta e database separato per ogni utente.</span></div>' +
+    '<div class="account-security-note">' + icons.lock + '<span>Password protetta, passkey opzionale e database separato per ogni utente.</span></div>' +
   '</div></div>';
+}
+
+function formatAccountPasskeyDate(lastUsedAt, createdAt) {
+  var lastUsed = Math.max(0, Number(lastUsedAt) || 0);
+  var timestamp = lastUsed || Math.max(0, Number(createdAt) || 0);
+  if (!timestamp) return 'Passkey attiva';
+  try {
+    return (lastUsed ? 'Usata ' : 'Aggiunta ') + new Date(timestamp).toLocaleDateString('it-IT', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  } catch (err) {
+    return 'Passkey attiva';
+  }
+}
+
+function renderPasskeySettings() {
+  var available = supportsAccountPasskeys();
+  var passkeys = state.account.passkeys || {};
+  var items = Array.isArray(passkeys.items) ? passkeys.items : [];
+  var body = '';
+  if (!available) {
+    body = '<div class="account-passkey-empty">' + icons.lock + '<div><strong>Non disponibile in questo browser</strong><small>Apri GestOre da Safari aggiornato tramite HTTPS per usare Face ID o Touch ID.</small></div></div>';
+  } else if (passkeys.loading) {
+    body = '<div class="account-passkey-loading"><span></span><div><strong>Controllo le passkey</strong><small>Solo pochi istanti</small></div></div>';
+  } else if (passkeys.error) {
+    body = '<div class="account-passkey-empty is-error">' + icons.lock + '<div><strong>Passkey non disponibili</strong><small>' + escapeHtml(passkeys.error) + '</small></div><button data-account-passkeys-refresh="1">Riprova</button></div>';
+  } else if (items.length) {
+    body = items.map(function (item) {
+      return '<article class="account-passkey-row">' +
+        '<span class="account-passkey-icon">' + icons.lock + '</span>' +
+        '<div><strong>' + escapeHtml(item.name || 'Passkey') + '</strong><small>' + escapeHtml(formatAccountPasskeyDate(item.lastUsedAt, item.createdAt)) + (item.backedUp ? ' - sincronizzata' : '') + '</small></div>' +
+        '<button data-account-passkey-delete="' + escapeHtml(item.id) + '" aria-label="Rimuovi ' + escapeHtml(item.name || 'passkey') + '">' + icons.trash + '</button>' +
+      '</article>';
+    }).join('');
+  } else {
+    body = '<div class="account-passkey-empty">' + icons.lock + '<div><strong>Accesso piu rapido e sicuro</strong><small>Conferma con Face ID, Touch ID o il codice del dispositivo. La password resta sempre disponibile.</small></div></div>';
+  }
+  return '<div class="settings-v2-section-title">Face ID e passkey</div>' +
+    '<section class="account-passkey-card">' +
+      '<div class="account-passkey-head"><div><strong>Accesso senza password</strong><small>' + (items.length ? items.length + (items.length === 1 ? ' passkey collegata' : ' passkey collegate') : 'Protetto dal tuo dispositivo') + '</small></div>' +
+        (available ? '<button data-account-passkey-add="1" ' + (state.account.passkeyBusy ? 'disabled' : '') + '>' + icons.plus + '<span>' + (state.account.passkeyBusy ? 'Attendi...' : 'Aggiungi') + '</span></button>' : '') +
+      '</div>' +
+      '<div class="account-passkey-list">' + body + '</div>' +
+    '</section>';
+}
+
+function renderPasskeyOverlay() {
+  var candidate = state.account && state.account.passkeyDeleteCandidate;
+  if (!candidate) return '';
+  return '<div class="account-passkey-overlay" role="dialog" aria-modal="true" aria-labelledby="accountPasskeyDeleteTitle">' +
+    '<section><span class="account-passkey-dialog-icon">' + icons.lock + '</span>' +
+      '<small>SICUREZZA ACCOUNT</small><h2 id="accountPasskeyDeleteTitle">Rimuovere la passkey?</h2>' +
+      '<p>Da questo dispositivo non potrai piu accedere con <strong>' + escapeHtml(candidate.name || 'questa passkey') + '</strong>. La password continuera a funzionare.</p>' +
+      '<div><button data-account-passkey-delete-cancel="1">Annulla</button><button class="is-danger" data-account-passkey-delete-confirm="1" ' + (state.account.passkeyBusy ? 'disabled' : '') + '>' + (state.account.passkeyBusy ? 'Rimozione...' : 'Rimuovi') + '</button></div>' +
+    '</section></div>';
 }
 
 function renderAdminAccountsSettings() {
@@ -984,6 +1304,26 @@ function bindAccountEvents() {
       else submitAccountLogin(form);
     };
   });
+  var passkeyLogin = document.querySelector('[data-account-passkey-login]');
+  if (passkeyLogin) passkeyLogin.onclick = loginWithAccountPasskey;
+  var passkeyAdd = document.querySelector('[data-account-passkey-add]');
+  if (passkeyAdd) passkeyAdd.onclick = registerAccountPasskey;
+  var passkeyRefresh = document.querySelector('[data-account-passkeys-refresh]');
+  if (passkeyRefresh) passkeyRefresh.onclick = function () { loadAccountPasskeys(true); };
+  document.querySelectorAll('[data-account-passkey-delete]').forEach(function (button) {
+    button.onclick = function () {
+      var item = (state.account.passkeys.items || []).find(function (candidate) {
+        return String(candidate.id) === String(button.dataset.accountPasskeyDelete);
+      });
+      if (item) setAccountUiState({ passkeyDeleteCandidate: item, error: '', notice: '' });
+    };
+  });
+  var passkeyDeleteCancel = document.querySelector('[data-account-passkey-delete-cancel]');
+  if (passkeyDeleteCancel) passkeyDeleteCancel.onclick = function () {
+    setAccountUiState({ passkeyDeleteCandidate: null, error: '', notice: '' });
+  };
+  var passkeyDeleteConfirm = document.querySelector('[data-account-passkey-delete-confirm]');
+  if (passkeyDeleteConfirm) passkeyDeleteConfirm.onclick = deleteAccountPasskey;
   var download = document.querySelector('[data-download-account-backup]');
   if (download) download.onclick = downloadAccountBackup;
   var select = document.querySelector('[data-select-account-backup]');
@@ -1040,5 +1380,8 @@ function bindAccountEvents() {
   }
   if (state.activeTab === 'settings' && state.settingsSection === 'data' && state.account.authenticated && !state.account.backups.loaded && !state.account.backups.loading && !state.account.backups.error) {
     window.setTimeout(function () { loadVersionedAccountBackups(false); }, 0);
+  }
+  if (state.activeTab === 'settings' && state.settingsSection === 'privacy' && state.account.authenticated && !state.account.passkeys.loaded && !state.account.passkeys.loading && !state.account.passkeys.error) {
+    window.setTimeout(function () { loadAccountPasskeys(false); }, 0);
   }
 }

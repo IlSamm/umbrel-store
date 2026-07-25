@@ -90,6 +90,7 @@ var state = {
         return {
           id: String(current.id || ('photo-' + String(source.id || 'legacy') + '-' + index)),
           data: data,
+          thumbnail: String(current.thumbnail || current.thumb || data),
           fileName: String(current.fileName || ('busta-paga-' + (index + 1) + '.jpg')),
           createdAt: Math.max(0, Number(current.createdAt || source.createdAt || Date.now()) || Date.now())
         };
@@ -98,6 +99,7 @@ var state = {
         normalized.push({
           id: 'photo-' + String(source.id || 'legacy') + '-0',
           data: String(source.imageData),
+          thumbnail: String(source.thumbnail || source.imageData),
           fileName: String(source.fileName || 'busta-paga.jpg'),
           createdAt: Math.max(0, Number(source.createdAt || Date.now()) || Date.now())
         });
@@ -1070,19 +1072,26 @@ var state = {
       return new Promise(function (resolve) {
         var img = new Image();
         img.onload = function () {
-          var maxSide = 1400;
-          var ratio = Math.min(1, maxSide / Math.max(img.width, img.height));
-          var width = Math.max(1, Math.round(img.width * ratio));
-          var height = Math.max(1, Math.round(img.height * ratio));
-          var baseCanvas = document.createElement('canvas');
-          baseCanvas.width = width;
-          baseCanvas.height = height;
-          var baseCtx = baseCanvas.getContext('2d');
-          baseCtx.drawImage(img, 0, 0, width, height);
-          resolve({ preview: baseCanvas.toDataURL('image/jpeg', 0.78) });
+          function renderImage(maxSide, quality) {
+            var ratio = Math.min(1, maxSide / Math.max(img.width, img.height));
+            var width = Math.max(1, Math.round(img.width * ratio));
+            var height = Math.max(1, Math.round(img.height * ratio));
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var context = canvas.getContext('2d', { alpha: false });
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, width, height);
+            context.drawImage(img, 0, 0, width, height);
+            return canvas.toDataURL('image/jpeg', quality);
+          }
+          resolve({
+            preview: renderImage(1800, 0.84),
+            thumbnail: renderImage(360, 0.7)
+          });
         };
         img.onerror = function () {
-          resolve({ preview: dataUrl });
+          resolve({ preview: dataUrl, thumbnail: dataUrl });
         };
         img.src = dataUrl;
       });
@@ -1470,6 +1479,7 @@ var state = {
           added.push({
             id: 'photo-' + Date.now() + '-' + index,
             data: prepared.preview || dataUrl,
+            thumbnail: prepared.thumbnail || prepared.preview || dataUrl,
             fileName: file.name || ('busta-paga-' + (currentPhotos.length + index + 1) + '.jpg'),
             createdAt: Date.now()
           });

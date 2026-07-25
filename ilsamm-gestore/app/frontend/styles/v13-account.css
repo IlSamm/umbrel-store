@@ -1,0 +1,318 @@
+/* GestOre 1.3 - passkey and account security */
+.account-passkey-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(178, 190, 222, .68);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.account-passkey-divider::before,
+.account-passkey-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(151, 173, 222, .14);
+}
+
+.account-form .account-passkey-login {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(122, 151, 226, .28);
+  border-radius: 17px;
+  color: #eef4ff;
+  background:
+    linear-gradient(135deg, rgba(51, 84, 164, .25), rgba(89, 59, 176, .2)),
+    rgba(8, 18, 42, .86);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .07);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.account-passkey-login svg {
+  width: 20px;
+  height: 20px;
+  color: #8fa8ff;
+}
+
+.account-passkey-card {
+  overflow: hidden;
+  border: 1px solid rgba(119, 150, 224, .18);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 88% 0, rgba(104, 75, 216, .12), transparent 38%),
+    linear-gradient(145deg, rgba(17, 31, 66, .9), rgba(5, 13, 31, .94));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .045), 0 18px 38px rgba(0, 5, 18, .18);
+}
+
+.account-passkey-head {
+  min-height: 76px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(134, 158, 213, .11);
+}
+
+.account-passkey-head > div,
+.account-passkey-row > div,
+.account-passkey-empty > div,
+.account-passkey-loading > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.account-passkey-head strong,
+.account-passkey-row strong,
+.account-passkey-empty strong,
+.account-passkey-loading strong {
+  color: #f5f7ff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.account-passkey-head small,
+.account-passkey-row small,
+.account-passkey-empty small,
+.account-passkey-loading small {
+  color: rgba(185, 197, 225, .72);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.account-passkey-head > button {
+  min-width: 96px;
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(132, 139, 255, .3);
+  border-radius: 15px;
+  color: #f6f7ff;
+  background: linear-gradient(135deg, #4968e7, #744ce3);
+  box-shadow: 0 10px 24px rgba(68, 55, 190, .24), inset 0 1px rgba(255, 255, 255, .2);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.account-passkey-head button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.account-passkey-list {
+  padding: 4px 16px;
+}
+
+.account-passkey-row {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 11px;
+}
+
+.account-passkey-row + .account-passkey-row {
+  border-top: 1px solid rgba(134, 158, 213, .1);
+}
+
+.account-passkey-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(123, 149, 232, .2);
+  border-radius: 14px;
+  color: #8ba9ff;
+  background: rgba(46, 74, 151, .2);
+}
+
+.account-passkey-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.account-passkey-row > button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  color: #ff738c;
+  background: rgba(112, 30, 56, .14);
+}
+
+.account-passkey-row > button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.account-passkey-empty,
+.account-passkey-loading {
+  min-height: 84px;
+  padding: 14px 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.account-passkey-empty > svg {
+  width: 23px;
+  height: 23px;
+  justify-self: center;
+  color: #7898f4;
+}
+
+.account-passkey-empty > button {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  border: 1px solid rgba(124, 153, 230, .24);
+  border-radius: 14px;
+  color: #dfe8ff;
+  background: rgba(31, 55, 111, .24);
+  font-weight: 800;
+}
+
+.account-passkey-empty.is-error strong {
+  color: #ff8da0;
+}
+
+.account-passkey-loading > span {
+  width: 26px;
+  height: 26px;
+  justify-self: center;
+  border: 3px solid rgba(132, 158, 232, .2);
+  border-top-color: #8d72ff;
+  border-radius: 50%;
+  animation: account-passkey-spin .8s linear infinite;
+}
+
+.account-passkey-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  padding: max(18px, env(safe-area-inset-top, 0px)) 18px max(18px, env(safe-area-inset-bottom, 0px));
+  display: grid;
+  place-items: center;
+  background: rgba(1, 5, 16, .64);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  backdrop-filter: blur(18px) saturate(120%);
+}
+
+.account-passkey-overlay > section {
+  width: min(100%, 360px);
+  padding: 24px 20px 18px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  border: 1px solid rgba(132, 158, 232, .24);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(82, 75, 207, .24), transparent 46%),
+    linear-gradient(155deg, #111d3b, #060d20 72%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .52), inset 0 1px rgba(255, 255, 255, .08);
+}
+
+.account-passkey-dialog-icon {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 14px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(143, 164, 255, .26);
+  border-radius: 20px;
+  color: #9aaeff;
+  background: linear-gradient(145deg, rgba(70, 93, 181, .36), rgba(66, 41, 141, .24));
+}
+
+.account-passkey-dialog-icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+.account-passkey-overlay small {
+  color: #8fa8ff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.account-passkey-overlay h2 {
+  margin: 7px 0 9px;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1.12;
+}
+
+.account-passkey-overlay p {
+  margin: 0;
+  color: rgba(198, 208, 231, .76);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.account-passkey-overlay section > div {
+  width: 100%;
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.account-passkey-overlay section > div button {
+  min-height: 48px;
+  border: 1px solid rgba(137, 158, 213, .18);
+  border-radius: 16px;
+  color: #eef3ff;
+  background: rgba(28, 43, 80, .64);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.account-passkey-overlay section > div button.is-danger {
+  border-color: rgba(255, 91, 122, .32);
+  color: #fff;
+  background: linear-gradient(135deg, #bf3555, #8c2747);
+}
+
+@keyframes account-passkey-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 350px) {
+  .account-passkey-head {
+    align-items: flex-start;
+  }
+
+  .account-passkey-head > button {
+    min-width: 44px;
+    width: 44px;
+    padding: 0;
+  }
+
+  .account-passkey-head > button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-passkey-loading > span {
+    animation-duration: 1.8s;
+  }
+}
