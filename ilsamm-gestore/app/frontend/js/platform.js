@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.3.0-20260725a';
+var PLATFORM_BUILD = '1.3.1-20260725b';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';

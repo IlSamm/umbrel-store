@@ -215,7 +215,7 @@
         '<button data-home-quick-type="ferie" data-home-quick-date="' + key + '"><span class="go-home-action-icon is-violet">' + icons.umbrella + '</span><span><strong>Ferie</strong><small>Segna oggi</small></span></button>' +
         '<button data-open-global-search="1"><span class="go-home-action-icon is-blue">' + icons.search + '</span><span><strong>Cerca</strong><small>Ore e buste</small></span></button>' +
       '</section>';
-      return '<header class="top home-top gestore-static-top go-home-logo go-home-header-v13"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div><button type="button" class="go-home-search-v13" data-open-global-search="1" aria-label="Cerca in GestOre">' + icons.search + '</button></header>' +
+      return '<header class="top home-top gestore-static-top go-home-logo go-home-header-v13"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div></header>' +
         '<div class="stack home-stack go-home-stack go-home-v13">' +
           (typeof renderOnboardingInvite === 'function' ? renderOnboardingInvite() : '') +
           homeDayCard +
@@ -1749,7 +1749,7 @@ function renderCalendar() {
       if (!app) return;
       var switchClass = state.tabSwitchFx ? (' screen-switch screen-switch-' + (state.tabSwitchDir || 'forward')) : '';
       app.innerHTML =
-        '<a class="go-skip-link" href="#goMainContent">Vai al contenuto</a><span id="goMainContent" class="go-sr-only" tabindex="-1">Contenuto principale</span><div id="goA11yStatus" class="go-sr-only" aria-live="polite" aria-atomic="true"></div>' +
+        '<div id="goA11yStatus" class="go-sr-only" aria-live="polite" aria-atomic="true"></div>' +
         '<section class="screen home-screen ' + (state.activeTab === 'home' ? ('active' + switchClass) : '') + '">' + renderHome() + '</section>' +
         '<section class="screen calendar-screen ' + (state.activeTab === 'calendar' ? ('active' + switchClass) : '') + '">' + renderCalendar() + '</section>' +
         '<section class="screen stats-screen ' + (state.activeTab === 'stats' ? ('active' + switchClass) : '') + '">' + renderStats() + '</section>' +
