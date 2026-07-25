@@ -70,9 +70,10 @@ var errorBox = document.getElementById('errorBox');
       ],
       weeklyTemplate: [0, 0, 0, 0, 0, null, null],
       vacationAllowanceByYear: {},
+      salaryRatesByMonth: {},
       weekdayMode: 'monday',
-      version: '1.3.1',
-      build: '20260725b',
+      version: '1.4.0',
+      build: '20260725c',
       appName: 'GestOre'
     };
 
@@ -120,6 +121,7 @@ var errorBox = document.getElementById('errorBox');
       ,stop: '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>'
       ,cloud: '<svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .8-7.92A6 6 0 0 0 6.3 8.2 5 5 0 0 0 7 18Z"></path><path d="m9 13 2 2 4-4"></path></svg>'
       ,history: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5M12 7v5l3 2"></path></svg>'
+      ,wallet: '<svg viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H18a2 2 0 0 1 2 2v2H7a3 3 0 0 0 0 6h13v4a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 17.5v-11Z"></path><path d="M20 8H7a3 3 0 0 0 0 6h13V8Z"></path><circle cx="8" cy="11" r=".8"></circle></svg>'
     };
 
     function loadStorage(key, fallback) {
@@ -411,6 +413,22 @@ var errorBox = document.getElementById('errorBox');
         var year = Number(yearKey);
         var days = parseDecimalInput(rawVacationAllowances[yearKey], 0);
         if (Number.isInteger(year) && year >= 2000 && year <= 2200 && days >= 0) result[String(year)] = Math.min(366, days);
+        return result;
+      }, {});
+      var rawSalaryRates = merged.salaryRatesByMonth && typeof merged.salaryRatesByMonth === 'object' && !Array.isArray(merged.salaryRatesByMonth)
+        ? merged.salaryRatesByMonth
+        : {};
+      merged.salaryRatesByMonth = Object.keys(rawSalaryRates).reduce(function (result, monthKey) {
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey)) return result;
+        var rateSource = rawSalaryRates[monthKey] && typeof rawSalaryRates[monthKey] === 'object' ? rawSalaryRates[monthKey] : {};
+        var hourlyRate = Math.min(10000, Math.max(0, parseDecimalInput(rateSource.hourlyRate, 0)));
+        var overtimeRate = Math.min(10000, Math.max(0, parseDecimalInput(rateSource.overtimeRate, 0)));
+        if (!hourlyRate && !overtimeRate) return result;
+        result[monthKey] = {
+          hourlyRate: hourlyRate,
+          overtimeRate: overtimeRate,
+          updatedAt: Math.max(0, Number(rateSource.updatedAt) || 0)
+        };
         return result;
       }, {});
       merged.weekdayMode = defaultSettings.weekdayMode;

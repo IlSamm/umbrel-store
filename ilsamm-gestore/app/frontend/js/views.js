@@ -1392,10 +1392,66 @@ function renderCalendar() {
         '</div>';
     }
 
+    function renderPayslipEstimateV2() {
+      var selectedYear = Math.min(2200, Math.max(2000, Number(state.payslipEstimateYear) || new Date().getFullYear()));
+      var selectedMonth = Math.min(12, Math.max(1, Number(state.payslipEstimateMonth) || (new Date().getMonth() + 1)));
+      state.payslipEstimateYear = selectedYear;
+      state.payslipEstimateMonth = selectedMonth;
+      var rateMeta = getSalaryEstimateRates(selectedYear, selectedMonth);
+      var estimate = getSalaryEstimateForMonth(selectedYear, selectedMonth, rateMeta);
+      var periodLabel = monthNames[selectedMonth - 1] + ' ' + selectedYear;
+      var sourceLabel = 'Inserisci le due tariffe lorde per iniziare';
+      if (rateMeta.sourceType !== 'empty') {
+        var sourcePeriod = monthNames[Math.max(0, Number(rateMeta.sourceMonth || selectedMonth) - 1)] + ' ' + (rateMeta.sourceYear || selectedYear);
+        sourceLabel = rateMeta.inherited
+          ? ('Proposte le tariffe di ' + sourcePeriod)
+          : (rateMeta.sourceType === 'payslip' ? ('Tariffe lette dalla busta di ' + sourcePeriod) : 'Tariffe salvate per questo mese');
+      }
+      var totalLabel = estimate.hasHours
+        ? (estimate.complete ? formatSalaryEstimateMoney(estimate.total) : '--')
+        : formatSalaryEstimateMoney(0);
+      var totalNote = !estimate.hasHours
+        ? 'Nessuna ora registrata in questo mese'
+        : (estimate.complete ? (formatDuration(estimate.ordinaryMinutes + estimate.overtimeMinutes) + ' considerate nel calcolo') : 'Completa le tariffe per vedere il totale');
+      var actualPayslip = estimate.actualPayslip;
+      var actualGross = actualPayslip ? Math.max(0, parseDecimalInput(actualPayslip.lordo, 0)) : 0;
+      var actualNet = actualPayslip ? Math.max(0, parseDecimalInput(actualPayslip.netto, 0)) : 0;
+      return '<div class="profile-subpage-top payroll-page-top payroll-estimate-top"><button data-close-payslip-estimate="1" aria-label="Torna alle buste paga">' + icons.left + '</button><div><span>BUSTE PAGA</span><h1>Stima stipendio</h1></div><i></i></div>' +
+        '<div class="stack payroll-estimate-stack' + (estimate.hasHours && !estimate.complete ? ' is-incomplete' : '') + '" data-salary-estimate-page data-ordinary-hours="' + estimate.ordinaryHours.toFixed(4) + '" data-overtime-hours="' + estimate.overtimeHours.toFixed(4) + '">' +
+          '<section class="payroll-estimate-hero">' +
+            '<div class="payroll-estimate-hero-top"><div><small>STIMA LORDA</small><h2>' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
+            '<strong class="payroll-estimate-total" data-salary-estimate-total aria-live="polite">' + totalLabel + '</strong>' +
+            '<p>' + escapeHtml(totalNote) + '</p>' +
+            '<div class="payroll-estimate-hero-metrics"><span><b>' + formatDuration(estimate.ordinaryMinutes) + '</b> ordinarie e coperte</span><span><b>' + formatDuration(estimate.overtimeMinutes) + '</b> straordinarie</span></div>' +
+          '</section>' +
+          '<section class="payroll-estimate-panel payroll-estimate-breakdown">' +
+            '<div class="payroll-estimate-section-head"><div><small>CALCOLO</small><h2>Da ore a importo</h2></div><span>EUR</span></div>' +
+            '<div class="payroll-estimate-row is-ordinary"><span class="payroll-estimate-row-icon">' + icons.briefcase + '</span><div><small>ORDINARIE E COPERTE</small><strong>' + formatDuration(estimate.ordinaryMinutes) + '</strong><em>' + estimate.ordinaryHours.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h × ' + (rateMeta.hourlyRate ? formatSalaryEstimateMoney(rateMeta.hourlyRate) : '--') + '</em></div><b data-salary-estimate-ordinary-total>' + (rateMeta.hourlyRate || estimate.ordinaryMinutes <= 0 ? formatSalaryEstimateMoney(estimate.ordinaryAmount) : '--') + '</b></div>' +
+            '<div class="payroll-estimate-row is-overtime"><span class="payroll-estimate-row-icon">' + icons.star + '</span><div><small>STRAORDINARIE</small><strong>' + formatDuration(estimate.overtimeMinutes) + '</strong><em>' + estimate.overtimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h × ' + (rateMeta.overtimeRate ? formatSalaryEstimateMoney(rateMeta.overtimeRate) : '--') + '</em></div><b data-salary-estimate-overtime-total>' + (rateMeta.overtimeRate || estimate.overtimeMinutes <= 0 ? formatSalaryEstimateMoney(estimate.overtimeAmount) : '--') + '</b></div>' +
+          '</section>' +
+          '<section class="payroll-estimate-panel payroll-estimate-rates">' +
+            '<div class="payroll-estimate-section-head"><div><small>TARIFFE DEL MESE</small><h2>Quanto vale un’ora?</h2></div></div>' +
+            '<div class="payroll-estimate-rate-source"><span>' + icons.history + '</span><p>' + escapeHtml(sourceLabel) + '</p></div>' +
+            '<div class="payroll-estimate-rate-grid"><label><span>ORDINARIA LORDA</span><div><b>€</b><input id="salaryEstimateHourlyRate" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(rateMeta.hourlyRate || 0)) + '" placeholder="0,00"><em>/h</em></div></label><label><span>STRAORDINARIA LORDA</span><div><b>€</b><input id="salaryEstimateOvertimeRate" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(rateMeta.overtimeRate || 0)) + '" placeholder="0,00"><em>/h</em></div></label></div>' +
+            '<p class="payroll-estimate-live-note" data-salary-estimate-live-note>' + (estimate.complete ? 'Stima aggiornata con le tariffe inserite.' : 'Inserisci le tariffe mancanti per completare la stima.') + '</p>' +
+            '<button class="solid payroll-estimate-save" data-save-payslip-estimate="1">' + icons.check + '<span>Salva tariffe del mese</span></button>' +
+            '<div class="payroll-estimate-status' + (state.payslipEstimateStatus ? ' is-visible' : '') + '" data-payslip-estimate-status role="status">' + escapeHtml(state.payslipEstimateStatus || '') + '</div>' +
+          '</section>' +
+          (actualPayslip ? '<section class="payroll-estimate-actual"><span class="payroll-estimate-actual-icon">' + icons.receipt + '</span><div><small>BUSTA SALVATA</small><strong>' + escapeHtml(getPayslipMonthLabel(actualPayslip)) + '</strong><p>' + (actualGross ? ('Lordo indicato ' + formatSalaryEstimateMoney(actualGross) + ' · ') : '') + 'Netto ricevuto ' + formatSalaryEstimateMoney(actualNet) + '</p></div><button data-open-payslip="' + escapeHtml(actualPayslip.id) + '" aria-label="Apri busta paga">' + icons.right + '</button></section>' : '') +
+          '<p class="payroll-estimate-disclaimer">È una stima lorda indicativa basata sulle ore registrate. Non include tasse, contributi, maggiorazioni, premi, tredicesima o altre voci del cedolino.</p>' +
+        '</div>';
+    }
+
     function renderPayslipArchiveV2() {
       var items = (state.payslips || []).slice();
       var totalAmount = items.reduce(function (sum, item) { return sum + Math.max(0, parseDecimalInput(item.netto, 0)); }, 0);
       var latest = items[0] || null;
+      var currentEstimateDate = new Date();
+      var currentEstimate = getSalaryEstimateForMonth(currentEstimateDate.getFullYear(), currentEstimateDate.getMonth() + 1);
+      var currentEstimateValue = currentEstimate.complete ? formatSalaryEstimateMoney(currentEstimate.total) : 'Configura tariffe';
+      var currentEstimateHint = !currentEstimate.hasHours
+        ? 'Nessuna ora registrata questo mese'
+        : (currentEstimate.complete ? (formatDuration(currentEstimate.ordinaryMinutes) + ' ord. · ' + formatDuration(currentEstimate.overtimeMinutes) + ' extra') : 'Inserisci paga ordinaria e straordinaria');
       var grouped = {};
       items.forEach(function (item) {
         var year = String(Number(item.year) || new Date().getFullYear());
@@ -1417,7 +1473,8 @@ function renderCalendar() {
       }).join('');
       return '<div class="profile-subpage-top payroll-page-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>DOCUMENTI</span><h1>Buste paga</h1></div><i></i></div>' +
         '<div class="stack payroll-stack">' +
-          '<section class="payroll-archive-hero"><div class="payroll-archive-hero-copy"><span class="payroll-hero-icon">' + icons.receipt + '</span><div><small>IL TUO ARCHIVIO</small><h2>Buste paga, senza confusione</h2><p>Ogni busta contiene soltanto le sue foto e l\'importo ricevuto.</p></div></div><div class="payroll-archive-actions"><button class="payroll-stats-button" data-open-payslip-stats="1"><span>' + icons.activity + '</span>Statistiche paga</button><button class="solid payroll-add-button" data-new-payslip="1"><b>+</b> Aggiungi busta</button></div></section>' +
+          '<section class="payroll-archive-hero"><div class="payroll-archive-hero-copy"><span class="payroll-hero-icon">' + icons.receipt + '</span><div><small>IL TUO ARCHIVIO</small><h2>Buste paga, senza confusione</h2><p>Documenti, importi e stima mensile nello stesso posto.</p></div></div><div class="payroll-archive-actions"><button class="payroll-stats-button" data-open-payslip-stats="1"><span>' + icons.activity + '</span>Statistiche paga</button><button class="solid payroll-add-button" data-new-payslip="1"><b>+</b> Aggiungi busta</button></div></section>' +
+          '<button class="payroll-estimate-entry" data-open-payslip-estimate="1"><span class="payroll-estimate-entry-icon">' + icons.wallet + '</span><span class="payroll-estimate-entry-copy"><small>STIMA STIPENDIO · ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><strong class="' + (currentEstimate.complete ? '' : 'is-setup') + '">' + currentEstimateValue + '</strong><em>' + escapeHtml(currentEstimateHint) + '</em></span><span class="payroll-estimate-entry-arrow">' + icons.right + '</span></button>' +
           '<section class="payroll-overview" aria-label="Riepilogo archivio"><div><span>BUSTE</span><strong>' + items.length + '</strong><small>salvate</small></div><div><span>TOTALE</span><strong>' + (items.length ? formatMoneyEuro(totalAmount) : '--') + '</strong><small>importi archiviati</small></div><div><span>ULTIMA</span><strong>' + (latest ? escapeHtml(monthNames[Math.max(0, Number(latest.month || 1) - 1)].slice(0, 3)) : '--') + '</strong><small>' + (latest ? escapeHtml(String(latest.year || '')) : 'nessuna') + '</small></div></section>' +
           (items.length ? archiveHtml : '<section class="payroll-empty"><span>' + icons.receipt + '</span><h2>Archivio ancora vuoto</h2><p>Aggiungi la prima busta: bastano una foto e l\'importo ricevuto.</p><button class="solid" data-new-payslip="1">Aggiungi la prima busta</button></section>') +
         '</div>';
@@ -1480,6 +1537,7 @@ function renderCalendar() {
     }
 
     function renderPayslips() {
+      if (state.payslipEstimateOpen) return renderPayslipEstimateV2();
       if (state.payslipStatsOpen) return renderPayslipStatsV2();
       if (state.payslipEditorOpen) return renderPayslipEditorV2();
       if (state.payslipDetailId) {

@@ -1,0 +1,645 @@
+/* Salary estimate: links recorded hours to a transparent monthly gross estimate. */
+.payroll-estimate-entry {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 112px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(100, 151, 255, 0.28);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(65, 180, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 92% 95%, rgba(139, 92, 246, 0.18), transparent 42%),
+    linear-gradient(145deg, rgba(18, 37, 78, 0.94), rgba(6, 15, 35, 0.98));
+  color: #f8fbff;
+  text-align: left;
+  box-shadow: 0 18px 42px rgba(0, 5, 20, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.payroll-estimate-entry::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -72px;
+  right: -38px;
+  width: 170px;
+  height: 170px;
+  border: 1px solid rgba(129, 151, 255, 0.13);
+  border-radius: 50%;
+}
+
+.payroll-estimate-entry:active {
+  transform: scale(0.99);
+}
+
+.payroll-estimate-entry-icon,
+.payroll-estimate-actual-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(103, 194, 255, 0.26);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(29, 119, 255, 0.28), rgba(101, 72, 255, 0.22));
+  color: #65c7ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.payroll-estimate-entry-icon svg,
+.payroll-estimate-actual-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.payroll-estimate-entry-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.payroll-estimate-entry-copy small {
+  overflow: hidden;
+  color: #7da6ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-estimate-entry-copy strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(23px, 7vw, 30px);
+  font-weight: 820;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-estimate-entry-copy strong.is-setup {
+  font-size: clamp(19px, 5.2vw, 23px);
+  letter-spacing: -0.035em;
+}
+
+.payroll-estimate-entry-copy em {
+  overflow: hidden;
+  color: #98a7c5;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-estimate-entry-arrow {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.055);
+  color: #aab9d8;
+}
+
+.payroll-estimate-entry-arrow svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.payroll-estimate-stack {
+  gap: 13px !important;
+  padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  font-family: var(--go-font-sans);
+}
+
+.payroll-estimate-hero,
+.payroll-estimate-panel,
+.payroll-estimate-actual {
+  border: 1px solid rgba(126, 153, 220, 0.2);
+  box-shadow: 0 20px 48px rgba(0, 5, 20, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.payroll-estimate-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 260px;
+  padding: 22px;
+  overflow: hidden;
+  border-color: rgba(108, 143, 255, 0.32);
+  border-radius: 29px;
+  background:
+    radial-gradient(circle at 14% 4%, rgba(45, 181, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 88% 88%, rgba(142, 76, 255, 0.25), transparent 40%),
+    linear-gradient(150deg, #142954 0%, #0b1735 48%, #080f27 100%);
+}
+
+.payroll-estimate-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: -80px;
+  bottom: -110px;
+  width: 270px;
+  height: 270px;
+  border: 1px solid rgba(132, 154, 255, 0.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 30px rgba(93, 124, 255, 0.025), 0 0 0 60px rgba(93, 124, 255, 0.018);
+}
+
+.payroll-estimate-hero-top,
+.payroll-estimate-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.payroll-estimate-hero-top > div:first-child,
+.payroll-estimate-section-head > div {
+  min-width: 0;
+}
+
+.payroll-estimate-hero small,
+.payroll-estimate-section-head small {
+  display: block;
+  margin-bottom: 4px;
+  color: #83a7ff;
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.15em;
+}
+
+.payroll-estimate-hero h2,
+.payroll-estimate-section-head h2 {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.payroll-estimate-period {
+  display: grid;
+  grid-template-columns: 34px auto 34px;
+  align-items: center;
+  min-height: 36px;
+  overflow: hidden;
+  border: 1px solid rgba(146, 169, 226, 0.16);
+  border-radius: 14px;
+  background: rgba(4, 11, 29, 0.44);
+}
+
+.payroll-estimate-period button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #a9bbdf;
+}
+
+.payroll-estimate-period button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.payroll-estimate-period span {
+  min-width: 34px;
+  color: #e9efff;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.payroll-estimate-total {
+  display: block;
+  margin-top: 28px;
+  color: #fff;
+  font-size: clamp(42px, 13vw, 57px);
+  font-weight: 850;
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+  text-shadow: 0 8px 28px rgba(25, 93, 255, 0.18);
+}
+
+.payroll-estimate-stack.is-incomplete .payroll-estimate-total {
+  color: #aab4cc;
+}
+
+.payroll-estimate-hero > p {
+  margin: 9px 0 0;
+  color: #a8b5d2;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.payroll-estimate-hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 23px;
+}
+
+.payroll-estimate-hero-metrics span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(147, 170, 225, 0.13);
+  border-radius: 15px;
+  background: rgba(3, 10, 27, 0.34);
+  color: #91a0bf;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.payroll-estimate-hero-metrics b {
+  overflow: hidden;
+  color: #f4f7ff;
+  font-size: 15px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-estimate-panel {
+  padding: 19px;
+  border-radius: 24px;
+  background: linear-gradient(155deg, rgba(19, 34, 68, 0.92), rgba(5, 13, 31, 0.96));
+}
+
+.payroll-estimate-section-head {
+  margin-bottom: 15px;
+}
+
+.payroll-estimate-section-head > span {
+  padding: 7px 9px;
+  border: 1px solid rgba(145, 166, 219, 0.13);
+  border-radius: 10px;
+  color: #8593b1;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.payroll-estimate-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 84px;
+  padding: 12px 0;
+}
+
+.payroll-estimate-row + .payroll-estimate-row {
+  border-top: 1px solid rgba(137, 158, 211, 0.11);
+}
+
+.payroll-estimate-row-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+}
+
+.payroll-estimate-row.is-ordinary .payroll-estimate-row-icon {
+  border: 1px solid rgba(76, 174, 255, 0.22);
+  background: rgba(37, 111, 245, 0.15);
+  color: #60bfff;
+}
+
+.payroll-estimate-row.is-overtime .payroll-estimate-row-icon {
+  border: 1px solid rgba(151, 98, 255, 0.23);
+  background: rgba(119, 70, 237, 0.16);
+  color: #a174ff;
+}
+
+.payroll-estimate-row-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.payroll-estimate-row > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.payroll-estimate-row small {
+  color: #8292b3;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.payroll-estimate-row strong {
+  color: #f8faff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.payroll-estimate-row em {
+  overflow: hidden;
+  color: #7f8ca8;
+  font-size: 11px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-estimate-row > b {
+  max-width: 112px;
+  overflow: hidden;
+  color: #edf2ff;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-estimate-rate-source {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  margin-bottom: 13px;
+  padding: 9px 11px;
+  border: 1px solid rgba(114, 144, 222, 0.13);
+  border-radius: 13px;
+  background: rgba(5, 13, 31, 0.43);
+}
+
+.payroll-estimate-rate-source > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  border-radius: 9px;
+  background: rgba(90, 120, 255, 0.14);
+  color: #81a7ff;
+}
+
+.payroll-estimate-rate-source svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.payroll-estimate-rate-source p {
+  margin: 0;
+  color: #a8b4cf;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.payroll-estimate-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.payroll-estimate-rate-grid label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.payroll-estimate-rate-grid label > span {
+  color: #8596ba;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.payroll-estimate-rate-grid label > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 54px;
+  padding: 0 11px;
+  border: 1px solid rgba(122, 151, 220, 0.18);
+  border-radius: 15px;
+  background: rgba(2, 9, 24, 0.53);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.payroll-estimate-rate-grid b,
+.payroll-estimate-rate-grid em {
+  color: #7f91b8;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.payroll-estimate-rate-grid input {
+  width: 100%;
+  min-width: 0;
+  height: 52px;
+  padding: 0 5px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.payroll-estimate-rate-grid label:focus-within > div {
+  border-color: rgba(100, 151, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(67, 115, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.payroll-estimate-live-note {
+  min-height: 17px;
+  margin: 11px 2px 0;
+  color: #8290ad;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.payroll-estimate-save {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 13px;
+  border-radius: 16px !important;
+}
+
+.payroll-estimate-save svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.payroll-estimate-status {
+  display: none;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(65, 205, 160, 0.17);
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.08);
+  color: #8be1c1;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.payroll-estimate-status.is-visible {
+  display: block;
+}
+
+.payroll-estimate-actual {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 12px;
+  min-height: 94px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(14, 34, 65, 0.94), rgba(6, 16, 34, 0.97));
+}
+
+.payroll-estimate-actual-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  color: #8ca8ff;
+}
+
+.payroll-estimate-actual > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.payroll-estimate-actual small {
+  color: #8192b7;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.payroll-estimate-actual strong {
+  color: #f5f8ff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.payroll-estimate-actual p {
+  overflow: hidden;
+  margin: 0;
+  color: #8e9bb7;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-estimate-actual > button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #9baac8;
+}
+
+.payroll-estimate-actual > button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.payroll-estimate-disclaimer {
+  margin: 2px 8px 0;
+  color: #71809f;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 350px) {
+  .payroll-estimate-entry {
+    grid-template-columns: 48px minmax(0, 1fr) 28px;
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .payroll-estimate-entry-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+
+  .payroll-estimate-hero,
+  .payroll-estimate-panel {
+    padding: 17px;
+  }
+
+  .payroll-estimate-total {
+    font-size: 40px;
+  }
+
+  .payroll-estimate-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .payroll-estimate-row > b {
+    grid-column: 2;
+    max-width: none;
+    text-align: left;
+  }
+
+  .payroll-estimate-rate-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payroll-estimate-entry:active {
+    transform: none;
+  }
+}

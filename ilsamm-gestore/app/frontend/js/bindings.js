@@ -315,6 +315,7 @@ function bindEvents() {
             state.payslipDetailId = '';
             state.payslipEditorOpen = false;
             state.payslipStatsOpen = false;
+            state.payslipEstimateOpen = false;
             state.payslipViewer = null;
           }
           state.activeTab = section;
@@ -327,6 +328,7 @@ function bindEvents() {
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
+          state.payslipEstimateOpen = false;
           state.payslipViewer = null;
           state.activeTab = 'profile';
           render();
@@ -391,10 +393,80 @@ function bindEvents() {
           state.payslipDetailId = '';
           state.payslipEditorOpen = true;
           state.payslipStatsOpen = false;
+          state.payslipEstimateOpen = false;
           state.payslipViewer = null;
           render();
         };
       });
+      document.querySelectorAll('[data-open-payslip-estimate]').forEach(function (btn) {
+        btn.onclick = function () {
+          var now = new Date();
+          state.payslipEstimateYear = now.getFullYear();
+          state.payslipEstimateMonth = now.getMonth() + 1;
+          state.payslipEstimateStatus = '';
+          state.payslipDetailId = '';
+          state.payslipEditorOpen = false;
+          state.payslipStatsOpen = false;
+          state.payslipEstimateOpen = true;
+          state.payslipViewer = null;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-payslip-estimate]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipEstimateOpen = false;
+          state.payslipEstimateStatus = '';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-payslip-estimate-month]').forEach(function (btn) {
+        btn.onclick = function () {
+          var current = new Date(
+            Number(state.payslipEstimateYear) || new Date().getFullYear(),
+            (Number(state.payslipEstimateMonth) || 1) - 1 + (Number(btn.dataset.payslipEstimateMonth) || 0),
+            1
+          );
+          state.payslipEstimateYear = current.getFullYear();
+          state.payslipEstimateMonth = current.getMonth() + 1;
+          state.payslipEstimateStatus = '';
+          render();
+        };
+      });
+      [['salaryEstimateHourlyRate', 'hourlyRate'], ['salaryEstimateOvertimeRate', 'overtimeRate']].forEach(function (pair) {
+        var input = document.getElementById(pair[0]);
+        if (!input) return;
+        input.oninput = updateSalaryEstimatePreviewFromInputs;
+        input.onfocus = function (event) {
+          if (isZeroLikeDecimalText(event.target.value)) event.target.value = '';
+          requestAnimationFrame(function () { event.target.setSelectionRange(event.target.value.length, event.target.value.length); });
+        };
+        input.onblur = function (event) {
+          event.target.value = formatEditorDecimal(parseDecimalInput(event.target.value, 0));
+          updateSalaryEstimatePreviewFromInputs();
+        };
+      });
+      var savePayslipEstimate = document.querySelector('[data-save-payslip-estimate]');
+      if (savePayslipEstimate) savePayslipEstimate.onclick = function () {
+        var hourlyInput = document.getElementById('salaryEstimateHourlyRate');
+        var overtimeInput = document.getElementById('salaryEstimateOvertimeRate');
+        var hourlyRate = parseDecimalInput(hourlyInput ? hourlyInput.value : 0, 0);
+        var overtimeRate = parseDecimalInput(overtimeInput ? overtimeInput.value : 0, 0);
+        if (hourlyRate <= 0 && overtimeRate <= 0) {
+          state.payslipEstimateStatus = 'Inserisci almeno la paga oraria lorda.';
+          var status = document.querySelector('[data-payslip-estimate-status]');
+          if (status) {
+            status.textContent = state.payslipEstimateStatus;
+            status.classList.add('is-visible');
+          }
+          if (hourlyInput) hourlyInput.focus();
+          return;
+        }
+        var active = document.activeElement;
+        if (active && typeof active.blur === 'function') active.blur();
+        saveSalaryEstimateRates(state.payslipEstimateYear, state.payslipEstimateMonth, hourlyRate, overtimeRate);
+        state.payslipEstimateStatus = 'Tariffe salvate per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
+        render();
+      };
       document.querySelectorAll('[data-open-payslip-stats]').forEach(function (btn) {
         btn.onclick = function () {
           var years = (state.payslips || []).map(function (item) { return Number(item.year) || 0; }).filter(Boolean);
@@ -402,6 +474,7 @@ function bindEvents() {
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = true;
+          state.payslipEstimateOpen = false;
           state.payslipViewer = null;
           render();
         };
@@ -425,6 +498,7 @@ function bindEvents() {
           state.payslipDetailId = found.id;
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
+          state.payslipEstimateOpen = false;
           state.payslipViewer = null;
           state.payslipStatus = '';
           render();
@@ -445,6 +519,7 @@ function bindEvents() {
           state.payslipDraft = clonePayslipForDraft(found);
           state.payslipDetailId = found.id;
           state.payslipEditorOpen = true;
+          state.payslipEstimateOpen = false;
           state.payslipViewer = null;
           state.payslipStatus = '';
           render();
@@ -464,6 +539,7 @@ function bindEvents() {
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
+          state.payslipEstimateOpen = false;
           render();
         };
       });
@@ -474,6 +550,7 @@ function bindEvents() {
           state.payslipDetailId = found.id;
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
+          state.payslipEstimateOpen = false;
           state.payslipViewer = null;
           state.payslipStatus = '';
           state.activeTab = 'payslips';
@@ -1193,6 +1270,7 @@ function bindEvents() {
             state.payslipDetailId = found.id;
             state.payslipEditorOpen = false;
             state.payslipStatsOpen = false;
+            state.payslipEstimateOpen = false;
             state.payslipViewer = null;
             state.activeTab = 'payslips';
             render();
@@ -1225,6 +1303,7 @@ function bindEvents() {
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
+          state.payslipEstimateOpen = false;
           render();
         };
       });

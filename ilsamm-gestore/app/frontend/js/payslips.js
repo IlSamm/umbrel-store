@@ -59,6 +59,10 @@ var state = {
       payslipEditorOpen: false,
       payslipStatsOpen: false,
       payslipStatsYear: new Date().getFullYear(),
+      payslipEstimateOpen: false,
+      payslipEstimateYear: new Date().getFullYear(),
+      payslipEstimateMonth: new Date().getMonth() + 1,
+      payslipEstimateStatus: '',
       payslipHydratingId: '',
       payslipDeletePendingId: '',
       payslipPhotoDeletePendingIndex: -1,
@@ -997,6 +1001,182 @@ var state = {
       var num = parseDecimalInput(value, 0);
       if (!num) return '—';
       return num.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+    }
+    function formatSalaryEstimateMoney(value) {
+      var amount = Math.max(0, Number(value) || 0);
+      return amount.toLocaleString('it-IT', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+    function getSalaryEstimateMonthKey(year, month) {
+      var safeYear = Math.min(2200, Math.max(2000, Number(year) || new Date().getFullYear()));
+      var safeMonth = Math.min(12, Math.max(1, Number(month) || 1));
+      return safeYear + '-' + String(safeMonth).padStart(2, '0');
+    }
+    function getSalaryEstimatePeriodIndex(year, month) {
+      return (Number(year) || 0) * 12 + Math.min(12, Math.max(1, Number(month) || 1)) - 1;
+    }
+    function normalizeSalaryEstimateRates(source) {
+      var rateSource = source && typeof source === 'object' ? source : {};
+      return {
+        hourlyRate: Math.min(10000, Math.max(0, parseDecimalInput(rateSource.hourlyRate, 0))),
+        overtimeRate: Math.min(10000, Math.max(0, parseDecimalInput(rateSource.overtimeRate, 0)))
+      };
+    }
+    function getSalaryEstimateRates(year, month) {
+      var selectedIndex = getSalaryEstimatePeriodIndex(year, month);
+      var selectedKey = getSalaryEstimateMonthKey(year, month);
+      var settingsRates = state.settings && state.settings.salaryRatesByMonth && typeof state.settings.salaryRatesByMonth === 'object'
+        ? state.settings.salaryRatesByMonth
+        : {};
+      var exactSetting = normalizeSalaryEstimateRates(settingsRates[selectedKey]);
+      var exactPayslip = (state.payslips || []).find(function (item) {
+        return Number(item.year) === Number(year) && Number(item.month) === Number(month) &&
+          (parseDecimalInput(item.hourlyRate, 0) > 0 || parseDecimalInput(item.overtimeRate, 0) > 0);
+      });
+      var exactSlipRates = normalizeSalaryEstimateRates(exactPayslip);
+      if (exactSetting.hourlyRate || exactSetting.overtimeRate) {
+        return {
+          hourlyRate: exactSetting.hourlyRate || exactSlipRates.hourlyRate,
+          overtimeRate: exactSetting.overtimeRate || exactSlipRates.overtimeRate,
+          sourceType: 'saved',
+          sourceYear: Number(year),
+          sourceMonth: Number(month),
+          inherited: false
+        };
+      }
+      if (exactSlipRates.hourlyRate || exactSlipRates.overtimeRate) {
+        return {
+          hourlyRate: exactSlipRates.hourlyRate,
+          overtimeRate: exactSlipRates.overtimeRate,
+          sourceType: 'payslip',
+          sourceYear: Number(year),
+          sourceMonth: Number(month),
+          inherited: false
+        };
+      }
+      var candidates = [];
+      Object.keys(settingsRates).forEach(function (key) {
+        var match = key.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return;
+        var candidateYear = Number(match[1]);
+        var candidateMonth = Number(match[2]);
+        var index = getSalaryEstimatePeriodIndex(candidateYear, candidateMonth);
+        var rates = normalizeSalaryEstimateRates(settingsRates[key]);
+        if (index < selectedIndex && (rates.hourlyRate || rates.overtimeRate)) {
+          candidates.push({ index: index, year: candidateYear, month: candidateMonth, rates: rates, sourceType: 'saved' });
+        }
+      });
+      (state.payslips || []).forEach(function (item) {
+        var candidateYear = Number(item.year) || 0;
+        var candidateMonth = Number(item.month) || 0;
+        var index = getSalaryEstimatePeriodIndex(candidateYear, candidateMonth);
+        var rates = normalizeSalaryEstimateRates(item);
+        if (candidateYear >= 2000 && candidateMonth >= 1 && candidateMonth <= 12 && index < selectedIndex && (rates.hourlyRate || rates.overtimeRate)) {
+          candidates.push({ index: index, year: candidateYear, month: candidateMonth, rates: rates, sourceType: 'payslip' });
+        }
+      });
+      candidates.sort(function (a, b) {
+        return (b.index - a.index) || (a.sourceType === 'saved' ? -1 : 1);
+      });
+      var previous = candidates[0];
+      if (!previous) {
+        return { hourlyRate: 0, overtimeRate: 0, sourceType: 'empty', sourceYear: 0, sourceMonth: 0, inherited: false };
+      }
+      return {
+        hourlyRate: previous.rates.hourlyRate,
+        overtimeRate: previous.rates.overtimeRate,
+        sourceType: previous.sourceType,
+        sourceYear: previous.year,
+        sourceMonth: previous.month,
+        inherited: true
+      };
+    }
+    function getSalaryEstimateForMonth(year, month, rateOverride) {
+      var safeYear = Math.min(2200, Math.max(2000, Number(year) || new Date().getFullYear()));
+      var safeMonth = Math.min(12, Math.max(1, Number(month) || 1));
+      var rates = normalizeSalaryEstimateRates(rateOverride || getSalaryEstimateRates(safeYear, safeMonth));
+      var ordinaryMinutes = 0;
+      var overtimeMinutes = 0;
+      getMonthEntries(new Date(safeYear, safeMonth - 1, 1)).forEach(function (pair) {
+        var breakdown = getBreakdown(pair[1]);
+        ordinaryMinutes += Math.max(0, breakdown.normal || 0) + Math.max(0, breakdown.leave || 0);
+        overtimeMinutes += Math.max(0, breakdown.overtime || 0);
+      });
+      var ordinaryHours = minutesToHours(ordinaryMinutes);
+      var overtimeHours = minutesToHours(overtimeMinutes);
+      var ordinaryAmount = Math.round(ordinaryHours * rates.hourlyRate * 100) / 100;
+      var overtimeAmount = Math.round(overtimeHours * rates.overtimeRate * 100) / 100;
+      var hasHours = ordinaryMinutes > 0 || overtimeMinutes > 0;
+      var ordinaryReady = ordinaryMinutes <= 0 || rates.hourlyRate > 0;
+      var overtimeReady = overtimeMinutes <= 0 || rates.overtimeRate > 0;
+      var actualPayslip = (state.payslips || []).find(function (item) {
+        return Number(item.year) === safeYear && Number(item.month) === safeMonth;
+      }) || null;
+      return {
+        year: safeYear,
+        month: safeMonth,
+        ordinaryMinutes: ordinaryMinutes,
+        overtimeMinutes: overtimeMinutes,
+        ordinaryHours: ordinaryHours,
+        overtimeHours: overtimeHours,
+        hourlyRate: rates.hourlyRate,
+        overtimeRate: rates.overtimeRate,
+        ordinaryAmount: ordinaryAmount,
+        overtimeAmount: overtimeAmount,
+        total: Math.round((ordinaryAmount + overtimeAmount) * 100) / 100,
+        hasHours: hasHours,
+        complete: hasHours && ordinaryReady && overtimeReady,
+        actualPayslip: actualPayslip
+      };
+    }
+    function saveSalaryEstimateRates(year, month, hourlyRate, overtimeRate) {
+      var normalized = normalizeSalaryEstimateRates({ hourlyRate: hourlyRate, overtimeRate: overtimeRate });
+      var key = getSalaryEstimateMonthKey(year, month);
+      var nextRates = Object.assign({}, state.settings.salaryRatesByMonth || {});
+      if (normalized.hourlyRate || normalized.overtimeRate) {
+        nextRates[key] = {
+          hourlyRate: normalized.hourlyRate,
+          overtimeRate: normalized.overtimeRate,
+          updatedAt: Date.now()
+        };
+      } else {
+        delete nextRates[key];
+      }
+      state.settings.salaryRatesByMonth = nextRates;
+      state.settingsDraft = Object.assign({}, state.settings, { salaryRatesByMonth: Object.assign({}, nextRates) });
+      saveSettings();
+      return normalized;
+    }
+    function updateSalaryEstimatePreviewFromInputs() {
+      var page = document.querySelector('[data-salary-estimate-page]');
+      if (!page) return;
+      var hourlyInput = document.getElementById('salaryEstimateHourlyRate');
+      var overtimeInput = document.getElementById('salaryEstimateOvertimeRate');
+      var hourlyRate = parseDecimalInput(hourlyInput ? hourlyInput.value : 0, 0);
+      var overtimeRate = parseDecimalInput(overtimeInput ? overtimeInput.value : 0, 0);
+      var ordinaryHours = Math.max(0, Number(page.dataset.ordinaryHours) || 0);
+      var overtimeHours = Math.max(0, Number(page.dataset.overtimeHours) || 0);
+      var ordinaryAmount = Math.round(ordinaryHours * hourlyRate * 100) / 100;
+      var overtimeAmount = Math.round(overtimeHours * overtimeRate * 100) / 100;
+      var complete = (ordinaryHours <= 0 || hourlyRate > 0) && (overtimeHours <= 0 || overtimeRate > 0);
+      var hasHours = ordinaryHours > 0 || overtimeHours > 0;
+      var ordinaryValue = document.querySelector('[data-salary-estimate-ordinary-total]');
+      var overtimeValue = document.querySelector('[data-salary-estimate-overtime-total]');
+      var totalValue = document.querySelector('[data-salary-estimate-total]');
+      var liveNote = document.querySelector('[data-salary-estimate-live-note]');
+      if (ordinaryValue) ordinaryValue.textContent = hourlyRate > 0 || ordinaryHours <= 0 ? formatSalaryEstimateMoney(ordinaryAmount) : '--';
+      if (overtimeValue) overtimeValue.textContent = overtimeRate > 0 || overtimeHours <= 0 ? formatSalaryEstimateMoney(overtimeAmount) : '--';
+      if (totalValue) totalValue.textContent = hasHours && complete ? formatSalaryEstimateMoney(ordinaryAmount + overtimeAmount) : (hasHours ? '--' : formatSalaryEstimateMoney(0));
+      if (liveNote) {
+        liveNote.textContent = !hasHours
+          ? 'La stima si aggiornera quando registri delle ore.'
+          : (complete ? 'Stima aggiornata con le tariffe inserite.' : 'Inserisci le tariffe mancanti per completare la stima.');
+      }
+      page.classList.toggle('is-incomplete', hasHours && !complete);
     }
     function ensurePayslipDraft() {
       if (!state.payslipDraft) {

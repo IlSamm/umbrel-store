@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.3.1-20260725b';
+var PLATFORM_BUILD = '1.4.0-20260725c';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,12 +26,11 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Home piu leggibile con riepiloghi immediati e card giornaliera rifinita.',
-  'Inserimento ore piu compatto con salvataggio automatico discreto.',
-  'Statistiche e grafici piu grandi, ordinati e accessibili.',
-  'Accesso opzionale con Face ID, Touch ID o passkey.',
-  'PDF caricati solo quando servono e archivio buste piu rapido.',
-  'Cache offline consolidata senza modificare i dati esistenti.'
+  'Nuova stima mensile dello stipendio lordo basata sulle ore registrate.',
+  'Tariffe ordinarie e straordinarie salvate per mese e riutilizzabili.',
+  'Calcolo trasparente con ore coperte, straordinari e confronto con la busta reale.',
+  'Archivio Buste piu utile senza modificare foto o dati gia salvati.',
+  'Cache offline aggiornata per rendere disponibile subito la nuova schermata.'
 ];
 
 async function readPlatformJson(response) {
