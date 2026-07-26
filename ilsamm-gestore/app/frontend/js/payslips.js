@@ -1265,6 +1265,308 @@ var state = {
       }
       page.classList.toggle('is-incomplete', hasHours && !complete);
     }
+    function getPayrollCalculatorApi() {
+      return typeof globalThis !== 'undefined' && globalThis.GestOrePayroll
+        ? globalThis.GestOrePayroll
+        : null;
+    }
+    function getPayrollEstimateDefaultsForMonth(year, month) {
+      var api = getPayrollCalculatorApi();
+      var defaults = api && api.DEFAULT_PAYROLL_INPUT
+        ? Object.assign({}, api.DEFAULT_PAYROLL_INPUT)
+        : {
+            baseMonthlyGross: 1766,
+            salaryMonths: 14,
+            overtimeHoursMonthly: 20,
+            overtimeHourlyRate: 10.98,
+            monthsWithOvertime: 12,
+            otherAnnualGross: 0,
+            employeeContributionRate: 9.19,
+            region: 'Lombardia',
+            municipality: '',
+            taxYear: 2026,
+            employmentDays: 365,
+            employmentType: 'permanent',
+            otherAnnualDeductions: 0,
+            annualReimbursements: 0
+          };
+      var selectedYear = Number(year) || new Date().getFullYear();
+      if (typeof globalThis !== 'undefined' && globalThis.GestOreTaxConfigs && globalThis.GestOreTaxConfigs[selectedYear]) {
+        defaults.taxYear = selectedYear;
+      }
+      var legacyRates = getSalaryEstimateRates(year, month);
+      if (legacyRates.overtimeRate > 0) defaults.overtimeHourlyRate = legacyRates.overtimeRate;
+      if (legacyRates.overtimeLimitEnabled && legacyRates.overtimeHoursLimit > 0) {
+        defaults.overtimeHoursMonthly = legacyRates.overtimeHoursLimit;
+      }
+      return api && typeof api.normalizePayrollInput === 'function'
+        ? api.normalizePayrollInput(defaults)
+        : defaults;
+    }
+    function getPayrollEstimateConfig(year, month) {
+      var selectedIndex = getSalaryEstimatePeriodIndex(year, month);
+      var selectedKey = getSalaryEstimateMonthKey(year, month);
+      var stored = state.settings && state.settings.payrollEstimateByMonth && typeof state.settings.payrollEstimateByMonth === 'object'
+        ? state.settings.payrollEstimateByMonth
+        : {};
+      var api = getPayrollCalculatorApi();
+      var exact = stored[selectedKey];
+      if (exact && typeof exact === 'object') {
+        return Object.assign(
+          api && typeof api.normalizePayrollInput === 'function' ? api.normalizePayrollInput(exact) : exact,
+          {
+            sourceType: 'saved',
+            sourceYear: Number(year),
+            sourceMonth: Number(month),
+            inherited: false
+          }
+        );
+      }
+      var previous = Object.keys(stored).map(function (key) {
+        var match = key.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return null;
+        var itemYear = Number(match[1]);
+        var itemMonth = Number(match[2]);
+        var index = getSalaryEstimatePeriodIndex(itemYear, itemMonth);
+        if (index >= selectedIndex) return null;
+        return {
+          index: index,
+          year: itemYear,
+          month: itemMonth,
+          config: stored[key]
+        };
+      }).filter(Boolean).sort(function (a, b) { return b.index - a.index; })[0];
+      if (previous) {
+        return Object.assign(
+          api && typeof api.normalizePayrollInput === 'function'
+            ? api.normalizePayrollInput(previous.config)
+            : previous.config,
+          {
+            sourceType: 'saved',
+            sourceYear: previous.year,
+            sourceMonth: previous.month,
+            inherited: true
+          }
+        );
+      }
+      return Object.assign(getPayrollEstimateDefaultsForMonth(year, month), {
+        sourceType: 'default',
+        sourceYear: Number(year),
+        sourceMonth: Number(month),
+        inherited: false
+      });
+    }
+    function getPayrollNetEstimateForMonth(year, month, configOverride) {
+      var api = getPayrollCalculatorApi();
+      var config = configOverride || getPayrollEstimateConfig(year, month);
+      if (!api || typeof api.calculatePayrollEstimate !== 'function') {
+        return {
+          valid: false,
+          incomplete: true,
+          errors: { calculator: 'Motore di calcolo non disponibile.' },
+          input: config
+        };
+      }
+      var estimate = api.calculatePayrollEstimate(config);
+      estimate.configMeta = config;
+      estimate.actualPayslip = (state.payslips || []).find(function (item) {
+        return Number(item.year) === Number(year) && Number(item.month) === Number(month);
+      }) || null;
+      return estimate;
+    }
+    function savePayrollEstimateConfig(year, month, source) {
+      var api = getPayrollCalculatorApi();
+      if (!api || typeof api.validatePayrollInput !== 'function') {
+        return { valid: false, errors: { calculator: 'Motore di calcolo non disponibile.' } };
+      }
+      var checked = api.validatePayrollInput(source);
+      if (!checked.valid) return checked;
+      var key = getSalaryEstimateMonthKey(year, month);
+      var next = Object.assign({}, state.settings.payrollEstimateByMonth || {});
+      next[key] = Object.assign({}, checked.input, { updatedAt: Date.now() });
+      state.settings.payrollEstimateByMonth = next;
+      state.settingsDraft = Object.assign({}, state.settings, {
+        payrollEstimateByMonth: Object.assign({}, next)
+      });
+      saveSettings();
+      return {
+        valid: true,
+        input: checked.input,
+        estimate: getPayrollNetEstimateForMonth(year, month, checked.input)
+      };
+    }
+    function collectPayrollCalculatorInputFromDom() {
+      var source = {};
+      document.querySelectorAll('[data-payroll-field]').forEach(function (field) {
+        var key = field.dataset.payrollField;
+        if (!key) return;
+        source[key] = field.value;
+      });
+      return source;
+    }
+    function refreshPayrollMunicipalityOptions() {
+      var api = getPayrollCalculatorApi();
+      var list = document.getElementById('payrollMunicipalities');
+      if (!api || typeof api.getMunicipalityOptions !== 'function' || !list) return;
+      var yearField = document.querySelector('[data-payroll-field="taxYear"]');
+      var regionField = document.querySelector('[data-payroll-field="region"]');
+      var options = api.getMunicipalityOptions(
+        yearField ? yearField.value : 0,
+        null,
+        regionField ? regionField.value : ''
+      );
+      list.innerHTML = options.map(function (item) {
+        return '<option value="' + escapeHtml(item.municipalityName) + '">' +
+          escapeHtml(item.municipalityCode + ' - ' + item.province) + '</option>';
+      }).join('');
+    }
+    function setPayrollEstimateText(key, value) {
+      document.querySelectorAll('[data-payroll-value="' + key + '"]').forEach(function (node) {
+        node.textContent = value;
+      });
+    }
+    function getPayrollNegativeMoney(api, cents) {
+      var value = Math.max(0, Number(cents) || 0);
+      return value > 0 ? ('− ' + api.formatCurrencyFromCents(value)) : api.formatCurrencyFromCents(0);
+    }
+    function renderPayrollEstimateValidation(errors) {
+      var source = errors || {};
+      document.querySelectorAll('[data-payroll-field]').forEach(function (field) {
+        var message = source[field.dataset.payrollField] || '';
+        field.setAttribute('aria-invalid', message ? 'true' : 'false');
+        var wrapper = field.closest('.payroll-calculator-field');
+        if (wrapper) wrapper.classList.toggle('has-error', Boolean(message));
+      });
+      var status = document.querySelector('[data-payslip-estimate-status]');
+      var firstError = Object.keys(source).map(function (key) { return source[key]; }).filter(Boolean)[0] || '';
+      if (status) {
+        status.textContent = firstError;
+        status.classList.toggle('is-visible', Boolean(firstError));
+        status.classList.toggle('is-error', Boolean(firstError));
+      }
+    }
+    function updatePayrollCalculatorPreviewFromInputs() {
+      var page = document.querySelector('[data-payroll-calculator-page]');
+      var api = getPayrollCalculatorApi();
+      if (!page || !api || typeof api.calculatePayrollEstimate !== 'function') return null;
+      var estimate = api.calculatePayrollEstimate(collectPayrollCalculatorInputFromDom());
+      renderPayrollEstimateValidation(estimate.errors);
+      page.classList.toggle('is-invalid', !estimate.valid);
+      if (!estimate.valid) {
+        setPayrollEstimateText('netMonth', '--');
+        return estimate;
+      }
+      var month = estimate.monthlyBreakdown.withOvertime;
+      setPayrollEstimateText('netMonth', api.formatCurrency(estimate.estimatedMonthWithOvertimeNet));
+      setPayrollEstimateText('baseMonthlyGross', api.formatCurrency(estimate.baseMonthlyGross));
+      setPayrollEstimateText('overtimeMonthlyGross', api.formatCurrency(estimate.overtimeMonthlyGross));
+      setPayrollEstimateText('totalMonthlyGross', api.formatCurrency(estimate.totalMonthlyGross));
+      setPayrollEstimateText('monthlyContributions', getPayrollNegativeMoney(api, month.contributionCents));
+      setPayrollEstimateText('monthlyIrpef', getPayrollNegativeMoney(api, month.irpefCents));
+      setPayrollEstimateText(
+        'monthlyRegionalTax',
+        estimate.regionalAvailable ? getPayrollNegativeMoney(api, month.regionalCents) : 'Non calcolata'
+      );
+      setPayrollEstimateText(
+        'monthlyMunicipalTax',
+        estimate.municipalityConfig ? getPayrollNegativeMoney(api, month.municipalCents) : 'Non calcolata'
+      );
+      setPayrollEstimateText('monthlyOtherDeductions', getPayrollNegativeMoney(api, month.otherDeductionsCents));
+      setPayrollEstimateText(
+        'monthlyReimbursements',
+        month.reimbursementsCents > 0
+          ? ('+ ' + api.formatCurrencyFromCents(month.reimbursementsCents))
+          : api.formatCurrencyFromCents(0)
+      );
+      setPayrollEstimateText('annualNet', api.formatCurrency(estimate.estimatedAnnualNet));
+      setPayrollEstimateText('baseAnnualGross', api.formatCurrency(estimate.baseAnnualGross));
+      setPayrollEstimateText('overtimeAnnualGross', api.formatCurrency(estimate.overtimeAnnualGross));
+      setPayrollEstimateText('totalAnnualGross', api.formatCurrency(estimate.totalAnnualGross));
+      setPayrollEstimateText('annualContributions', api.formatCurrency(estimate.annualContributions));
+      setPayrollEstimateText('annualTaxableIncome', api.formatCurrency(estimate.annualTaxableIncome));
+      setPayrollEstimateText('annualGrossIrpef', api.formatCurrency(estimate.annualGrossIrpef));
+      setPayrollEstimateText('employeeDeduction', api.formatCurrency(estimate.employeeDeduction));
+      setPayrollEstimateText('annualNetIrpef', api.formatCurrency(estimate.annualNetIrpef));
+      setPayrollEstimateText(
+        'annualRegionalTax',
+        estimate.regionalAvailable ? api.formatCurrency(estimate.annualRegionalTax) : 'Non calcolata'
+      );
+      setPayrollEstimateText(
+        'annualMunicipalTax',
+        estimate.municipalityConfig ? api.formatCurrency(estimate.annualMunicipalTax) : 'Non calcolata'
+      );
+      setPayrollEstimateText(
+        'calcMunicipal',
+        estimate.municipalityConfig
+          ? ('Acconto ' + api.formatCurrency(estimate.annualMunicipalAdvance) +
+            ' · saldo ' + api.formatCurrency(estimate.annualMunicipalBalance))
+          : ''
+      );
+      setPayrollEstimateText('annualOtherDeductions', api.formatCurrency(estimate.annualOtherDeductions));
+      setPayrollEstimateText('annualReimbursements', api.formatCurrency(estimate.annualReimbursements));
+      setPayrollEstimateText('ordinaryMonthNet', api.formatCurrency(estimate.estimatedOrdinaryMonthNet));
+      setPayrollEstimateText('monthWithOvertimeNet', api.formatCurrency(estimate.estimatedMonthWithOvertimeNet));
+      setPayrollEstimateText(
+        'thirteenthNet',
+        estimate.input.salaryMonths >= 13 ? api.formatCurrency(estimate.estimatedThirteenthNet) : 'Non prevista'
+      );
+      setPayrollEstimateText(
+        'fourteenthNet',
+        estimate.input.salaryMonths >= 14 ? api.formatCurrency(estimate.estimatedFourteenthNet) : 'Non prevista'
+      );
+      setPayrollEstimateText(
+        'calcBaseAnnual',
+        api.formatCurrency(estimate.baseMonthlyGross) + ' × ' + estimate.input.salaryMonths + ' = ' +
+          api.formatCurrency(estimate.baseAnnualGross)
+      );
+      setPayrollEstimateText(
+        'calcOvertimeAnnual',
+        estimate.input.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h × ' +
+          api.formatCurrency(estimate.input.overtimeHourlyRate) + ' × ' + estimate.input.monthsWithOvertime +
+          ' = ' + api.formatCurrency(estimate.overtimeAnnualGross)
+      );
+      setPayrollEstimateText(
+        'calcContributions',
+        api.formatCurrency(estimate.totalAnnualGross) + ' × ' +
+          estimate.input.employeeContributionRate.toLocaleString('it-IT', { maximumFractionDigits: 2 }) +
+          '% = ' + api.formatCurrency(estimate.annualContributions)
+      );
+      setPayrollEstimateText(
+        'calcTaxable',
+        api.formatCurrency(estimate.totalAnnualGross) + ' − ' +
+          api.formatCurrency(estimate.annualContributions) + ' = ' +
+          api.formatCurrency(estimate.annualTaxableIncome)
+      );
+      setPayrollEstimateText(
+        'calcIrpef',
+        api.formatCurrency(estimate.annualGrossIrpef) + ' − ' +
+          api.formatCurrency(estimate.employeeDeduction) + ' = ' +
+          api.formatCurrency(estimate.annualNetIrpef)
+      );
+      var completeness = document.querySelector('[data-payroll-estimate-completeness]');
+      if (completeness) {
+        completeness.textContent = estimate.incomplete
+          ? 'Stima parziale: alcune addizionali non sono incluse'
+          : 'Stima completa con le tabelle selezionate';
+        completeness.classList.toggle('is-complete', !estimate.incomplete);
+      }
+      var notice = document.querySelector('[data-payroll-municipal-notice]');
+      if (notice) {
+        notice.textContent = estimate.incompleteReasons.join(' ');
+        notice.classList.toggle('is-visible', estimate.incompleteReasons.length > 0);
+      }
+      var brackets = document.querySelector('[data-payroll-irpef-brackets]');
+      if (brackets) {
+        brackets.innerHTML = estimate.irpefBreakdown.map(function (row) {
+          var range = row.to === null
+            ? ('oltre ' + api.formatCurrency(row.from))
+            : (api.formatCurrency(row.from) + ' – ' + api.formatCurrency(row.to));
+          return '<span><i>' + escapeHtml(range) + ' · ' + row.rate + '%</i><b>' +
+            escapeHtml(api.formatCurrencyFromCents(row.taxCents)) + '</b></span>';
+        }).join('');
+      }
+      return estimate;
+    }
     function ensurePayslipDraft() {
       if (!state.payslipDraft) {
         state.payslipDraft = { id: '', month: new Date().getMonth() + 1, year: new Date().getFullYear(), company: '', netto: 0, lordo: 0, ordinaryHours: 0, overtimeHours: 0, ferieHours: 0, permessoHours: 0, malattiaHours: 0, workedDays: 0, tfr: 0, sourceText: '', imageData: '', fileName: '', createdAt: Date.now() };

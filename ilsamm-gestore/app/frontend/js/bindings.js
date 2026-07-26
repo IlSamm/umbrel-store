@@ -432,84 +432,54 @@ function bindEvents() {
           render();
         };
       });
-      [['salaryEstimateHourlyRate', 'hourlyRate'], ['salaryEstimateOvertimeRate', 'overtimeRate']].forEach(function (pair) {
-        var input = document.getElementById(pair[0]);
-        if (!input) return;
-        input.oninput = updateSalaryEstimatePreviewFromInputs;
-        input.onfocus = function (event) {
-          if (isZeroLikeDecimalText(event.target.value)) event.target.value = '';
-          requestAnimationFrame(function () { event.target.setSelectionRange(event.target.value.length, event.target.value.length); });
+      document.querySelectorAll('[data-payroll-field]').forEach(function (input) {
+        var refresh = function () {
+          state.payslipEstimateStatus = '';
+          if (input.dataset.payrollField === 'taxYear' || input.dataset.payrollField === 'region') {
+            refreshPayrollMunicipalityOptions();
+          }
+          updatePayrollCalculatorPreviewFromInputs();
         };
-        input.onblur = function (event) {
-          event.target.value = formatEditorDecimal(parseDecimalInput(event.target.value, 0));
-          updateSalaryEstimatePreviewFromInputs();
+        input.oninput = refresh;
+        input.onchange = refresh;
+        if (input.matches('[data-payroll-money], [data-payroll-decimal]')) {
+          input.onfocus = function (event) {
+            if (isZeroLikeDecimalText(event.target.value)) event.target.value = '';
+            requestAnimationFrame(function () {
+              if (typeof event.target.setSelectionRange === 'function') {
+                event.target.setSelectionRange(event.target.value.length, event.target.value.length);
+              }
+            });
+          };
+          input.onblur = function (event) {
+            event.target.value = formatEditorDecimal(parseDecimalInput(event.target.value, 0));
+            updatePayrollCalculatorPreviewFromInputs();
+          };
+        }
+      });
+      document.querySelectorAll('[data-use-recorded-overtime]').forEach(function (button) {
+        button.onclick = function () {
+          var input = document.querySelector('[data-payroll-field="overtimeHoursMonthly"]');
+          if (!input) return;
+          input.value = formatEditorDecimal(Math.max(0, Number(button.dataset.useRecordedOvertime) || 0));
+          updatePayrollCalculatorPreviewFromInputs();
         };
       });
-      var salaryEstimateLimitInput = document.getElementById('salaryEstimateOvertimeHoursLimit');
-      if (salaryEstimateLimitInput) {
-        salaryEstimateLimitInput.oninput = updateSalaryEstimatePreviewFromInputs;
-        salaryEstimateLimitInput.onfocus = function (event) {
-          if (isZeroLikeDecimalText(event.target.value)) event.target.value = '';
-          requestAnimationFrame(function () { event.target.setSelectionRange(event.target.value.length, event.target.value.length); });
-        };
-        salaryEstimateLimitInput.onblur = function (event) {
-          var value = parseDecimalInput(event.target.value, 0);
-          event.target.value = value > 0 ? formatEditorDecimal(value) : '';
-          updateSalaryEstimatePreviewFromInputs();
-        };
-      }
-      var salaryEstimateLimitToggle = document.querySelector('[data-salary-estimate-limit-toggle]');
-      if (salaryEstimateLimitToggle) salaryEstimateLimitToggle.onclick = function () {
-        var enabled = salaryEstimateLimitToggle.getAttribute('aria-pressed') !== 'true';
-        salaryEstimateLimitToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-        salaryEstimateLimitToggle.setAttribute('aria-checked', enabled ? 'true' : 'false');
-        var setting = document.querySelector('[data-salary-estimate-limit-setting]');
-        if (setting) setting.classList.toggle('is-enabled', enabled);
-        updateSalaryEstimatePreviewFromInputs();
-        if (enabled && salaryEstimateLimitInput && parseDecimalInput(salaryEstimateLimitInput.value, 0) <= 0) {
-          salaryEstimateLimitInput.focus();
-        }
-      };
       var savePayslipEstimate = document.querySelector('[data-save-payslip-estimate]');
       if (savePayslipEstimate) savePayslipEstimate.onclick = function () {
-        var hourlyInput = document.getElementById('salaryEstimateHourlyRate');
-        var overtimeInput = document.getElementById('salaryEstimateOvertimeRate');
-        var limitInput = document.getElementById('salaryEstimateOvertimeHoursLimit');
-        var limitToggle = document.querySelector('[data-salary-estimate-limit-toggle]');
-        var hourlyRate = parseDecimalInput(hourlyInput ? hourlyInput.value : 0, 0);
-        var overtimeRate = parseDecimalInput(overtimeInput ? overtimeInput.value : 0, 0);
-        var limitEnabled = Boolean(limitToggle && limitToggle.getAttribute('aria-pressed') === 'true');
-        var overtimeHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(limitInput ? limitInput.value : 0, 0)));
-        if (hourlyRate <= 0 && overtimeRate <= 0) {
-          state.payslipEstimateStatus = 'Inserisci almeno la paga oraria lorda.';
-          var status = document.querySelector('[data-payslip-estimate-status]');
-          if (status) {
-            status.textContent = state.payslipEstimateStatus;
-            status.classList.add('is-visible');
-          }
-          if (hourlyInput) hourlyInput.focus();
-          return;
-        }
-        if (limitEnabled && overtimeHoursLimit <= 0) {
-          state.payslipEstimateStatus = 'Inserisci quante ore straordinarie vuoi conteggiare.';
-          var limitStatus = document.querySelector('[data-payslip-estimate-status]');
-          if (limitStatus) {
-            limitStatus.textContent = state.payslipEstimateStatus;
-            limitStatus.classList.add('is-visible');
-          }
-          if (limitInput) limitInput.focus();
-          return;
-        }
         var active = document.activeElement;
         if (active && typeof active.blur === 'function') active.blur();
-        saveSalaryEstimateRates(
+        var saved = savePayrollEstimateConfig(
           state.payslipEstimateYear,
           state.payslipEstimateMonth,
-          hourlyRate,
-          overtimeRate,
-          limitEnabled,
-          overtimeHoursLimit
+          collectPayrollCalculatorInputFromDom()
         );
+        if (!saved.valid) {
+          renderPayrollEstimateValidation(saved.errors);
+          var firstInvalid = document.querySelector('[data-payroll-field][aria-invalid="true"]');
+          if (firstInvalid) firstInvalid.focus({ preventScroll: true });
+          return;
+        }
         state.payslipEstimateStatus = 'Calcolo salvato per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
         render();
       };

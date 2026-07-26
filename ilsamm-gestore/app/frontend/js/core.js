@@ -71,9 +71,10 @@ var errorBox = document.getElementById('errorBox');
       weeklyTemplate: [0, 0, 0, 0, 0, null, null],
       vacationAllowanceByYear: {},
       salaryRatesByMonth: {},
+      payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.4.2',
-      build: '20260726b',
+      version: '1.5.0',
+      build: '20260726c',
       appName: 'GestOre'
     };
 
@@ -440,6 +441,23 @@ var errorBox = document.getElementById('errorBox');
           overtimeLimitEnabled: overtimeLimitEnabled,
           updatedAt: Math.max(0, Number(rateSource.updatedAt) || 0)
         };
+        return result;
+      }, {});
+      var rawPayrollEstimates = merged.payrollEstimateByMonth && typeof merged.payrollEstimateByMonth === 'object' && !Array.isArray(merged.payrollEstimateByMonth)
+        ? merged.payrollEstimateByMonth
+        : {};
+      var payrollApi = typeof globalThis !== 'undefined' ? globalThis.GestOrePayroll : null;
+      merged.payrollEstimateByMonth = Object.keys(rawPayrollEstimates).reduce(function (result, monthKey) {
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey)) return result;
+        var sourceConfig = rawPayrollEstimates[monthKey] && typeof rawPayrollEstimates[monthKey] === 'object'
+          ? rawPayrollEstimates[monthKey]
+          : {};
+        var normalizedConfig = payrollApi && typeof payrollApi.normalizePayrollInput === 'function'
+          ? payrollApi.normalizePayrollInput(sourceConfig)
+          : Object.assign({}, sourceConfig);
+        if (!(Number(normalizedConfig.baseMonthlyGross) > 0)) return result;
+        normalizedConfig.updatedAt = Math.max(0, Number(sourceConfig.updatedAt) || 0);
+        result[monthKey] = normalizedConfig;
         return result;
       }, {});
       merged.weekdayMode = defaultSettings.weekdayMode;

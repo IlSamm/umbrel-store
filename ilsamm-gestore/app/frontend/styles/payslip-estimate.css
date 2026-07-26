@@ -856,3 +856,553 @@
     transform: none;
   }
 }
+
+/* Net payroll calculator. Kept isolated from the payslip archive and editor. */
+.payroll-calculator-stack {
+  --payroll-line: rgba(137, 161, 219, 0.14);
+  --payroll-muted: #8d9bb9;
+  --payroll-blue: #68bdff;
+  --payroll-violet: #a06bff;
+}
+
+.payroll-calculator-hero {
+  min-height: 0;
+  padding: 20px;
+}
+
+.payroll-calculator-hero .payroll-estimate-total {
+  margin-top: 24px;
+  font-size: clamp(40px, 12.5vw, 56px);
+}
+
+.payroll-calculator-completeness {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 20px;
+  margin-top: 10px !important;
+  color: #e0af71 !important;
+  font-size: 11px !important;
+}
+
+.payroll-calculator-completeness::before {
+  content: "";
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.payroll-calculator-completeness.is-complete {
+  color: #59dbb4 !important;
+}
+
+.payroll-calculator-hero-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 18px;
+}
+
+.payroll-calculator-hero-metrics span {
+  min-height: 56px;
+  padding: 9px;
+  border-radius: 14px;
+}
+
+.payroll-calculator-hero-metrics small {
+  margin: 0;
+  overflow: hidden;
+  color: #7f91b8;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-calculator-hero-metrics b {
+  font-size: 12px;
+  letter-spacing: -0.025em;
+}
+
+.payroll-calculator-breakdown {
+  padding-bottom: 14px;
+}
+
+.payroll-calculator-rows {
+  display: grid;
+}
+
+.payroll-calculator-rows > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 39px;
+  padding: 7px 2px;
+  border-top: 1px solid var(--payroll-line);
+}
+
+.payroll-calculator-rows > div:first-child {
+  border-top: 0;
+}
+
+.payroll-calculator-rows span {
+  min-width: 0;
+  color: #9aa8c5;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.payroll-calculator-rows b {
+  flex: 0 0 auto;
+  color: #f3f6ff;
+  font-size: 13px;
+  font-weight: 780;
+  letter-spacing: -0.015em;
+  text-align: right;
+}
+
+.payroll-calculator-rows b.is-positive {
+  color: #55dbad;
+}
+
+.payroll-calculator-rows > div.is-total {
+  margin-top: 3px;
+  padding: 10px 11px;
+  border: 1px solid rgba(105, 144, 239, 0.17);
+  border-radius: 13px;
+  background: rgba(53, 91, 180, 0.09);
+}
+
+.payroll-calculator-rows > div.is-total span,
+.payroll-calculator-rows > div.is-total b {
+  color: #dbe6ff;
+  font-weight: 800;
+}
+
+.payroll-calculator-rows > div.is-net {
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 11px 13px;
+  border: 1px solid rgba(111, 133, 255, 0.32);
+  border-radius: 15px;
+  background: linear-gradient(135deg, rgba(48, 101, 220, 0.2), rgba(126, 72, 226, 0.18));
+}
+
+.payroll-calculator-rows > div.is-net span {
+  color: #c5d5f8;
+  font-weight: 760;
+}
+
+.payroll-calculator-rows > div.is-net b {
+  color: #fff;
+  font-size: 18px;
+}
+
+.payroll-calculator-notice {
+  display: none;
+  margin: 12px 0 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(228, 164, 79, 0.2);
+  border-radius: 13px;
+  background: rgba(172, 107, 32, 0.08);
+  color: #c5aa82;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.payroll-calculator-notice.is-visible {
+  display: block;
+}
+
+.payroll-calculator-form,
+.payroll-calculator-details {
+  padding: 0;
+  overflow: hidden;
+}
+
+.payroll-calculator-form > summary,
+.payroll-calculator-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 76px;
+  padding: 16px 18px;
+  cursor: pointer;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.payroll-calculator-form > summary::-webkit-details-marker,
+.payroll-calculator-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.payroll-calculator-form > summary > span,
+.payroll-calculator-details > summary > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.payroll-calculator-form > summary small,
+.payroll-calculator-details > summary small {
+  color: #82a4ff;
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: 0.14em;
+}
+
+.payroll-calculator-form > summary strong,
+.payroll-calculator-details > summary strong {
+  color: #f4f7ff;
+  font-size: 16px;
+  font-weight: 790;
+  letter-spacing: -0.02em;
+}
+
+.payroll-calculator-form > summary > svg,
+.payroll-calculator-details > summary > svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: #8595b5;
+  stroke-width: 2;
+  transition: transform 180ms ease;
+}
+
+.payroll-calculator-form[open] > summary > svg,
+.payroll-calculator-details[open] > summary > svg {
+  transform: rotate(90deg);
+}
+
+.payroll-calculator-form[open] > summary,
+.payroll-calculator-details[open] > summary {
+  border-bottom: 1px solid var(--payroll-line);
+}
+
+.payroll-calculator-form > .payroll-estimate-rate-source {
+  margin: 14px 16px 0;
+}
+
+.payroll-calculator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 10px;
+  padding: 15px 16px 18px;
+}
+
+.payroll-calculator-field {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: 7px;
+}
+
+.payroll-calculator-field > span {
+  min-height: 22px;
+  color: #8597bd;
+  font-size: 8px;
+  font-weight: 820;
+  line-height: 1.35;
+  letter-spacing: 0.1em;
+}
+
+.payroll-calculator-field > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  height: 52px;
+  padding: 0 11px;
+  border: 1px solid rgba(123, 151, 218, 0.18);
+  border-radius: 14px;
+  background: rgba(2, 9, 24, 0.52);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.payroll-calculator-field > div.is-select {
+  grid-template-columns: minmax(0, 1fr);
+  padding-right: 8px;
+}
+
+.payroll-calculator-field:focus-within > div {
+  border-color: rgba(103, 151, 255, 0.58);
+  box-shadow: 0 0 0 3px rgba(77, 121, 255, 0.1);
+}
+
+.payroll-calculator-field.has-error > div {
+  border-color: rgba(255, 96, 122, 0.62);
+  box-shadow: 0 0 0 3px rgba(255, 75, 106, 0.08);
+}
+
+.payroll-calculator-field input,
+.payroll-calculator-field select {
+  width: 100%;
+  min-width: 0;
+  height: 50px;
+  padding: 0 5px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 780;
+}
+
+.payroll-calculator-field select {
+  padding: 0 3px;
+  color-scheme: dark;
+}
+
+.payroll-calculator-field b,
+.payroll-calculator-field em {
+  color: #8293b8;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.payroll-calculator-field > small {
+  color: #71809f;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.payroll-calculator-recorded {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 32px);
+  min-height: 58px;
+  margin: 0 16px 17px;
+  padding: 9px 11px;
+  border: 1px solid rgba(75, 181, 255, 0.19);
+  border-radius: 15px;
+  background: rgba(35, 112, 202, 0.09);
+  color: #6ec8ff;
+  text-align: left;
+}
+
+.payroll-calculator-recorded > svg:first-child {
+  width: 21px;
+  height: 21px;
+}
+
+.payroll-calculator-recorded > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.payroll-calculator-recorded b {
+  color: #dcecff;
+  font-size: 11px;
+}
+
+.payroll-calculator-recorded small {
+  color: #7f96bd;
+  font-size: 9px;
+}
+
+.payroll-calculator-recorded > svg:last-child {
+  width: 17px;
+  height: 17px;
+}
+
+.payroll-calculator-period-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.payroll-calculator-period-grid > div {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-height: 82px;
+  padding: 12px;
+  border: 1px solid var(--payroll-line);
+  border-radius: 16px;
+  background: rgba(3, 10, 27, 0.38);
+}
+
+.payroll-calculator-period-grid > div.is-highlight {
+  border-color: rgba(123, 111, 255, 0.28);
+  background: linear-gradient(135deg, rgba(54, 107, 225, 0.15), rgba(125, 71, 224, 0.13));
+}
+
+.payroll-calculator-period-grid small {
+  color: #8091b5;
+  font-size: 8px;
+  font-weight: 820;
+  letter-spacing: 0.09em;
+}
+
+.payroll-calculator-period-grid strong {
+  overflow: hidden;
+  color: #f6f8ff;
+  font-size: clamp(16px, 5vw, 20px);
+  font-weight: 820;
+  letter-spacing: -0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payroll-calculator-annual {
+  display: grid;
+  padding: 4px 16px 17px;
+}
+
+.payroll-calculator-annual > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 12px;
+  padding: 11px 2px;
+  border-top: 1px solid var(--payroll-line);
+}
+
+.payroll-calculator-annual > div:first-child {
+  border-top: 0;
+}
+
+.payroll-calculator-annual span {
+  color: #98a7c4;
+  font-size: 11px;
+}
+
+.payroll-calculator-annual b {
+  color: #f2f5ff;
+  font-size: 12px;
+  text-align: right;
+}
+
+.payroll-calculator-annual small {
+  grid-column: 1 / -1;
+  color: #6f7e9c;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.payroll-calculator-annual > div.is-total,
+.payroll-calculator-annual > div.is-net {
+  margin: 4px 0;
+  padding: 11px;
+  border: 1px solid rgba(111, 142, 222, 0.17);
+  border-radius: 13px;
+  background: rgba(51, 90, 175, 0.08);
+}
+
+.payroll-calculator-annual > div.is-net {
+  border-color: rgba(122, 112, 255, 0.28);
+  background: linear-gradient(135deg, rgba(48, 104, 221, 0.16), rgba(126, 71, 224, 0.13));
+}
+
+.payroll-calculator-annual > div.is-net span,
+.payroll-calculator-annual > div.is-net b {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.payroll-calculator-source {
+  margin: 8px 2px 0;
+  color: #687896;
+  font-size: 9px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.payroll-calculator-brackets {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  margin: -4px 0 2px 12px;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-left: 2px solid rgba(142, 103, 255, 0.3) !important;
+  background: rgba(112, 70, 196, 0.05);
+}
+
+.payroll-calculator-brackets > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.payroll-calculator-brackets i,
+.payroll-calculator-brackets b {
+  color: #7f8dac;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.payroll-calculator-save-panel {
+  padding: 16px;
+}
+
+.payroll-calculator-save-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.payroll-calculator-save-copy small {
+  color: #82a4ff;
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: 0.13em;
+}
+
+.payroll-calculator-save-copy p {
+  margin: 0;
+  color: #7c8aa8;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.payroll-estimate-status.is-error {
+  border-color: rgba(255, 91, 119, 0.25);
+  background: rgba(217, 48, 78, 0.09);
+  color: #ff9bad;
+}
+
+.payroll-calculator-stack.is-invalid .payroll-estimate-total {
+  color: #aab4cc;
+}
+
+@media (max-width: 355px) {
+  .payroll-calculator-hero {
+    padding: 17px;
+  }
+
+  .payroll-calculator-hero .payroll-estimate-total {
+    font-size: 39px;
+  }
+
+  .payroll-calculator-hero-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .payroll-calculator-hero-metrics span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .payroll-calculator-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payroll-calculator-field > span {
+    min-height: 0;
+  }
+
+  .payroll-calculator-period-grid {
+    grid-template-columns: 1fr;
+  }
+}

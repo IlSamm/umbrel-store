@@ -1450,16 +1450,211 @@ function renderCalendar() {
         '</div>';
     }
 
+    function renderPayrollNetCalculatorV3() {
+      var selectedYear = Math.min(2200, Math.max(2000, Number(state.payslipEstimateYear) || new Date().getFullYear()));
+      var selectedMonth = Math.min(12, Math.max(1, Number(state.payslipEstimateMonth) || (new Date().getMonth() + 1)));
+      state.payslipEstimateYear = selectedYear;
+      state.payslipEstimateMonth = selectedMonth;
+      var api = getPayrollCalculatorApi();
+      var config = getPayrollEstimateConfig(selectedYear, selectedMonth);
+      var estimate = getPayrollNetEstimateForMonth(selectedYear, selectedMonth, config);
+      var periodLabel = monthNames[selectedMonth - 1] + ' ' + selectedYear;
+      var money = api && api.formatCurrency ? api.formatCurrency : formatSalaryEstimateMoney;
+      var moneyFromCents = api && api.formatCurrencyFromCents
+        ? api.formatCurrencyFromCents
+        : function (value) { return formatSalaryEstimateMoney((Number(value) || 0) / 100); };
+      var negativeMoney = function (value) {
+        return Number(value) > 0 ? ('- ' + moneyFromCents(value)) : moneyFromCents(0);
+      };
+      var positiveMoney = function (value) {
+        return Number(value) > 0 ? ('+ ' + moneyFromCents(value)) : moneyFromCents(0);
+      };
+      var sourceLabel = 'Valori iniziali consigliati';
+      if (config.sourceType === 'saved') {
+        var sourcePeriod = monthNames[Math.max(0, Number(config.sourceMonth || selectedMonth) - 1)] + ' ' + (config.sourceYear || selectedYear);
+        sourceLabel = config.inherited
+          ? ('Valori ripresi da ' + sourcePeriod)
+          : 'Configurazione salvata per questo mese';
+      }
+      var monthBreakdown = estimate.valid ? estimate.monthlyBreakdown.withOvertime : {
+        contributionCents: 0,
+        irpefCents: 0,
+        regionalCents: 0,
+        municipalCents: 0,
+        otherDeductionsCents: 0,
+        reimbursementsCents: 0
+      };
+      var actualPayslip = estimate.actualPayslip || null;
+      var actualGross = actualPayslip ? Math.max(0, parseDecimalInput(actualPayslip.lordo, 0)) : 0;
+      var actualNet = actualPayslip ? Math.max(0, parseDecimalInput(actualPayslip.netto, 0)) : 0;
+      var recordedOvertimeMinutes = getMonthEntries(new Date(selectedYear, selectedMonth - 1, 1)).reduce(function (sum, pair) {
+        return sum + Math.max(0, getBreakdown(pair[1]).overtime || 0);
+      }, 0);
+      var recordedOvertimeHours = minutesToHours(recordedOvertimeMinutes);
+      var regions = api && Array.isArray(api.ITALIAN_REGIONS) ? api.ITALIAN_REGIONS : ['Lombardia'];
+      var regionOptions = regions.map(function (region) {
+        return '<option value="' + escapeHtml(region) + '"' + (region === config.region ? ' selected' : '') + '>' + escapeHtml(region) + '</option>';
+      }).join('');
+      var taxConfigs = (typeof globalThis !== 'undefined' && globalThis.GestOreTaxConfigs) || {};
+      var yearOptions = Object.keys(taxConfigs).map(Number).filter(Boolean).sort(function (a, b) {
+        return b - a;
+      }).map(function (year) {
+        return '<option value="' + year + '"' + (year === Number(config.taxYear) ? ' selected' : '') + '>' + year + '</option>';
+      }).join('');
+      var municipalityOptions = api && typeof api.getMunicipalityOptions === 'function'
+        ? api.getMunicipalityOptions(config.taxYear, null, config.region)
+        : [];
+      var municipalityList = municipalityOptions.map(function (item) {
+        return '<option value="' + escapeHtml(item.municipalityName) + '">' + escapeHtml(item.municipalityCode + ' - ' + item.province) + '</option>';
+      }).join('');
+      var estimateTotal = estimate.valid ? money(estimate.estimatedMonthWithOvertimeNet) : '--';
+      var completeness = estimate.valid
+        ? (estimate.incomplete ? 'Stima parziale: alcune addizionali non sono incluse' : 'Stima completa con le tabelle selezionate')
+        : 'Correggi i dati per calcolare la stima';
+      var municipalityValue = estimate.valid && estimate.municipalityConfig
+        ? negativeMoney(monthBreakdown.municipalCents)
+        : 'Non calcolata';
+      var irpefRows = estimate.valid ? estimate.irpefBreakdown.map(function (row) {
+        var range = row.to === null
+          ? ('oltre ' + money(row.from))
+          : (money(row.from) + ' - ' + money(row.to));
+        return '<span><i>' + escapeHtml(range) + ' · ' + row.rate + '%</i><b>' +
+          escapeHtml(moneyFromCents(row.taxCents)) + '</b></span>';
+      }).join('') : '';
+      var html = [];
+
+      html.push('<div class="profile-subpage-top payroll-page-top payroll-estimate-top"><button data-close-payslip-estimate="1" aria-label="Torna alle buste paga">' + icons.left + '</button><div><span>BUSTE PAGA</span><h1>Stima stipendio</h1></div><i></i></div>');
+      html.push('<div class="stack payroll-estimate-stack payroll-calculator-stack' + (!estimate.valid ? ' is-invalid' : '') + '" data-payroll-calculator-page>');
+      html.push(
+        '<section class="payroll-estimate-hero payroll-calculator-hero">' +
+          '<div class="payroll-estimate-hero-top"><div><small>NETTO STIMATO DEL MESE</small><h2>' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
+          '<strong class="payroll-estimate-total" data-payroll-value="netMonth" aria-live="polite">' + escapeHtml(estimateTotal) + '</strong>' +
+          '<p class="payroll-calculator-completeness' + (estimate.valid && !estimate.incomplete ? ' is-complete' : '') + '" data-payroll-estimate-completeness>' + escapeHtml(completeness) + '</p>' +
+          '<div class="payroll-estimate-hero-metrics payroll-calculator-hero-metrics">' +
+            '<span><small>LORDO MESE</small><b data-payroll-value="totalMonthlyGross">' + escapeHtml(estimate.valid ? money(estimate.totalMonthlyGross) : '--') + '</b></span>' +
+            '<span><small>NETTO ANNUO</small><b data-payroll-value="annualNet">' + escapeHtml(estimate.valid ? money(estimate.estimatedAnnualNet) : '--') + '</b></span>' +
+            '<span><small>RAL BASE</small><b data-payroll-value="baseAnnualGross">' + escapeHtml(estimate.valid ? money(estimate.baseAnnualGross) : '--') + '</b></span>' +
+          '</div>' +
+        '</section>'
+      );
+      html.push(
+        '<section class="payroll-estimate-panel payroll-calculator-breakdown">' +
+          '<div class="payroll-estimate-section-head"><div><small>QUESTO MESE</small><h2>Dal lordo al netto</h2></div><span>STIMA</span></div>' +
+          '<div class="payroll-calculator-rows">' +
+            '<div><span>Lordo base</span><b data-payroll-value="baseMonthlyGross">' + escapeHtml(estimate.valid ? money(estimate.baseMonthlyGross) : '--') + '</b></div>' +
+            '<div><span>Straordinari lordi</span><b data-payroll-value="overtimeMonthlyGross">' + escapeHtml(estimate.valid ? money(estimate.overtimeMonthlyGross) : '--') + '</b></div>' +
+            '<div class="is-total"><span>Lordo totale mensile</span><b data-payroll-value="totalMonthlyGross">' + escapeHtml(estimate.valid ? money(estimate.totalMonthlyGross) : '--') + '</b></div>' +
+            '<div><span>Contributi INPS</span><b data-payroll-value="monthlyContributions">' + escapeHtml(estimate.valid ? negativeMoney(monthBreakdown.contributionCents) : '--') + '</b></div>' +
+            '<div><span>IRPEF netta</span><b data-payroll-value="monthlyIrpef">' + escapeHtml(estimate.valid ? negativeMoney(monthBreakdown.irpefCents) : '--') + '</b></div>' +
+            '<div><span>Addizionale regionale</span><b data-payroll-value="monthlyRegionalTax">' + escapeHtml(estimate.valid ? (estimate.regionalAvailable ? negativeMoney(monthBreakdown.regionalCents) : 'Non calcolata') : '--') + '</b></div>' +
+            '<div><span>Addizionale comunale</span><b data-payroll-value="monthlyMunicipalTax">' + escapeHtml(municipalityValue) + '</b></div>' +
+            '<div><span>Altre trattenute</span><b data-payroll-value="monthlyOtherDeductions">' + escapeHtml(estimate.valid ? negativeMoney(monthBreakdown.otherDeductionsCents) : '--') + '</b></div>' +
+            '<div><span>Rimborsi</span><b class="is-positive" data-payroll-value="monthlyReimbursements">' + escapeHtml(estimate.valid ? positiveMoney(monthBreakdown.reimbursementsCents) : '--') + '</b></div>' +
+            '<div class="is-net"><span>Netto stimato</span><b data-payroll-value="netMonth">' + escapeHtml(estimateTotal) + '</b></div>' +
+          '</div>' +
+          '<p class="payroll-calculator-notice' + (estimate.valid && estimate.incompleteReasons.length ? ' is-visible' : '') + '" data-payroll-municipal-notice>' + escapeHtml(estimate.valid ? estimate.incompleteReasons.join(' ') : '') + '</p>' +
+        '</section>'
+      );
+      html.push(
+        '<details class="payroll-estimate-panel payroll-calculator-form" open>' +
+          '<summary><span><small>DATI PRINCIPALI</small><strong>Retribuzione e straordinari</strong></span>' + icons.right + '</summary>' +
+          '<div class="payroll-estimate-rate-source"><span>' + icons.history + '</span><p>' + escapeHtml(sourceLabel) + '</p></div>' +
+          '<div class="payroll-calculator-grid">' +
+            '<label class="payroll-calculator-field"><span>LORDO MENSILE ORDINARIO</span><div><b>€</b><input data-payroll-field="baseMonthlyGross" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.baseMonthlyGross)) + '"></div></label>' +
+            '<label class="payroll-calculator-field"><span>MENSILITA</span><div class="is-select"><select data-payroll-field="salaryMonths"><option value="12"' + (config.salaryMonths === 12 ? ' selected' : '') + '>12</option><option value="13"' + (config.salaryMonths === 13 ? ' selected' : '') + '>13</option><option value="14"' + (config.salaryMonths === 14 ? ' selected' : '') + '>14</option></select></div></label>' +
+            '<label class="payroll-calculator-field"><span>ORE STRAORDINARIE AL MESE</span><div><input data-payroll-field="overtimeHoursMonthly" data-payroll-decimal type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.overtimeHoursMonthly)) + '"><em>h</em></div></label>' +
+            '<label class="payroll-calculator-field"><span>PAGA STRAORDINARIA LORDA</span><div><b>€</b><input data-payroll-field="overtimeHourlyRate" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.overtimeHourlyRate)) + '"><em>/h</em></div></label>' +
+            '<label class="payroll-calculator-field"><span>MESI CON STRAORDINARI</span><div><input data-payroll-field="monthsWithOvertime" data-payroll-integer type="number" inputmode="numeric" min="0" max="12" value="' + escapeHtml(String(config.monthsWithOvertime)) + '"><em>mesi</em></div></label>' +
+            '<label class="payroll-calculator-field"><span>ALTRI COMPENSI LORDI ANNUI</span><div><b>€</b><input data-payroll-field="otherAnnualGross" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.otherAnnualGross)) + '"></div></label>' +
+          '</div>' +
+          (recordedOvertimeHours > 0 ? '<button class="payroll-calculator-recorded" type="button" data-use-recorded-overtime="' + recordedOvertimeHours.toFixed(4) + '">' + icons.clock + '<span><b>Usa le ore registrate nell’app</b><small>' + escapeHtml(formatDuration(recordedOvertimeMinutes)) + ' in ' + escapeHtml(periodLabel) + '</small></span>' + icons.right + '</button>' : '') +
+        '</details>'
+      );
+      html.push(
+        '<details class="payroll-estimate-panel payroll-calculator-form payroll-calculator-tax-form">' +
+          '<summary><span><small>FISCO E CONTRIBUTI</small><strong>Impostazioni della stima</strong></span>' + icons.right + '</summary>' +
+          '<div class="payroll-calculator-grid">' +
+            '<label class="payroll-calculator-field"><span>ALIQUOTA INPS LAVORATORE</span><div><input data-payroll-field="employeeContributionRate" data-payroll-decimal type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.employeeContributionRate)) + '"><em>%</em></div><small>Configurabile: varia per CCNL, qualifica, azienda e agevolazioni.</small></label>' +
+            '<label class="payroll-calculator-field"><span>ANNO FISCALE</span><div class="is-select"><select data-payroll-field="taxYear">' + yearOptions + '</select></div></label>' +
+            '<label class="payroll-calculator-field"><span>GIORNI DI LAVORO NELL’ANNO</span><div><input data-payroll-field="employmentDays" data-payroll-integer type="number" inputmode="numeric" min="1" max="366" value="' + escapeHtml(String(config.employmentDays)) + '"><em>gg</em></div></label>' +
+            '<label class="payroll-calculator-field"><span>CONTRATTO</span><div class="is-select"><select data-payroll-field="employmentType"><option value="permanent"' + (config.employmentType === 'permanent' ? ' selected' : '') + '>Tempo indeterminato</option><option value="fixed-term"' + (config.employmentType === 'fixed-term' ? ' selected' : '') + '>Tempo determinato</option></select></div></label>' +
+            '<label class="payroll-calculator-field"><span>REGIONE DI RESIDENZA</span><div class="is-select"><select data-payroll-field="region">' + regionOptions + '</select></div></label>' +
+            '<label class="payroll-calculator-field"><span>COMUNE DI RESIDENZA</span><div><input data-payroll-field="municipality" type="text" list="payrollMunicipalities" autocomplete="off" value="' + escapeHtml(config.municipality) + '" placeholder="es. Cormano"></div></label>' +
+            '<label class="payroll-calculator-field"><span>ALTRE TRATTENUTE ANNUE</span><div><b>€</b><input data-payroll-field="otherAnnualDeductions" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.otherAnnualDeductions)) + '"></div></label>' +
+            '<label class="payroll-calculator-field"><span>RIMBORSI ANNUI</span><div><b>€</b><input data-payroll-field="annualReimbursements" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.annualReimbursements)) + '"></div></label>' +
+          '</div>' +
+          '<datalist id="payrollMunicipalities">' + municipalityList + '</datalist>' +
+        '</details>'
+      );
+      html.push(
+        '<section class="payroll-estimate-panel payroll-calculator-periods">' +
+          '<div class="payroll-estimate-section-head"><div><small>MENSILITA</small><h2>Quanto potresti ricevere</h2></div><span>NETTO</span></div>' +
+          '<div class="payroll-calculator-period-grid">' +
+            '<div><small>MESE SENZA EXTRA</small><strong data-payroll-value="ordinaryMonthNet">' + escapeHtml(estimate.valid ? money(estimate.estimatedOrdinaryMonthNet) : '--') + '</strong></div>' +
+            '<div class="is-highlight"><small>MESE CON EXTRA</small><strong data-payroll-value="monthWithOvertimeNet">' + escapeHtml(estimateTotal) + '</strong></div>' +
+            '<div><small>TREDICESIMA</small><strong data-payroll-value="thirteenthNet">' + escapeHtml(estimate.valid && config.salaryMonths >= 13 ? money(estimate.estimatedThirteenthNet) : 'Non prevista') + '</strong></div>' +
+            '<div><small>QUATTORDICESIMA</small><strong data-payroll-value="fourteenthNet">' + escapeHtml(estimate.valid && config.salaryMonths >= 14 ? money(estimate.estimatedFourteenthNet) : 'Non prevista') + '</strong></div>' +
+          '</div>' +
+        '</section>'
+      );
+      html.push(
+        '<details class="payroll-estimate-panel payroll-calculator-details">' +
+          '<summary><span><small>TRASPARENZA</small><strong>Come è stato calcolato</strong></span>' + icons.right + '</summary>' +
+          '<div class="payroll-calculator-annual">' +
+            '<div><span>RAL ordinaria</span><b data-payroll-value="baseAnnualGross">' + escapeHtml(estimate.valid ? money(estimate.baseAnnualGross) : '--') + '</b><small data-payroll-value="calcBaseAnnual">' + escapeHtml(estimate.valid ? (money(estimate.baseMonthlyGross) + ' × ' + config.salaryMonths + ' = ' + money(estimate.baseAnnualGross)) : '') + '</small></div>' +
+            '<div><span>Straordinari annui</span><b data-payroll-value="overtimeAnnualGross">' + escapeHtml(estimate.valid ? money(estimate.overtimeAnnualGross) : '--') + '</b><small data-payroll-value="calcOvertimeAnnual">' + escapeHtml(estimate.valid ? (config.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h × ' + money(config.overtimeHourlyRate) + ' × ' + config.monthsWithOvertime + ' = ' + money(estimate.overtimeAnnualGross)) : '') + '</small></div>' +
+            '<div class="is-total"><span>Reddito lordo annuo stimato</span><b data-payroll-value="totalAnnualGross">' + escapeHtml(estimate.valid ? money(estimate.totalAnnualGross) : '--') + '</b></div>' +
+            '<div><span>Contributi INPS</span><b data-payroll-value="annualContributions">' + escapeHtml(estimate.valid ? negativeMoney(estimate.annualBreakdownCents.contributionsCents) : '--') + '</b><small data-payroll-value="calcContributions">' + escapeHtml(estimate.valid ? (money(estimate.totalAnnualGross) + ' × ' + config.employeeContributionRate.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + '% = ' + money(estimate.annualContributions)) : '') + '</small></div>' +
+            '<div><span>Imponibile fiscale</span><b data-payroll-value="annualTaxableIncome">' + escapeHtml(estimate.valid ? money(estimate.annualTaxableIncome) : '--') + '</b><small data-payroll-value="calcTaxable">' + escapeHtml(estimate.valid ? (money(estimate.totalAnnualGross) + ' - ' + money(estimate.annualContributions) + ' = ' + money(estimate.annualTaxableIncome)) : '') + '</small></div>' +
+            '<div><span>IRPEF lorda</span><b data-payroll-value="annualGrossIrpef">' + escapeHtml(estimate.valid ? money(estimate.annualGrossIrpef) : '--') + '</b></div>' +
+            '<div class="payroll-calculator-brackets" data-payroll-irpef-brackets>' + irpefRows + '</div>' +
+            '<div><span>Detrazione lavoro dipendente</span><b data-payroll-value="employeeDeduction">' + escapeHtml(estimate.valid ? negativeMoney(estimate.annualBreakdownCents.employeeDeductionCents) : '--') + '</b></div>' +
+            '<div><span>IRPEF netta</span><b data-payroll-value="annualNetIrpef">' + escapeHtml(estimate.valid ? money(estimate.annualNetIrpef) : '--') + '</b><small data-payroll-value="calcIrpef">' + escapeHtml(estimate.valid ? (money(estimate.annualGrossIrpef) + ' - ' + money(estimate.employeeDeduction) + ' = ' + money(estimate.annualNetIrpef)) : '') + '</small></div>' +
+            '<div><span>Addizionale regionale</span><b data-payroll-value="annualRegionalTax">' + escapeHtml(estimate.valid ? (estimate.regionalAvailable ? money(estimate.annualRegionalTax) : 'Non calcolata') : '--') + '</b></div>' +
+            '<div><span>Addizionale comunale</span><b data-payroll-value="annualMunicipalTax">' + escapeHtml(estimate.valid && estimate.municipalityConfig ? money(estimate.annualMunicipalTax) : 'Non calcolata') + '</b><small data-payroll-value="calcMunicipal">' + escapeHtml(estimate.valid && estimate.municipalityConfig ? ('Acconto ' + money(estimate.annualMunicipalAdvance) + ' · saldo ' + money(estimate.annualMunicipalBalance)) : '') + '</small></div>' +
+            '<div><span>Altre trattenute</span><b data-payroll-value="annualOtherDeductions">' + escapeHtml(estimate.valid ? money(estimate.annualOtherDeductions) : '--') + '</b></div>' +
+            '<div><span>Rimborsi</span><b data-payroll-value="annualReimbursements">' + escapeHtml(estimate.valid ? money(estimate.annualReimbursements) : '--') + '</b></div>' +
+            '<div class="is-net"><span>Netto annuale stimato</span><b data-payroll-value="annualNet">' + escapeHtml(estimate.valid ? money(estimate.estimatedAnnualNet) : '--') + '</b></div>' +
+            '<p class="payroll-calculator-source">' + escapeHtml(estimate.valid ? estimate.taxConfig.sourceLabel : '') + '</p>' +
+          '</div>' +
+        '</details>'
+      );
+      html.push(
+        '<section class="payroll-estimate-panel payroll-calculator-save-panel">' +
+          '<div class="payroll-calculator-save-copy"><small>CONFIGURAZIONE DEL MESE</small><p>Le ore e le buste gia salvate non vengono modificate.</p></div>' +
+          '<button class="solid payroll-estimate-save" data-save-payslip-estimate="1">' + icons.check + '<span>Salva calcolo del mese</span></button>' +
+          '<div class="payroll-estimate-status' + (state.payslipEstimateStatus ? ' is-visible' : '') + '" data-payslip-estimate-status role="status">' + escapeHtml(state.payslipEstimateStatus || '') + '</div>' +
+        '</section>'
+      );
+      if (actualPayslip) {
+        html.push(
+          '<section class="payroll-estimate-actual"><span class="payroll-estimate-actual-icon">' + icons.receipt + '</span><div><small>BUSTA SALVATA</small><strong>' + escapeHtml(getPayslipMonthLabel(actualPayslip)) + '</strong><p>' +
+          (actualGross ? ('Lordo indicato ' + formatSalaryEstimateMoney(actualGross) + ' · ') : '') +
+          'Netto ricevuto ' + formatSalaryEstimateMoney(actualNet) + '</p></div><button data-open-payslip="' + escapeHtml(actualPayslip.id) + '" aria-label="Apri busta paga">' + icons.right + '</button></section>'
+        );
+      }
+      html.push('<p class="payroll-estimate-disclaimer">Il risultato è una stima e può differire dalla busta paga reale. Il netto effettivo dipende dal CCNL, dalle aliquote contributive applicate, dalle detrazioni personali, dal Comune di residenza, dai conguagli, dai giorni lavorati e da eventuali voci presenti in busta paga.</p>');
+      html.push('</div>');
+      return html.join('');
+    }
+
     function renderPayslipArchiveV2() {
       var items = (state.payslips || []).slice();
       var totalAmount = items.reduce(function (sum, item) { return sum + Math.max(0, parseDecimalInput(item.netto, 0)); }, 0);
       var latest = items[0] || null;
       var currentEstimateDate = new Date();
-      var currentEstimate = getSalaryEstimateForMonth(currentEstimateDate.getFullYear(), currentEstimateDate.getMonth() + 1);
-      var currentEstimateValue = currentEstimate.complete ? formatSalaryEstimateMoney(currentEstimate.total) : 'Configura tariffe';
-      var currentEstimateHint = !currentEstimate.hasHours
-        ? 'Nessuna ora registrata questo mese'
-        : (currentEstimate.complete ? (formatDuration(currentEstimate.ordinaryMinutes) + ' ord. · ' + formatDuration(currentEstimate.overtimeMinutes) + ' extra') : 'Inserisci paga ordinaria e straordinaria');
+      var currentEstimate = getPayrollNetEstimateForMonth(
+        currentEstimateDate.getFullYear(),
+        currentEstimateDate.getMonth() + 1
+      );
+      var currentEstimateValue = currentEstimate.valid
+        ? formatSalaryEstimateMoney(currentEstimate.estimatedMonthWithOvertimeNet)
+        : 'Configura stima';
+      var currentEstimateHint = currentEstimate.valid
+        ? (currentEstimate.incomplete
+          ? 'Netto stimato · Inserisci il Comune per completare'
+          : 'Netto stimato con imposte e contributi')
+        : 'Completa i dati fiscali e retributivi';
       var grouped = {};
       items.forEach(function (item) {
         var year = String(Number(item.year) || new Date().getFullYear());
@@ -1482,7 +1677,7 @@ function renderCalendar() {
       return '<div class="profile-subpage-top payroll-page-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>DOCUMENTI</span><h1>Buste paga</h1></div><i></i></div>' +
         '<div class="stack payroll-stack">' +
           '<section class="payroll-archive-hero"><div class="payroll-archive-hero-copy"><span class="payroll-hero-icon">' + icons.receipt + '</span><div><small>IL TUO ARCHIVIO</small><h2>Buste paga, senza confusione</h2><p>Documenti, importi e stima mensile nello stesso posto.</p></div></div><div class="payroll-archive-actions"><button class="payroll-stats-button" data-open-payslip-stats="1"><span>' + icons.activity + '</span>Statistiche paga</button><button class="solid payroll-add-button" data-new-payslip="1"><b>+</b> Aggiungi busta</button></div></section>' +
-          '<button class="payroll-estimate-entry" data-open-payslip-estimate="1"><span class="payroll-estimate-entry-icon">' + icons.wallet + '</span><span class="payroll-estimate-entry-copy"><small>STIMA STIPENDIO · ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><strong class="' + (currentEstimate.complete ? '' : 'is-setup') + '">' + currentEstimateValue + '</strong><em>' + escapeHtml(currentEstimateHint) + '</em></span><span class="payroll-estimate-entry-arrow">' + icons.right + '</span></button>' +
+          '<button class="payroll-estimate-entry" data-open-payslip-estimate="1"><span class="payroll-estimate-entry-icon">' + icons.wallet + '</span><span class="payroll-estimate-entry-copy"><small>STIMA STIPENDIO · ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><strong class="' + (currentEstimate.valid ? '' : 'is-setup') + '">' + currentEstimateValue + '</strong><em>' + escapeHtml(currentEstimateHint) + '</em></span><span class="payroll-estimate-entry-arrow">' + icons.right + '</span></button>' +
           '<section class="payroll-overview" aria-label="Riepilogo archivio"><div><span>BUSTE</span><strong>' + items.length + '</strong><small>salvate</small></div><div><span>TOTALE</span><strong>' + (items.length ? formatMoneyEuro(totalAmount) : '--') + '</strong><small>importi archiviati</small></div><div><span>ULTIMA</span><strong>' + (latest ? escapeHtml(monthNames[Math.max(0, Number(latest.month || 1) - 1)].slice(0, 3)) : '--') + '</strong><small>' + (latest ? escapeHtml(String(latest.year || '')) : 'nessuna') + '</small></div></section>' +
           (items.length ? archiveHtml : '<section class="payroll-empty"><span>' + icons.receipt + '</span><h2>Archivio ancora vuoto</h2><p>Aggiungi la prima busta: bastano una foto e l\'importo ricevuto.</p><button class="solid" data-new-payslip="1">Aggiungi la prima busta</button></section>') +
         '</div>';
@@ -1545,7 +1740,7 @@ function renderCalendar() {
     }
 
     function renderPayslips() {
-      if (state.payslipEstimateOpen) return renderPayslipEstimateV2();
+      if (state.payslipEstimateOpen) return renderPayrollNetCalculatorV3();
       if (state.payslipStatsOpen) return renderPayslipStatsV2();
       if (state.payslipEditorOpen) return renderPayslipEditorV2();
       if (state.payslipDetailId) {

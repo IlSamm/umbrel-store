@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.4.2-20260726b';
+var PLATFORM_BUILD = '1.5.0-20260726c';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,11 +26,11 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Il limite mensile ora riguarda esclusivamente le ore straordinarie.',
-  'Tutte le ore ordinarie e coperte restano sempre incluse nella stima.',
-  'Straordinari registrati, conteggiati ed esclusi sono mostrati separatamente.',
-  'Tariffe e limite extra possono essere riutilizzati dal mese precedente.',
-  'La correzione mantiene compatibili i dati salvati nella versione precedente.'
+  'Nuovo calcolatore dello stipendio netto con riepilogo mensile e annuale.',
+  'IRPEF progressiva, contributi INPS e detrazione da lavoro sono mostrati separatamente.',
+  'Addizionali regionale e comunale usano tabelle configurabili per anno.',
+  'Straordinari, tredicesima e quattordicesima vengono stimati senza percentuali fisse.',
+  'Ore, buste paga e configurazioni precedenti restano compatibili e protette.'
 ];
 
 async function readPlatformJson(response) {
