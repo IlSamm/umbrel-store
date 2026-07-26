@@ -49,6 +49,18 @@
       }
     },
     municipalTaxes: {
+      I873: {
+        municipalityCode: 'I873',
+        municipalityName: 'Sovere',
+        region: 'Lombardia',
+        province: 'BG',
+        taxYear: 2026,
+        exemptionThreshold: 0,
+        mode: 'flat',
+        brackets: [{ from: 0, to: null, rate: 0.8 }],
+        advanceRate: 30,
+        balanceRate: 70
+      },
       D013: {
         municipalityCode: 'D013',
         municipalityName: 'Cormano',

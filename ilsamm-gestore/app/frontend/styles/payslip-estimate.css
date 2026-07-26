@@ -1554,6 +1554,11 @@
   font-weight: 780;
 }
 
+.payroll-calculator-field input:focus-visible,
+.payroll-calculator-field select:focus-visible {
+  outline: 0 !important;
+}
+
 .payroll-calculator-field select {
   padding: 0 3px;
   color-scheme: dark;
@@ -1571,6 +1576,14 @@
   color: #71809f;
   font-size: 9px;
   line-height: 1.4;
+}
+
+.payroll-municipality-feedback.is-valid {
+  color: #56dcb5;
+}
+
+.payroll-municipality-feedback.is-missing {
+  color: #ffb26f;
 }
 
 .payroll-calculator-recorded {

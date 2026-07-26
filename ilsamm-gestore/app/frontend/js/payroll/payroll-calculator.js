@@ -110,6 +110,11 @@
       currency.centsToEuros(taxableIncomeCents),
       municipalityConfig
     );
+    if (!municipalDetails.available && input.municipality) {
+      municipalDetails.message = 'Il Comune "' + input.municipality +
+        '" non e disponibile nelle tabelle fiscali ' + input.taxYear +
+        '. Seleziona un Comune suggerito per includere l addizionale comunale.';
+    }
     var otherDeductionsCents = currency.eurosToCents(input.otherAnnualDeductions);
     var reimbursementsCents = currency.eurosToCents(input.annualReimbursements);
     var estimatedAnnualNetCents = Math.max(

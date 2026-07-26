@@ -1435,6 +1435,32 @@ var state = {
       var value = Math.max(0, Number(cents) || 0);
       return value > 0 ? ('− ' + api.formatCurrencyFromCents(value)) : api.formatCurrencyFromCents(0);
     }
+    function getPayrollMunicipalityFeedback(estimate) {
+      var input = estimate && estimate.input || {};
+      var municipality = String(input.municipality || '').trim();
+      if (!municipality) {
+        return { text: 'Seleziona un Comune dall elenco.', state: '' };
+      }
+      var config = estimate && estimate.municipalityConfig;
+      if (!config) {
+        return {
+          text: 'Comune non disponibile nelle tabelle fiscali ' + (input.taxYear || '') + '.',
+          state: 'is-missing'
+        };
+      }
+      var rates = (config.brackets || []).map(function (bracket) {
+        return Number(bracket.rate) || 0;
+      }).filter(function (rate, index, source) {
+        return source.indexOf(rate) === index;
+      });
+      var rateLabel = rates.length === 1
+        ? rates[0].toLocaleString('it-IT', { maximumFractionDigits: 3 }) + '%'
+        : 'progressiva';
+      return {
+        text: 'Aliquota ' + rateLabel + ' trovata per ' + config.municipalityName + '.',
+        state: 'is-valid'
+      };
+    }
     function updatePayrollPrivateReconciliationPreview(input) {
       var page = document.querySelector('[data-payroll-calculator-page]');
       var api = getPayrollCalculatorApi();
@@ -1477,6 +1503,12 @@ var state = {
       var estimate = api.calculatePayrollEstimate(collectPayrollCalculatorInputFromDom());
       updatePayrollPrivateReconciliationPreview(estimate.input);
       renderPayrollEstimateValidation(estimate.errors);
+      var municipalityFeedback = getPayrollMunicipalityFeedback(estimate);
+      document.querySelectorAll('[data-payroll-municipality-feedback]').forEach(function (node) {
+        node.textContent = municipalityFeedback.text;
+        node.classList.toggle('is-valid', municipalityFeedback.state === 'is-valid');
+        node.classList.toggle('is-missing', municipalityFeedback.state === 'is-missing');
+      });
       page.classList.toggle('is-invalid', !estimate.valid);
       if (!estimate.valid) {
         setPayrollEstimateText('netMonth', '--');

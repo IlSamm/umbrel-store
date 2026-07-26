@@ -449,7 +449,7 @@ function bindEvents() {
             state.payrollSecretTapStartedAt = now;
           }
           state.payrollSecretTapCount += 1;
-          if (state.payrollSecretTapCount < 7) return;
+          if (state.payrollSecretTapCount < 3) return;
           state.payrollPrivateUnlocked = true;
           state.payrollSecretTapCount = 0;
           state.payrollSecretTapStartedAt = 0;

@@ -1519,6 +1519,7 @@ function renderCalendar() {
       var municipalityValue = estimate.valid && estimate.municipalityConfig
         ? negativeMoney(monthBreakdown.municipalCents)
         : 'Non calcolata';
+      var municipalityFeedback = getPayrollMunicipalityFeedback(estimate);
       var configOpen = Boolean(state.payslipEstimateConfigOpen);
       var irpefRows = estimate.valid ? estimate.irpefBreakdown.map(function (row) {
         var range = row.to === null
@@ -1536,7 +1537,8 @@ function renderCalendar() {
           : 'data-close-payslip-estimate="1" aria-label="Torna alle buste paga"') +
         '>' + icons.left + '</button><div><span>' +
         (configOpen ? 'CALCOLO STIPENDIO' : 'BUSTE PAGA') +
-        '</span><h1>' + (configOpen ? 'Dati per la stima' : 'Stima stipendio') +
+        '</span><h1' + (configOpen ? ' data-payroll-secret-trigger="1"' : '') + '>' +
+        (configOpen ? 'Dati per la stima' : 'Stima stipendio') +
         '</h1></div><i></i></div>'
       );
       html.push('<div class="stack payroll-estimate-stack payroll-calculator-stack' +
@@ -1546,7 +1548,7 @@ function renderCalendar() {
         recordedOvertimeHours.toFixed(4) + '">');
       html.push(
         '<section class="payroll-estimate-panel payroll-calculator-config-intro">' +
-          '<div class="payroll-estimate-hero-top"><div><small>CONFIGURAZIONE DEL MESE</small><h2 data-payroll-secret-trigger="1">' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
+          '<div class="payroll-estimate-hero-top"><div><small>CONFIGURAZIONE DEL MESE</small><h2>' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
           '<div class="payroll-calculator-config-preview"><span><small>NETTO STIMATO</small><strong data-payroll-value="netMonth">' + escapeHtml(estimateTotal) + '</strong></span><p>' + escapeHtml(sourceLabel) + '</p></div>' +
         '</section>'
       );
@@ -1627,7 +1629,7 @@ function renderCalendar() {
             '<label class="payroll-calculator-field"><span>GIORNI DI LAVORO NELL’ANNO</span><div><input data-payroll-field="employmentDays" data-payroll-integer type="number" inputmode="numeric" min="1" max="366" value="' + escapeHtml(String(config.employmentDays)) + '"><em>gg</em></div></label>' +
             '<label class="payroll-calculator-field"><span>CONTRATTO</span><div class="is-select"><select data-payroll-field="employmentType"><option value="permanent"' + (config.employmentType === 'permanent' ? ' selected' : '') + '>Tempo indeterminato</option><option value="fixed-term"' + (config.employmentType === 'fixed-term' ? ' selected' : '') + '>Tempo determinato</option></select></div></label>' +
             '<label class="payroll-calculator-field"><span>REGIONE DI RESIDENZA</span><div class="is-select"><select data-payroll-field="region">' + regionOptions + '</select></div></label>' +
-            '<label class="payroll-calculator-field"><span>COMUNE DI RESIDENZA</span><div><input data-payroll-field="municipality" type="text" list="payrollMunicipalities" autocomplete="off" value="' + escapeHtml(config.municipality) + '" placeholder="es. Cormano"></div></label>' +
+            '<label class="payroll-calculator-field"><span>COMUNE DI RESIDENZA</span><div><input data-payroll-field="municipality" type="text" list="payrollMunicipalities" autocomplete="off" value="' + escapeHtml(config.municipality) + '" placeholder="es. Sovere"></div><small class="payroll-municipality-feedback ' + escapeHtml(municipalityFeedback.state) + '" data-payroll-municipality-feedback>' + escapeHtml(municipalityFeedback.text) + '</small></label>' +
             '<label class="payroll-calculator-field"><span>ALTRE TRATTENUTE ANNUE</span><div><b>€</b><input data-payroll-field="otherAnnualDeductions" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.otherAnnualDeductions)) + '"></div></label>' +
             '<label class="payroll-calculator-field"><span>RIMBORSI ANNUI</span><div><b>€</b><input data-payroll-field="annualReimbursements" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.annualReimbursements)) + '"></div></label>' +
           '</div>' +
