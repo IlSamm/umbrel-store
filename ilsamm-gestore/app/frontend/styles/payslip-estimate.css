@@ -386,6 +386,59 @@
   white-space: nowrap;
 }
 
+.payroll-estimate-limit-impact {
+  display: none;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 7px 58px;
+  padding: 10px 11px;
+  border: 1px solid rgba(94, 148, 255, 0.18);
+  border-radius: 13px;
+  background: rgba(37, 88, 184, 0.09);
+}
+
+.payroll-estimate-limit-impact.is-visible {
+  display: grid;
+}
+
+.payroll-estimate-limit-impact > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: rgba(65, 127, 255, 0.14);
+  color: #76a7ff;
+}
+
+.payroll-estimate-limit-impact svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.payroll-estimate-limit-impact > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.payroll-estimate-limit-impact strong {
+  color: #dbe7ff;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.payroll-estimate-limit-impact p {
+  margin: 0;
+  color: #8295bd;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 .payroll-estimate-rate-source {
   display: flex;
   align-items: center;
@@ -480,6 +533,152 @@
 .payroll-estimate-rate-grid label:focus-within > div {
   border-color: rgba(100, 151, 255, 0.55);
   box-shadow: 0 0 0 3px rgba(67, 115, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.payroll-estimate-limit-setting {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(122, 151, 220, 0.15);
+  border-radius: 17px;
+  background: rgba(3, 10, 27, 0.38);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.payroll-estimate-limit-setting.is-enabled {
+  border-color: rgba(101, 148, 255, 0.31);
+  background: rgba(16, 36, 78, 0.52);
+}
+
+.payroll-estimate-limit-head {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 10px;
+}
+
+.payroll-estimate-limit-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(72, 125, 255, 0.13);
+  color: #78a5ff;
+}
+
+.payroll-estimate-limit-icon svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.payroll-estimate-limit-head > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.payroll-estimate-limit-head strong {
+  color: #ecf2ff;
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.payroll-estimate-limit-head p {
+  margin: 0;
+  color: #7f8eac;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.payroll-estimate-limit-head > button {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(128, 149, 201, 0.17);
+  border-radius: 999px;
+  background: rgba(74, 89, 125, 0.42);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.payroll-estimate-limit-head > button i {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dce5f8;
+  box-shadow: 0 2px 7px rgba(0, 5, 20, 0.34);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 180ms ease;
+}
+
+.payroll-estimate-limit-head > button[aria-pressed="true"] {
+  border-color: rgba(113, 126, 255, 0.72);
+  background: linear-gradient(135deg, #5167ef, #8056ed);
+}
+
+.payroll-estimate-limit-head > button[aria-pressed="true"] i {
+  transform: translateX(20px);
+  background: #fff;
+}
+
+.payroll-estimate-limit-setting > label {
+  display: none;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(126, 151, 210, 0.11);
+}
+
+.payroll-estimate-limit-setting.is-enabled > label {
+  display: grid;
+}
+
+.payroll-estimate-limit-setting > label > span {
+  color: #8194bd;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.payroll-estimate-limit-setting > label > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 13px;
+  border: 1px solid rgba(108, 146, 231, 0.2);
+  border-radius: 14px;
+  background: rgba(2, 8, 23, 0.48);
+}
+
+.payroll-estimate-limit-setting > label:focus-within > div {
+  border-color: rgba(100, 151, 255, 0.58);
+  box-shadow: 0 0 0 3px rgba(67, 115, 255, 0.1);
+}
+
+.payroll-estimate-limit-setting input {
+  width: 100%;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.payroll-estimate-limit-setting em {
+  color: #8193b8;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
 }
 
 .payroll-estimate-live-note {
@@ -631,6 +830,20 @@
     grid-column: 2;
     max-width: none;
     text-align: left;
+  }
+
+  .payroll-estimate-limit-impact {
+    margin-left: 52px;
+  }
+
+  .payroll-estimate-limit-head {
+    grid-template-columns: 34px minmax(0, 1fr) 46px;
+    gap: 8px;
+  }
+
+  .payroll-estimate-limit-icon {
+    width: 34px;
+    height: 34px;
   }
 
   .payroll-estimate-rate-grid {

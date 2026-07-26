@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.4.0-20260725c';
+var PLATFORM_BUILD = '1.4.1-20260726a';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,11 +26,11 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Nuova stima mensile dello stipendio lordo basata sulle ore registrate.',
-  'Tariffe ordinarie e straordinarie salvate per mese e riutilizzabili.',
-  'Calcolo trasparente con ore coperte, straordinari e confronto con la busta reale.',
-  'Archivio Buste piu utile senza modificare foto o dati gia salvati.',
-  'Cache offline aggiornata per rendere disponibile subito la nuova schermata.'
+  'Nuovo limite mensile per le ore ordinarie conteggiate nella stima.',
+  'Ore registrate, conteggiate ed escluse sono sempre mostrate separatamente.',
+  'Gli straordinari restano fuori dal limite e usano la loro tariffa.',
+  'Tariffe e limite possono essere riutilizzati dal mese precedente.',
+  'Il limite non modifica calendario, ore registrate o buste gia salvate.'
 ];
 
 async function readPlatformJson(response) {

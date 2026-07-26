@@ -445,12 +445,41 @@ function bindEvents() {
           updateSalaryEstimatePreviewFromInputs();
         };
       });
+      var salaryEstimateLimitInput = document.getElementById('salaryEstimateOrdinaryHoursLimit');
+      if (salaryEstimateLimitInput) {
+        salaryEstimateLimitInput.oninput = updateSalaryEstimatePreviewFromInputs;
+        salaryEstimateLimitInput.onfocus = function (event) {
+          if (isZeroLikeDecimalText(event.target.value)) event.target.value = '';
+          requestAnimationFrame(function () { event.target.setSelectionRange(event.target.value.length, event.target.value.length); });
+        };
+        salaryEstimateLimitInput.onblur = function (event) {
+          var value = parseDecimalInput(event.target.value, 0);
+          event.target.value = value > 0 ? formatEditorDecimal(value) : '';
+          updateSalaryEstimatePreviewFromInputs();
+        };
+      }
+      var salaryEstimateLimitToggle = document.querySelector('[data-salary-estimate-limit-toggle]');
+      if (salaryEstimateLimitToggle) salaryEstimateLimitToggle.onclick = function () {
+        var enabled = salaryEstimateLimitToggle.getAttribute('aria-pressed') !== 'true';
+        salaryEstimateLimitToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+        salaryEstimateLimitToggle.setAttribute('aria-checked', enabled ? 'true' : 'false');
+        var setting = document.querySelector('[data-salary-estimate-limit-setting]');
+        if (setting) setting.classList.toggle('is-enabled', enabled);
+        updateSalaryEstimatePreviewFromInputs();
+        if (enabled && salaryEstimateLimitInput && parseDecimalInput(salaryEstimateLimitInput.value, 0) <= 0) {
+          salaryEstimateLimitInput.focus();
+        }
+      };
       var savePayslipEstimate = document.querySelector('[data-save-payslip-estimate]');
       if (savePayslipEstimate) savePayslipEstimate.onclick = function () {
         var hourlyInput = document.getElementById('salaryEstimateHourlyRate');
         var overtimeInput = document.getElementById('salaryEstimateOvertimeRate');
+        var limitInput = document.getElementById('salaryEstimateOrdinaryHoursLimit');
+        var limitToggle = document.querySelector('[data-salary-estimate-limit-toggle]');
         var hourlyRate = parseDecimalInput(hourlyInput ? hourlyInput.value : 0, 0);
         var overtimeRate = parseDecimalInput(overtimeInput ? overtimeInput.value : 0, 0);
+        var limitEnabled = Boolean(limitToggle && limitToggle.getAttribute('aria-pressed') === 'true');
+        var ordinaryHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(limitInput ? limitInput.value : 0, 0)));
         if (hourlyRate <= 0 && overtimeRate <= 0) {
           state.payslipEstimateStatus = 'Inserisci almeno la paga oraria lorda.';
           var status = document.querySelector('[data-payslip-estimate-status]');
@@ -461,10 +490,27 @@ function bindEvents() {
           if (hourlyInput) hourlyInput.focus();
           return;
         }
+        if (limitEnabled && ordinaryHoursLimit <= 0) {
+          state.payslipEstimateStatus = 'Inserisci un limite di ore maggiore di zero.';
+          var limitStatus = document.querySelector('[data-payslip-estimate-status]');
+          if (limitStatus) {
+            limitStatus.textContent = state.payslipEstimateStatus;
+            limitStatus.classList.add('is-visible');
+          }
+          if (limitInput) limitInput.focus();
+          return;
+        }
         var active = document.activeElement;
         if (active && typeof active.blur === 'function') active.blur();
-        saveSalaryEstimateRates(state.payslipEstimateYear, state.payslipEstimateMonth, hourlyRate, overtimeRate);
-        state.payslipEstimateStatus = 'Tariffe salvate per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
+        saveSalaryEstimateRates(
+          state.payslipEstimateYear,
+          state.payslipEstimateMonth,
+          hourlyRate,
+          overtimeRate,
+          limitEnabled,
+          ordinaryHoursLimit
+        );
+        state.payslipEstimateStatus = 'Calcolo salvato per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
         render();
       };
       document.querySelectorAll('[data-open-payslip-stats]').forEach(function (btn) {
