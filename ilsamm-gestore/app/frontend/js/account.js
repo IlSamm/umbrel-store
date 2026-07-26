@@ -255,6 +255,8 @@ function resetRuntimeAccountData(options) {
   state.payslipDetailId = '';
   state.payslipEditorOpen = false;
   state.payslipStatsOpen = false;
+  state.payslipEstimateOpen = false;
+  state.payslipEstimateConfigOpen = false;
   state.privacyLocked = false;
   state.syncPending = opts.reloadFromDevice && typeof readPendingSyncRecord === 'function' ? Boolean(readPendingSyncRecord()) : false;
   state.syncStatus = opts.reloadFromDevice && state.syncPending ? 'In attesa di sincronizzazione' : 'In attesa di accesso';

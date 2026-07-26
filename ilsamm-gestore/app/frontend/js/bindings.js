@@ -408,6 +408,7 @@ function bindEvents() {
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
           state.payslipEstimateOpen = true;
+          state.payslipEstimateConfigOpen = false;
           state.payslipViewer = null;
           render();
         };
@@ -415,6 +416,21 @@ function bindEvents() {
       document.querySelectorAll('[data-close-payslip-estimate]').forEach(function (btn) {
         btn.onclick = function () {
           state.payslipEstimateOpen = false;
+          state.payslipEstimateConfigOpen = false;
+          state.payslipEstimateStatus = '';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-open-payroll-config]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipEstimateConfigOpen = true;
+          state.payslipEstimateStatus = '';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-payroll-config]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipEstimateConfigOpen = false;
           state.payslipEstimateStatus = '';
           render();
         };
@@ -480,7 +496,8 @@ function bindEvents() {
           if (firstInvalid) firstInvalid.focus({ preventScroll: true });
           return;
         }
-        state.payslipEstimateStatus = 'Calcolo salvato per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
+        state.payslipEstimateStatus = 'Dati aggiornati per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
+        state.payslipEstimateConfigOpen = false;
         render();
       };
       document.querySelectorAll('[data-open-payslip-stats]').forEach(function (btn) {

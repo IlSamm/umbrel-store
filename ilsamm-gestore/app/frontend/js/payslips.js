@@ -60,6 +60,7 @@ var state = {
       payslipStatsOpen: false,
       payslipStatsYear: new Date().getFullYear(),
       payslipEstimateOpen: false,
+      payslipEstimateConfigOpen: false,
       payslipEstimateYear: new Date().getFullYear(),
       payslipEstimateMonth: new Date().getMonth() + 1,
       payslipEstimateStatus: '',

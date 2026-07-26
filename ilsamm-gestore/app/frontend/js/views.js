@@ -1514,6 +1514,7 @@ function renderCalendar() {
       var municipalityValue = estimate.valid && estimate.municipalityConfig
         ? negativeMoney(monthBreakdown.municipalCents)
         : 'Non calcolata';
+      var configOpen = Boolean(state.payslipEstimateConfigOpen);
       var irpefRows = estimate.valid ? estimate.irpefBreakdown.map(function (row) {
         var range = row.to === null
           ? ('oltre ' + money(row.from))
@@ -1523,8 +1524,26 @@ function renderCalendar() {
       }).join('') : '';
       var html = [];
 
-      html.push('<div class="profile-subpage-top payroll-page-top payroll-estimate-top"><button data-close-payslip-estimate="1" aria-label="Torna alle buste paga">' + icons.left + '</button><div><span>BUSTE PAGA</span><h1>Stima stipendio</h1></div><i></i></div>');
-      html.push('<div class="stack payroll-estimate-stack payroll-calculator-stack' + (!estimate.valid ? ' is-invalid' : '') + '" data-payroll-calculator-page>');
+      html.push(
+        '<div class="profile-subpage-top payroll-page-top payroll-estimate-top"><button ' +
+        (configOpen
+          ? 'data-close-payroll-config="1" aria-label="Torna alla stima stipendio"'
+          : 'data-close-payslip-estimate="1" aria-label="Torna alle buste paga"') +
+        '>' + icons.left + '</button><div><span>' +
+        (configOpen ? 'CALCOLO STIPENDIO' : 'BUSTE PAGA') +
+        '</span><h1>' + (configOpen ? 'Dati per la stima' : 'Stima stipendio') +
+        '</h1></div><i></i></div>'
+      );
+      html.push('<div class="stack payroll-estimate-stack payroll-calculator-stack' +
+        (!estimate.valid ? ' is-invalid' : '') +
+        (configOpen ? ' is-configuring' : '') +
+        '" data-payroll-calculator-page>');
+      html.push(
+        '<section class="payroll-estimate-panel payroll-calculator-config-intro">' +
+          '<div class="payroll-estimate-hero-top"><div><small>CONFIGURAZIONE DEL MESE</small><h2>' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
+          '<div class="payroll-calculator-config-preview"><span><small>NETTO STIMATO</small><strong data-payroll-value="netMonth">' + escapeHtml(estimateTotal) + '</strong></span><p>' + escapeHtml(sourceLabel) + '</p></div>' +
+        '</section>'
+      );
       html.push(
         '<section class="payroll-estimate-hero payroll-calculator-hero">' +
           '<div class="payroll-estimate-hero-top"><div><small>NETTO STIMATO DEL MESE</small><h2>' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
@@ -1536,6 +1555,19 @@ function renderCalendar() {
             '<span><small>RAL BASE</small><b data-payroll-value="baseAnnualGross">' + escapeHtml(estimate.valid ? money(estimate.baseAnnualGross) : '--') + '</b></span>' +
           '</div>' +
         '</section>'
+      );
+      html.push(
+        '<button class="payroll-estimate-panel payroll-calculator-config-entry" type="button" data-open-payroll-config="1">' +
+          '<span class="payroll-calculator-config-entry-icon">' + icons.settings + '</span>' +
+          '<span class="payroll-calculator-config-entry-copy"><small>DATI PER LA STIMA</small><strong>Retribuzione e dati fiscali</strong><p>' +
+            escapeHtml(money(config.baseMonthlyGross) + ' · ' + config.salaryMonths + ' mensilità · ' +
+              config.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h extra') +
+          '</p><em>' + escapeHtml(config.region + (config.municipality ? (' · ' + config.municipality) : ' · Comune da inserire')) + '</em></span>' +
+          '<span class="payroll-calculator-config-entry-arrow">' + icons.right + '</span>' +
+        '</button>' +
+        '<div class="payroll-estimate-status payroll-calculator-summary-status' +
+          (state.payslipEstimateStatus ? ' is-visible' : '') +
+          '" role="status">' + escapeHtml(state.payslipEstimateStatus || '') + '</div>'
       );
       html.push(
         '<section class="payroll-estimate-panel payroll-calculator-breakdown">' +
@@ -1622,7 +1654,7 @@ function renderCalendar() {
       html.push(
         '<section class="payroll-estimate-panel payroll-calculator-save-panel">' +
           '<div class="payroll-calculator-save-copy"><small>CONFIGURAZIONE DEL MESE</small><p>Le ore e le buste gia salvate non vengono modificate.</p></div>' +
-          '<button class="solid payroll-estimate-save" data-save-payslip-estimate="1">' + icons.check + '<span>Salva calcolo del mese</span></button>' +
+          '<button class="solid payroll-estimate-save" data-save-payslip-estimate="1">' + icons.check + '<span>Salva dati della stima</span></button>' +
           '<div class="payroll-estimate-status' + (state.payslipEstimateStatus ? ' is-visible' : '') + '" data-payslip-estimate-status role="status">' + escapeHtml(state.payslipEstimateStatus || '') + '</div>' +
         '</section>'
       );
