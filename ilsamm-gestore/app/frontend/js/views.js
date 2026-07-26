@@ -1491,6 +1491,11 @@ function renderCalendar() {
         return sum + Math.max(0, getBreakdown(pair[1]).overtime || 0);
       }, 0);
       var recordedOvertimeHours = minutesToHours(recordedOvertimeMinutes);
+      var privateUnlocked = Boolean(state.payrollPrivateUnlocked);
+      var privateEnabled = config.privateReconciliationEnabled === true;
+      var privateRemainingHours = Math.max(0, recordedOvertimeHours - Math.max(0, config.overtimeHoursMonthly));
+      var privateHourlyRate = Math.max(0, Number(config.privateReconciliationHourlyRate) || 0);
+      var privateAmount = Math.round(privateRemainingHours * privateHourlyRate * 100) / 100;
       var regions = api && Array.isArray(api.ITALIAN_REGIONS) ? api.ITALIAN_REGIONS : ['Lombardia'];
       var regionOptions = regions.map(function (region) {
         return '<option value="' + escapeHtml(region) + '"' + (region === config.region ? ' selected' : '') + '>' + escapeHtml(region) + '</option>';
@@ -1537,10 +1542,11 @@ function renderCalendar() {
       html.push('<div class="stack payroll-estimate-stack payroll-calculator-stack' +
         (!estimate.valid ? ' is-invalid' : '') +
         (configOpen ? ' is-configuring' : '') +
-        '" data-payroll-calculator-page>');
+        '" data-payroll-calculator-page data-recorded-overtime-hours="' +
+        recordedOvertimeHours.toFixed(4) + '">');
       html.push(
         '<section class="payroll-estimate-panel payroll-calculator-config-intro">' +
-          '<div class="payroll-estimate-hero-top"><div><small>CONFIGURAZIONE DEL MESE</small><h2>' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
+          '<div class="payroll-estimate-hero-top"><div><small>CONFIGURAZIONE DEL MESE</small><h2 data-payroll-secret-trigger="1">' + escapeHtml(periodLabel) + '</h2></div><div class="payroll-estimate-period"><button data-payslip-estimate-month="-1" aria-label="Mese precedente">' + icons.left + '</button><span>' + escapeHtml(monthNames[selectedMonth - 1].slice(0, 3)) + '</span><button data-payslip-estimate-month="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
           '<div class="payroll-calculator-config-preview"><span><small>NETTO STIMATO</small><strong data-payroll-value="netMonth">' + escapeHtml(estimateTotal) + '</strong></span><p>' + escapeHtml(sourceLabel) + '</p></div>' +
         '</section>'
       );
@@ -1569,6 +1575,16 @@ function renderCalendar() {
           (state.payslipEstimateStatus ? ' is-visible' : '') +
           '" role="status">' + escapeHtml(state.payslipEstimateStatus || '') + '</div>'
       );
+      if (privateUnlocked && privateEnabled) {
+        html.push(
+          '<section class="payroll-estimate-panel payroll-private-summary">' +
+            '<span class="payroll-private-summary-icon">' + icons.lock + '</span>' +
+            '<span class="payroll-private-summary-copy"><small>NERO · DA REGOLARIZZARE</small><strong>' +
+              escapeHtml(privateRemainingHours.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h · ' + money(privateAmount)) +
+            '</strong><p>Ore registrate non incluse nel cedolino stimato.</p></span>' +
+          '</section>'
+        );
+      }
       html.push(
         '<section class="payroll-estimate-panel payroll-calculator-breakdown">' +
           '<div class="payroll-estimate-section-head"><div><small>QUESTO MESE</small><h2>Dal lordo al netto</h2></div><span>STIMA</span></div>' +
@@ -1618,6 +1634,24 @@ function renderCalendar() {
           '<datalist id="payrollMunicipalities">' + municipalityList + '</datalist>' +
         '</details>'
       );
+      if (privateUnlocked) {
+        html.push(
+          '<section class="payroll-estimate-panel payroll-private-config' + (privateEnabled ? ' is-enabled' : '') + '" data-payroll-private-section>' +
+            '<input type="hidden" data-payroll-field="privateReconciliationEnabled" value="' + (privateEnabled ? 'true' : 'false') + '">' +
+            '<div class="payroll-private-head"><span class="payroll-private-icon">' + icons.lock + '</span><div><small>VOCE PRIVATA</small><h2>Nero</h2><p>Anticipo da regolarizzare a fine mese.</p></div><button type="button" role="switch" aria-checked="' + (privateEnabled ? 'true' : 'false') + '" data-payroll-private-toggle><i></i></button></div>' +
+            '<div class="payroll-private-content">' +
+              '<div class="payroll-private-equation"><span><small>REGISTRATE</small><b>' + escapeHtml(recordedOvertimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>−</i><span><small>IN CEDOLINO</small><b data-payroll-private-included>' + escapeHtml(config.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>=</i><span class="is-result"><small>RESIDUE</small><b data-payroll-private-hours>' + escapeHtml(privateRemainingHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span></div>' +
+              '<div class="payroll-private-rate-row"><label class="payroll-calculator-field"><span>QUANTO VENGONO PAGATE</span><div><b>€</b><input data-payroll-field="privateReconciliationHourlyRate" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(privateHourlyRate)) + '"><em>/h</em></div></label><span class="payroll-private-total"><small>TOTALE DA REGOLARIZZARE</small><strong data-payroll-private-amount>' + escapeHtml(money(privateAmount)) + '</strong></span></div>' +
+              '<p class="payroll-private-warning">Questa voce non entra nel netto fiscale stimato e deve essere riconciliata con il cedolino definitivo.</p>' +
+            '</div>' +
+          '</section>'
+        );
+      } else if (configOpen) {
+        html.push(
+          '<input type="hidden" data-payroll-field="privateReconciliationEnabled" value="' + (privateEnabled ? 'true' : 'false') + '">' +
+          '<input type="hidden" data-payroll-field="privateReconciliationHourlyRate" value="' + escapeHtml(formatEditorDecimal(privateHourlyRate)) + '">'
+        );
+      }
       html.push(
         '<section class="payroll-estimate-panel payroll-calculator-periods">' +
           '<div class="payroll-estimate-section-head"><div><small>MENSILITA</small><h2>Quanto potresti ricevere</h2></div><span>NETTO</span></div>' +

@@ -47,7 +47,9 @@
     employmentDays: 365,
     employmentType: 'permanent',
     otherAnnualDeductions: 0,
-    annualReimbursements: 0
+    annualReimbursements: 0,
+    privateReconciliationEnabled: false,
+    privateReconciliationHourlyRate: 0
   });
 
   var ITALIAN_REGIONS = Object.freeze([
@@ -58,7 +60,7 @@
   ]);
 
   return {
-    PAYROLL_SCHEMA_VERSION: 1,
+    PAYROLL_SCHEMA_VERSION: 2,
     DEFAULT_PAYROLL_INPUT: DEFAULT_PAYROLL_INPUT,
     ITALIAN_REGIONS: ITALIAN_REGIONS
   };

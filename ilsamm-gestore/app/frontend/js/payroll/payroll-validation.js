@@ -22,6 +22,15 @@
     return currency.parseLocaleNumber(value, fallback);
   }
 
+  function readBoolean(source, key, fallback) {
+    if (!hasOwn(source, key)) return Boolean(fallback);
+    var value = source[key];
+    if (typeof value === 'string') {
+      return ['1', 'true', 'yes', 'on'].indexOf(value.trim().toLowerCase()) !== -1;
+    }
+    return value === true || value === 1;
+  }
+
   function isMalformedNumber(source, key, allowBlank) {
     if (!hasOwn(source, key)) return false;
     var value = source[key];
@@ -56,7 +65,17 @@
         ? 'fixed-term'
         : 'permanent',
       otherAnnualDeductions: readNumber(raw, 'otherAnnualDeductions', defaults.otherAnnualDeductions),
-      annualReimbursements: readNumber(raw, 'annualReimbursements', defaults.annualReimbursements)
+      annualReimbursements: readNumber(raw, 'annualReimbursements', defaults.annualReimbursements),
+      privateReconciliationEnabled: readBoolean(
+        raw,
+        'privateReconciliationEnabled',
+        defaults.privateReconciliationEnabled
+      ),
+      privateReconciliationHourlyRate: readNumber(
+        raw,
+        'privateReconciliationHourlyRate',
+        defaults.privateReconciliationHourlyRate
+      )
     };
   }
 
@@ -83,6 +102,17 @@
     validateRange(errors, 'employmentDays', 'Giorni di lavoro', input.employmentDays, 1, 366);
     validateRange(errors, 'otherAnnualDeductions', 'Altre trattenute', input.otherAnnualDeductions, 0, 10000000);
     validateRange(errors, 'annualReimbursements', 'Rimborsi', input.annualReimbursements, 0, 10000000);
+    validateRange(
+      errors,
+      'privateReconciliationHourlyRate',
+      'Tariffa della voce Nero',
+      input.privateReconciliationHourlyRate,
+      0,
+      10000
+    );
+    if (input.privateReconciliationEnabled && input.privateReconciliationHourlyRate <= 0) {
+      errors.privateReconciliationHourlyRate = 'Inserisci quanto vengono pagate le ore da regolarizzare.';
+    }
     [
       ['baseMonthlyGross', 'Lordo mensile', false],
       ['salaryMonths', 'Mensilita', false],
@@ -94,7 +124,8 @@
       ['taxYear', 'Anno fiscale', false],
       ['employmentDays', 'Giorni di lavoro', false],
       ['otherAnnualDeductions', 'Altre trattenute', true],
-      ['annualReimbursements', 'Rimborsi', true]
+      ['annualReimbursements', 'Rimborsi', true],
+      ['privateReconciliationHourlyRate', 'Tariffa della voce Nero', true]
     ].forEach(function (definition) {
       if (isMalformedNumber(source, definition[0], definition[2])) {
         errors[definition[0]] = definition[1] + ': inserisci un numero valido.';

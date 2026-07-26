@@ -409,6 +409,9 @@ function bindEvents() {
           state.payslipStatsOpen = false;
           state.payslipEstimateOpen = true;
           state.payslipEstimateConfigOpen = false;
+          state.payrollPrivateUnlocked = false;
+          state.payrollSecretTapCount = 0;
+          state.payrollSecretTapStartedAt = 0;
           state.payslipViewer = null;
           render();
         };
@@ -417,6 +420,9 @@ function bindEvents() {
         btn.onclick = function () {
           state.payslipEstimateOpen = false;
           state.payslipEstimateConfigOpen = false;
+          state.payrollPrivateUnlocked = false;
+          state.payrollSecretTapCount = 0;
+          state.payrollSecretTapStartedAt = 0;
           state.payslipEstimateStatus = '';
           render();
         };
@@ -433,6 +439,34 @@ function bindEvents() {
           state.payslipEstimateConfigOpen = false;
           state.payslipEstimateStatus = '';
           render();
+        };
+      });
+      document.querySelectorAll('[data-payroll-secret-trigger]').forEach(function (trigger) {
+        trigger.onclick = function () {
+          var now = Date.now();
+          if (!state.payrollSecretTapStartedAt || now - state.payrollSecretTapStartedAt > 4500) {
+            state.payrollSecretTapCount = 0;
+            state.payrollSecretTapStartedAt = now;
+          }
+          state.payrollSecretTapCount += 1;
+          if (state.payrollSecretTapCount < 7) return;
+          state.payrollPrivateUnlocked = true;
+          state.payrollSecretTapCount = 0;
+          state.payrollSecretTapStartedAt = 0;
+          state.payslipEstimateStatus = 'Impostazione privata sbloccata.';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-payroll-private-toggle]').forEach(function (button) {
+        button.onclick = function () {
+          var section = button.closest('[data-payroll-private-section]');
+          var field = section ? section.querySelector('[data-payroll-field="privateReconciliationEnabled"]') : null;
+          if (!section || !field) return;
+          var enabled = field.value !== 'true';
+          field.value = enabled ? 'true' : 'false';
+          section.classList.toggle('is-enabled', enabled);
+          button.setAttribute('aria-checked', enabled ? 'true' : 'false');
+          updatePayrollCalculatorPreviewFromInputs();
         };
       });
       document.querySelectorAll('[data-payslip-estimate-month]').forEach(function (btn) {

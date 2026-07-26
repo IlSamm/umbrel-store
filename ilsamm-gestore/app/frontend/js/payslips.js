@@ -61,6 +61,9 @@ var state = {
       payslipStatsYear: new Date().getFullYear(),
       payslipEstimateOpen: false,
       payslipEstimateConfigOpen: false,
+      payrollPrivateUnlocked: false,
+      payrollSecretTapCount: 0,
+      payrollSecretTapStartedAt: 0,
       payslipEstimateYear: new Date().getFullYear(),
       payslipEstimateMonth: new Date().getMonth() + 1,
       payslipEstimateStatus: '',
@@ -1289,7 +1292,9 @@ var state = {
             employmentDays: 365,
             employmentType: 'permanent',
             otherAnnualDeductions: 0,
-            annualReimbursements: 0
+            annualReimbursements: 0,
+            privateReconciliationEnabled: false,
+            privateReconciliationHourlyRate: 0
           };
       var selectedYear = Number(year) || new Date().getFullYear();
       if (typeof globalThis !== 'undefined' && globalThis.GestOreTaxConfigs && globalThis.GestOreTaxConfigs[selectedYear]) {
@@ -1430,6 +1435,25 @@ var state = {
       var value = Math.max(0, Number(cents) || 0);
       return value > 0 ? ('− ' + api.formatCurrencyFromCents(value)) : api.formatCurrencyFromCents(0);
     }
+    function updatePayrollPrivateReconciliationPreview(input) {
+      var page = document.querySelector('[data-payroll-calculator-page]');
+      var api = getPayrollCalculatorApi();
+      if (!page || !api || !input) return;
+      var recorded = Math.max(0, Number(page.dataset.recordedOvertimeHours) || 0);
+      var included = Math.max(0, Number(input.overtimeHoursMonthly) || 0);
+      var remaining = Math.max(0, recorded - included);
+      var rate = Math.max(0, Number(input.privateReconciliationHourlyRate) || 0);
+      var amount = Math.round(remaining * rate * 100) / 100;
+      document.querySelectorAll('[data-payroll-private-included]').forEach(function (node) {
+        node.textContent = included.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h';
+      });
+      document.querySelectorAll('[data-payroll-private-hours]').forEach(function (node) {
+        node.textContent = remaining.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h';
+      });
+      document.querySelectorAll('[data-payroll-private-amount]').forEach(function (node) {
+        node.textContent = api.formatCurrency(amount);
+      });
+    }
     function renderPayrollEstimateValidation(errors) {
       var source = errors || {};
       document.querySelectorAll('[data-payroll-field]').forEach(function (field) {
@@ -1451,6 +1475,7 @@ var state = {
       var api = getPayrollCalculatorApi();
       if (!page || !api || typeof api.calculatePayrollEstimate !== 'function') return null;
       var estimate = api.calculatePayrollEstimate(collectPayrollCalculatorInputFromDom());
+      updatePayrollPrivateReconciliationPreview(estimate.input);
       renderPayrollEstimateValidation(estimate.errors);
       page.classList.toggle('is-invalid', !estimate.valid);
       if (!estimate.valid) {
