@@ -4,7 +4,7 @@ name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.5.3"
+version: "1.5.4"
 port: 8080
 
 description: >-
@@ -12,9 +12,9 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iPhone.
 
 releaseNotes: >-
-  GestOre 1.5.3 semplifica lo sblocco della riconciliazione privata e
-  corregge il calcolo comunale per Sovere. Il Comune ora aggiorna subito
-  addizionale e netto, con un campo di selezione piu chiaro e arrotondato.
+  GestOre 1.5.4 integra tutti i 7.894 Comuni italiani correnti nelle
+  tabelle dell'addizionale comunale. La nuova ricerca per Regione aggiorna
+  subito il netto e segnala in modo trasparente l'anno fiscale utilizzato.
 
 developer: IlSamm
 website: ""

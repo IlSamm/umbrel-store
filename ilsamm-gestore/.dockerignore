@@ -3,3 +3,5 @@
 **/*.py[cod]
 data/
 tmp/
+tests/
+tools/

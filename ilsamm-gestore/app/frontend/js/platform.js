@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.5.3-20260727a';
+var PLATFORM_BUILD = '1.5.4-20260727b';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,11 +26,11 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Nuovo calcolatore dello stipendio netto con riepilogo mensile e annuale.',
-  'IRPEF progressiva, contributi INPS e detrazione da lavoro sono mostrati separatamente.',
-  'Addizionali regionale e comunale usano tabelle configurabili per anno.',
-  'Straordinari, tredicesima e quattordicesima vengono stimati senza percentuali fisse.',
-  'Ore, buste paga e configurazioni precedenti restano compatibili e protette.'
+  'Tutti i 7.894 Comuni italiani correnti sono disponibili nel calcolo dello stipendio.',
+  'La ricerca del Comune e rapida, filtrata per Regione e ottimizzata per iPhone.',
+  'Addizionale comunale e netto si aggiornano subito dopo la selezione.',
+  'L app indica se usa la tabella 2026, l ultima aliquota 2025 o un valore provvisorio.',
+  'Ore, buste paga e configurazioni salvate restano compatibili e protette.'
 ];
 
 async function readPlatformJson(response) {

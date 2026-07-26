@@ -1410,21 +1410,45 @@ var state = {
       });
       return source;
     }
-    function refreshPayrollMunicipalityOptions() {
+    function closePayrollMunicipalityResults() {
+      var list = document.querySelector('[data-payroll-municipality-results]');
+      var input = document.querySelector('[data-payroll-field="municipality"]');
+      if (list) {
+        list.hidden = true;
+        list.innerHTML = '';
+      }
+      if (input) input.setAttribute('aria-expanded', 'false');
+    }
+    function refreshPayrollMunicipalityOptions(query) {
       var api = getPayrollCalculatorApi();
-      var list = document.getElementById('payrollMunicipalities');
-      if (!api || typeof api.getMunicipalityOptions !== 'function' || !list) return;
+      var list = document.querySelector('[data-payroll-municipality-results]');
+      var input = document.querySelector('[data-payroll-field="municipality"]');
+      if (!api || typeof api.searchMunicipalities !== 'function' || !list || !input) return;
       var yearField = document.querySelector('[data-payroll-field="taxYear"]');
       var regionField = document.querySelector('[data-payroll-field="region"]');
-      var options = api.getMunicipalityOptions(
+      var value = query === undefined ? input.value : query;
+      if (String(value || '').trim().length < 2) {
+        closePayrollMunicipalityResults();
+        return;
+      }
+      var options = api.searchMunicipalities(
+        value,
         yearField ? yearField.value : 0,
         null,
-        regionField ? regionField.value : ''
+        regionField ? regionField.value : '',
+        8
       );
-      list.innerHTML = options.map(function (item) {
-        return '<option value="' + escapeHtml(item.municipalityName) + '">' +
-          escapeHtml(item.municipalityCode + ' - ' + item.province) + '</option>';
-      }).join('');
+      list.innerHTML = options.length
+        ? options.map(function (item) {
+          return '<button type="button" role="option" data-payroll-municipality-option="' +
+            escapeHtml(item.municipalityName) + '"><span><strong>' +
+            escapeHtml(item.municipalityName) + '</strong><small>' +
+            escapeHtml(item.province + ' · ' + item.region) +
+            '</small></span><i>' + escapeHtml(item.municipalityCode) + '</i></button>';
+        }).join('')
+        : '<p>Nessun Comune trovato in questa Regione.</p>';
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
     }
     function setPayrollEstimateText(key, value) {
       document.querySelectorAll('[data-payroll-value="' + key + '"]').forEach(function (node) {
@@ -1439,12 +1463,12 @@ var state = {
       var input = estimate && estimate.input || {};
       var municipality = String(input.municipality || '').trim();
       if (!municipality) {
-        return { text: 'Seleziona un Comune dall elenco.', state: '' };
+        return { text: 'Cerca e seleziona uno dei Comuni suggeriti.', state: '' };
       }
       var config = estimate && estimate.municipalityConfig;
       if (!config) {
         return {
-          text: 'Comune non disponibile nelle tabelle fiscali ' + (input.taxYear || '') + '.',
+          text: 'Seleziona il Comune corretto dai risultati della ricerca.',
           state: 'is-missing'
         };
       }
@@ -1456,9 +1480,20 @@ var state = {
       var rateLabel = rates.length === 1
         ? rates[0].toLocaleString('it-IT', { maximumFractionDigits: 3 }) + '%'
         : 'progressiva';
+      if (config.provisional) {
+        return {
+          text: config.municipalityName + ' trovato · aliquota MEF ' + config.taxYear +
+            ' non ancora pubblicata, 0% provvisorio.',
+          state: 'is-warning'
+        };
+      }
+      var suffix = config.fallback
+        ? (' · ultima tabella disponibile: ' + config.sourceYear)
+        : (' · tabella ' + config.sourceYear);
+      if (config.limited) suffix += ' · verifica eventuali agevolazioni personali';
       return {
-        text: 'Aliquota ' + rateLabel + ' trovata per ' + config.municipalityName + '.',
-        state: 'is-valid'
+        text: config.municipalityName + ' · aliquota ' + rateLabel + suffix + '.',
+        state: config.fallback || config.limited ? 'is-warning' : 'is-valid'
       };
     }
     function updatePayrollPrivateReconciliationPreview(input) {
@@ -1508,6 +1543,7 @@ var state = {
         node.textContent = municipalityFeedback.text;
         node.classList.toggle('is-valid', municipalityFeedback.state === 'is-valid');
         node.classList.toggle('is-missing', municipalityFeedback.state === 'is-missing');
+        node.classList.toggle('is-warning', municipalityFeedback.state === 'is-warning');
       });
       page.classList.toggle('is-invalid', !estimate.valid);
       if (!estimate.valid) {

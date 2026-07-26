@@ -1506,12 +1506,6 @@ function renderCalendar() {
       }).map(function (year) {
         return '<option value="' + year + '"' + (year === Number(config.taxYear) ? ' selected' : '') + '>' + year + '</option>';
       }).join('');
-      var municipalityOptions = api && typeof api.getMunicipalityOptions === 'function'
-        ? api.getMunicipalityOptions(config.taxYear, null, config.region)
-        : [];
-      var municipalityList = municipalityOptions.map(function (item) {
-        return '<option value="' + escapeHtml(item.municipalityName) + '">' + escapeHtml(item.municipalityCode + ' - ' + item.province) + '</option>';
-      }).join('');
       var estimateTotal = estimate.valid ? money(estimate.estimatedMonthWithOvertimeNet) : '--';
       var completeness = estimate.valid
         ? (estimate.incomplete ? 'Stima parziale: alcune addizionali non sono incluse' : 'Stima completa con le tabelle selezionate')
@@ -1628,12 +1622,11 @@ function renderCalendar() {
             '<label class="payroll-calculator-field"><span>ANNO FISCALE</span><div class="is-select"><select data-payroll-field="taxYear">' + yearOptions + '</select></div></label>' +
             '<label class="payroll-calculator-field"><span>GIORNI DI LAVORO NELL’ANNO</span><div><input data-payroll-field="employmentDays" data-payroll-integer type="number" inputmode="numeric" min="1" max="366" value="' + escapeHtml(String(config.employmentDays)) + '"><em>gg</em></div></label>' +
             '<label class="payroll-calculator-field"><span>CONTRATTO</span><div class="is-select"><select data-payroll-field="employmentType"><option value="permanent"' + (config.employmentType === 'permanent' ? ' selected' : '') + '>Tempo indeterminato</option><option value="fixed-term"' + (config.employmentType === 'fixed-term' ? ' selected' : '') + '>Tempo determinato</option></select></div></label>' +
-            '<label class="payroll-calculator-field"><span>REGIONE DI RESIDENZA</span><div class="is-select"><select data-payroll-field="region">' + regionOptions + '</select></div></label>' +
-            '<label class="payroll-calculator-field"><span>COMUNE DI RESIDENZA</span><div><input data-payroll-field="municipality" type="text" list="payrollMunicipalities" autocomplete="off" value="' + escapeHtml(config.municipality) + '" placeholder="es. Sovere"></div><small class="payroll-municipality-feedback ' + escapeHtml(municipalityFeedback.state) + '" data-payroll-municipality-feedback>' + escapeHtml(municipalityFeedback.text) + '</small></label>' +
+            '<label class="payroll-calculator-field payroll-region-field"><span>REGIONE DI RESIDENZA</span><div class="is-select"><select data-payroll-field="region">' + regionOptions + '</select></div></label>' +
+            '<div class="payroll-calculator-field payroll-municipality-field"><span>COMUNE DI RESIDENZA</span><div class="payroll-municipality-control"><input id="payrollMunicipalityInput" data-payroll-field="municipality" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" value="' + escapeHtml(config.municipality) + '" placeholder="Cerca il Comune" aria-label="Comune di residenza" aria-autocomplete="list" aria-controls="payrollMunicipalityResults" aria-expanded="false"></div><div class="payroll-municipality-results" id="payrollMunicipalityResults" data-payroll-municipality-results role="listbox" hidden></div><small class="payroll-municipality-feedback ' + escapeHtml(municipalityFeedback.state) + '" data-payroll-municipality-feedback>' + escapeHtml(municipalityFeedback.text) + '</small></div>' +
             '<label class="payroll-calculator-field"><span>ALTRE TRATTENUTE ANNUE</span><div><b>€</b><input data-payroll-field="otherAnnualDeductions" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.otherAnnualDeductions)) + '"></div></label>' +
             '<label class="payroll-calculator-field"><span>RIMBORSI ANNUI</span><div><b>€</b><input data-payroll-field="annualReimbursements" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.annualReimbursements)) + '"></div></label>' +
           '</div>' +
-          '<datalist id="payrollMunicipalities">' + municipalityList + '</datalist>' +
         '</details>'
       );
       if (privateUnlocked) {

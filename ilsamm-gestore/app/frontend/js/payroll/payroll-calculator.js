@@ -145,7 +145,13 @@
       : buildPeriodAllocation(0, totalAnnualGrossCents, annual);
     var incompleteReasons = [];
     if (!regionalDetails.available) incompleteReasons.push(regionalDetails.message);
-    if (!municipalDetails.available) incompleteReasons.push(municipalDetails.message);
+    if (!municipalDetails.available) {
+      incompleteReasons.push(municipalDetails.message);
+    } else {
+      (municipalDetails.warnings || []).forEach(function (warning) {
+        if (warning) incompleteReasons.push(warning);
+      });
+    }
 
     return {
       valid: true,

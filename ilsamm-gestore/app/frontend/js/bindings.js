@@ -487,6 +487,8 @@ function bindEvents() {
           state.payslipEstimateStatus = '';
           if (input.dataset.payrollField === 'taxYear' || input.dataset.payrollField === 'region') {
             refreshPayrollMunicipalityOptions();
+          } else if (input.dataset.payrollField === 'municipality') {
+            refreshPayrollMunicipalityOptions(input.value);
           }
           updatePayrollCalculatorPreviewFromInputs();
         };
@@ -507,6 +509,60 @@ function bindEvents() {
           };
         }
       });
+      var municipalityInput = document.querySelector('[data-payroll-field="municipality"]');
+      var municipalityResults = document.querySelector('[data-payroll-municipality-results]');
+      if (municipalityInput && municipalityResults) {
+        municipalityInput.onfocus = function () {
+          refreshPayrollMunicipalityOptions(municipalityInput.value);
+        };
+        municipalityInput.onkeydown = function (event) {
+          if (event.key === 'Escape') {
+            closePayrollMunicipalityResults();
+            return;
+          }
+          if (event.key === 'ArrowDown') {
+            var first = municipalityResults.querySelector('[data-payroll-municipality-option]');
+            if (first) {
+              event.preventDefault();
+              first.focus();
+            }
+          }
+        };
+        municipalityInput.onblur = function () {
+          window.setTimeout(closePayrollMunicipalityResults, 180);
+        };
+        municipalityResults.onpointerdown = function (event) {
+          if (event.target.closest('[data-payroll-municipality-option]')) event.preventDefault();
+        };
+        municipalityResults.onclick = function (event) {
+          var option = event.target.closest('[data-payroll-municipality-option]');
+          if (!option) return;
+          municipalityInput.value = option.dataset.payrollMunicipalityOption || '';
+          closePayrollMunicipalityResults();
+          updatePayrollCalculatorPreviewFromInputs();
+          municipalityInput.focus({ preventScroll: true });
+        };
+        municipalityResults.onkeydown = function (event) {
+          var option = event.target.closest('[data-payroll-municipality-option]');
+          if (!option) return;
+          var options = Array.prototype.slice.call(
+            municipalityResults.querySelectorAll('[data-payroll-municipality-option]')
+          );
+          var index = options.indexOf(option);
+          if (event.key === 'ArrowDown' && options[index + 1]) {
+            event.preventDefault();
+            options[index + 1].focus();
+          } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (options[index - 1]) options[index - 1].focus();
+            else municipalityInput.focus();
+          } else if (event.key === 'Escape') {
+            event.preventDefault();
+            closePayrollMunicipalityResults();
+            municipalityInput.focus();
+          }
+        };
+      }
       document.querySelectorAll('[data-use-recorded-overtime]').forEach(function (button) {
         button.onclick = function () {
           var input = document.querySelector('[data-payroll-field="overtimeHoursMonthly"]');
