@@ -445,7 +445,7 @@ function bindEvents() {
           updateSalaryEstimatePreviewFromInputs();
         };
       });
-      var salaryEstimateLimitInput = document.getElementById('salaryEstimateOrdinaryHoursLimit');
+      var salaryEstimateLimitInput = document.getElementById('salaryEstimateOvertimeHoursLimit');
       if (salaryEstimateLimitInput) {
         salaryEstimateLimitInput.oninput = updateSalaryEstimatePreviewFromInputs;
         salaryEstimateLimitInput.onfocus = function (event) {
@@ -474,12 +474,12 @@ function bindEvents() {
       if (savePayslipEstimate) savePayslipEstimate.onclick = function () {
         var hourlyInput = document.getElementById('salaryEstimateHourlyRate');
         var overtimeInput = document.getElementById('salaryEstimateOvertimeRate');
-        var limitInput = document.getElementById('salaryEstimateOrdinaryHoursLimit');
+        var limitInput = document.getElementById('salaryEstimateOvertimeHoursLimit');
         var limitToggle = document.querySelector('[data-salary-estimate-limit-toggle]');
         var hourlyRate = parseDecimalInput(hourlyInput ? hourlyInput.value : 0, 0);
         var overtimeRate = parseDecimalInput(overtimeInput ? overtimeInput.value : 0, 0);
         var limitEnabled = Boolean(limitToggle && limitToggle.getAttribute('aria-pressed') === 'true');
-        var ordinaryHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(limitInput ? limitInput.value : 0, 0)));
+        var overtimeHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(limitInput ? limitInput.value : 0, 0)));
         if (hourlyRate <= 0 && overtimeRate <= 0) {
           state.payslipEstimateStatus = 'Inserisci almeno la paga oraria lorda.';
           var status = document.querySelector('[data-payslip-estimate-status]');
@@ -490,8 +490,8 @@ function bindEvents() {
           if (hourlyInput) hourlyInput.focus();
           return;
         }
-        if (limitEnabled && ordinaryHoursLimit <= 0) {
-          state.payslipEstimateStatus = 'Inserisci un limite di ore maggiore di zero.';
+        if (limitEnabled && overtimeHoursLimit <= 0) {
+          state.payslipEstimateStatus = 'Inserisci quante ore straordinarie vuoi conteggiare.';
           var limitStatus = document.querySelector('[data-payslip-estimate-status]');
           if (limitStatus) {
             limitStatus.textContent = state.payslipEstimateStatus;
@@ -508,7 +508,7 @@ function bindEvents() {
           hourlyRate,
           overtimeRate,
           limitEnabled,
-          ordinaryHoursLimit
+          overtimeHoursLimit
         );
         state.payslipEstimateStatus = 'Calcolo salvato per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
         render();

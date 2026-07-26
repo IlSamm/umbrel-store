@@ -1021,12 +1021,19 @@ var state = {
     }
     function normalizeSalaryEstimateRates(source) {
       var rateSource = source && typeof source === 'object' ? source : {};
-      var ordinaryHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(rateSource.ordinaryHoursLimit, 0)));
+      var legacyHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(rateSource.ordinaryHoursLimit, 0)));
+      var overtimeHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(
+        rateSource.overtimeHoursLimit !== undefined ? rateSource.overtimeHoursLimit : legacyHoursLimit,
+        0
+      )));
       return {
         hourlyRate: Math.min(10000, Math.max(0, parseDecimalInput(rateSource.hourlyRate, 0))),
         overtimeRate: Math.min(10000, Math.max(0, parseDecimalInput(rateSource.overtimeRate, 0))),
-        ordinaryHoursLimit: ordinaryHoursLimit,
-        limitEnabled: rateSource.limitEnabled === true && ordinaryHoursLimit > 0
+        overtimeHoursLimit: overtimeHoursLimit,
+        overtimeLimitEnabled: (
+          rateSource.overtimeLimitEnabled === true ||
+          (rateSource.overtimeLimitEnabled === undefined && rateSource.limitEnabled === true)
+        ) && overtimeHoursLimit > 0
       };
     }
     function getSalaryEstimateRates(year, month) {
@@ -1041,12 +1048,12 @@ var state = {
           (parseDecimalInput(item.hourlyRate, 0) > 0 || parseDecimalInput(item.overtimeRate, 0) > 0);
       });
       var exactSlipRates = normalizeSalaryEstimateRates(exactPayslip);
-      if (exactSetting.hourlyRate || exactSetting.overtimeRate || exactSetting.limitEnabled) {
+      if (exactSetting.hourlyRate || exactSetting.overtimeRate || exactSetting.overtimeLimitEnabled) {
         return {
           hourlyRate: exactSetting.hourlyRate || exactSlipRates.hourlyRate,
           overtimeRate: exactSetting.overtimeRate || exactSlipRates.overtimeRate,
-          ordinaryHoursLimit: exactSetting.ordinaryHoursLimit,
-          limitEnabled: exactSetting.limitEnabled,
+          overtimeHoursLimit: exactSetting.overtimeHoursLimit,
+          overtimeLimitEnabled: exactSetting.overtimeLimitEnabled,
           sourceType: 'saved',
           sourceYear: Number(year),
           sourceMonth: Number(month),
@@ -1057,8 +1064,8 @@ var state = {
         return {
           hourlyRate: exactSlipRates.hourlyRate,
           overtimeRate: exactSlipRates.overtimeRate,
-          ordinaryHoursLimit: 0,
-          limitEnabled: false,
+          overtimeHoursLimit: 0,
+          overtimeLimitEnabled: false,
           sourceType: 'payslip',
           sourceYear: Number(year),
           sourceMonth: Number(month),
@@ -1094,8 +1101,8 @@ var state = {
         return {
           hourlyRate: 0,
           overtimeRate: 0,
-          ordinaryHoursLimit: 0,
-          limitEnabled: false,
+          overtimeHoursLimit: 0,
+          overtimeLimitEnabled: false,
           sourceType: 'empty',
           sourceYear: 0,
           sourceMonth: 0,
@@ -1105,8 +1112,8 @@ var state = {
       return {
         hourlyRate: previous.rates.hourlyRate,
         overtimeRate: previous.rates.overtimeRate,
-        ordinaryHoursLimit: previous.rates.ordinaryHoursLimit,
-        limitEnabled: previous.rates.limitEnabled,
+        overtimeHoursLimit: previous.rates.overtimeHoursLimit,
+        overtimeLimitEnabled: previous.rates.overtimeLimitEnabled,
         sourceType: previous.sourceType,
         sourceYear: previous.year,
         sourceMonth: previous.month,
@@ -1117,24 +1124,24 @@ var state = {
       var safeYear = Math.min(2200, Math.max(2000, Number(year) || new Date().getFullYear()));
       var safeMonth = Math.min(12, Math.max(1, Number(month) || 1));
       var rates = normalizeSalaryEstimateRates(rateOverride || getSalaryEstimateRates(safeYear, safeMonth));
-      var ordinaryRecordedMinutes = 0;
-      var overtimeMinutes = 0;
+      var ordinaryMinutes = 0;
+      var overtimeRecordedMinutes = 0;
       getMonthEntries(new Date(safeYear, safeMonth - 1, 1)).forEach(function (pair) {
         var breakdown = getBreakdown(pair[1]);
-        ordinaryRecordedMinutes += Math.max(0, breakdown.normal || 0) + Math.max(0, breakdown.leave || 0);
-        overtimeMinutes += Math.max(0, breakdown.overtime || 0);
+        ordinaryMinutes += Math.max(0, breakdown.normal || 0) + Math.max(0, breakdown.leave || 0);
+        overtimeRecordedMinutes += Math.max(0, breakdown.overtime || 0);
       });
-      var ordinaryLimitMinutes = rates.limitEnabled
-        ? Math.max(0, Math.round(rates.ordinaryHoursLimit * 60))
-        : ordinaryRecordedMinutes;
-      var ordinaryMinutes = Math.min(ordinaryRecordedMinutes, ordinaryLimitMinutes);
-      var ordinaryExcludedMinutes = Math.max(0, ordinaryRecordedMinutes - ordinaryMinutes);
-      var ordinaryRecordedHours = minutesToHours(ordinaryRecordedMinutes);
+      var overtimeLimitMinutes = rates.overtimeLimitEnabled
+        ? Math.max(0, Math.round(rates.overtimeHoursLimit * 60))
+        : overtimeRecordedMinutes;
+      var overtimeMinutes = Math.min(overtimeRecordedMinutes, overtimeLimitMinutes);
+      var overtimeExcludedMinutes = Math.max(0, overtimeRecordedMinutes - overtimeMinutes);
       var ordinaryHours = minutesToHours(ordinaryMinutes);
+      var overtimeRecordedHours = minutesToHours(overtimeRecordedMinutes);
       var overtimeHours = minutesToHours(overtimeMinutes);
       var ordinaryAmount = Math.round(ordinaryHours * rates.hourlyRate * 100) / 100;
       var overtimeAmount = Math.round(overtimeHours * rates.overtimeRate * 100) / 100;
-      var hasHours = ordinaryMinutes > 0 || overtimeMinutes > 0;
+      var hasHours = ordinaryMinutes > 0 || overtimeRecordedMinutes > 0;
       var ordinaryReady = ordinaryMinutes <= 0 || rates.hourlyRate > 0;
       var overtimeReady = overtimeMinutes <= 0 || rates.overtimeRate > 0;
       var actualPayslip = (state.payslips || []).find(function (item) {
@@ -1143,17 +1150,17 @@ var state = {
       return {
         year: safeYear,
         month: safeMonth,
-        ordinaryRecordedMinutes: ordinaryRecordedMinutes,
-        ordinaryExcludedMinutes: ordinaryExcludedMinutes,
         ordinaryMinutes: ordinaryMinutes,
+        overtimeRecordedMinutes: overtimeRecordedMinutes,
+        overtimeExcludedMinutes: overtimeExcludedMinutes,
         overtimeMinutes: overtimeMinutes,
-        ordinaryRecordedHours: ordinaryRecordedHours,
         ordinaryHours: ordinaryHours,
+        overtimeRecordedHours: overtimeRecordedHours,
         overtimeHours: overtimeHours,
         hourlyRate: rates.hourlyRate,
         overtimeRate: rates.overtimeRate,
-        ordinaryHoursLimit: rates.ordinaryHoursLimit,
-        limitEnabled: rates.limitEnabled,
+        overtimeHoursLimit: rates.overtimeHoursLimit,
+        overtimeLimitEnabled: rates.overtimeLimitEnabled,
         ordinaryAmount: ordinaryAmount,
         overtimeAmount: overtimeAmount,
         total: Math.round((ordinaryAmount + overtimeAmount) * 100) / 100,
@@ -1162,21 +1169,21 @@ var state = {
         actualPayslip: actualPayslip
       };
     }
-    function saveSalaryEstimateRates(year, month, hourlyRate, overtimeRate, limitEnabled, ordinaryHoursLimit) {
+    function saveSalaryEstimateRates(year, month, hourlyRate, overtimeRate, overtimeLimitEnabled, overtimeHoursLimit) {
       var normalized = normalizeSalaryEstimateRates({
         hourlyRate: hourlyRate,
         overtimeRate: overtimeRate,
-        limitEnabled: limitEnabled,
-        ordinaryHoursLimit: ordinaryHoursLimit
+        overtimeLimitEnabled: overtimeLimitEnabled,
+        overtimeHoursLimit: overtimeHoursLimit
       });
       var key = getSalaryEstimateMonthKey(year, month);
       var nextRates = Object.assign({}, state.settings.salaryRatesByMonth || {});
-      if (normalized.hourlyRate || normalized.overtimeRate || normalized.limitEnabled) {
+      if (normalized.hourlyRate || normalized.overtimeRate || normalized.overtimeLimitEnabled) {
         nextRates[key] = {
           hourlyRate: normalized.hourlyRate,
           overtimeRate: normalized.overtimeRate,
-          ordinaryHoursLimit: normalized.ordinaryHoursLimit,
-          limitEnabled: normalized.limitEnabled,
+          overtimeHoursLimit: normalized.overtimeHoursLimit,
+          overtimeLimitEnabled: normalized.overtimeLimitEnabled,
           updatedAt: Date.now()
         };
       } else {
@@ -1192,30 +1199,31 @@ var state = {
       if (!page) return;
       var hourlyInput = document.getElementById('salaryEstimateHourlyRate');
       var overtimeInput = document.getElementById('salaryEstimateOvertimeRate');
-      var limitInput = document.getElementById('salaryEstimateOrdinaryHoursLimit');
+      var limitInput = document.getElementById('salaryEstimateOvertimeHoursLimit');
       var limitToggle = document.querySelector('[data-salary-estimate-limit-toggle]');
       var hourlyRate = parseDecimalInput(hourlyInput ? hourlyInput.value : 0, 0);
       var overtimeRate = parseDecimalInput(overtimeInput ? overtimeInput.value : 0, 0);
-      var ordinaryRecordedHours = Math.max(0, Number(page.dataset.ordinaryRecordedHours) || Number(page.dataset.ordinaryHours) || 0);
-      var overtimeHours = Math.max(0, Number(page.dataset.overtimeHours) || 0);
+      var ordinaryHours = Math.max(0, Number(page.dataset.ordinaryHours) || 0);
+      var overtimeRecordedHours = Math.max(0, Number(page.dataset.overtimeRecordedHours) || Number(page.dataset.overtimeHours) || 0);
       var limitEnabled = Boolean(limitToggle && limitToggle.getAttribute('aria-pressed') === 'true');
-      var ordinaryHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(limitInput ? limitInput.value : 0, 0)));
-      var limitReady = !limitEnabled || ordinaryHoursLimit > 0;
-      var ordinaryHours = limitEnabled && ordinaryHoursLimit > 0
-        ? Math.min(ordinaryRecordedHours, ordinaryHoursLimit)
-        : ordinaryRecordedHours;
-      var ordinaryExcludedHours = Math.max(0, ordinaryRecordedHours - ordinaryHours);
+      var overtimeHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(limitInput ? limitInput.value : 0, 0)));
+      var limitReady = !limitEnabled || overtimeHoursLimit > 0;
+      var overtimeHours = limitEnabled && overtimeHoursLimit > 0
+        ? Math.min(overtimeRecordedHours, overtimeHoursLimit)
+        : overtimeRecordedHours;
+      var overtimeExcludedHours = Math.max(0, overtimeRecordedHours - overtimeHours);
       var ordinaryAmount = Math.round(ordinaryHours * hourlyRate * 100) / 100;
       var overtimeAmount = Math.round(overtimeHours * overtimeRate * 100) / 100;
       var complete = limitReady && (ordinaryHours <= 0 || hourlyRate > 0) && (overtimeHours <= 0 || overtimeRate > 0);
-      var hasHours = ordinaryRecordedHours > 0 || overtimeHours > 0;
+      var hasHours = ordinaryHours > 0 || overtimeRecordedHours > 0;
       var ordinaryValue = document.querySelector('[data-salary-estimate-ordinary-total]');
       var overtimeValue = document.querySelector('[data-salary-estimate-overtime-total]');
       var totalValue = document.querySelector('[data-salary-estimate-total]');
       var totalNote = document.querySelector('[data-salary-estimate-total-note]');
-      var ordinaryDuration = document.querySelector('[data-salary-estimate-ordinary-duration]');
       var ordinaryFormula = document.querySelector('[data-salary-estimate-ordinary-formula]');
-      var ordinaryMetric = document.querySelector('[data-salary-estimate-ordinary-metric]');
+      var overtimeDuration = document.querySelector('[data-salary-estimate-overtime-duration]');
+      var overtimeFormula = document.querySelector('[data-salary-estimate-overtime-formula]');
+      var overtimeMetric = document.querySelector('[data-salary-estimate-overtime-metric]');
       var limitImpact = document.querySelector('[data-salary-estimate-limit-impact]');
       var limitImpactText = document.querySelector('[data-salary-estimate-limit-impact-text]');
       var liveNote = document.querySelector('[data-salary-estimate-live-note]');
@@ -1229,24 +1237,28 @@ var state = {
             ? (formatDuration(Math.round((ordinaryHours + overtimeHours) * 60)) + ' conteggiate nel calcolo')
             : 'Inserisci il limite mensile per completare il calcolo');
       }
-      if (ordinaryDuration) ordinaryDuration.textContent = formatDuration(Math.round(ordinaryHours * 60));
       if (ordinaryFormula) {
         ordinaryFormula.textContent = ordinaryHours.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h × ' +
           (hourlyRate > 0 ? formatSalaryEstimateMoney(hourlyRate) : '--');
       }
-      if (ordinaryMetric) {
-        ordinaryMetric.innerHTML = '<b>' + escapeHtml(formatDuration(Math.round(ordinaryHours * 60))) + '</b> ' +
-          (limitEnabled ? ('su ' + escapeHtml(formatDuration(Math.round(ordinaryRecordedHours * 60))) + ' ordinarie/coperte') : 'ordinarie e coperte');
+      if (overtimeDuration) overtimeDuration.textContent = formatDuration(Math.round(overtimeHours * 60));
+      if (overtimeFormula) {
+        overtimeFormula.textContent = overtimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h × ' +
+          (overtimeRate > 0 ? formatSalaryEstimateMoney(overtimeRate) : '--');
+      }
+      if (overtimeMetric) {
+        overtimeMetric.innerHTML = '<b>' + escapeHtml(formatDuration(Math.round(overtimeHours * 60))) + '</b> ' +
+          (limitEnabled ? ('su ' + escapeHtml(formatDuration(Math.round(overtimeRecordedHours * 60))) + ' straordinarie') : 'straordinarie');
       }
       if (limitImpact) limitImpact.classList.toggle('is-visible', limitEnabled && limitReady);
       if (limitImpactText) {
-        limitImpactText.textContent = ordinaryExcludedHours > 0
-          ? (formatDuration(Math.round(ordinaryExcludedHours * 60)) + ' registrate non entrano nella stima.')
-          : 'Il limite non esclude ancora nessuna ora registrata.';
+        limitImpactText.textContent = overtimeExcludedHours > 0
+          ? (formatDuration(Math.round(overtimeExcludedHours * 60)) + ' di straordinario non entrano nella stima.')
+          : 'Il limite non esclude ancora nessuna ora straordinaria.';
       }
       if (liveNote) {
         liveNote.textContent = !limitReady
-          ? 'Inserisci quante ore ordinarie puo conteggiare al massimo la busta.'
+          ? 'Inserisci quante ore straordinarie vuoi conteggiare al massimo.'
           : (!hasHours
             ? 'La stima si aggiornera quando registri delle ore.'
             : (complete ? 'Stima aggiornata con tariffe e limite del mese.' : 'Inserisci le tariffe mancanti per completare la stima.'));

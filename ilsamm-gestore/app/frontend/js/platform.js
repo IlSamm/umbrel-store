@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.4.1-20260726a';
+var PLATFORM_BUILD = '1.4.2-20260726b';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,11 +26,11 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Nuovo limite mensile per le ore ordinarie conteggiate nella stima.',
-  'Ore registrate, conteggiate ed escluse sono sempre mostrate separatamente.',
-  'Gli straordinari restano fuori dal limite e usano la loro tariffa.',
-  'Tariffe e limite possono essere riutilizzati dal mese precedente.',
-  'Il limite non modifica calendario, ore registrate o buste gia salvate.'
+  'Il limite mensile ora riguarda esclusivamente le ore straordinarie.',
+  'Tutte le ore ordinarie e coperte restano sempre incluse nella stima.',
+  'Straordinari registrati, conteggiati ed esclusi sono mostrati separatamente.',
+  'Tariffe e limite extra possono essere riutilizzati dal mese precedente.',
+  'La correzione mantiene compatibili i dati salvati nella versione precedente.'
 ];
 
 async function readPlatformJson(response) {

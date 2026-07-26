@@ -72,8 +72,8 @@ var errorBox = document.getElementById('errorBox');
       vacationAllowanceByYear: {},
       salaryRatesByMonth: {},
       weekdayMode: 'monday',
-      version: '1.4.1',
-      build: '20260726a',
+      version: '1.4.2',
+      build: '20260726b',
       appName: 'GestOre'
     };
 
@@ -423,14 +423,21 @@ var errorBox = document.getElementById('errorBox');
         var rateSource = rawSalaryRates[monthKey] && typeof rawSalaryRates[monthKey] === 'object' ? rawSalaryRates[monthKey] : {};
         var hourlyRate = Math.min(10000, Math.max(0, parseDecimalInput(rateSource.hourlyRate, 0)));
         var overtimeRate = Math.min(10000, Math.max(0, parseDecimalInput(rateSource.overtimeRate, 0)));
-        var ordinaryHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(rateSource.ordinaryHoursLimit, 0)));
-        var limitEnabled = rateSource.limitEnabled === true && ordinaryHoursLimit > 0;
-        if (!hourlyRate && !overtimeRate && !limitEnabled) return result;
+        var legacyHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(rateSource.ordinaryHoursLimit, 0)));
+        var overtimeHoursLimit = Math.min(744, Math.max(0, parseDecimalInput(
+          rateSource.overtimeHoursLimit !== undefined ? rateSource.overtimeHoursLimit : legacyHoursLimit,
+          0
+        )));
+        var overtimeLimitEnabled = (
+          rateSource.overtimeLimitEnabled === true ||
+          (rateSource.overtimeLimitEnabled === undefined && rateSource.limitEnabled === true)
+        ) && overtimeHoursLimit > 0;
+        if (!hourlyRate && !overtimeRate && !overtimeLimitEnabled) return result;
         result[monthKey] = {
           hourlyRate: hourlyRate,
           overtimeRate: overtimeRate,
-          ordinaryHoursLimit: ordinaryHoursLimit,
-          limitEnabled: limitEnabled,
+          overtimeHoursLimit: overtimeHoursLimit,
+          overtimeLimitEnabled: overtimeLimitEnabled,
           updatedAt: Math.max(0, Number(rateSource.updatedAt) || 0)
         };
         return result;
