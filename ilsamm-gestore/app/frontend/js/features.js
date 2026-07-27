@@ -266,13 +266,13 @@ function getGlobalSearchResults(query) {
     var month = Math.max(1, Math.min(12, Number(item.month) || 1));
     var year = Number(item.year) || new Date().getFullYear();
     var title = monthNames[month - 1] + ' ' + year;
-    var searchable = normalizeFeatureSearch([title, item.company, item.notes, item.netto, 'busta paga'].join(' '));
+    var searchable = normalizeFeatureSearch([title, item.company, item.notes, item.netto, 'cedolino busta paga stipendio'].join(' '));
     if (normalizedQuery && searchable.indexOf(normalizedQuery) === -1) return;
     results.push({
       kind: 'payslip',
       key: String(item.id || ''),
       title: title,
-      meta: 'Busta paga' + (Number(item.netto) ? ' - ' + formatFeatureCurrency(item.netto) : ''),
+      meta: 'Cedolino' + (Number(item.netto) ? ' - ' + formatFeatureCurrency(item.netto) : ''),
       icon: icons.receipt,
       tone: 'payslip'
     });
@@ -303,7 +303,7 @@ function renderGlobalSearchOverlay() {
   return '<div class="global-search-overlay" role="dialog" aria-modal="true" aria-labelledby="globalSearchTitle">' +
     '<section class="global-search-panel">' +
       '<div class="global-search-top"><button data-close-global-search="1" aria-label="Chiudi ricerca">' + icons.left + '</button><div><span>ARCHIVIO GESTORE</span><h2 id="globalSearchTitle">Cerca</h2></div><i></i></div>' +
-      '<label class="global-search-field">' + icons.search + '<input id="globalSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Data, nota, ferie, busta paga..." value="' + escapeHtml(query) + '"><button type="button" data-clear-global-search="1" aria-label="Cancella ricerca">' + icons.x + '</button></label>' +
+      '<label class="global-search-field">' + icons.search + '<input id="globalSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Data, nota, ferie, cedolino..." value="' + escapeHtml(query) + '"><button type="button" data-clear-global-search="1" aria-label="Cancella ricerca">' + icons.x + '</button></label>' +
       '<div class="global-search-caption" id="globalSearchCaption">' + (query ? 'RISULTATI' : 'ELEMENTI RECENTI') + '</div>' +
       '<div class="global-search-results" id="globalSearchResults">' + renderGlobalSearchResultsMarkup(query) + '</div>' +
     '</section>' +
@@ -365,7 +365,7 @@ function getSmartAlerts(referenceDate) {
     alerts.push({
       tone: 'blue',
       icon: icons.receipt,
-      title: 'Busta di ' + monthNames[previousMonthDate.getMonth()] + ' non presente',
+      title: 'Cedolino di ' + monthNames[previousMonthDate.getMonth()] + ' non presente',
       copy: 'Puoi aggiungerla al tuo archivio quando la ricevi.',
       action: 'payslips',
       value: ''

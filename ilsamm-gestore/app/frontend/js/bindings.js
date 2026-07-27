@@ -136,11 +136,20 @@ function bindPayslipViewerZoom() {
 var navInteractionLockUntil = 0;
 
 function getPrimaryNavOrder() {
-  return ['calendar', 'stats', 'home', 'vacations', 'profile'];
+  return ['calendar', 'stats', 'home', 'vacations', 'payslips'];
 }
 
 function getPrimaryNavTab(tab) {
-  return tab === 'payslips' || tab === 'settings' || tab === 'exports' ? 'profile' : tab;
+  return tab === 'profile' || tab === 'settings' || tab === 'exports' ? 'home' : tab;
+}
+
+function resetPayslipNavigationState() {
+  state.payslipDetailId = '';
+  state.payslipEditorOpen = false;
+  state.payslipStatsOpen = false;
+  state.payslipEstimateOpen = false;
+  state.payslipEstimateConfigOpen = false;
+  state.payslipViewer = null;
 }
 
 function activatePrimaryTab(nextTab, pressedButton, delay) {
@@ -149,7 +158,19 @@ function activatePrimaryTab(nextTab, pressedButton, delay) {
   var currentPrimaryTab = getPrimaryNavTab(state.activeTab);
   var currentIndex = order.indexOf(currentPrimaryTab);
   var nextIndex = order.indexOf(nextTab);
-  if (nextIndex < 0 || currentPrimaryTab === nextTab) return;
+  if (nextIndex < 0) return;
+  if (currentPrimaryTab === nextTab) {
+    if (nextTab === 'payslips' && (
+      state.payslipDetailId ||
+      state.payslipEditorOpen ||
+      state.payslipStatsOpen ||
+      state.payslipEstimateOpen
+    )) {
+      resetPayslipNavigationState();
+      render();
+    }
+    return;
+  }
   var navGrid = pressedButton && pressedButton.closest ? pressedButton.closest('.nav-grid') : document.querySelector('.nav-grid-v2');
   document.querySelectorAll('.nav-btn.nav-press').forEach(function (node) { node.classList.remove('nav-press'); });
   if (navGrid) navGrid.classList.add('nav-switching');
@@ -158,6 +179,7 @@ function activatePrimaryTab(nextTab, pressedButton, delay) {
     state.tabSwitchFx = true;
     state.tabSwitchDir = nextIndex >= currentIndex ? 'forward' : 'back';
     state.navPreviousIndex = currentIndex >= 0 ? currentIndex : nextIndex;
+    if (nextTab === 'payslips') resetPayslipNavigationState();
     state.activeTab = nextTab;
     render();
   }, Math.max(0, Number(delay) || 0));
@@ -301,6 +323,21 @@ function bindFluidNavigation() {
 
 function bindEvents() {
       bindFluidNavigation();
+      document.querySelectorAll('[data-open-profile]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.settingsSection = '';
+          state.activeTab = 'profile';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-profile]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.settingsSection = '';
+          state.activeTab = 'home';
+          state.navPreviousIndex = 2;
+          render();
+        };
+      });
       document.querySelectorAll('[data-tab]:not(.nav-btn)').forEach(function (btn) {
         btn.onclick = function () {
           activatePrimaryTab(btn.dataset.tab, btn, 90);
@@ -312,11 +349,7 @@ function bindEvents() {
           if (section !== 'settings' && section !== 'payslips' && section !== 'exports') return;
           if (section === 'settings') state.settingsSection = btn.dataset.settingsSection || '';
           if (section === 'payslips') {
-            state.payslipDetailId = '';
-            state.payslipEditorOpen = false;
-            state.payslipStatsOpen = false;
-            state.payslipEstimateOpen = false;
-            state.payslipViewer = null;
+            resetPayslipNavigationState();
           }
           state.activeTab = section;
           render();

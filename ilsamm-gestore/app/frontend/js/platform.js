@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.5.4-20260727b';
+var PLATFORM_BUILD = '1.5.5-20260727c';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,11 +26,11 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Tutti i 7.894 Comuni italiani correnti sono disponibili nel calcolo dello stipendio.',
-  'La ricerca del Comune e rapida, filtrata per Regione e ottimizzata per iPhone.',
-  'Addizionale comunale e netto si aggiornano subito dopo la selezione.',
-  'L app indica se usa la tabella 2026, l ultima aliquota 2025 o un valore provvisorio.',
-  'Ore, buste paga e configurazioni salvate restano compatibili e protette.'
+  'Stipendio e ora una sezione principale, sempre raggiungibile dalla barra in basso.',
+  'Cedolini, stima del netto e statistiche sono riuniti in una schermata piu chiara.',
+  'Il Profilo si apre dall avatar nella Home e lascia spazio alle funzioni usate ogni giorno.',
+  'La nuova navigazione mantiene Home al centro ed e ottimizzata per iPhone.',
+  'Ore, cedolini e configurazioni gia salvati restano compatibili e protetti.'
 ];
 
 async function readPlatformJson(response) {
@@ -541,7 +541,7 @@ function renderDataHistorySettings() {
         : '<div class="platform-empty">La cronologia iniziera dalla prossima modifica.</div>'));
   return diagnosticsHtml +
     '<div class="settings-v2-section-title">Cronologia e annullamento</div>' +
-    '<section class="platform-history-card"><div class="platform-card-head"><div><strong>Ultime modifiche</strong><small>Puoi recuperare giornate, impostazioni e buste</small></div><button data-platform-history-refresh="1" aria-label="Aggiorna cronologia">' + icons.activity + '</button></div>' +
+    '<section class="platform-history-card"><div class="platform-card-head"><div><strong>Ultime modifiche</strong><small>Puoi recuperare giornate, impostazioni e cedolini</small></div><button data-platform-history-refresh="1" aria-label="Aggiorna cronologia">' + icons.activity + '</button></div>' +
       '<div class="platform-history-list">' + historyBody + '</div>' +
     '</section>';
 }

@@ -1,0 +1,511 @@
+/* Stipendio hub: primary salary area and cedolino archive. */
+.salary-hub-page,
+.salary-hub-page button {
+  font-family: var(--go-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.salary-hub-page {
+  display: grid;
+  gap: 10px;
+}
+
+.salary-hub-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 2px 4px 4px;
+}
+
+.salary-hub-top > div {
+  display: grid;
+  gap: 5px;
+}
+
+.salary-hub-top > div > span,
+.salary-hub-hero small,
+.salary-hub-overview span,
+.salary-section-head span,
+.salary-latest-card small,
+.salary-archive-heading span {
+  color: #80a9ff;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.salary-hub-top h1 {
+  margin: 0;
+  color: #f8faff;
+  font-size: 35px;
+  line-height: 0.96;
+  font-weight: 850;
+  letter-spacing: -0.055em;
+}
+
+.salary-hub-top-icon,
+.salary-hub-wallet {
+  display: grid;
+  place-items: center;
+  color: #72c8ff;
+  border: 1px solid rgba(104, 159, 255, 0.24);
+  background:
+    linear-gradient(145deg, rgba(69, 131, 255, 0.24), rgba(94, 63, 205, 0.14));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.salary-hub-top-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+}
+
+.salary-hub-top-icon svg,
+.salary-hub-wallet svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.salary-hub-stack {
+  gap: 12px;
+}
+
+.salary-hub-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 9px;
+  min-height: 224px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(104, 151, 255, 0.32);
+  border-radius: 29px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(64, 189, 255, 0.22), transparent 36%),
+    radial-gradient(circle at 96% 96%, rgba(139, 92, 246, 0.24), transparent 43%),
+    linear-gradient(148deg, rgba(18, 42, 88, 0.98), rgba(6, 16, 39, 0.995) 72%);
+  box-shadow:
+    0 20px 48px rgba(0, 4, 19, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.075);
+}
+
+.salary-hub-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: -65px;
+  bottom: -95px;
+  width: 220px;
+  height: 220px;
+  border: 1px solid rgba(124, 150, 255, 0.12);
+  border-radius: 50%;
+}
+
+.salary-hub-hero-head {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.salary-hub-wallet {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+}
+
+.salary-hub-hero-head > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.salary-hub-hero h2 {
+  margin: 0;
+  color: #f5f8ff;
+  font-size: 19px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.salary-hub-month {
+  align-self: start;
+  padding: 7px 9px;
+  color: #a8b6d5;
+  border: 1px solid rgba(139, 162, 222, 0.14);
+  border-radius: 11px;
+  background: rgba(7, 15, 35, 0.4);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.salary-hub-estimate {
+  overflow: hidden;
+  margin-top: 8px;
+  color: #fff;
+  font-size: clamp(39px, 11.3vw, 48px);
+  line-height: 0.96;
+  font-weight: 860;
+  letter-spacing: -0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-hub-estimate.is-setup {
+  font-size: clamp(27px, 8vw, 34px);
+  letter-spacing: -0.045em;
+}
+
+.salary-hub-hero > p {
+  margin: -1px 0 2px;
+  color: #98a8c8;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.salary-hub-hero > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 13px 0 15px;
+  color: #edf4ff;
+  border: 1px solid rgba(129, 160, 238, 0.18);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(80, 135, 255, 0.18), rgba(122, 75, 226, 0.12));
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.salary-hub-hero > button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.salary-hub-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.salary-hub-actions > button {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 72px;
+  padding: 10px;
+  color: #f4f7ff;
+  text-align: left;
+  border: 1px solid rgba(126, 151, 219, 0.16);
+  border-radius: 20px;
+  background:
+    linear-gradient(148deg, rgba(19, 34, 67, 0.96), rgba(5, 13, 29, 0.985));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.salary-hub-actions > button:active,
+.salary-latest-card:active {
+  transform: scale(0.985);
+}
+
+.salary-hub-actions > button > span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(116, 158, 249, 0.18);
+  border-radius: 13px;
+}
+
+.salary-hub-actions > button > span.is-blue {
+  color: #6fc9ff;
+  background: rgba(53, 123, 232, 0.15);
+}
+
+.salary-hub-actions > button > span.is-violet {
+  color: #a06cff;
+  background: rgba(120, 76, 220, 0.14);
+}
+
+.salary-hub-actions svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.salary-hub-actions > button > span svg {
+  width: 19px;
+  height: 19px;
+}
+
+.salary-hub-actions > button > svg {
+  width: 13px;
+  color: #75829f;
+}
+
+.salary-hub-actions > button > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.salary-hub-actions strong,
+.salary-hub-actions small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-hub-actions strong {
+  font-size: 11.5px;
+  line-height: 1.1;
+  font-weight: 780;
+}
+
+.salary-hub-actions small {
+  color: #7f8dab;
+  font-size: 9px;
+}
+
+.salary-hub-overview {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 1px;
+  padding: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(126, 151, 219, 0.16);
+  border-radius: 22px;
+  background:
+    linear-gradient(155deg, rgba(17, 30, 59, 0.94), rgba(5, 12, 27, 0.985));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.salary-hub-overview > div {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  min-height: 70px;
+  padding: 10px 12px;
+  border-right: 1px solid rgba(126, 151, 219, 0.12);
+}
+
+.salary-hub-overview > div:last-child {
+  border-right: 0;
+}
+
+.salary-hub-overview strong {
+  overflow: hidden;
+  margin-top: 5px;
+  color: #fff;
+  font-size: clamp(20px, 6vw, 25px);
+  line-height: 1;
+  font-weight: 840;
+  letter-spacing: -0.045em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-hub-overview small {
+  overflow: hidden;
+  margin-top: 5px;
+  color: #71809f;
+  font-size: 8.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-latest-section {
+  display: grid;
+  gap: 8px;
+}
+
+.salary-section-head,
+.salary-archive-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 4px 0;
+}
+
+.salary-section-head > div,
+.salary-archive-heading > div {
+  display: grid;
+  gap: 5px;
+}
+
+.salary-section-head h2,
+.salary-archive-heading h2 {
+  margin: 0;
+  color: #f5f8ff;
+  font-size: 19px;
+  line-height: 1;
+  font-weight: 810;
+  letter-spacing: -0.04em;
+}
+
+.salary-section-head > button {
+  padding: 7px 10px;
+  color: #8bb3ff;
+  border: 1px solid rgba(120, 157, 238, 0.15);
+  border-radius: 10px;
+  background: rgba(48, 85, 164, 0.1);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.salary-latest-card {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 84px;
+  padding: 10px 13px 10px 10px;
+  color: #f5f8ff;
+  text-align: left;
+  border: 1px solid rgba(113, 155, 244, 0.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(63, 151, 235, 0.12), transparent 40%),
+    linear-gradient(150deg, rgba(18, 33, 64, 0.98), rgba(5, 13, 29, 0.99));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.salary-latest-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 62px;
+  overflow: hidden;
+  color: #81adff;
+  border: 1px solid rgba(128, 157, 232, 0.18);
+  border-radius: 16px;
+  background: rgba(48, 72, 135, 0.19);
+}
+
+.salary-latest-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.salary-latest-thumb svg,
+.salary-latest-card > i svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.salary-latest-thumb b {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  color: #fff;
+  border-radius: 8px;
+  background: rgba(3, 8, 20, 0.85);
+  font-size: 9px;
+}
+
+.salary-latest-card > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.salary-latest-card strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1.05;
+  font-weight: 830;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-latest-card em {
+  color: #7785a2;
+  font-size: 9.5px;
+  font-style: normal;
+}
+
+.salary-latest-card > i {
+  display: grid;
+  place-items: center;
+  color: #71809f;
+  font-style: normal;
+}
+
+.salary-archive-heading {
+  margin-top: 3px;
+}
+
+.salary-archive-heading > small {
+  color: #74819e;
+  font-size: 9px;
+}
+
+.salary-hub-page .payroll-year-group {
+  gap: 7px;
+}
+
+.salary-hub-page .payroll-year-head {
+  padding: 0 4px;
+}
+
+.profile-screen.active,
+.settings-screen.active,
+.exports-screen.active {
+  padding-bottom: calc(28px + var(--safe-bottom)) !important;
+}
+
+@media (max-width: 350px) {
+  .salary-hub-top h1 {
+    font-size: 32px;
+  }
+
+  .salary-hub-hero {
+    min-height: 212px;
+    padding: 17px;
+  }
+
+  .salary-hub-actions > button {
+    grid-template-columns: 34px minmax(0, 1fr) 12px;
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .salary-hub-actions > button > span {
+    width: 34px;
+    height: 34px;
+  }
+
+  .salary-hub-actions strong {
+    font-size: 10.5px;
+  }
+}

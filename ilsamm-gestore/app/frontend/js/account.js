@@ -1084,7 +1084,7 @@ function renderAccountGate() {
     return '<div class="account-gate"><div class="account-gate-panel account-data-loading"><div class="account-brand"><span class="account-brand-icon">' + icons.user + '</span><div><span>DATABASE PERSONALE</span><div>Gest<strong>Ore</strong></div></div></div><div class="account-gate-copy"><span>CONNESSIONE</span><h1>I dati sono al sicuro</h1><p>' + escapeHtml(state.account.dataError) + ' Non mostro una Home vuota: riproviamo ad aprire il database corretto.</p></div><button class="account-primary" type="button" data-retry-account-data="1" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Riprovo...' : 'Riprova ora') + '</button></div></div>';
   }
   if (state.account.authenticated && !state.account.dataReady) {
-    return '<div class="account-gate"><div class="account-gate-panel account-data-loading"><div class="account-brand"><span class="account-brand-icon">' + icons.user + '</span><div><span>DATABASE PERSONALE</span><div>Gest<strong>Ore</strong></div></div></div><div class="account-gate-copy"><span>CARICAMENTO</span><h1>Recupero i tuoi dati</h1><p>Ore e buste restano protette mentre apro il profilo corretto.</p></div><div class="account-admin-loading"><span></span><strong>Sincronizzazione sicura</strong><small>Non chiudere l\'app</small></div></div></div>';
+    return '<div class="account-gate"><div class="account-gate-panel account-data-loading"><div class="account-brand"><span class="account-brand-icon">' + icons.user + '</span><div><span>DATABASE PERSONALE</span><div>Gest<strong>Ore</strong></div></div></div><div class="account-gate-copy"><span>CARICAMENTO</span><h1>Recupero i tuoi dati</h1><p>Ore e cedolini restano protetti mentre apro il profilo corretto.</p></div><div class="account-admin-loading"><span></span><strong>Sincronizzazione sicura</strong><small>Non chiudere l\'app</small></div></div></div>';
   }
   if (!state.account.loaded) return '';
   var registerMode = state.account.mode === 'register';
@@ -1202,7 +1202,7 @@ function renderAdminAccountsSettings() {
       '<div class="account-admin-avatar">' + escapeHtml(initial) + '</div>' +
       '<div class="account-admin-copy"><div><strong>' + escapeHtml(account.username || 'Utente') + '</strong><span class="' + (isOwner ? 'is-owner' : '') + '">' + (isOwner ? 'PROPRIETARIO' : 'UTENTE') + '</span></div>' +
         '<p>' + escapeHtml(formatAccountActivity(account.lastSeenAt)) + '</p>' +
-        '<div class="account-admin-stats"><span>' + Number(account.entries || 0) + ' giornate</span><span>' + Number(account.payslips || 0) + ' buste</span></div>' +
+        '<div class="account-admin-stats"><span>' + Number(account.entries || 0) + ' giornate</span><span>' + Number(account.payslips || 0) + ' cedolini</span></div>' +
       '</div>' +
       '<div class="account-admin-actions">' +
         (isCurrent ? '<span class="account-admin-current">ATTIVO</span>' : '<button class="account-admin-open" data-admin-open-account="' + account.id + '">' + icons.right + '<span>Apri</span></button>') +
@@ -1242,7 +1242,7 @@ function renderAccountDataSettings() {
   var storageMeta = storage.error
     ? escapeHtml(storage.error)
     : (storage.loaded
-      ? (storage.entries + (storage.entries === 1 ? ' giornata' : ' giornate') + ' e ' + storage.payslips + (storage.payslips === 1 ? ' busta' : ' buste'))
+      ? (storage.entries + (storage.entries === 1 ? ' giornata' : ' giornate') + ' e ' + storage.payslips + (storage.payslips === 1 ? ' cedolino' : ' cedolini'))
       : 'Misurazione del database personale');
   var backups = state.account.backups || {};
   var backupItems = Array.isArray(backups.items) ? backups.items : [];
@@ -1284,7 +1284,7 @@ function renderAccountDataSettings() {
     '<div class="settings-v2-section-title">Punti di ripristino</div>' +
     '<section class="account-versioned-card"><div class="account-versioned-head"><div><strong>Storico protetto</strong><small>Copie automatiche e manuali del tuo account</small></div><button data-create-versioned-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.cloud + '<span>Crea copia</span></button></div><div class="account-versioned-list">' + backupList + '</div></section>' +
     '<div class="settings-v2-section-title">Backup sul telefono</div>' +
-    '<section class="account-backup-card"><div class="account-backup-copy"><span class="settings-v2-icon is-blue">' + icons.download + '</span><div><strong>Il tuo database, sempre con te</strong><p>Scarica un file SQLite con ore, ferie, impostazioni e buste del solo account ' + escapeHtml(username) + '.</p></div></div>' +
+    '<section class="account-backup-card"><div class="account-backup-copy"><span class="settings-v2-icon is-blue">' + icons.download + '</span><div><strong>Il tuo database, sempre con te</strong><p>Scarica un file SQLite con ore, ferie, impostazioni e cedolini del solo account ' + escapeHtml(username) + '.</p></div></div>' +
       '<button class="account-backup-primary" data-download-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.download + '<span>Scarica database</span></button>' +
       '<button class="account-backup-secondary" data-select-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.arrowUp + '<span>Ripristina un backup</span></button>' +
       '<input id="accountBackupFile" type="file" accept=".sqlite,.sqlite3,application/vnd.sqlite3,application/x-sqlite3" hidden>' +

@@ -21,6 +21,18 @@
   justify-content: space-between;
 }
 
+.profile-v2-top-with-back {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-v2-top-with-back > div {
+  justify-items: center;
+  text-align: center;
+}
+
 .profile-v2-top > div {
   display: grid;
   gap: 4px;

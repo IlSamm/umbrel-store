@@ -194,13 +194,13 @@ var state = {
           var result = {};
           try { result = await response.json(); } catch (parseError) {}
           if (!response.ok) {
-            var responseError = new Error(result.error || 'Il server ha rifiutato la busta paga.');
+            var responseError = new Error(result.error || 'Il server ha rifiutato il cedolino.');
             responseError.status = response.status;
             throw responseError;
           }
           if (!result.ok || String(result.mutationId || '') !== mutationId) throw new Error('Conferma database non valida.');
           if (String(result.payslipId || '') !== String(requestPayload.payslipId || (requestPayload.payslip || {}).id || '')) {
-            throw new Error('Il server ha confermato una busta diversa.');
+            throw new Error('Il server ha confermato un cedolino diverso.');
           }
           serverSyncLastError = '';
           serverSnapshotUpdatedAt = Math.max(serverSnapshotUpdatedAt, Number(result.updatedAt) || 0);
@@ -234,7 +234,7 @@ var state = {
       var current = (state.payslips || []).find(function (item) { return item.id === id; });
       if (!current || (!current.photosDeferred && !current.sourceTextDeferred)) return current || null;
       state.payslipHydratingId = id;
-      var loadingToken = beginPayslipOperation('Carico i documenti', 'Recupero le foto di questa busta paga');
+      var loadingToken = beginPayslipOperation('Carico i documenti', 'Recupero le foto di questo cedolino');
       try {
         await waitForPayslipServerReady();
         var controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -251,7 +251,7 @@ var state = {
         if (response.status === 401 && typeof handleAccountUnauthorized === 'function') handleAccountUnauthorized();
         var payload = {};
         try { payload = await response.json(); } catch (parseError) {}
-        if (!response.ok || !payload.payslip) throw new Error(payload.error || 'Foto della busta non disponibili.');
+        if (!response.ok || !payload.payslip) throw new Error(payload.error || 'Foto del cedolino non disponibili.');
         var hydrated = normalizePayslipRecord(Object.assign({}, payload.payslip, {
           photosDeferred: false,
           sourceTextDeferred: false,
@@ -264,7 +264,7 @@ var state = {
       } catch (err) {
         state.payslipStatus = err && err.name === 'AbortError'
           ? 'Le foto stanno impiegando troppo tempo. Riprova.'
-          : (err.message || 'Non sono riuscito ad aprire le foto della busta.');
+          : (err.message || 'Non sono riuscito ad aprire le foto del cedolino.');
         return current;
       } finally {
         state.payslipHydratingId = '';
@@ -278,7 +278,7 @@ var state = {
     }
     function getPayslipMonthLabel(payslip) {
       var monthDate = getPayslipMonthDate(payslip);
-      return monthDate ? formatMonthYear(monthDate) : 'Busta paga';
+      return monthDate ? formatMonthYear(monthDate) : 'Cedolino';
     }
     function getPayslipPeriodValue(payslip) {
       var date = getPayslipMonthDate(payslip);
@@ -1687,7 +1687,7 @@ var state = {
         return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
       });
       savePayslips();
-      state.payslipStatus = 'Busta paga salvata.';
+      state.payslipStatus = 'Cedolino salvato.';
       state.activeTab = 'payslips';
       render();
     }
@@ -1697,7 +1697,7 @@ var state = {
       if (!payslipId) return false;
       state.payslipBusy = true;
       state.payslipStatus = 'Eliminazione dal database...';
-      var loadingToken = beginPayslipOperation('Elimino la busta', 'Aggiorno l\'archivio del tuo profilo', { kind: 'delete' });
+      var loadingToken = beginPayslipOperation('Elimino il cedolino', 'Aggiorno il tuo archivio', { kind: 'delete' });
       render();
       try {
         await deletePayslipRecordFromServer(payslipId);
@@ -1719,7 +1719,7 @@ var state = {
       state.payslipEditorOpen = false;
       state.payslipDeletePendingId = '';
       state.payslipViewer = null;
-      state.payslipStatus = 'Busta eliminata dal database.';
+      state.payslipStatus = 'Cedolino eliminato dal database.';
       render();
       return true;
     }
@@ -1765,7 +1765,7 @@ var state = {
       if (!file) return;
       ensurePayslipDraft();
       state.payslipBusy = true;
-      state.payslipStatus = 'Sto leggendo la busta paga...';
+      state.payslipStatus = 'Sto leggendo il cedolino...';
       render();
       try {
         var dataUrl = await readFileAsDataURL(file);
@@ -1780,12 +1780,12 @@ var state = {
           var bestText = '';
           var bestScore = -1;
           for (var attempt = 0; attempt < sources.length; attempt += 1) {
-            state.payslipStatus = 'Sto leggendo la busta paga... tentativo ' + (attempt + 1) + '/' + sources.length;
+            state.payslipStatus = 'Sto leggendo il cedolino... tentativo ' + (attempt + 1) + '/' + sources.length;
             render();
             var result = await Tesseract.recognize(sources[attempt], 'ita', {
               logger: function (m) {
                 if (m && m.status === 'recognizing text' && typeof m.progress === 'number') {
-                  state.payslipStatus = 'Sto leggendo la busta paga... ' + Math.round(m.progress * 100) + '%';
+                  state.payslipStatus = 'Sto leggendo il cedolino... ' + Math.round(m.progress * 100) + '%';
                   render();
                 }
               }
@@ -1807,7 +1807,7 @@ var state = {
           var regionResults = [];
           var regionSources = (prepared.regions || []).filter(function (item) { return !!item.image; });
           for (var r = 0; r < regionSources.length; r += 1) {
-            state.payslipStatus = 'Sto leggendo la busta paga... sezione ' + (r + 1) + '/' + regionSources.length;
+            state.payslipStatus = 'Sto leggendo il cedolino... sezione ' + (r + 1) + '/' + regionSources.length;
             render();
             try {
               var regionResult = await Tesseract.recognize(regionSources[r].image, 'ita');
@@ -1837,7 +1837,7 @@ var state = {
       } catch (err) {
         state.payslipStatus = err && err.message === 'ocr-unavailable'
           ? 'Il lettore automatico non è riuscito a caricare il motore OCR. Riprova con connessione attiva oppure compila i campi a mano.'
-          : 'Non sono riuscito a leggere la busta in automatico. Riprova con una foto più nitida e ben dritta, oppure compila i campi a mano.';
+          : 'Non sono riuscito a leggere il cedolino in automatico. Riprova con una foto più nitida e ben dritta, oppure compila i campi a mano.';
       }
       state.payslipBusy = false;
       state.activeTab = 'payslips';
@@ -1898,7 +1898,7 @@ var state = {
       if (discardPending === true) clearPendingPayslipDraft();
       var pending = discardPending === true ? null : loadPendingPayslipDraft();
       state.payslipDraft = pending ? clonePayslipForDraft(pending) : makeEmptyPayslipDraft();
-      state.payslipStatus = pending ? 'Riprendo la busta non ancora confermata dal database.' : '';
+      state.payslipStatus = pending ? 'Riprendo il cedolino non ancora confermato dal database.' : '';
     }
     function mergePayslipParsedData(parsed, extra) {
       var current = ensurePayslipDraft();
@@ -1926,7 +1926,7 @@ var state = {
       var draft = clonePayslipForDraft(Object.assign({}, makeEmptyPayslipDraft(), state.payslipDraft));
       var photos = normalizePayslipPhotos(draft);
       if (!photos.length) {
-        state.payslipStatus = 'Aggiungi prima la foto della busta paga.';
+        state.payslipStatus = 'Aggiungi prima la foto del cedolino.';
         render();
         return false;
       }
@@ -1954,7 +1954,7 @@ var state = {
       state.payslipDraft = clonePayslipForDraft(saved);
       state.payslipBusy = true;
       state.payslipStatus = 'Salvataggio nel database...';
-      var loadingToken = beginPayslipOperation('Salvo la busta paga', 'Invio foto e importo al database personale');
+      var loadingToken = beginPayslipOperation('Salvo il cedolino', 'Invio foto e importo al database personale');
       persistPendingPayslipDraft(saved);
       persistPayslipsLocally();
       saveSafetyBundle();
@@ -1975,7 +1975,7 @@ var state = {
         persistPayslipsLocally();
         saveSafetyBundle();
         state.payslipDraft = clonePayslipForDraft(saved);
-        state.payslipStatus = 'La busta non e stata confermata dal database. ' + getServerSyncFailureMessage() + ' Le foto e i valori restano qui: riprova senza reinserirli.';
+        state.payslipStatus = 'Il cedolino non e stato confermato dal database. ' + getServerSyncFailureMessage() + ' Le foto e i valori restano qui: riprova senza reinserirli.';
         render();
         return false;
       }
@@ -1985,7 +1985,7 @@ var state = {
       state.payslipDetailId = saved.id;
       state.payslipEditorOpen = false;
       state.payslipDraft = makeEmptyPayslipDraft();
-      state.payslipStatus = 'Busta paga salvata nel database.';
+      state.payslipStatus = 'Cedolino salvato nel database.';
       state.activeTab = 'payslips';
       render();
       return true;
@@ -1996,7 +1996,7 @@ var state = {
       if (!file) return;
       ensurePayslipDraft();
       state.payslipBusy = true;
-      state.payslipStatus = 'Sto leggendo la foto della busta...';
+      state.payslipStatus = 'Sto leggendo la foto del cedolino...';
       render();
       try {
         if (!file.type || file.type.indexOf('image/') !== 0) throw new Error('image-only');
@@ -2074,7 +2074,7 @@ var state = {
         else if (finalScore >= 3) state.payslipStatus = 'Ho letto solo alcuni campi della foto. Controlla e completa a mano quello che manca.';
         else state.payslipStatus = 'La foto e salvata, ma i dati letti non sono ancora affidabili. Compilali a mano.';
       } catch (err) {
-        if (err && err.message === 'image-only') state.payslipStatus = 'Per ora puoi caricare solo foto della busta paga.';
+        if (err && err.message === 'image-only') state.payslipStatus = 'Per ora puoi caricare solo foto del cedolino.';
         else if (err && err.message === 'ocr-unavailable') state.payslipStatus = 'Il lettore automatico non si e caricato. Riprova oppure compila i campi a mano.';
         else state.payslipStatus = 'Non sono riuscito a leggere bene la foto. Prova con una foto piu nitida oppure compila i campi a mano.';
       }
@@ -2107,7 +2107,7 @@ var state = {
       var currentPhotos = normalizePayslipPhotos(state.payslipDraft);
       var availableSlots = Math.max(0, MAX_PAYSLIP_PHOTOS - currentPhotos.length);
       if (!availableSlots) {
-        state.payslipStatus = 'Puoi salvare fino a ' + MAX_PAYSLIP_PHOTOS + ' foto per ogni busta paga.';
+        state.payslipStatus = 'Puoi salvare fino a ' + MAX_PAYSLIP_PHOTOS + ' foto per ogni cedolino.';
         render();
         return;
       }

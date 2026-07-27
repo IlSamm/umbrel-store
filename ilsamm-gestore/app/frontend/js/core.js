@@ -73,8 +73,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.5.4',
-      build: '20260727b',
+      version: '1.5.5',
+      build: '20260727c',
       appName: 'GestOre'
     };
 
@@ -2004,8 +2004,8 @@ var errorBox = document.getElementById('errorBox');
         if (!payslipFound) {
           return {
             kind: 'payslip',
-            title: 'Archivio buste paga',
-            body: 'La busta di ' + monthNames[previousMonth.getMonth()] + ' non e ancora presente.'
+            title: 'Archivio cedolini',
+            body: 'Il cedolino di ' + monthNames[previousMonth.getMonth()] + ' non e ancora presente.'
           };
         }
       }
