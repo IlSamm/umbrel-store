@@ -627,24 +627,9 @@ function renderCalendar() {
       var year = Number(state.vacationScreenYear) || new Date().getFullYear();
       var balance = getVacationBalanceForYear(year);
       var details = getVacationDetailsForYear(year);
+      var todayKey = toISODate(new Date());
       var hasAllowance = balance.allowanceDays > 0;
       var over = hasAllowance && balance.overMinutes > 0;
-      var remainingValue = hasAllowance ? formatVacationDayValue(over ? (balance.overMinutes / balance.dailyMinutes) : balance.remainingDays) : '--';
-      var remainingLabel = over ? 'giorni oltre il saldo' : (hasAllowance ? 'giorni disponibili' : 'imposta il saldo annuale');
-      var recentRows = details.slice(0, 4).map(function (item) {
-        var date = parseLocalDateKey(item.key);
-        var dayLabel = date ? new Intl.DateTimeFormat('it-IT', { weekday: 'long' }).format(date) : item.key;
-        var fullDate = date ? new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' }).format(date) : item.key;
-        var typeLabel = item.entry.type === 'lavoro_ferie' ? 'Ferie parziali' : 'Giornata intera';
-        return '<button class="vacation-page-history-row" data-open-vacation-date="' + item.key + '">' +
-          '<span class="vacation-page-history-date"><strong>' + (date ? date.getDate() : '--') + '</strong><small>' + escapeHtml(date ? new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(date).replace('.', '') : '') + '</small></span>' +
-          '<span class="vacation-page-history-copy"><strong>' + escapeHtml(dayLabel) + '</strong><small>' + escapeHtml(fullDate + ' · ' + typeLabel) + '</small></span>' +
-          '<span class="vacation-page-history-hours"><strong>' + formatDuration(item.minutes) + '</strong><small>utilizzate</small></span>' +
-          icons.right +
-        '</button>';
-      }).join('');
-      var status = state.vacationStatus ? '<div class="vacation-page-status">' + escapeHtml(state.vacationStatus) + '</div>' : '';
-      var todayKey = toISODate(new Date());
       var plannedMinutes = details.reduce(function (total, item) {
         return total + (item.key > todayKey ? item.minutes : 0);
       }, 0);
@@ -653,27 +638,38 @@ function renderCalendar() {
       var availableTodayDays = hasAllowance ? ((allowanceMinutes - usedToDateMinutes) / balance.dailyMinutes) : 0;
       var plannedDays = plannedMinutes / balance.dailyMinutes;
       var projectedDays = hasAllowance ? ((allowanceMinutes - balance.usedMinutes) / balance.dailyMinutes) : 0;
-      var forecastTone = projectedDays < 0 ? ' is-warning' : '';
-      var vacationForecast = '<section class="vacation-forecast-card' + forecastTone + '">' +
-        '<div class="vacation-forecast-head"><span>' + icons.activity + '</span><div><small>PREVISIONE</small><strong>Come cambia il tuo saldo</strong></div></div>' +
-        '<div class="vacation-forecast-grid">' +
-          '<div><span>Disponibili oggi</span><strong>' + (hasAllowance ? formatVacationDayValue(availableTodayDays) + ' gg' : '--') + '</strong><small>Senza le ferie future</small></div>' +
-          '<div><span>Gia programmate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong><small>' + (plannedMinutes ? formatDuration(plannedMinutes) : 'Nessun periodo futuro') + '</small></div>' +
-          '<div><span>Saldo previsto</span><strong>' + (hasAllowance ? formatVacationDayValue(projectedDays) + ' gg' : '--') + '</strong><small>' + (hasAllowance ? (projectedDays < 0 ? 'Oltre la disponibilita' : 'Dopo i periodi inseriti') : 'Imposta prima il totale') + '</small></div>' +
-        '</div>' +
-      '</section>';
+      var remainingValue = hasAllowance ? formatVacationDayValue(availableTodayDays) : '--';
+      var remainingLabel = hasAllowance ? 'giorni disponibili oggi' : 'imposta il saldo annuale';
+      var projectedCopy = !hasAllowance
+        ? 'Imposta il totale per calcolare il saldo'
+        : (projectedDays < 0
+          ? formatVacationDayValue(Math.abs(projectedDays)) + ' gg oltre la disponibilita'
+          : formatVacationDayValue(projectedDays) + ' gg dopo i periodi inseriti');
+      var recentRows = details.slice(0, 4).map(function (item) {
+        var date = parseLocalDateKey(item.key);
+        var dayLabel = date ? new Intl.DateTimeFormat('it-IT', { weekday: 'long' }).format(date) : item.key;
+        var fullDate = date ? new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' }).format(date) : item.key;
+        var typeLabel = item.entry.type === 'lavoro_ferie' ? 'Ferie parziali' : 'Giornata intera';
+        var isPlanned = item.key > todayKey;
+        return '<button class="vacation-page-history-row' + (isPlanned ? ' is-planned' : '') + '" data-open-vacation-date="' + item.key + '">' +
+          '<span class="vacation-page-history-date"><strong>' + (date ? date.getDate() : '--') + '</strong><small>' + escapeHtml(date ? new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(date).replace('.', '') : '') + '</small></span>' +
+          '<span class="vacation-page-history-copy"><strong>' + escapeHtml(dayLabel) + '</strong><small>' + escapeHtml(fullDate + ' - ' + typeLabel) + '</small></span>' +
+          '<span class="vacation-page-history-hours"><strong>' + formatDuration(item.minutes) + '</strong><small>' + (isPlanned ? 'Programmata' : 'Utilizzata') + '</small></span>' +
+          icons.right +
+        '</button>';
+      }).join('');
+      var status = state.vacationStatus ? '<div class="vacation-page-status">' + escapeHtml(state.vacationStatus) + '</div>' : '';
       return '<div class="vacation-page">' +
         '<div class="vacation-page-top"><div><span>GESTIONE ANNUALE</span><h1>Ferie</h1></div><div class="vacation-year-switch"><button data-vacation-year-prev="1" aria-label="Anno precedente">' + icons.left + '</button><strong>' + year + '</strong><button data-vacation-year-next="1" aria-label="Anno successivo">' + icons.right + '</button></div></div>' +
         '<section class="vacation-page-hero' + (over ? ' is-over' : '') + '">' +
-          '<div class="vacation-page-hero-head"><div><span class="vacation-page-kicker">IL TUO SALDO</span><h2>' + remainingValue + '</h2><p>' + remainingLabel + '</p></div>' +
-          '<div class="vacation-page-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>usato</span></div></div></div>' +
-          '<div class="vacation-page-metrics"><div><span>Totale</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Usate</span><strong>' + formatVacationDayValue(balance.usedDays) + ' gg</strong></div><div><span>Ore usate</span><strong>' + formatDuration(balance.usedMinutes) + '</strong></div></div>' +
-          '<button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><div><strong>Gestisci disponibilita</strong><small>Modifica il totale annuale</small></div>' + icons.right + '</button>' +
+          '<div class="vacation-page-hero-head"><div><span class="vacation-page-kicker">SALDO RESIDUO</span><h2>' + remainingValue + '</h2><p>' + remainingLabel + '</p></div>' +
+          '<div class="vacation-page-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>impegnato</span></div></div></div>' +
+          '<div class="vacation-page-metrics"><div><span>Totale</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Gia usate</span><strong>' + formatVacationDayValue(usedToDateMinutes / balance.dailyMinutes) + ' gg</strong></div><div><span>Programmate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong></div></div>' +
+          '<div class="vacation-page-projection' + (projectedDays < 0 ? ' is-warning' : '') + '"><span>' + icons.activity + '</span><div><small>SALDO PREVISTO</small><strong>' + escapeHtml(projectedCopy) + '</strong></div></div>' +
+          '<div class="vacation-page-actions"><button class="vacation-page-add" data-open-vacation-range="' + year + '"><span>' + icons.umbrella + '</span><strong>Aggiungi ferie</strong></button><button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><strong>Modifica saldo</strong></button></div>' +
           status +
         '</section>' +
-        vacationForecast +
-        '<button class="vacation-page-action" data-open-vacation-range="' + year + '"><span class="vacation-page-action-icon">' + icons.umbrella + '</span><span><span>NUOVO PERIODO</span><strong>Inserisci le ferie</strong><small>Scegli le date e controlla subito i giorni conteggiati</small></span><span class="vacation-page-action-arrow">' + icons.right + '</span></button>' +
-        '<div class="vacation-page-section-head"><div><span>STORICO</span><h2>Ferie utilizzate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
+        '<div class="vacation-page-section-head"><div><span>PERIODI</span><h2>Ferie registrate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
         '<section class="vacation-page-history">' + (recentRows || '<div class="vacation-page-empty"><span>' + icons.calendar + '</span><strong>Nessuna ferie registrata</strong><small>Quando inserisci una giornata, la ritroverai qui.</small></div>') + '</section>' +
       '</div>';
     }
@@ -1707,8 +1703,9 @@ function renderCalendar() {
       var items = (state.payslips || []).slice();
       var totalAmount = items.reduce(function (sum, item) { return sum + Math.max(0, parseDecimalInput(item.netto, 0)); }, 0);
       var currentEstimateDate = new Date();
+      var currentYear = currentEstimateDate.getFullYear();
       var currentEstimate = getPayrollNetEstimateForMonth(
-        currentEstimateDate.getFullYear(),
+        currentYear,
         currentEstimateDate.getMonth() + 1
       );
       var currentEstimateValue = currentEstimate.valid
@@ -1719,11 +1716,47 @@ function renderCalendar() {
           ? 'Netto stimato · Inserisci il Comune per completare'
           : 'Netto stimato con imposte e contributi')
         : 'Completa i dati fiscali e retributivi';
+      var yearItems = items.filter(function (item) {
+        return Number(item.year) === currentYear;
+      });
+      var monthTotals = {};
+      yearItems.forEach(function (item) {
+        var month = Math.min(12, Math.max(1, Number(item.month) || 1));
+        monthTotals[month] = (monthTotals[month] || 0) + Math.max(0, parseDecimalInput(item.netto, 0));
+      });
+      var yearMonths = Object.keys(monthTotals).map(Number).sort(function (a, b) { return a - b; });
+      var yearTotal = yearMonths.reduce(function (sum, month) { return sum + monthTotals[month]; }, 0);
+      var yearAverage = yearMonths.length ? yearTotal / yearMonths.length : 0;
+      var chartMonths = yearMonths.slice(-6);
+      var chartMaximum = chartMonths.reduce(function (maximum, month) {
+        return Math.max(maximum, monthTotals[month]);
+      }, 1);
+      var yearBars = chartMonths.map(function (month) {
+        var height = Math.max(18, Math.round((monthTotals[month] / chartMaximum) * 100));
+        return '<span class="salary-year-bar" style="--salary-bar:' + height + '%"><i></i><small>' + escapeHtml(monthNames[month - 1].slice(0, 3)) + '</small></span>';
+      }).join('');
+      var trendValue = 0;
+      var trendLabel = yearMonths.length > 1 ? 'rispetto al mese precedente' : 'servono almeno due mesi';
+      if (yearMonths.length > 1) {
+        trendValue = monthTotals[yearMonths[yearMonths.length - 1]] - monthTotals[yearMonths[yearMonths.length - 2]];
+      }
+      var annualValue = yearMonths.length
+        ? formatMoneyEuro(yearTotal)
+        : (currentEstimate.valid ? formatSalaryEstimateMoney(currentEstimate.estimatedAnnualNet) : '--');
+      var annualLabel = yearMonths.length ? 'Netto archiviato' : 'Proiezione netta';
+      var trendText = yearMonths.length > 1
+        ? ((trendValue >= 0 ? '+' : '-') + formatMoneyEuro(Math.abs(trendValue)))
+        : '--';
       return '<div class="salary-hub-page">' +
         '<header class="salary-hub-top"><div><span>FINANZE PERSONALI</span><h1>Stipendio</h1></div><span class="salary-hub-top-icon">' + icons.wallet + '</span></header>' +
         '<div class="stack payroll-stack salary-hub-stack">' +
           '<section class="salary-hub-hero"><div class="salary-hub-hero-head"><span class="salary-hub-wallet">' + icons.wallet + '</span><div><small>STIMA DI ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><h2>Netto previsto</h2></div><span class="salary-hub-month">' + escapeHtml(String(currentEstimateDate.getFullYear())) + '</span></div><strong class="salary-hub-estimate' + (currentEstimate.valid ? '' : ' is-setup') + '">' + currentEstimateValue + '</strong><p>' + escapeHtml(currentEstimateHint) + '</p><button data-open-payslip-estimate="1"><span>Apri il calcolo</span>' + icons.right + '</button></section>' +
           '<section class="salary-hub-actions" aria-label="Azioni stipendio"><button data-new-payslip="1"><span class="is-blue">' + icons.receipt + '</span><div><strong>Aggiungi</strong><small>Nuovo cedolino</small></div>' + icons.right + '</button><button data-open-payslip-stats="1"><span class="is-violet">' + icons.activity + '</span><div><strong>Statistiche</strong><small>Andamento netto</small></div>' + icons.right + '</button></section>' +
+          '<section class="salary-year-card"><div class="salary-year-head"><div><small>QUEST\'ANNO</small><h2>' + annualLabel + '</h2></div><button data-open-payslip-stats="1">Analisi ' + icons.right + '</button></div>' +
+            '<div class="salary-year-body"><div class="salary-year-total"><strong>' + annualValue + '</strong><span>' + (yearMonths.length ? (yearMonths.length + (yearMonths.length === 1 ? ' mese registrato' : ' mesi registrati')) : 'basata sulla configurazione attuale') + '</span></div>' +
+            (yearBars ? '<div class="salary-year-chart" aria-label="Andamento degli ultimi mesi">' + yearBars + '</div>' : '<div class="salary-year-chart is-empty"><span></span><span></span><span></span><span></span><span></span><span></span></div>') + '</div>' +
+            '<div class="salary-year-metrics"><div><span>MEDIA MESE</span><strong>' + (yearMonths.length ? formatMoneyEuro(yearAverage) : '--') + '</strong></div><div><span>CEDOLINI</span><strong>' + yearItems.length + '</strong></div><div class="' + (trendValue < 0 ? 'is-down' : 'is-up') + '"><span>VARIAZIONE</span><strong>' + trendText + '</strong><small>' + trendLabel + '</small></div></div>' +
+          '</section>' +
           '<button class="salary-archive-entry" data-open-payslip-archive="1"><span class="salary-archive-entry-icon">' + icons.history + '</span><span class="salary-archive-entry-copy"><small>DOCUMENTI</small><strong>Archivio cedolini</strong><em>' +
             (items.length
               ? (items.length + (items.length === 1 ? ' cedolino' : ' cedolini') + ' · ' + formatMoneyEuro(totalAmount) + ' archiviati')

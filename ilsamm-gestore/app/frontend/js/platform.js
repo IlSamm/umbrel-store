@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.5.6-20260727d';
+var PLATFORM_BUILD = '1.5.7-20260727e';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'La schermata Stipendio e piu pulita e mostra subito stima e azioni principali.',
-  'I cedolini hanno ora un Archivio dedicato, ordinato per anno e separato dalla schermata principale.',
-  'La voce privata Nero viene salvata appena la attivi e resta disponibile dopo riapertura o cambio account.',
-  'Foto, importi e configurazioni gia salvati restano invariati e protetti.'
+  'Stipendio mostra ora il riepilogo annuale, la media mensile e un andamento compatto dei cedolini reali.',
+  'Ferie riunisce saldo, giorni usati, periodi programmati e previsione in una sola card piu leggibile.',
+  'Le azioni Aggiungi ferie e Modifica saldo sono separate e immediatamente riconoscibili.',
+  'Cedolini, ferie e configurazioni gia salvati restano invariati e protetti.'
 ];
 
 async function readPlatformJson(response) {
