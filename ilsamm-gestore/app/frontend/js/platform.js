@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.5.7-20260727e';
+var PLATFORM_BUILD = '1.5.8-20260727f';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Stipendio mostra ora il riepilogo annuale, la media mensile e un andamento compatto dei cedolini reali.',
-  'Ferie riunisce saldo, giorni usati, periodi programmati e previsione in una sola card piu leggibile.',
-  'Le azioni Aggiungi ferie e Modifica saldo sono separate e immediatamente riconoscibili.',
-  'Cedolini, ferie e configurazioni gia salvati restano invariati e protetti.'
+  'La navigazione ha ora un vetro piu profondo, luminoso e coerente con lo stile premium di GestOre.',
+  'Il selettore attivo e piu fluido, centrato e segue il dito durante il trascinamento.',
+  'Icone ed etichette sono uniformi e restano leggibili anche sugli iPhone piu stretti.',
+  'La safe area inferiore e i dati gia salvati restano invariati.'
 ];
 
 async function readPlatformJson(response) {

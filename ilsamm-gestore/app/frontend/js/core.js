@@ -73,8 +73,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.5.7',
-      build: '20260727e',
+      version: '1.5.8',
+      build: '20260727f',
       appName: 'GestOre'
     };
 
