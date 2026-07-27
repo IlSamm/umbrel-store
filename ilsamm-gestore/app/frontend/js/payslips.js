@@ -61,6 +61,7 @@ var state = {
       payslipStatsYear: new Date().getFullYear(),
       payslipEstimateOpen: false,
       payslipEstimateConfigOpen: false,
+      payslipArchiveOpen: false,
       payrollPrivateUnlocked: false,
       payrollSecretTapCount: 0,
       payrollSecretTapStartedAt: 0,
@@ -1400,6 +1401,24 @@ var state = {
         input: checked.input,
         estimate: getPayrollNetEstimateForMonth(year, month, checked.input)
       };
+    }
+    function savePayrollPrivateReconciliationSetting(year, month, enabled, hourlyRate) {
+      var api = getPayrollCalculatorApi();
+      var current = getPayrollEstimateConfig(year, month);
+      var normalized = api && typeof api.normalizePayrollInput === 'function'
+        ? api.normalizePayrollInput(current)
+        : Object.assign({}, current);
+      normalized.privateReconciliationEnabled = Boolean(enabled);
+      normalized.privateReconciliationHourlyRate = Math.max(0, parseDecimalInput(hourlyRate, 0));
+      var key = getSalaryEstimateMonthKey(year, month);
+      var next = Object.assign({}, state.settings.payrollEstimateByMonth || {});
+      next[key] = Object.assign({}, normalized, { updatedAt: Date.now() });
+      state.settings.payrollEstimateByMonth = next;
+      state.settingsDraft = Object.assign({}, state.settings, {
+        payrollEstimateByMonth: Object.assign({}, next)
+      });
+      saveSettings();
+      return next[key];
     }
     function collectPayrollCalculatorInputFromDom() {
       var source = {};

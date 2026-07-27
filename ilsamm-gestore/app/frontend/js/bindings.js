@@ -149,6 +149,7 @@ function resetPayslipNavigationState() {
   state.payslipStatsOpen = false;
   state.payslipEstimateOpen = false;
   state.payslipEstimateConfigOpen = false;
+  state.payslipArchiveOpen = false;
   state.payslipViewer = null;
 }
 
@@ -164,7 +165,8 @@ function activatePrimaryTab(nextTab, pressedButton, delay) {
       state.payslipDetailId ||
       state.payslipEditorOpen ||
       state.payslipStatsOpen ||
-      state.payslipEstimateOpen
+      state.payslipEstimateOpen ||
+      state.payslipArchiveOpen
     )) {
       resetPayslipNavigationState();
       render();
@@ -497,6 +499,17 @@ function bindEvents() {
           if (!section || !field) return;
           var enabled = field.value !== 'true';
           field.value = enabled ? 'true' : 'false';
+          var rateField = section.querySelector('[data-payroll-field="privateReconciliationHourlyRate"]');
+          savePayrollPrivateReconciliationSetting(
+            state.payslipEstimateYear,
+            state.payslipEstimateMonth,
+            enabled,
+            rateField ? rateField.value : 0
+          );
+          state.payrollPrivateUnlocked = true;
+          state.payslipEstimateStatus = enabled
+            ? 'Voce Nero attivata e salvata.'
+            : 'Voce Nero disattivata e salvata.';
           section.classList.toggle('is-enabled', enabled);
           button.setAttribute('aria-checked', enabled ? 'true' : 'false');
           updatePayrollCalculatorPreviewFromInputs();
@@ -631,6 +644,7 @@ function bindEvents() {
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = true;
           state.payslipEstimateOpen = false;
+          state.payslipArchiveOpen = false;
           state.payslipViewer = null;
           render();
         };
@@ -696,6 +710,15 @@ function bindEvents() {
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
           state.payslipEstimateOpen = false;
+          state.payslipArchiveOpen = true;
+          state.payslipViewer = null;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-payslip-archive]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.payslipArchiveOpen = false;
+          state.payslipViewer = null;
           render();
         };
       });
@@ -707,6 +730,7 @@ function bindEvents() {
           state.payslipEditorOpen = false;
           state.payslipStatsOpen = false;
           state.payslipEstimateOpen = false;
+          state.payslipArchiveOpen = true;
           state.payslipViewer = null;
           state.payslipStatus = '';
           state.activeTab = 'payslips';

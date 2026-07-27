@@ -1495,8 +1495,8 @@ function renderCalendar() {
         return sum + Math.max(0, getBreakdown(pair[1]).overtime || 0);
       }, 0);
       var recordedOvertimeHours = minutesToHours(recordedOvertimeMinutes);
-      var privateUnlocked = Boolean(state.payrollPrivateUnlocked);
       var privateEnabled = config.privateReconciliationEnabled === true;
+      var privateUnlocked = Boolean(state.payrollPrivateUnlocked || privateEnabled);
       var privateRemainingHours = Math.max(0, recordedOvertimeHours - Math.max(0, config.overtimeHoursMonthly));
       var privateHourlyRate = Math.max(0, Number(config.privateReconciliationHourlyRate) || 0);
       var privateAmount = Math.round(privateRemainingHours * privateHourlyRate * 100) / 100;
@@ -1703,13 +1703,9 @@ function renderCalendar() {
       return html.join('');
     }
 
-    function renderPayslipArchiveV2() {
+    function renderSalaryHubV2() {
       var items = (state.payslips || []).slice();
       var totalAmount = items.reduce(function (sum, item) { return sum + Math.max(0, parseDecimalInput(item.netto, 0)); }, 0);
-      var latest = items[0] || null;
-      var latestPhotos = latest ? normalizePayslipPhotos(latest) : [];
-      var latestCover = latestPhotos[0] || null;
-      var latestPhotoCount = latest ? getPayslipPhotoCount(latest) : 0;
       var currentEstimateDate = new Date();
       var currentEstimate = getPayrollNetEstimateForMonth(
         currentEstimateDate.getFullYear(),
@@ -1723,37 +1719,66 @@ function renderCalendar() {
           ? 'Netto stimato · Inserisci il Comune per completare'
           : 'Netto stimato con imposte e contributi')
         : 'Completa i dati fiscali e retributivi';
+      return '<div class="salary-hub-page">' +
+        '<header class="salary-hub-top"><div><span>FINANZE PERSONALI</span><h1>Stipendio</h1></div><span class="salary-hub-top-icon">' + icons.wallet + '</span></header>' +
+        '<div class="stack payroll-stack salary-hub-stack">' +
+          '<section class="salary-hub-hero"><div class="salary-hub-hero-head"><span class="salary-hub-wallet">' + icons.wallet + '</span><div><small>STIMA DI ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><h2>Netto previsto</h2></div><span class="salary-hub-month">' + escapeHtml(String(currentEstimateDate.getFullYear())) + '</span></div><strong class="salary-hub-estimate' + (currentEstimate.valid ? '' : ' is-setup') + '">' + currentEstimateValue + '</strong><p>' + escapeHtml(currentEstimateHint) + '</p><button data-open-payslip-estimate="1"><span>Apri il calcolo</span>' + icons.right + '</button></section>' +
+          '<section class="salary-hub-actions" aria-label="Azioni stipendio"><button data-new-payslip="1"><span class="is-blue">' + icons.receipt + '</span><div><strong>Aggiungi</strong><small>Nuovo cedolino</small></div>' + icons.right + '</button><button data-open-payslip-stats="1"><span class="is-violet">' + icons.activity + '</span><div><strong>Statistiche</strong><small>Andamento netto</small></div>' + icons.right + '</button></section>' +
+          '<button class="salary-archive-entry" data-open-payslip-archive="1"><span class="salary-archive-entry-icon">' + icons.history + '</span><span class="salary-archive-entry-copy"><small>DOCUMENTI</small><strong>Archivio cedolini</strong><em>' +
+            (items.length
+              ? (items.length + (items.length === 1 ? ' cedolino' : ' cedolini') + ' · ' + formatMoneyEuro(totalAmount) + ' archiviati')
+              : 'Le foto e gli importi salvati saranno qui') +
+          '</em></span><i>' + icons.right + '</i></button>' +
+        '</div></div>';
+    }
+
+    function renderPayslipArchiveGroups(items) {
       var grouped = {};
       items.forEach(function (item) {
         var year = String(Number(item.year) || new Date().getFullYear());
         if (!grouped[year]) grouped[year] = [];
         grouped[year].push(item);
       });
-      var archiveHtml = Object.keys(grouped).sort(function (a, b) { return Number(b) - Number(a); }).map(function (year) {
+      return Object.keys(grouped).sort(function (a, b) {
+        return Number(b) - Number(a);
+      }).map(function (year) {
         var rows = grouped[year].map(function (item) {
           var photos = normalizePayslipPhotos(item);
           var photoCount = getPayslipPhotoCount(item);
           var cover = photos[0] || null;
           return '<button class="payroll-archive-row" data-open-payslip="' + escapeHtml(item.id) + '">' +
-            '<span class="payroll-archive-thumb' + (cover ? '' : ' is-empty') + '">' + (cover ? '<img loading="lazy" decoding="async" src="' + (cover.thumbnail || cover.data) + '" alt="Anteprima cedolino">' : icons.receipt) + (photoCount > 1 ? '<b>' + photoCount + '</b>' : '') + '</span>' +
-            '<span class="payroll-archive-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' + photoCount + (photoCount === 1 ? ' foto' : ' foto') + ' salvate</small></span>' +
-            '<span class="payroll-archive-amount">' + formatMoneyEuro(item.netto) + '</span><span class="payroll-archive-chevron">' + icons.right + '</span>' +
+            '<span class="payroll-archive-thumb' + (cover ? '' : ' is-empty') + '">' +
+              (cover
+                ? '<img loading="lazy" decoding="async" src="' + (cover.thumbnail || cover.data) + '" alt="Anteprima cedolino">'
+                : icons.receipt) +
+              (photoCount > 1 ? '<b>' + photoCount + '</b>' : '') +
+            '</span>' +
+            '<span class="payroll-archive-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' +
+              photoCount + (photoCount === 1 ? ' foto salvata' : ' foto salvate') +
+            '</small></span>' +
+            '<span class="payroll-archive-amount">' + formatMoneyEuro(item.netto) + '</span>' +
+            '<span class="payroll-archive-chevron">' + icons.right + '</span>' +
           '</button>';
         }).join('');
-        return '<section class="payroll-year-group"><div class="payroll-year-head"><span>' + year + '</span><small>' + grouped[year].length + (grouped[year].length === 1 ? ' cedolino' : ' cedolini') + '</small></div><div class="payroll-archive-list">' + rows + '</div></section>';
+        return '<section class="payroll-year-group"><div class="payroll-year-head"><span>' + year + '</span><small>' +
+          grouped[year].length + (grouped[year].length === 1 ? ' cedolino' : ' cedolini') +
+          '</small></div><div class="payroll-archive-list">' + rows + '</div></section>';
       }).join('');
-      var latestHtml = latest
-        ? '<section class="salary-latest-section"><div class="salary-section-head"><div><span>ULTIMO CEDOLINO</span><h2>' + escapeHtml(getPayslipMonthLabel(latest)) + '</h2></div><button data-open-payslip="' + escapeHtml(latest.id) + '">Apri</button></div><button class="salary-latest-card" data-open-payslip="' + escapeHtml(latest.id) + '"><span class="salary-latest-thumb' + (latestCover ? '' : ' is-empty') + '">' + (latestCover ? '<img loading="lazy" decoding="async" src="' + (latestCover.thumbnail || latestCover.data) + '" alt="Anteprima ultimo cedolino">' : icons.receipt) + (latestPhotoCount > 1 ? '<b>' + latestPhotoCount + '</b>' : '') + '</span><span><small>NETTO RICEVUTO</small><strong>' + formatMoneyEuro(latest.netto) + '</strong><em>' + latestPhotoCount + (latestPhotoCount === 1 ? ' foto salvata' : ' foto salvate') + '</em></span><i>' + icons.right + '</i></button></section>'
-        : '';
-      return '<div class="salary-hub-page">' +
-        '<header class="salary-hub-top"><div><span>FINANZE PERSONALI</span><h1>Stipendio</h1></div><span class="salary-hub-top-icon">' + icons.wallet + '</span></header>' +
-        '<div class="stack payroll-stack salary-hub-stack">' +
-          '<section class="salary-hub-hero"><div class="salary-hub-hero-head"><span class="salary-hub-wallet">' + icons.wallet + '</span><div><small>STIMA DI ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><h2>Netto previsto</h2></div><span class="salary-hub-month">' + escapeHtml(String(currentEstimateDate.getFullYear())) + '</span></div><strong class="salary-hub-estimate' + (currentEstimate.valid ? '' : ' is-setup') + '">' + currentEstimateValue + '</strong><p>' + escapeHtml(currentEstimateHint) + '</p><button data-open-payslip-estimate="1"><span>Apri il calcolo</span>' + icons.right + '</button></section>' +
-          '<section class="salary-hub-actions" aria-label="Azioni stipendio"><button data-new-payslip="1"><span class="is-blue">' + icons.receipt + '</span><div><strong>Aggiungi</strong><small>Nuovo cedolino</small></div>' + icons.right + '</button><button data-open-payslip-stats="1"><span class="is-violet">' + icons.activity + '</span><div><strong>Statistiche</strong><small>Andamento netto</small></div>' + icons.right + '</button></section>' +
-          '<section class="salary-hub-overview" aria-label="Riepilogo cedolini"><div><span>CEDOLINI</span><strong>' + items.length + '</strong><small>archiviati</small></div><div><span>NETTO ARCHIVIATO</span><strong>' + (items.length ? formatMoneyEuro(totalAmount) : '--') + '</strong><small>somma degli importi inseriti</small></div></section>' +
-          latestHtml +
-          '<div class="salary-archive-heading"><div><span>ARCHIVIO</span><h2>Tutti i cedolini</h2></div><small>' + items.length + (items.length === 1 ? ' documento' : ' documenti') + '</small></div>' +
-          (items.length ? archiveHtml : '<section class="payroll-empty"><span>' + icons.receipt + '</span><h2>Archivio ancora vuoto</h2><p>Aggiungi il primo cedolino: bastano una foto e l\'importo ricevuto.</p><button class="solid" data-new-payslip="1">Aggiungi il primo cedolino</button></section>') +
+    }
+
+    function renderPayslipArchiveV2() {
+      var items = (state.payslips || []).slice();
+      var totalAmount = items.reduce(function (sum, item) {
+        return sum + Math.max(0, parseDecimalInput(item.netto, 0));
+      }, 0);
+      return '<div class="salary-archive-page">' +
+        '<div class="profile-subpage-top payroll-page-top salary-archive-top"><button data-close-payslip-archive="1" aria-label="Torna a Stipendio">' + icons.left + '</button><div><span>STIPENDIO</span><h1>Archivio cedolini</h1></div><i></i></div>' +
+        '<div class="stack payroll-stack salary-archive-stack">' +
+          '<section class="salary-archive-summary"><span class="salary-archive-summary-icon">' + icons.history + '</span><div><small>DOCUMENTI SALVATI</small><strong>' + items.length + '</strong><p>' + (items.length === 1 ? '1 cedolino nel tuo archivio' : items.length + ' cedolini nel tuo archivio') + '</p></div><span class="salary-archive-summary-total"><small>NETTO ARCHIVIATO</small><strong>' + (items.length ? formatMoneyEuro(totalAmount) : '--') + '</strong></span></section>' +
+          '<div class="salary-archive-title"><div><span>ARCHIVIO</span><h2>Tutti i cedolini</h2></div><button data-new-payslip="1">' + icons.plus + '<span>Aggiungi</span></button></div>' +
+          (items.length
+            ? renderPayslipArchiveGroups(items)
+            : '<section class="payroll-empty salary-archive-empty"><span>' + icons.receipt + '</span><h2>Archivio ancora vuoto</h2><p>Aggiungi il primo cedolino: bastano una foto e l\'importo ricevuto.</p><button class="solid" data-new-payslip="1">Aggiungi il primo cedolino</button></section>') +
         '</div></div>';
     }
 
@@ -1766,7 +1791,7 @@ function renderCalendar() {
       var payslipNotes = String(payslip.notes || '').trim();
       var hourlyRate = parseDecimalInput(payslip.hourlyRate, 0);
       var overtimeRate = parseDecimalInput(payslip.overtimeRate, 0);
-      return '<div class="profile-subpage-top payroll-page-top"><button data-close-payslip-detail="1" aria-label="Torna all\'archivio">' + icons.left + '</button><div><span>CEDOLINI</span><h1>Dettaglio</h1></div><i></i></div>' +
+      return '<div class="profile-subpage-top payroll-page-top"><button data-close-payslip-detail="1" aria-label="Torna indietro">' + icons.left + '</button><div><span>CEDOLINI</span><h1>Dettaglio</h1></div><i></i></div>' +
         '<div class="stack payroll-stack payroll-detail-stack">' +
           '<section class="payroll-detail-hero"><div><small>CEDOLINO</small><h2>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</h2><span>Salvato il ' + escapeHtml(createdLabel) + '</span></div><strong>' + formatMoneyEuro(payslip.netto) + '</strong></section>' +
           '<section class="payroll-panel payroll-documents"><div class="payroll-section-head"><div><small>DOCUMENTI</small><h2>' + (photosLoading ? 'Carico le foto...' : (photoCount + (photoCount === 1 ? ' foto salvata' : ' foto salvate'))) + '</h2></div><span class="payroll-readonly-badge">Sola lettura</span></div>' +
@@ -1821,7 +1846,8 @@ function renderCalendar() {
         var detail = (state.payslips || []).find(function (item) { return item.id === state.payslipDetailId; });
         if (detail) return renderPayslipDetailV2(detail);
       }
-      return renderPayslipArchiveV2();
+      if (state.payslipArchiveOpen) return renderPayslipArchiveV2();
+      return renderSalaryHubV2();
     }
 
     function renderProfile() {

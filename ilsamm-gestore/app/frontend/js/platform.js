@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.5.5-20260727c';
+var PLATFORM_BUILD = '1.5.6-20260727d';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,11 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Stipendio e ora una sezione principale, sempre raggiungibile dalla barra in basso.',
-  'Cedolini, stima del netto e statistiche sono riuniti in una schermata piu chiara.',
-  'Il Profilo si apre dall avatar nella Home e lascia spazio alle funzioni usate ogni giorno.',
-  'La nuova navigazione mantiene Home al centro ed e ottimizzata per iPhone.',
-  'Ore, cedolini e configurazioni gia salvati restano compatibili e protetti.'
+  'La schermata Stipendio e piu pulita e mostra subito stima e azioni principali.',
+  'I cedolini hanno ora un Archivio dedicato, ordinato per anno e separato dalla schermata principale.',
+  'La voce privata Nero viene salvata appena la attivi e resta disponibile dopo riapertura o cambio account.',
+  'Foto, importi e configurazioni gia salvati restano invariati e protetti.'
 ];
 
 async function readPlatformJson(response) {
