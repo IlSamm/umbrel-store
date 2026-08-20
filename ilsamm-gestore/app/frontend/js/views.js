@@ -526,8 +526,20 @@ function getCalendarSelectedDateKey(month) {
       var calendarView = state.calendarView === 'agenda' ? 'agenda' : 'month';
       var selectedKey = getCalendarSelectedDateKey(state.currentMonth);
       var selectedDates = Array.isArray(state.calendarSelectedDates) ? state.calendarSelectedDates : [];
-      var filterLabels = { all: 'Tutte', work: 'Lavoro', absence: 'Assenze', rest: 'Riposi e festivi' };
-      var filterNotice = calendarFilter === 'all' ? '' : '<button class="calendar-active-filter" data-calendar-filter="all"><span>Filtro: ' + escapeHtml(filterLabels[calendarFilter]) + '</span>' + icons.x + '</button>';
+      var filterCounts = getMonthEntries(state.currentMonth).reduce(function (counts, pair) {
+        var group = getCalendarEntryGroup(pair[1]);
+        counts.all += 1;
+        if (group) counts[group] += 1;
+        return counts;
+      }, { all: 0, work: 0, absence: 0, rest: 0 });
+      var calendarFilterHtml = [
+        { key: 'all', label: 'Tutti' },
+        { key: 'work', label: 'Lavoro' },
+        { key: 'absence', label: 'Assenze' },
+        { key: 'rest', label: 'Riposi' }
+      ].map(function (item) {
+        return '<button data-calendar-filter="' + item.key + '" class="' + (calendarFilter === item.key ? 'is-active' : '') + '" aria-pressed="' + (calendarFilter === item.key ? 'true' : 'false') + '"><span>' + item.label + '</span><strong>' + filterCounts[item.key] + '</strong></button>';
+      }).join('');
       var monthContent = '<section class="calendar-v2-month-card"><div class="calendar-v2-grid-wrap">' +
         '<div class="week-grid">' + weekNames.map(function (name) { return '<div class="weekday">' + name + '</div>'; }).join('') + '</div>' +
         '<div class="calendar-grid">' + grid.map(function (date) {
@@ -543,18 +555,25 @@ function getCalendarSelectedDateKey(month) {
           var actionAttribute = state.calendarSelectionMode ? 'data-calendar-select-date' : 'data-calendar-pick-date';
           var typeLabel = entry ? visual.label : 'non compilato';
           return '<button class="cell ' + (!isCurrent ? 'out ' : '') + (isToday ? 'today ' : '') + (entry ? 'has-entry ' + visual.className + ' ' : '') + (isFilteredOut ? 'is-filtered-out ' : '') + (isBulkSelected ? 'is-selected ' : '') + (isFocused ? 'is-focused ' : '') + '" style="--calendar-accent:' + visual.color + '" ' + actionAttribute + '="' + key + '" aria-label="' + escapeHtml(date.getDate() + ' ' + monthNames[date.getMonth()] + ', ' + typeLabel) + '" aria-pressed="' + (isBulkSelected || isFocused ? 'true' : 'false') + '"><span class="calendar-cell-number">' + date.getDate() + '</span>' + (entry ? '<span class="dot"></span>' : '') + (isBulkSelected ? '<span class="calendar-cell-check">' + icons.check + '</span>' : '') + '</button>';
-        }).join('') + '</div></div>' +
-        '<div class="calendar-month-metrics"><div><span>Ore</span><strong>' + formatDuration(stats.totalMinutes) + '</strong></div><div><span>Extra</span><strong>' + formatDuration(stats.overtimeMinutes) + '</strong></div><div><span>Giorni</span><strong>' + recordedDays + '</strong></div></div>' +
-      '</section>';
+        }).join('') + '</div></div></section>' +
+        '<section class="card calendar-v2-summary-card"><div class="card-body"><div class="two">' +
+          '<div class="mini center"><div class="big">' + formatDuration(stats.totalMinutes) + '</div><div class="small muted">Ore mese</div></div>' +
+          '<div class="mini center"><div class="big">' + recordedDays + '</div><div class="small muted">Giorni segnati</div></div>' +
+        '</div></div></section>' +
+        renderCalendarDayFocus(selectedKey) +
+        '<section class="card calendar-v2-legend-card"><div class="card-body"><div class="section-title" style="margin-top:0">Legenda</div><div class="legend-grid">' +
+          Object.keys(dayTypes).map(function (key) { return '<div class="legend-item"><span class="legend-dot" style="background:' + dayTypes[key].dot + '"></span><span>' + dayTypes[key].label + '</span></div>'; }).join('') +
+        '</div></div></section>' +
+        '<button class="calendar-advanced-link" data-open-calendar-actions="1">' + icons.settings + '<span><strong>Gestisci calendario</strong><small>Selezione, copia settimana e pianificazione</small></span>' + icons.right + '</button>';
       var selectionToolbar = typeof renderCalendarSelectionToolbar === 'function' ? renderCalendarSelectionToolbar() : '';
       var content = calendarView === 'agenda'
-        ? renderCalendarDayFocus(selectedKey) + renderCalendarAgenda(state.currentMonth, calendarFilter, selectedKey)
-        : monthContent + renderCalendarDayFocus(selectedKey);
+        ? renderCalendarDayFocus(selectedKey) + renderCalendarAgenda(state.currentMonth, calendarFilter, selectedKey) + '<button class="calendar-advanced-link" data-open-calendar-actions="1">' + icons.settings + '<span><strong>Gestisci calendario</strong><small>Selezione, copia settimana e pianificazione</small></span>' + icons.right + '</button>'
+        : monthContent;
       return '<div class="month-page-top calendar-v2-header"><div><span>GESTIONE MENSILE</span><h1>Calendario</h1></div><div class="month-page-switch"><button data-calendar-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-calendar-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
-        '<div class="calendar-v2-toolbar"><div class="calendar-view-switch" role="group" aria-label="Vista calendario"><button data-calendar-view="month" class="' + (calendarView === 'month' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'month') + '">Mese</button><button data-calendar-view="agenda" class="' + (calendarView === 'agenda' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'agenda') + '">Agenda</button></div><div class="calendar-v2-actions"><button data-calendar-today="1">Oggi</button><button data-open-calendar-actions="1" aria-label="Strumenti calendario" class="' + (calendarFilter !== 'all' ? 'has-filter' : '') + '">' + icons.settings + '</button></div></div>' +
+        '<div class="calendar-v2-view-row"><div class="calendar-view-switch" role="group" aria-label="Vista calendario"><button data-calendar-view="month" class="' + (calendarView === 'month' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'month') + '">Mese</button><button data-calendar-view="agenda" class="' + (calendarView === 'agenda' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'agenda') + '">Agenda</button></div><button class="calendar-v2-today" data-calendar-today="1">Oggi</button></div>' +
         '<div class="stack calendar-v2-stack">' +
           (state.monthPlanNotice ? '<div class="calendar-plan-notice" role="status">' + escapeHtml(state.monthPlanNotice) + '</div>' : '') +
-          filterNotice + selectionToolbar + content +
+          '<div class="calendar-filter-bar calendar-v2-filter-bar" role="group" aria-label="Filtra giornate">' + calendarFilterHtml + '</div>' + selectionToolbar + content +
         '</div>';
     }
 

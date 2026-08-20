@@ -367,7 +367,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
                 visible:filterVisible,
                 applied:state.calendarFilter==='absence',
                 dialogClosed:!state.calendarActionsOpen,
-                indicator:!!document.querySelector('.calendar-active-filter')
+                indicator:!!document.querySelector('.calendar-v2-filter-bar [data-calendar-filter="absence"].is-active')
               };
               state.calendarFilter='all';
               render();
