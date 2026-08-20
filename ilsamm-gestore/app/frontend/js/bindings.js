@@ -885,10 +885,16 @@ function bindEvents() {
       if (sourceText) sourceText.oninput = function (e) { ensurePayslipDraft(); state.payslipDraft.sourceText = String(e.target.value || ''); };
 
       var calToday = document.querySelector('[data-calendar-today]');
-      if (calToday) calToday.onclick = function () { var now = new Date(); state.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1); render(); };
+      if (calToday) calToday.onclick = function () {
+        var now = new Date();
+        state.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        state.calendarSelectedDate = toISODate(now);
+        render();
+      };
       var calPrev = document.querySelector('[data-calendar-prev]');
       if (calPrev) calPrev.onclick = function () {
         state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1);
+        state.calendarSelectedDate = toISODate(state.currentMonth);
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
@@ -899,6 +905,7 @@ function bindEvents() {
       var calNext = document.querySelector('[data-calendar-next]');
       if (calNext) calNext.onclick = function () {
         state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1);
+        state.calendarSelectedDate = toISODate(state.currentMonth);
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
@@ -916,6 +923,27 @@ function bindEvents() {
           var nextFilter = btn.dataset.calendarFilter;
           if (['all', 'work', 'absence', 'rest'].indexOf(nextFilter) === -1) return;
           state.calendarFilter = nextFilter;
+          if (btn.closest('.calendar-actions-dialog')) state.calendarActionsOpen = false;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-calendar-view]').forEach(function (btn) {
+        btn.onclick = function () {
+          var nextView = btn.dataset.calendarView;
+          if (nextView !== 'month' && nextView !== 'agenda') return;
+          state.calendarView = nextView;
+          if (nextView === 'agenda') state.calendarSelectionMode = false;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-calendar-pick-date]').forEach(function (btn) {
+        btn.onclick = function () {
+          var date = parseLocalDateKey(btn.dataset.calendarPickDate);
+          if (!date) return;
+          state.calendarSelectedDate = toISODate(date);
+          if (date.getFullYear() !== state.currentMonth.getFullYear() || date.getMonth() !== state.currentMonth.getMonth()) {
+            state.currentMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+          }
           render();
         };
       });

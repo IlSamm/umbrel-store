@@ -78,8 +78,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.6.0',
-      build: '20260820a',
+      version: '1.6.1',
+      build: '20260820b',
       appName: 'GestOre'
     };
 
@@ -96,6 +96,14 @@ var errorBox = document.getElementById('errorBox');
       festivita_pagata: { label: 'Festivita pagata', dot: '#fb7185' },
       riposo: { label: 'Riposo', dot: '#64748b' }
     };
+
+    function getCalendarEntryGroup(entry) {
+      if (!entry) return '';
+      if (entry.type === 'lavoro' || entry.type === 'lavoro_ferie') return 'work';
+      if (entry.type === 'ferie' || entry.type === 'malattia' || entry.type === 'permesso') return 'absence';
+      if (entry.type === 'riposo' || entry.type === 'festivita_pagata') return 'rest';
+      return '';
+    }
 
     var icons = {
       calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>',

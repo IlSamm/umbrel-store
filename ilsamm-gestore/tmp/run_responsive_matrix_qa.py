@@ -315,6 +315,68 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
                     screenshot(f"{screen_name}-{width}.png", width, height)
 
         set_viewport(393, 852)
+        calendar_checks = evaluate(
+            """(function(){
+              state.activeTab='calendar';
+              state.settingsSection='';
+              state.calendarView='month';
+              state.calendarFilter='all';
+              state.calendarSelectionMode=false;
+              state.editingDate=null;
+              state.draft=null;
+              document.body.classList.remove('editor-open');
+              render();
+              var cell=document.querySelector('.calendar-grid .cell.has-entry:not(.out)');
+              var key=cell && cell.dataset.calendarPickDate;
+              if(cell) cell.click();
+              var monthSelection={
+                key:key||'',
+                selected:!!key && state.calendarSelectedDate===key,
+                editorStayedClosed:!state.editingDate,
+                focusVisible:!!document.querySelector('.calendar-day-focus'),
+                focusMatches:!!document.querySelector('.calendar-day-focus [data-open-date="'+key+'"]')
+              };
+              var edit=document.querySelector('.calendar-day-focus [data-open-date]');
+              if(edit) edit.click();
+              monthSelection.editorOpened=!!state.editingDate;
+              state.editingDate=null;
+              state.draft=null;
+              document.body.classList.remove('editor-open');
+              state.activeTab='calendar';
+              state.calendarView='month';
+              render();
+              var agendaToggle=document.querySelector('[data-calendar-view="agenda"]');
+              if(agendaToggle) agendaToggle.click();
+              var agendaRows=document.querySelectorAll('.calendar-agenda-row');
+              var firstAgenda=agendaRows[0];
+              var agendaKey=firstAgenda && firstAgenda.dataset.calendarPickDate;
+              if(firstAgenda) firstAgenda.click();
+              var agenda={
+                active:state.calendarView==='agenda',
+                rows:agendaRows.length,
+                selected:!!agendaKey && state.calendarSelectedDate===agendaKey,
+                editorStayedClosed:!state.editingDate,
+                overflow:Math.max(0,document.documentElement.scrollWidth-document.documentElement.clientWidth)
+              };
+              var tools=document.querySelector('[data-open-calendar-actions]');
+              if(tools) tools.click();
+              var filterButton=document.querySelector('.calendar-dialog-filter [data-calendar-filter="absence"]');
+              var filterVisible=!!filterButton;
+              if(filterButton) filterButton.click();
+              var filters={
+                visible:filterVisible,
+                applied:state.calendarFilter==='absence',
+                dialogClosed:!state.calendarActionsOpen,
+                indicator:!!document.querySelector('.calendar-active-filter')
+              };
+              state.calendarFilter='all';
+              render();
+              return {monthSelection:monthSelection,agenda:agenda,filters:filters};
+            })()"""
+        )
+        evaluate("state.activeTab='calendar';state.calendarView='agenda';state.calendarFilter='all';render();")
+        screenshot("calendar-agenda-393.png", 393, 852)
+
         platform_checks = evaluate(
             """(async function(){
               async function waitFor(bucket){
@@ -516,6 +578,13 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             and platform_checks["pushLoaded"]
             and platform_checks["audit"]
             and platform_checks["auditRows"] >= 1
+            and all(calendar_checks["monthSelection"].values())
+            and calendar_checks["agenda"]["active"]
+            and calendar_checks["agenda"]["rows"] >= 1
+            and calendar_checks["agenda"]["selected"]
+            and calendar_checks["agenda"]["editorStayedClosed"]
+            and calendar_checks["agenda"]["overflow"] == 0
+            and all(calendar_checks["filters"].values())
             and all(navigation_checks.values())
             and nav_drag_start["dragging"]
             and nav_drag_start["preview"] == "vacations"
@@ -526,6 +595,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             "validationValid": validation_valid,
             "validationInvalid": validation_invalid,
             "overnight": overnight,
+            "calendarV2": calendar_checks,
             "platform": platform_checks,
             "navigation": navigation_checks,
             "navDrag": {"start": nav_drag_start, "end": nav_drag_end},

@@ -43,6 +43,8 @@ var state = {
       currentMonth: new Date(),
       statsRange: 'month',
       calendarFilter: 'all',
+      calendarView: 'month',
+      calendarSelectedDate: toISODate(new Date()),
       editingDate: null,
       draft: null,
       typeOpen: false,
