@@ -374,6 +374,40 @@ function getSmartAlerts(referenceDate) {
   return alerts.slice(0, 4);
 }
 
+function getCompletionItems(referenceDate) {
+  var items = getSmartAlerts(referenceDate).filter(function (alert) {
+    return alert.action === 'date' || alert.action === 'payslips';
+  });
+  if (state && state.syncPending) {
+    items.unshift({
+      tone: 'blue',
+      icon: icons.cloud,
+      title: 'Salvataggio da completare',
+      copy: 'Le modifiche sono protette sul dispositivo e attendono il server.',
+      action: 'sync',
+      value: ''
+    });
+  }
+  return items.slice(0, 3);
+}
+
+function renderHomeCompletionCenter() {
+  if (!state || !state.settings || state.settings.homeShowActionCenter === false) return '';
+  var items = getCompletionItems();
+  if (!items.length) return '';
+  return '<section class="home-completion-card" aria-label="Elementi da completare">' +
+    '<div class="home-completion-head"><div><span>CONTROLLO RAPIDO</span><h2>Da completare</h2></div><b>' + items.length + '</b></div>' +
+    '<div class="home-completion-list">' + items.map(function (item) {
+      var action = item.action === 'date'
+        ? ' data-open-date="' + escapeHtml(item.value) + '"'
+        : (item.action === 'payslips'
+          ? ' data-tab="payslips"'
+          : ' data-open-profile-section="settings" data-settings-section="data"');
+      return '<button class="home-completion-row is-' + escapeHtml(item.tone) + '"' + action + '><span>' + item.icon + '</span><div><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.copy) + '</small></div>' + icons.right + '</button>';
+    }).join('') + '</div>' +
+  '</section>';
+}
+
 function getWeeklyReviewDescriptor(referenceDate) {
   var now = referenceDate instanceof Date ? new Date(referenceDate.getTime()) : new Date();
   now.setHours(12, 0, 0, 0);

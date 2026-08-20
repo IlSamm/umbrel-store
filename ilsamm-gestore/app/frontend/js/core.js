@@ -63,6 +63,11 @@ var errorBox = document.getElementById('errorBox');
       smartReminderMissingDays: true,
       smartReminderWeeklyReview: true,
       smartReminderPayslips: true,
+      homeShowQuickActions: true,
+      homeShowActionCenter: true,
+      homeShowWeeklyAnalytics: true,
+      homeShowMonthlyAnalytics: true,
+      homeShowSalaryPreview: false,
       shiftPresets: [
         { id: 'standard', label: 'Standard', start: '08:00', end: '17:00', breakHours: 1 },
         { id: 'mattina', label: 'Mattina', start: '06:00', end: '14:00', breakHours: 0.5 },
@@ -73,8 +78,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.5.8',
-      build: '20260727f',
+      version: '1.6.0',
+      build: '20260820a',
       appName: 'GestOre'
     };
 
@@ -251,6 +256,11 @@ var errorBox = document.getElementById('errorBox');
         Boolean(candidate.smartReminderMissingDays) === Boolean(defaultSettings.smartReminderMissingDays) &&
         Boolean(candidate.smartReminderWeeklyReview) === Boolean(defaultSettings.smartReminderWeeklyReview) &&
         Boolean(candidate.smartReminderPayslips) === Boolean(defaultSettings.smartReminderPayslips) &&
+        Boolean(candidate.homeShowQuickActions) === Boolean(defaultSettings.homeShowQuickActions) &&
+        Boolean(candidate.homeShowActionCenter) === Boolean(defaultSettings.homeShowActionCenter) &&
+        Boolean(candidate.homeShowWeeklyAnalytics) === Boolean(defaultSettings.homeShowWeeklyAnalytics) &&
+        Boolean(candidate.homeShowMonthlyAnalytics) === Boolean(defaultSettings.homeShowMonthlyAnalytics) &&
+        Boolean(candidate.homeShowSalaryPreview) === Boolean(defaultSettings.homeShowSalaryPreview) &&
         JSON.stringify(candidate.shiftPresets || []) === JSON.stringify(defaultSettings.shiftPresets || []) &&
         JSON.stringify(candidate.weeklyTemplate || []) === JSON.stringify(defaultSettings.weeklyTemplate || []) &&
         JSON.stringify(candidate.vacationAllowanceByYear || {}) === JSON.stringify(defaultSettings.vacationAllowanceByYear || {}) &&
@@ -405,6 +415,11 @@ var errorBox = document.getElementById('errorBox');
       merged.smartReminderMissingDays = merged.smartReminderMissingDays !== false;
       merged.smartReminderWeeklyReview = merged.smartReminderWeeklyReview !== false;
       merged.smartReminderPayslips = merged.smartReminderPayslips !== false;
+      merged.homeShowQuickActions = merged.homeShowQuickActions !== false;
+      merged.homeShowActionCenter = merged.homeShowActionCenter !== false;
+      merged.homeShowWeeklyAnalytics = merged.homeShowWeeklyAnalytics !== false;
+      merged.homeShowMonthlyAnalytics = merged.homeShowMonthlyAnalytics !== false;
+      merged.homeShowSalaryPreview = merged.homeShowSalaryPreview === true;
       merged.shiftPresets = normalizeShiftPresets(merged.shiftPresets);
       merged.weeklyTemplate = normalizeWeeklyTemplate(merged.weeklyTemplate);
       var rawVacationAllowances = merged.vacationAllowanceByYear && typeof merged.vacationAllowanceByYear === 'object' && !Array.isArray(merged.vacationAllowanceByYear)
@@ -1371,6 +1386,79 @@ var errorBox = document.getElementById('errorBox');
       var head = ['Data', 'Tipo', 'Inizio', 'Fine', 'Pausa (ore)', 'Ore non lavorative', 'Ore lavoro', 'Ore straordinarie', 'Ore totali lavoro', 'Note'];
       var content = [head].concat(rows).map(function (r) { return r.map(escapeCsvCell).join(','); }).join('\n');
       downloadTextFile('gestore-export.csv', content, 'text/csv;charset=utf-8');
+    }
+    function escapeIcsText(value) {
+      return String(value || '')
+        .replace(/\\/g, '\\\\')
+        .replace(/\r?\n/g, '\\n')
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;');
+    }
+    function formatIcsTimestamp(date) {
+      var value = date instanceof Date ? date : new Date(date);
+      return value.getUTCFullYear() + pad(value.getUTCMonth() + 1) + pad(value.getUTCDate()) + 'T' +
+        pad(value.getUTCHours()) + pad(value.getUTCMinutes()) + pad(value.getUTCSeconds()) + 'Z';
+    }
+    function addDaysToDateKey(dateKey, amount) {
+      var date = parseLocalDateKey(dateKey);
+      if (!date) return String(dateKey || '').replace(/-/g, '');
+      date.setDate(date.getDate() + (Number(amount) || 0));
+      return toISODate(date).replace(/-/g, '');
+    }
+    function exportCalendarIcs() {
+      var stamp = formatIcsTimestamp(new Date());
+      var rows = Object.keys(state.entries || {}).sort().reduce(function (events, dateKey) {
+        var entry = state.entries[dateKey];
+        if (!entry || typeof entry !== 'object') return events;
+        var type = dayTypes[entry.type] || { label: entry.type || 'Giornata' };
+        var breakdown = getBreakdown(entry);
+        var dateValue = dateKey.replace(/-/g, '');
+        var timed = (entry.type === 'lavoro' || entry.type === 'lavoro_ferie') && /^\d{2}:\d{2}$/.test(entry.start || '') && /^\d{2}:\d{2}$/.test(entry.end || '');
+        var lines = [
+          'BEGIN:VEVENT',
+          'UID:' + escapeIcsText(dateKey + '-' + String(entry.type || 'giornata')) + '@gestore.local',
+          'DTSTAMP:' + stamp,
+          'SUMMARY:' + escapeIcsText(type.label)
+        ];
+        if (timed) {
+          var start = parseLocalDateKey(dateKey);
+          var end = parseLocalDateKey(dateKey);
+          var startParts = entry.start.split(':').map(Number);
+          var endParts = entry.end.split(':').map(Number);
+          start.setHours(startParts[0], startParts[1], 0, 0);
+          end.setHours(endParts[0], endParts[1], 0, 0);
+          if (end.getTime() <= start.getTime()) end.setDate(end.getDate() + 1);
+          var localStamp = function (value) {
+            return value.getFullYear() + pad(value.getMonth() + 1) + pad(value.getDate()) + 'T' + pad(value.getHours()) + pad(value.getMinutes()) + '00';
+          };
+          lines.push('DTSTART;TZID=Europe/Rome:' + localStamp(start));
+          lines.push('DTEND;TZID=Europe/Rome:' + localStamp(end));
+        } else {
+          lines.push('DTSTART;VALUE=DATE:' + dateValue);
+          lines.push('DTEND;VALUE=DATE:' + addDaysToDateKey(dateKey, 1));
+        }
+        var details = [];
+        if (timed) details.push('Orario: ' + entry.start + ' - ' + entry.end);
+        if (Number(entry.breakHours) > 0) details.push('Pausa: ' + formatHourValue(entry.breakHours));
+        if (breakdown.total > 0) details.push('Totale: ' + formatDuration(breakdown.total));
+        if (breakdown.overtime > 0) details.push('Straordinario: ' + formatDuration(breakdown.overtime));
+        if (entry.notes) details.push('Note: ' + entry.notes);
+        if (details.length) lines.push('DESCRIPTION:' + escapeIcsText(details.join('\n')));
+        lines.push('CATEGORIES:' + escapeIcsText(type.label));
+        lines.push('END:VEVENT');
+        events.push(lines.join('\r\n'));
+        return events;
+      }, []);
+      var calendar = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//GestOre//Calendario lavoro//IT',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:GestOre',
+        'X-WR-TIMEZONE:Europe/Rome'
+      ].concat(rows).concat(['END:VCALENDAR', '']).join('\r\n');
+      downloadTextFile('GestOre_Calendario_' + state.currentMonth.getFullYear() + '.ics', calendar, 'text/calendar;charset=utf-8');
     }
     function exportTextReportLegacy() {
       var rows = getMonthEntries(state.currentMonth).sort(function (a, b) { return a[0].localeCompare(b[0]); }).map(function (pair) {

@@ -25,6 +25,7 @@ for script in sorted((ROOT / "app" / "frontend" / "js").rglob("*.js")):
     run([node, "--check", str(script.relative_to(ROOT))])
 
 run([python, "tmp/audit_frontend_architecture.py"])
+run([python, "-m", "unittest", "tests.test_payslip_assets", "-v"])
 for test_file in [
     "tmp/test_auth_migration.py",
     "tmp/test_fast_sync.py",

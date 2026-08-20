@@ -996,12 +996,6 @@ var state = {
       rows.forEach(function (row) { row.diff = +((row.slip || 0) - (row.app || 0)).toFixed(2); row.ok = Math.abs(row.diff) < 0.01; });
       return rows;
     }
-    function getPayslipStatus(payslip) {
-      var rows = getPayslipComparison(payslip).filter(function (row) { return (row.app || row.slip); });
-      if (!rows.length) return { label: 'Da verificare', tone: 'soft' };
-      var hasDiff = rows.some(function (row) { return !row.ok; });
-      return hasDiff ? { label: 'Differenze trovate', tone: 'alert' } : { label: 'Verificata', tone: 'ok' };
-    }
     function formatMoneyEuro(value) {
       var num = parseDecimalInput(value, 0);
       if (!num) return '—';
@@ -1679,36 +1673,6 @@ var state = {
         }).join('');
       }
       return estimate;
-    }
-    function ensurePayslipDraft() {
-      if (!state.payslipDraft) {
-        state.payslipDraft = { id: '', month: new Date().getMonth() + 1, year: new Date().getFullYear(), company: '', netto: 0, lordo: 0, ordinaryHours: 0, overtimeHours: 0, ferieHours: 0, permessoHours: 0, malattiaHours: 0, workedDays: 0, tfr: 0, sourceText: '', imageData: '', fileName: '', createdAt: Date.now() };
-      }
-      return state.payslipDraft;
-    }
-    function resetPayslipDraft() {
-      state.payslipDraft = { id: '', month: new Date().getMonth() + 1, year: new Date().getFullYear(), company: '', netto: 0, lordo: 0, ordinaryHours: 0, overtimeHours: 0, ferieHours: 0, permessoHours: 0, malattiaHours: 0, workedDays: 0, tfr: 0, sourceText: '', imageData: '', fileName: '', createdAt: Date.now() };
-      state.payslipStatus = '';
-    }
-    function mergePayslipParsedData(parsed, extra) {
-      ensurePayslipDraft();
-      state.payslipDraft = Object.assign({}, state.payslipDraft, parsed || {}, extra || {});
-    }
-    function savePayslipDraft() {
-      ensurePayslipDraft();
-      var draft = Object.assign({}, state.payslipDraft);
-      if (!draft.id) draft.id = 'payslip-' + Date.now();
-      var index = (state.payslips || []).findIndex(function (item) { return item.id === draft.id; });
-      if (index >= 0) state.payslips[index] = draft;
-      else state.payslips.unshift(draft);
-      state.payslips.sort(function (a, b) {
-        var ad = getPayslipMonthDate(a), bd = getPayslipMonthDate(b);
-        return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
-      });
-      savePayslips();
-      state.payslipStatus = 'Cedolino salvato.';
-      state.activeTab = 'payslips';
-      render();
     }
     async function deletePayslip(id) {
       if (state.payslipBusy) return false;

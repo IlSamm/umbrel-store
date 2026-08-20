@@ -195,8 +195,8 @@ function bindFluidNavigation() {
 
   var session = null;
   var holdTimer = 0;
-  var HOLD_MS = 170;
-  var DRAG_THRESHOLD = 7;
+  var HOLD_MS = 190;
+  var DRAG_THRESHOLD = 8;
 
   function clearHoldTimer() {
     if (!holdTimer) return;
@@ -229,7 +229,7 @@ function bindFluidNavigation() {
     var floatingIndex = indexFromClientX(clientX, geometry, true);
     var previewIndex = indexFromClientX(clientX, geometry, false);
     var movement = Math.abs(clientX - session.lastX);
-    var stretch = 1 + Math.min(0.16, movement / Math.max(1, geometry.cellWidth) * 0.12);
+    var stretch = 1 + Math.min(0.1, movement / Math.max(1, geometry.cellWidth) * 0.08);
     session.lastX = clientX;
     session.previewIndex = previewIndex;
     grid.style.setProperty('--nav-drag-x', (floatingIndex * geometry.cellWidth).toFixed(2) + 'px');
@@ -372,7 +372,7 @@ function bindEvents() {
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
           var section = btn.dataset.openSettingsSection;
-          if (['profile', 'calendar', 'shifts', 'planning', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
+          if (['home', 'profile', 'calendar', 'shifts', 'planning', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
           state.settingsSection = section;
           render();
         };
@@ -1242,6 +1242,23 @@ function bindEvents() {
         render();
       };
 
+      document.querySelectorAll('[data-toggle-home-section]').forEach(function (btn) {
+        btn.onclick = function () {
+          var key = btn.dataset.toggleHomeSection;
+          var allowed = [
+            'homeShowQuickActions',
+            'homeShowActionCenter',
+            'homeShowWeeklyAnalytics',
+            'homeShowMonthlyAnalytics',
+            'homeShowSalaryPreview'
+          ];
+          if (allowed.indexOf(key) === -1) return;
+          state.settingsDraft[key] = !Boolean(state.settingsDraft[key]);
+          commitSettingsDraft();
+          render();
+        };
+      });
+
       document.querySelectorAll('[data-toggle-workday]').forEach(function (btn) {
         btn.onclick = function () {
           var index = Number(btn.dataset.toggleWorkday);
@@ -1268,6 +1285,8 @@ function bindEvents() {
       });
       var csvBtn = document.querySelector('[data-export-csv]');
       if (csvBtn) csvBtn.onclick = exportCSV;
+      var calendarExportBtn = document.querySelector('[data-export-calendar]');
+      if (calendarExportBtn) calendarExportBtn.onclick = exportCalendarIcs;
       var repBtn = document.querySelector('[data-export-report]');
       if (repBtn) repBtn.onclick = exportReport;
       var repYearBtn = document.querySelector('[data-export-report-year]');

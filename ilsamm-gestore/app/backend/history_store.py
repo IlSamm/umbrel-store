@@ -181,6 +181,20 @@ def record_payslip_change(
     mutation_id: str = "",
     actor: str = "",
 ) -> str | None:
+    def without_photo_payload(value):
+        if not isinstance(value, dict):
+            return value
+        compact = dict(value)
+        photos = compact.pop("photos", []) if isinstance(compact.get("photos"), list) else []
+        count = max(int(compact.get("photoCount") or 0), len(photos), 1 if compact.get("imageData") else 0)
+        compact.pop("imageData", None)
+        compact.pop("thumbnail", None)
+        compact["photoCount"] = count
+        compact["photosDeferred"] = count > 0
+        return compact
+
+    before = without_photo_payload(before)
+    after = without_photo_payload(after)
     if before == after:
         return None
     action = "created" if before is None else ("deleted" if after is None else "updated")

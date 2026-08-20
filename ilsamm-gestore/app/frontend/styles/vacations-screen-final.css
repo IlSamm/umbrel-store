@@ -226,6 +226,24 @@
     linear-gradient(145deg, rgba(32, 137, 123, 0.11), rgba(28, 77, 128, 0.08));
 }
 
+.vacation-page-projection {
+  min-height: 62px;
+  border-color: rgba(111, 166, 255, 0.2);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(91, 128, 242, 0.14), transparent 48%),
+    rgba(5, 14, 34, 0.54);
+}
+
+.vacation-page-projection small {
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.vacation-page-projection strong {
+  font-size: 12.5px;
+  line-height: 16px;
+}
+
 .vacation-page-projection > span {
   display: grid;
   width: 38px;

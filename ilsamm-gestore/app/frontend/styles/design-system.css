@@ -9,6 +9,9 @@
   --go-radius-control: 14px;
   --go-radius-card: 22px;
   --go-radius-panel: 28px;
+  --go-touch-target: 44px;
+  --go-type-caption: 11px;
+  --go-type-body: 14px;
   --go-surface-1: rgba(13, 23, 50, .82);
   --go-surface-2: rgba(22, 36, 72, .72);
   --go-border: rgba(130, 161, 232, .18);

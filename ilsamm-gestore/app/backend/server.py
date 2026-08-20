@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import gzip
 import json
 import os
@@ -52,8 +54,10 @@ PROFILE_ID = "default"
 SESSION_COOKIE = "gestore_session"
 MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
-BUILD_VERSION = "1.5.8"
-BUILD_CACHE = "20260727f"
+MAX_PAYSLIP_ASSET_BYTES = 24 * 1024 * 1024
+MAX_PAYSLIP_ASSETS = 12
+BUILD_VERSION = "1.6.0"
+BUILD_CACHE = "20260820a"
 AUTH_STORE = AuthStore(DATA_DIR)
 PUSH_SERVICE = PushService(AUTH_STORE, DATA_DIR)
 
@@ -160,6 +164,24 @@ def get_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
                     conn.execute("ALTER TABLE app_state ADD COLUMN payslips_json TEXT")
                 if "payslips_compact_json" not in columns:
                     conn.execute("ALTER TABLE app_state ADD COLUMN payslips_compact_json TEXT")
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS payslip_assets (
+                        profile_id TEXT NOT NULL,
+                        payslip_id TEXT NOT NULL,
+                        asset_index INTEGER NOT NULL,
+                        asset_id TEXT NOT NULL,
+                        mime_type TEXT NOT NULL,
+                        file_name TEXT,
+                        created_at INTEGER NOT NULL,
+                        data BLOB NOT NULL,
+                        PRIMARY KEY (profile_id, payslip_id, asset_index)
+                    )
+                    """
+                )
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS payslip_assets_record_idx ON payslip_assets(profile_id, payslip_id)"
+                )
                 conn.commit()
                 _DB_SCHEMA_READY.add(key)
     return conn
@@ -193,11 +215,14 @@ def _snapshot_from_row(row) -> dict:
 
 
 def load_snapshot(profile_id: str = PROFILE_ID, db_path: Path = DB_PATH) -> dict:
-    with closing(get_db(db_path)) as conn:
-        row = conn.execute(
-            "SELECT entries_json, settings_json, payslips_json, sync_meta_json, updated_at FROM app_state WHERE profile_id = ?",
-            (profile_id,),
-        ).fetchone()
+    with _snapshot_lock(db_path):
+        with closing(get_db(db_path)) as conn:
+            _migrate_legacy_payslip_assets(conn, profile_id)
+            conn.commit()
+            row = conn.execute(
+                "SELECT entries_json, settings_json, payslips_json, sync_meta_json, updated_at FROM app_state WHERE profile_id = ?",
+                (profile_id,),
+            ).fetchone()
     return _snapshot_from_row(row)
 
 
@@ -210,9 +235,10 @@ def _payslip_key(payslip: dict, fallback: str = "") -> str:
 def _stored_payslip_record(incoming: dict, existing: dict | None = None) -> dict:
     record = dict(incoming) if isinstance(incoming, dict) else {}
     previous = existing if isinstance(existing, dict) else {}
+    photo_field_was_provided = "photos" in record or "imageData" in record
     photos_deferred = record.pop("photosDeferred", False) is True
     source_deferred = record.pop("sourceTextDeferred", False) is True
-    record.pop("photoCount", None)
+    declared_photo_count = max(0, int(record.pop("photoCount", 0) or 0))
 
     if photos_deferred:
         previous_photos = previous.get("photos") if isinstance(previous.get("photos"), list) else []
@@ -223,7 +249,8 @@ def _stored_payslip_record(incoming: dict, existing: dict | None = None) -> dict
                 "data": previous_image,
                 "fileName": str(previous.get("fileName") or "busta-paga.jpg"),
             }]
-        record["photos"] = previous_photos
+        if previous_photos:
+            record["photos"] = previous_photos
         record["fileName"] = str(previous.get("fileName") or record.get("fileName") or "")
     if source_deferred:
         record["sourceText"] = str(previous.get("sourceText") or "")
@@ -238,7 +265,221 @@ def _stored_payslip_record(incoming: dict, existing: dict | None = None) -> dict
     if photos:
         record["photos"] = photos
         record.pop("imageData", None)
+    else:
+        record.pop("photos", None)
+        record.pop("imageData", None)
+        if photo_field_was_provided and not photos_deferred:
+            record["_clearPhotos"] = True
+        preserved_count = max(declared_photo_count, int(previous.get("photoCount") or 0)) if photos_deferred else declared_photo_count
+        if preserved_count:
+            record["photoCount"] = preserved_count
+            record["photosDeferred"] = True
     return record
+
+
+def _decode_payslip_asset(value: str) -> tuple[str, bytes]:
+    raw = str(value or "").strip()
+    if not raw:
+        raise ValueError("Immagine del cedolino vuota.")
+    mime_type = "image/jpeg"
+    payload = raw
+    if raw.startswith("data:"):
+        header, separator, payload = raw.partition(",")
+        if not separator or ";base64" not in header.lower():
+            raise ValueError("Formato immagine del cedolino non valido.")
+        mime_type = str(header[5:].split(";", 1)[0] or mime_type).lower()[:120]
+    try:
+        decoded = base64.b64decode(payload, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("Immagine del cedolino danneggiata.") from exc
+    if not decoded:
+        raise ValueError("Immagine del cedolino vuota.")
+    if len(decoded) > MAX_PAYSLIP_ASSET_BYTES:
+        raise ValueError("Una foto del cedolino supera il limite consentito.")
+    return mime_type, decoded
+
+
+def _asset_count(conn: sqlite3.Connection, profile_id: str, payslip_id: str) -> int:
+    row = conn.execute(
+        "SELECT COUNT(*) FROM payslip_assets WHERE profile_id = ? AND payslip_id = ?",
+        (profile_id, payslip_id),
+    ).fetchone()
+    return int(row[0] or 0) if row else 0
+
+
+def _persist_payslip_assets(
+    conn: sqlite3.Connection,
+    profile_id: str,
+    record: dict,
+) -> dict:
+    stored = dict(record if isinstance(record, dict) else {})
+    payslip_id = _payslip_key(stored)
+    if not payslip_id:
+        return stored
+
+    raw_photos = stored.get("photos") if isinstance(stored.get("photos"), list) else []
+    legacy_image = str(stored.get("imageData") or "")
+    if not raw_photos and legacy_image:
+        raw_photos = [{
+            "id": f"legacy-{payslip_id}-0",
+            "data": legacy_image,
+            "fileName": str(stored.get("fileName") or "busta-paga.jpg"),
+            "createdAt": int(stored.get("createdAt") or time.time() * 1000),
+        }]
+    photos_with_data = [
+        photo for photo in raw_photos
+        if isinstance(photo, dict) and str(photo.get("data") or photo.get("imageData") or photo.get("dataUrl") or "").strip()
+    ]
+    explicit_empty = stored.pop("_clearPhotos", False) is True or (("photos" in stored or "imageData" in stored) and not photos_with_data)
+    deferred = stored.get("photosDeferred") is True
+
+    if len(photos_with_data) > MAX_PAYSLIP_ASSETS:
+        raise ValueError(f"Puoi salvare al massimo {MAX_PAYSLIP_ASSETS} foto per cedolino.")
+    if photos_with_data:
+        conn.execute(
+            "DELETE FROM payslip_assets WHERE profile_id = ? AND payslip_id = ?",
+            (profile_id, payslip_id),
+        )
+        for index, photo in enumerate(photos_with_data):
+            data_value = str(photo.get("data") or photo.get("imageData") or photo.get("dataUrl") or "")
+            mime_type, blob = _decode_payslip_asset(data_value)
+            conn.execute(
+                """
+                INSERT INTO payslip_assets (
+                    profile_id, payslip_id, asset_index, asset_id,
+                    mime_type, file_name, created_at, data
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    profile_id,
+                    payslip_id,
+                    index,
+                    str(photo.get("id") or f"photo-{payslip_id}-{index}")[:180],
+                    mime_type,
+                    str(photo.get("fileName") or f"cedolino-{index + 1}.jpg")[:260],
+                    int(photo.get("createdAt") or stored.get("createdAt") or time.time() * 1000),
+                    sqlite3.Binary(blob),
+                ),
+            )
+    elif explicit_empty and not deferred:
+        conn.execute(
+            "DELETE FROM payslip_assets WHERE profile_id = ? AND payslip_id = ?",
+            (profile_id, payslip_id),
+        )
+
+    photo_count = _asset_count(conn, profile_id, payslip_id)
+    stored.pop("photos", None)
+    stored.pop("imageData", None)
+    stored.pop("thumbnail", None)
+    stored["photoCount"] = photo_count
+    stored["photosDeferred"] = photo_count > 0
+    if photos_with_data:
+        stored["fileName"] = str(photos_with_data[0].get("fileName") or stored.get("fileName") or "")
+    return stored
+
+
+def _persist_payslip_collection(
+    conn: sqlite3.Connection,
+    profile_id: str,
+    items: list,
+    cleanup: bool = True,
+) -> list:
+    stored_items = []
+    retained_ids = []
+    for index, item in enumerate(items if isinstance(items, list) else []):
+        if not isinstance(item, dict):
+            continue
+        record = dict(item)
+        if not record.get("id"):
+            record["id"] = f"legacy-{index}"
+        record = _persist_payslip_assets(conn, profile_id, record)
+        stored_items.append(record)
+        retained_ids.append(_payslip_key(record))
+    if cleanup:
+        if retained_ids:
+            placeholders = ",".join("?" for _ in retained_ids)
+            conn.execute(
+                f"DELETE FROM payslip_assets WHERE profile_id = ? AND payslip_id NOT IN ({placeholders})",
+                (profile_id, *retained_ids),
+            )
+        else:
+            conn.execute("DELETE FROM payslip_assets WHERE profile_id = ?", (profile_id,))
+    return stored_items
+
+
+def _migrate_legacy_payslip_assets(conn: sqlite3.Connection, profile_id: str) -> None:
+    row = conn.execute(
+        "SELECT payslips_json FROM app_state WHERE profile_id = ?",
+        (profile_id,),
+    ).fetchone()
+    if not row:
+        return
+    items = _parse_json(row[0], [])
+    if not isinstance(items, list):
+        return
+    has_embedded_assets = any(
+        isinstance(item, dict) and (
+            bool(item.get("imageData")) or
+            any(isinstance(photo, dict) and bool(photo.get("data") or photo.get("imageData") or photo.get("dataUrl")) for photo in (item.get("photos") or []))
+        )
+        for item in items
+    )
+    if not has_embedded_assets:
+        return
+    migrated = _persist_payslip_collection(conn, profile_id, items)
+    compact = compact_payslip_records(migrated)
+    conn.execute(
+        "UPDATE app_state SET payslips_json = ?, payslips_compact_json = ? WHERE profile_id = ?",
+        (
+            json.dumps(migrated, ensure_ascii=False),
+            json.dumps(compact, ensure_ascii=False),
+            profile_id,
+        ),
+    )
+
+
+def load_payslip_record(
+    payslip_id: str,
+    profile_id: str = PROFILE_ID,
+    db_path: Path = DB_PATH,
+) -> dict | None:
+    clean_id = str(payslip_id or "").strip()
+    if not clean_id:
+        return None
+    with _snapshot_lock(db_path):
+        snapshot = load_snapshot(profile_id=profile_id, db_path=db_path)
+        record = next(
+            (dict(item) for item in snapshot.get("payslips") or [] if _payslip_key(item) == clean_id),
+            None,
+        )
+        if record is None:
+            return None
+        with closing(get_db(db_path)) as conn:
+            rows = conn.execute(
+                """
+                SELECT asset_index, asset_id, mime_type, file_name, created_at, data
+                FROM payslip_assets
+                WHERE profile_id = ? AND payslip_id = ?
+                ORDER BY asset_index
+                """,
+                (profile_id, clean_id),
+            ).fetchall()
+        photos = []
+        for row in rows:
+            encoded = base64.b64encode(bytes(row[5])).decode("ascii")
+            photos.append({
+                "id": str(row[1] or f"photo-{clean_id}-{row[0]}"),
+                "data": f"data:{str(row[2] or 'image/jpeg')};base64,{encoded}",
+                "fileName": str(row[3] or f"cedolino-{int(row[0]) + 1}.jpg"),
+                "createdAt": int(row[4] or 0),
+            })
+        record["photos"] = photos
+        record["photoCount"] = len(photos)
+        record["photosDeferred"] = False
+        record["imageData"] = photos[0]["data"] if photos else ""
+        if photos:
+            record["fileName"] = photos[0]["fileName"]
+        return record
 
 
 def merge_payslip_records(existing_items: list, incoming_items: list) -> list:
@@ -293,6 +534,8 @@ def load_compact_snapshot(profile_id: str = PROFILE_ID, db_path: Path = DB_PATH)
     """Load account metadata without materializing base64 payslip photos."""
     with _snapshot_lock(db_path):
         with closing(get_db(db_path)) as conn:
+            _migrate_legacy_payslip_assets(conn, profile_id)
+            conn.commit()
             row = conn.execute(
                 """
                 SELECT entries_json, settings_json, payslips_compact_json, sync_meta_json, updated_at
@@ -402,6 +645,7 @@ def save_snapshot(
                     ),
                 )
             else:
+                payslips = _persist_payslip_collection(conn, profile_id, payslips)
                 compact_payslips = compact_payslip_records(payslips)
                 conn.execute(
                     """
@@ -501,6 +745,11 @@ def database_storage_summary(db_path: Path) -> dict:
     shm_bytes = shm_path.stat().st_size if shm_path.exists() else 0
     backups = list_versioned_backups(db_path)
     backup_bytes = sum(int(item.get("bytes") or 0) for item in backups)
+    with closing(get_db(db_path)) as conn:
+        asset_summary = conn.execute(
+            "SELECT COUNT(*), COALESCE(SUM(LENGTH(data)), 0) FROM payslip_assets WHERE profile_id = ?",
+            (PROFILE_ID,),
+        ).fetchone()
     return {
         "bytes": database_bytes + wal_bytes + shm_bytes + backup_bytes,
         "databaseBytes": database_bytes,
@@ -509,6 +758,8 @@ def database_storage_summary(db_path: Path) -> dict:
         "backups": len(backups),
         "entries": len(snapshot.get("entries") or {}),
         "payslips": len(snapshot.get("payslips") or []),
+        "payslipPhotos": int(asset_summary[0] or 0) if asset_summary else 0,
+        "payslipPhotoBytes": int(asset_summary[1] or 0) if asset_summary else 0,
         "updatedAt": int(snapshot.get("updatedAt") or 0),
     }
 
@@ -1030,10 +1281,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             if db_path is not None:
                 query = parse_qs(parsed.query or "")
                 payslip_id = str((query.get("id") or [""])[0]).strip()
-                payslip = next(
-                    (item for item in load_snapshot(db_path=db_path).get("payslips") or [] if _payslip_key(item) == payslip_id),
-                    None,
-                )
+                payslip = load_payslip_record(payslip_id, db_path=db_path)
                 if payslip is None:
                     self._send_json({"error": "Busta paga non trovata."}, HTTPStatus.NOT_FOUND)
                 else:

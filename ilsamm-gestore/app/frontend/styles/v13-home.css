@@ -359,6 +359,197 @@
   }
 
   .screen.home-screen .go-home-quick-actions small {
-    font-size: 8.8px !important;
+    font-size: 9.5px !important;
   }
+}
+
+.screen.home-screen .is-home-hidden {
+  display: none !important;
+}
+
+.screen.home-screen .home-completion-card,
+.screen.home-screen .home-salary-preview {
+  border: 1px solid rgba(126, 153, 221, 0.18);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(107, 91, 224, 0.13), transparent 42%),
+    linear-gradient(150deg, rgba(18, 32, 66, 0.92), rgba(5, 13, 31, 0.96));
+  box-shadow: 0 14px 34px rgba(0, 4, 19, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.screen.home-screen .home-completion-card {
+  overflow: hidden;
+  padding: 15px;
+}
+
+.screen.home-screen .home-completion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px 12px;
+}
+
+.screen.home-screen .home-completion-head span,
+.screen.home-screen .home-salary-preview small {
+  display: block;
+  color: #91aaff;
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.screen.home-screen .home-completion-head h2 {
+  margin: 4px 0 0;
+  color: #f8fbff;
+  font-size: 19px;
+  line-height: 22px;
+  font-weight: 790;
+  letter-spacing: -0.035em;
+}
+
+.screen.home-screen .home-completion-head b {
+  display: grid;
+  min-width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgba(144, 164, 229, 0.2);
+  border-radius: 999px;
+  background: rgba(83, 105, 190, 0.15);
+  color: #f8fbff;
+  font-size: 12px;
+}
+
+.screen.home-screen .home-completion-list {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid rgba(126, 153, 219, 0.11);
+  border-radius: 17px;
+  background: rgba(3, 9, 24, 0.32);
+}
+
+.screen.home-screen .home-completion-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 16px;
+  align-items: center;
+  min-height: 62px;
+  padding: 9px 12px;
+  gap: 10px;
+  border: 0;
+  color: #f8fbff;
+  background: transparent;
+  text-align: left;
+}
+
+.screen.home-screen .home-completion-row + .home-completion-row {
+  border-top: 1px solid rgba(126, 153, 219, 0.1);
+}
+
+.screen.home-screen .home-completion-row > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 13px;
+  color: #76bfff;
+  background: rgba(71, 137, 233, 0.13);
+}
+
+.screen.home-screen .home-completion-row.is-violet > span {
+  color: #ad7cff;
+  background: rgba(149, 91, 255, 0.14);
+}
+
+.screen.home-screen .home-completion-row > span svg,
+.screen.home-screen .home-completion-row > svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+}
+
+.screen.home-screen .home-completion-row > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.screen.home-screen .home-completion-row strong {
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.screen.home-screen .home-completion-row small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #8998b8;
+  font-size: 10.5px;
+  line-height: 14px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.screen.home-screen .home-completion-row > svg {
+  color: #73819e;
+}
+
+.screen.home-screen .home-salary-preview {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  min-height: 82px;
+  padding: 13px 15px;
+  gap: 12px;
+  color: #f8fbff;
+  text-align: left;
+}
+
+.screen.home-screen .home-salary-preview-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(119, 166, 255, 0.2);
+  border-radius: 15px;
+  color: #73b9ff;
+  background: rgba(66, 126, 226, 0.14);
+}
+
+.screen.home-screen .home-salary-preview-icon svg,
+.screen.home-screen .home-salary-preview > svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+}
+
+.screen.home-screen .home-salary-preview > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.screen.home-screen .home-salary-preview strong {
+  font-size: 20px;
+  line-height: 23px;
+  font-weight: 820;
+  letter-spacing: -0.035em;
+}
+
+.screen.home-screen .home-salary-preview em {
+  overflow: hidden;
+  color: #8e9cba;
+  font-size: 10.5px;
+  line-height: 14px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.screen.home-screen .home-salary-preview > svg {
+  color: #71809d;
 }

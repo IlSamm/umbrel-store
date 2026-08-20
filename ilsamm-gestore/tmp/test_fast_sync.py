@@ -53,7 +53,9 @@ def main() -> None:
         compact = server.load_compact_snapshot(db_path=db_path)
         full_bytes = len(json.dumps(full, ensure_ascii=False).encode("utf-8"))
         compact_raw = json.dumps(compact, ensure_ascii=False).encode("utf-8")
-        assert len(compact_raw) < full_bytes // 20
+        legacy_payload_bytes = len(json.dumps(original, ensure_ascii=False).encode("utf-8"))
+        assert len(compact_raw) < legacy_payload_bytes // 20
+        assert b"data:image" not in json.dumps(full, ensure_ascii=False).encode("utf-8")
         assert b"data:image" not in compact_raw
         assert all(item.get("photosDeferred") for item in compact["payslips"])
 
@@ -70,7 +72,8 @@ def main() -> None:
         server.save_snapshot(compact_update, db_path=db_path)
         after_compact_sync = server.load_snapshot(db_path=db_path)
         assert len(after_compact_sync["payslips"]) == len(original)
-        assert after_compact_sync["payslips"][0]["photos"][0]["data"] == photo_payload
+        hydrated = server.load_payslip_record("payslip-0", db_path=db_path)
+        assert hydrated["photos"][0]["data"] == photo_payload
 
         failures: list[BaseException] = []
 
@@ -106,7 +109,11 @@ def main() -> None:
         final = server.load_snapshot(db_path=db_path)
         final_ids = {item.get("id") for item in final["payslips"]}
         assert final_ids == {f"payslip-{index}" for index in range(10)}
-        assert all(item.get("photos") and item["photos"][0].get("data") == photo_payload for item in final["payslips"])
+        assert all(item.get("photosDeferred") and item.get("photoCount") == 1 for item in final["payslips"])
+        assert all(
+            server.load_payslip_record(f"payslip-{index}", db_path=db_path)["photos"][0]["data"] == photo_payload
+            for index in range(10)
+        )
         assert len(final["entries"]) == 14
 
         compact_started = time.perf_counter()
@@ -116,9 +123,10 @@ def main() -> None:
 
         print(json.dumps({
             "ok": True,
-            "fullBytes": full_bytes,
+            "legacyPayloadBytes": legacy_payload_bytes,
+            "metadataBytes": full_bytes,
             "compactBytes": len(compact_raw),
-            "sizeReductionPercent": round((1 - len(compact_raw) / full_bytes) * 100, 2),
+            "sizeReductionPercent": round((1 - len(compact_raw) / legacy_payload_bytes) * 100, 2),
             "compactLoads40Ms": round(compact_ms, 2),
             "payslips": len(final["payslips"]),
             "entries": len(final["entries"]),

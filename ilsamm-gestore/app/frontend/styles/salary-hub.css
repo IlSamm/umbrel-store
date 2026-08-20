@@ -438,6 +438,235 @@
   height: 34%;
 }
 
+.salary-comparison-card {
+  display: grid;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid rgba(126, 153, 221, 0.16);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(105, 91, 228, 0.14), transparent 44%),
+    linear-gradient(150deg, rgba(18, 32, 66, 0.93), rgba(5, 13, 31, 0.96));
+  box-shadow: 0 16px 36px rgba(0, 4, 18, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.salary-comparison-head,
+.salary-comparison-values,
+.salary-comparison-result {
+  display: flex;
+  align-items: center;
+}
+
+.salary-comparison-head {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.salary-comparison-head small,
+.salary-comparison-values small,
+.salary-comparison-card.is-empty small {
+  display: block;
+  color: #90a9ff;
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.salary-comparison-head h2,
+.salary-comparison-card.is-empty h2 {
+  margin: 4px 0 0;
+  color: #f8fbff;
+  font-size: 18px;
+  line-height: 21px;
+  font-weight: 790;
+  letter-spacing: -0.03em;
+}
+
+.salary-comparison-head > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 14px;
+  color: #a678ff;
+  background: rgba(142, 85, 255, 0.14);
+}
+
+.salary-comparison-head svg,
+.salary-comparison-result svg,
+.salary-comparison-empty-icon svg,
+.salary-year-chart-note svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+}
+
+.salary-comparison-values {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  gap: 13px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(126, 153, 219, 0.1);
+  border-bottom: 1px solid rgba(126, 153, 219, 0.1);
+}
+
+.salary-comparison-values > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.salary-comparison-values > div:last-child {
+  text-align: right;
+}
+
+.salary-comparison-values > i {
+  align-self: stretch;
+  background: rgba(126, 153, 219, 0.12);
+}
+
+.salary-comparison-values strong {
+  overflow: hidden;
+  color: #f8fbff;
+  font-size: clamp(18px, 5.5vw, 22px);
+  line-height: 25px;
+  font-weight: 820;
+  letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-comparison-result {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.salary-comparison-result > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 13px;
+  color: #42d8a5;
+  background: rgba(46, 207, 155, 0.12);
+}
+
+.salary-comparison-card.is-lower .salary-comparison-result > span {
+  color: #ff8295;
+  background: rgba(255, 94, 121, 0.12);
+  transform: rotate(180deg);
+}
+
+.salary-comparison-result > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.salary-comparison-result strong {
+  color: #f8fbff;
+  font-size: 14px;
+  line-height: 17px;
+  font-weight: 790;
+}
+
+.salary-comparison-result small {
+  color: #8998b8;
+  font-size: 10.5px;
+  line-height: 14px;
+}
+
+.salary-comparison-result button,
+.salary-comparison-card.is-empty > button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px 0 10px;
+  gap: 4px;
+  border: 0;
+  color: #9ebaff;
+  background: transparent;
+  font-size: 10.5px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.salary-comparison-result button svg,
+.salary-comparison-card.is-empty > button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+}
+
+.salary-comparison-card.is-empty {
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.salary-comparison-empty-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 15px;
+  color: #72b8ff;
+  background: rgba(67, 135, 235, 0.13);
+}
+
+.salary-comparison-card.is-empty p {
+  margin: 4px 0 0;
+  color: #8796b6;
+  font-size: 10.5px;
+  line-height: 14px;
+}
+
+.salary-year-chart-note {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  min-height: 62px;
+  padding: 9px;
+  gap: 9px;
+  border: 1px solid rgba(126, 153, 219, 0.11);
+  border-radius: 15px;
+  background: rgba(4, 11, 27, 0.34);
+  grid-column: 1 / -1;
+  margin-top: 3px;
+}
+
+.salary-year-chart-note > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 12px;
+  color: #a879ff;
+  background: rgba(143, 87, 255, 0.13);
+}
+
+.salary-year-chart-note > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.salary-year-chart-note strong {
+  color: #f4f7ff;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.salary-year-chart-note small {
+  color: #8290ae;
+  font-size: 9.5px;
+  line-height: 12px;
+}
+
 .salary-year-metrics {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 0.62fr minmax(0, 1.18fr);

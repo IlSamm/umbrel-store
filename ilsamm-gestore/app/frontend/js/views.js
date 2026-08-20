@@ -212,19 +212,34 @@
       var homeShiftPresets = getShiftPresets();
       var primaryShiftPreset = homeShiftPresets[0];
       var primaryHomeAction = entry
-        ? '<button data-open-date="' + key + '"><span class="go-home-action-icon is-blue">' + icons.note + '</span><span><strong>Modifica oggi</strong><small>Aggiorna la giornata</small></span></button>'
+        ? '<button data-open-date="' + key + '"><span class="go-home-action-icon is-blue">' + icons.note + '</span><span><strong>Modifica</strong><small>Giornata</small></span></button>'
         : '<button data-home-shift-preset="0" data-home-shift-date="' + key + '"><span class="go-home-action-icon is-green">' + icons.clock + '</span><span><strong>' + escapeHtml(primaryShiftPreset.label) + '</strong><small>' + escapeHtml(primaryShiftPreset.start + ' - ' + primaryShiftPreset.end) + '</small></span></button>';
       var homeQuickActions = '<section class="go-home-quick-actions" aria-label="Azioni rapide">' +
         primaryHomeAction +
         '<button data-home-quick-type="ferie" data-home-quick-date="' + key + '"><span class="go-home-action-icon is-violet">' + icons.umbrella + '</span><span><strong>Ferie</strong><small>Segna oggi</small></span></button>' +
-        '<button data-open-global-search="1"><span class="go-home-action-icon is-blue">' + icons.search + '</span><span><strong>Cerca</strong><small>Ore e cedolini</small></span></button>' +
+        '<button data-tab="payslips"><span class="go-home-action-icon is-blue">' + icons.wallet + '</span><span><strong>Stipendio</strong><small>Stima netta</small></span></button>' +
       '</section>';
+      var homeSalaryPreview = '';
+      if (state.settings.homeShowSalaryPreview && typeof getPayrollNetEstimateForMonth === 'function') {
+        var homeEstimate = getPayrollNetEstimateForMonth(now.getFullYear(), now.getMonth() + 1);
+        var homeActualPayslip = (state.payslips || []).find(function (item) {
+          return Number(item.year) === now.getFullYear() && Number(item.month) === now.getMonth() + 1;
+        });
+        var homeActualNet = homeActualPayslip ? parseDecimalInput(homeActualPayslip.netto, 0) : 0;
+        var homeEstimateValue = homeEstimate.valid ? formatSalaryEstimateMoney(homeEstimate.estimatedMonthWithOvertimeNet) : '--';
+        var homeEstimateMeta = homeActualNet > 0
+          ? ('Ricevuto ' + formatSalaryEstimateMoney(homeActualNet))
+          : (homeEstimate.valid ? 'In attesa del cedolino' : 'Completa prima i dati della stima');
+        homeSalaryPreview = '<button class="home-salary-preview" data-tab="payslips"><span class="home-salary-preview-icon">' + icons.wallet + '</span><span><small>STIPENDIO DEL MESE</small><strong>' + homeEstimateValue + '</strong><em>' + escapeHtml(homeEstimateMeta) + '</em></span>' + icons.right + '</button>';
+      }
       return '<header class="top home-top gestore-static-top go-home-logo go-home-header-v13"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div><button class="home-profile-avatar" data-open-profile="1" aria-label="Apri il profilo di ' + escapeHtml(homeProfileName) + '"><span>' + escapeHtml(homeProfileInitials) + '</span></button></header>' +
         '<div class="stack home-stack go-home-stack go-home-v13">' +
           (typeof renderOnboardingInvite === 'function' ? renderOnboardingInvite() : '') +
           homeDayCard +
-          homeQuickActions +
-          '<section class="go-card go-analytics-card go-analysis-card-v3 go-week-card">' +
+          (state.settings.homeShowQuickActions !== false ? homeQuickActions : '') +
+          (typeof renderHomeCompletionCenter === 'function' ? renderHomeCompletionCenter() : '') +
+          homeSalaryPreview +
+          '<section class="go-card go-analytics-card go-analysis-card-v3 go-week-card' + (state.settings.homeShowWeeklyAnalytics === false ? ' is-home-hidden' : '') + '">' +
             '<div class="go-card-head go-analysis-head-v3"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ritmo settimanale</div></div><div class="go-card-badge">' + weekPercentValue + '%</div></div>' +
             '<div class="go-week-summary-v3">' +
               '<div class="go-week-total-v3"><span>ORE REGISTRATE</span><strong>' + formatDuration(week.totalMinutes) + '</strong><small>su ' + formatHourValue(state.settings.weeklyTarget) + ' di target</small></div>' +
@@ -234,7 +249,7 @@
             '<div class="go-week-chart-v3" aria-label="Ore registrate nei sette giorni della settimana">' + weekBarsHtml + '</div>' +
             '<button class="go-analytics-link-v3" data-tab="stats"><span>Apri analisi settimana</span>' + icons.right + '</button>' +
           '</section>' +
-          '<section class="go-card go-analytics-card go-analysis-card-v3 go-month-card">' +
+          '<section class="go-card go-analytics-card go-analysis-card-v3 go-month-card' + (state.settings.homeShowMonthlyAnalytics === false ? ' is-home-hidden' : '') + '">' +
             '<div class="go-card-head go-analysis-head-v3"><div><div class="go-kicker">Mese</div><div class="go-card-title">Composizione ore</div></div><div class="go-card-badge">' + monthBadgeLabel + '</div></div>' +
             '<div class="go-month-overview-v3">' +
               '<div class="go-month-ring-v3" style="background:' + monthHoursChartBackground + '"><div><strong>' + formatDuration(monthStats.totalMinutes) + '</strong><span>totali</span></div></div>' +
@@ -643,8 +658,8 @@ function renderCalendar() {
       var projectedCopy = !hasAllowance
         ? 'Imposta il totale per calcolare il saldo'
         : (projectedDays < 0
-          ? formatVacationDayValue(Math.abs(projectedDays)) + ' gg oltre la disponibilita'
-          : formatVacationDayValue(projectedDays) + ' gg dopo i periodi inseriti');
+          ? formatVacationDayValue(Math.abs(projectedDays)) + ' gg oltre il saldo al 31 dicembre'
+          : formatVacationDayValue(projectedDays) + ' gg previsti al 31 dicembre');
       var recentRows = details.slice(0, 4).map(function (item) {
         var date = parseLocalDateKey(item.key);
         var dayLabel = date ? new Intl.DateTimeFormat('it-IT', { weekday: 'long' }).format(date) : item.key;
@@ -665,7 +680,7 @@ function renderCalendar() {
           '<div class="vacation-page-hero-head"><div><span class="vacation-page-kicker">SALDO RESIDUO</span><h2>' + remainingValue + '</h2><p>' + remainingLabel + '</p></div>' +
           '<div class="vacation-page-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>impegnato</span></div></div></div>' +
           '<div class="vacation-page-metrics"><div><span>Totale</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Gia usate</span><strong>' + formatVacationDayValue(usedToDateMinutes / balance.dailyMinutes) + ' gg</strong></div><div><span>Programmate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong></div></div>' +
-          '<div class="vacation-page-projection' + (projectedDays < 0 ? ' is-warning' : '') + '"><span>' + icons.activity + '</span><div><small>SALDO PREVISTO</small><strong>' + escapeHtml(projectedCopy) + '</strong></div></div>' +
+          '<div class="vacation-page-projection' + (projectedDays < 0 ? ' is-warning' : '') + '"><span>' + icons.activity + '</span><div><small>PROIEZIONE DI FINE ANNO</small><strong>' + escapeHtml(projectedCopy) + '</strong></div></div>' +
           '<div class="vacation-page-actions"><button class="vacation-page-add" data-open-vacation-range="' + year + '"><span>' + icons.umbrella + '</span><strong>Aggiungi ferie</strong></button><button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><strong>Modifica saldo</strong></button></div>' +
           status +
         '</section>' +
@@ -1716,6 +1731,24 @@ function renderCalendar() {
           ? 'Netto stimato · Inserisci il Comune per completare'
           : 'Netto stimato con imposte e contributi')
         : 'Completa i dati fiscali e retributivi';
+      var currentMonthPayslip = items.find(function (item) {
+        return Number(item.year) === currentYear && Number(item.month) === currentEstimateDate.getMonth() + 1;
+      }) || null;
+      var currentActualNet = currentMonthPayslip ? Math.max(0, parseDecimalInput(currentMonthPayslip.netto, 0)) : 0;
+      var currentPredictedNet = currentEstimate.valid ? Math.max(0, Number(currentEstimate.estimatedMonthWithOvertimeNet) || 0) : 0;
+      var comparisonDelta = currentActualNet - currentPredictedNet;
+      var comparisonPercent = currentPredictedNet > 0 ? Math.round((comparisonDelta / currentPredictedNet) * 100) : 0;
+      var comparisonTone = comparisonDelta < 0 ? ' is-lower' : ' is-higher';
+      var comparisonMarkup = '';
+      if (currentActualNet > 0 && currentPredictedNet > 0) {
+        comparisonMarkup = '<section class="salary-comparison-card' + comparisonTone + '">' +
+          '<div class="salary-comparison-head"><div><small>PREVISIONE E REALT&Agrave;</small><h2>Confronto del mese</h2></div><span>' + icons.activity + '</span></div>' +
+          '<div class="salary-comparison-values"><div><small>STIMATO</small><strong>' + formatSalaryEstimateMoney(currentPredictedNet) + '</strong></div><i></i><div><small>RICEVUTO</small><strong>' + formatSalaryEstimateMoney(currentActualNet) + '</strong></div></div>' +
+          '<div class="salary-comparison-result"><span>' + icons.arrowUp + '</span><div><strong>' + (comparisonDelta >= 0 ? '+' : '-') + formatMoneyEuro(Math.abs(comparisonDelta)) + '</strong><small>' + (comparisonDelta >= 0 ? '+' : '') + comparisonPercent + '% rispetto alla stima</small></div><button data-open-payslip="' + escapeHtml(currentMonthPayslip.id) + '">Apri cedolino ' + icons.right + '</button></div>' +
+        '</section>';
+      } else {
+        comparisonMarkup = '<section class="salary-comparison-card is-empty"><span class="salary-comparison-empty-icon">' + icons.receipt + '</span><div><small>PREVISIONE E REALT&Agrave;</small><h2>' + (currentActualNet > 0 ? 'Completa la stima' : 'Manca il cedolino del mese') + '</h2><p>' + (currentActualNet > 0 ? 'Configura il calcolo per confrontarlo con il netto ricevuto.' : 'Quando salvi il cedolino vedrai subito quanto la stima si avvicina al netto reale.') + '</p></div><button ' + (currentActualNet > 0 ? 'data-open-payslip-estimate="1"' : 'data-new-payslip="1"') + '>' + (currentActualNet > 0 ? 'Configura' : 'Aggiungi') + ' ' + icons.right + '</button></section>';
+      }
       var yearItems = items.filter(function (item) {
         return Number(item.year) === currentYear;
       });
@@ -1747,14 +1780,20 @@ function renderCalendar() {
       var trendText = yearMonths.length > 1
         ? ((trendValue >= 0 ? '+' : '-') + formatMoneyEuro(Math.abs(trendValue)))
         : '--';
+      var yearChartMarkup = yearMonths.length > 1
+        ? '<div class="salary-year-chart" aria-label="Andamento degli ultimi mesi">' + yearBars + '</div>'
+        : (yearMonths.length === 1
+          ? '<div class="salary-year-chart-note"><span>' + icons.activity + '</span><div><strong>Primo mese registrato</strong><small>Il trend comparir&agrave; dal prossimo cedolino.</small></div></div>'
+          : '<div class="salary-year-chart is-empty"><span></span><span></span><span></span><span></span><span></span><span></span></div>');
       return '<div class="salary-hub-page">' +
         '<header class="salary-hub-top"><div><span>FINANZE PERSONALI</span><h1>Stipendio</h1></div><span class="salary-hub-top-icon">' + icons.wallet + '</span></header>' +
         '<div class="stack payroll-stack salary-hub-stack">' +
           '<section class="salary-hub-hero"><div class="salary-hub-hero-head"><span class="salary-hub-wallet">' + icons.wallet + '</span><div><small>STIMA DI ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><h2>Netto previsto</h2></div><span class="salary-hub-month">' + escapeHtml(String(currentEstimateDate.getFullYear())) + '</span></div><strong class="salary-hub-estimate' + (currentEstimate.valid ? '' : ' is-setup') + '">' + currentEstimateValue + '</strong><p>' + escapeHtml(currentEstimateHint) + '</p><button data-open-payslip-estimate="1"><span>Apri il calcolo</span>' + icons.right + '</button></section>' +
+          comparisonMarkup +
           '<section class="salary-hub-actions" aria-label="Azioni stipendio"><button data-new-payslip="1"><span class="is-blue">' + icons.receipt + '</span><div><strong>Aggiungi</strong><small>Nuovo cedolino</small></div>' + icons.right + '</button><button data-open-payslip-stats="1"><span class="is-violet">' + icons.activity + '</span><div><strong>Statistiche</strong><small>Andamento netto</small></div>' + icons.right + '</button></section>' +
           '<section class="salary-year-card"><div class="salary-year-head"><div><small>QUEST\'ANNO</small><h2>' + annualLabel + '</h2></div><button data-open-payslip-stats="1">Analisi ' + icons.right + '</button></div>' +
             '<div class="salary-year-body"><div class="salary-year-total"><strong>' + annualValue + '</strong><span>' + (yearMonths.length ? (yearMonths.length + (yearMonths.length === 1 ? ' mese registrato' : ' mesi registrati')) : 'basata sulla configurazione attuale') + '</span></div>' +
-            (yearBars ? '<div class="salary-year-chart" aria-label="Andamento degli ultimi mesi">' + yearBars + '</div>' : '<div class="salary-year-chart is-empty"><span></span><span></span><span></span><span></span><span></span><span></span></div>') + '</div>' +
+            yearChartMarkup + '</div>' +
             '<div class="salary-year-metrics"><div><span>MEDIA MESE</span><strong>' + (yearMonths.length ? formatMoneyEuro(yearAverage) : '--') + '</strong></div><div><span>CEDOLINI</span><strong>' + yearItems.length + '</strong></div><div class="' + (trendValue < 0 ? 'is-down' : 'is-up') + '"><span>VARIAZIONE</span><strong>' + trendText + '</strong><small>' + trendLabel + '</small></div></div>' +
           '</section>' +
           '<button class="salary-archive-entry" data-open-payslip-archive="1"><span class="salary-archive-entry-icon">' + icons.history + '</span><span class="salary-archive-entry-copy"><small>DOCUMENTI</small><strong>Archivio cedolini</strong><em>' +
@@ -1924,7 +1963,8 @@ function renderCalendar() {
         '<div class="profile-subpage-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>DATI E ARCHIVIO</span><h1>Esporta dati</h1></div><i></i></div>' +
         '<section class="exports-hero"><span class="exports-hero-icon">' + icons.download + '</span><div><span>ARCHIVIO GESTORE</span><h2>I tuoi dati, nel formato giusto</h2><p>' + entriesCount + (entriesCount === 1 ? ' giornata registrata' : ' giornate registrate') + ' disponibili per l\'esportazione.</p></div></section>' +
         '<div class="settings-modern-section-title">Tutti i dati</div>' +
-        '<section class="exports-group"><button class="exports-row" data-export-csv="1"><span class="exports-row-icon is-green">' + icons.activity + '</span><span class="exports-row-copy"><strong>Esporta Excel</strong><small>Tutte le giornate e tutte le ore registrate</small></span><span class="exports-format">.CSV</span>' + icons.right + '</button></section>' +
+        '<section class="exports-group"><button class="exports-row" data-export-csv="1"><span class="exports-row-icon is-green">' + icons.activity + '</span><span class="exports-row-copy"><strong>Esporta Excel</strong><small>Tutte le giornate e tutte le ore registrate</small></span><span class="exports-format">.CSV</span>' + icons.right + '</button>' +
+          '<button class="exports-row" data-export-calendar="1"><span class="exports-row-icon is-blue">' + icons.calendar + '</span><span class="exports-row-copy"><strong>Calendario GestOre</strong><small>Importa giornate, ferie e riposi nel calendario</small></span><span class="exports-format">.ICS</span>' + icons.right + '</button></section>' +
         '<div class="settings-modern-section-title">Report PDF</div>' +
         '<section class="exports-group">' +
           '<button class="exports-row" data-export-report="1"><span class="exports-row-icon is-blue">' + icons.note + '</span><span class="exports-row-copy"><strong>' + monthLabel + ' ' + yearLabel + '</strong><small>Report completo del mese corrente</small></span><span class="exports-format">PDF</span>' + icons.right + '</button>' +
@@ -1952,12 +1992,43 @@ function renderCalendar() {
       var plannedTemplateDays = weeklyTemplate.filter(function (choice) { return choice !== null && choice !== undefined && choice !== ''; }).length;
       var templateStatus = plannedTemplateDays ? (plannedTemplateDays + ' giorni configurati') : 'Da configurare';
       var targetStatus = (Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h al giorno';
+      var homeSectionsEnabled = [
+        state.settingsDraft.homeShowQuickActions,
+        state.settingsDraft.homeShowActionCenter,
+        state.settingsDraft.homeShowWeeklyAnalytics,
+        state.settingsDraft.homeShowMonthlyAnalytics,
+        state.settingsDraft.homeShowSalaryPreview
+      ].filter(Boolean).length;
       var topBar = function (title, isDetail) {
         return '<div class="settings-v2-top"><button ' + (isDetail ? 'data-back-settings="1"' : 'data-back-profile="1"') + ' aria-label="Torna al profilo">' + icons.left + '</button><div><span>IMPOSTAZIONI</span><h1>' + title + '</h1></div><i></i></div>';
       };
       var intro = function (tone, icon, kicker, title, copy) {
         return '<section class="settings-detail-intro is-' + tone + '"><span class="settings-detail-intro-icon">' + icon + '</span><div><span>' + kicker + '</span><h2>' + title + '</h2><p>' + copy + '</p></div></section>';
       };
+
+      if (section === 'home') {
+        var homeOption = function (key, tone, icon, title, copy) {
+          var enabled = Boolean(state.settingsDraft[key]);
+          return '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-' + tone + '">' + icon + '</span><span class="settings-v2-copy"><strong>' + title + '</strong><small>' + copy + '</small></span><button class="toggle-btn ' + (enabled ? 'on' : '') + '" data-toggle-home-section="' + key + '" aria-label="' + title + '" aria-pressed="' + (enabled ? 'true' : 'false') + '"><span class="knob"></span></button></div>';
+        };
+        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
+          topBar('Personalizza Home', true) +
+          intro('blue', icons.home, 'LA TUA DASHBOARD', 'Mostra solo quello che serve', 'Scegli i riepiloghi visibili. La card della giornata resta sempre al primo posto.') +
+          '<div class="settings-v2-section-title">Blocchi della Home</div>' +
+          '<section class="settings-v2-group home-layout-settings">' +
+            homeOption('homeShowQuickActions', 'green', icons.clock, 'Azioni rapide', 'Turno abituale, ferie e stipendio in un tocco') +
+            '<div class="settings-v2-divider"></div>' +
+            homeOption('homeShowActionCenter', 'blue', icons.check, 'Da completare', 'Giornate mancanti, cedolino e sync in attesa') +
+            '<div class="settings-v2-divider"></div>' +
+            homeOption('homeShowWeeklyAnalytics', 'violet', icons.activity, 'Ritmo settimanale', 'Ore, obiettivo e andamento dei sette giorni') +
+            '<div class="settings-v2-divider"></div>' +
+            homeOption('homeShowMonthlyAnalytics', 'blue', icons.target, 'Composizione del mese', 'Ordinarie, straordinari e media giornaliera') +
+            '<div class="settings-v2-divider"></div>' +
+            homeOption('homeShowSalaryPreview', 'violet', icons.wallet, 'Anteprima stipendio', 'Netto stimato e confronto con il cedolino') +
+          '</section>' +
+          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>Queste preferenze cambiano soltanto la Home. Nessun dato registrato viene modificato.</p></div>' +
+        '</div>';
+      }
 
       if (section === 'profile') {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
@@ -2098,6 +2169,7 @@ function renderCalendar() {
         '<section class="settings-hub-hero"><span class="settings-hub-hero-icon">' + icons.settings + '</span><div><span>CENTRO DI CONTROLLO</span><h2>Tutto al suo posto</h2><p>Ogni preferenza ha ora una sezione dedicata.</p></div><b>v' + escapeHtml(state.settings.version) + '</b></section>' +
         '<div class="settings-v2-section-title">Preferenze personali</div>' +
         '<section class="settings-hub-group">' +
+          '<button class="settings-hub-row" data-open-settings-section="home"><span class="settings-v2-icon is-violet">' + icons.home + '</span><span class="settings-v2-copy"><strong>Personalizza Home</strong><small>Scegli riepiloghi, scorciatoie e anteprima stipendio</small></span><span class="settings-hub-value">' + homeSectionsEnabled + ' blocchi</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong><small>Nome, target giornaliero e settimanale</small></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="calendar"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Calendario di lavoro</strong><small>Giorni attivi, riposi e festivit&agrave;</small></span><span class="settings-hub-value">' + workdays.length + ' giorni</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="shifts"><span class="settings-v2-icon is-green">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Turni rapidi</strong><small>Orari e pause che usi pi&ugrave; spesso</small></span><span class="settings-hub-value">' + escapeHtml(shiftStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
@@ -2137,25 +2209,120 @@ function renderCalendar() {
       }).join('') + '</div></nav>';
     }
 
+    function renderActiveScreen(switchClass) {
+      var screens = {
+        home: { className: 'home-screen', render: renderHome },
+        calendar: { className: 'calendar-screen', render: renderCalendar },
+        stats: { className: 'stats-screen', render: renderStats },
+        vacations: { className: 'vacations-screen', render: renderVacationScreen },
+        profile: { className: 'profile-screen', render: renderProfile },
+        payslips: { className: 'payslips-screen', render: renderPayslips },
+        exports: { className: 'exports-screen', render: renderExports },
+        settings: { className: 'settings-screen', render: renderSettings }
+      };
+      var active = screens[state.activeTab] || screens.home;
+      return '<section class="screen ' + active.className + ' active' + switchClass + '" data-go-screen="' + escapeHtml(state.activeTab || 'home') + '">' + active.render() + '</section>';
+    }
+
+    function captureRenderPosition(app) {
+      var screen = app.querySelector('.screen.active');
+      var active = document.activeElement;
+      var focus = null;
+      if (active && app.contains(active) && /^(INPUT|TEXTAREA|SELECT)$/.test(String(active.tagName || ''))) {
+        focus = {
+          id: String(active.id || ''),
+          name: String(active.getAttribute('name') || ''),
+          tag: String(active.tagName || '').toLowerCase(),
+          start: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+          end: typeof active.selectionEnd === 'number' ? active.selectionEnd : null
+        };
+      }
+      return {
+        tab: screen ? String(screen.getAttribute('data-go-screen') || '') : '',
+        scrollTop: screen ? screen.scrollTop : 0,
+        focus: focus
+      };
+    }
+
+    function restoreRenderPosition(saved, screen) {
+      if (!saved || !screen || saved.tab !== String(screen.getAttribute('data-go-screen') || '')) return;
+      screen.scrollTop = saved.scrollTop || 0;
+      if (!saved.focus) return;
+      var target = saved.focus.id ? document.getElementById(saved.focus.id) : null;
+      if (!target && saved.focus.name) {
+        target = screen.querySelector(saved.focus.tag + '[name="' + saved.focus.name.replace(/"/g, '\\"') + '"]');
+      }
+      if (!target || typeof target.focus !== 'function') return;
+      try { target.focus({ preventScroll: true }); } catch (error) { target.focus(); }
+      if (saved.focus.start !== null && typeof target.setSelectionRange === 'function') {
+        try { target.setSelectionRange(saved.focus.start, saved.focus.end); } catch (error) {}
+      }
+      screen.scrollTop = saved.scrollTop || 0;
+    }
+
+    function replaceMarkup(current, markup, app) {
+      if (current && current.__goMarkup === markup) return current;
+      var template = document.createElement('template');
+      template.innerHTML = markup.trim();
+      var next = template.content.firstElementChild;
+      if (!next) return current;
+      if (current) current.replaceWith(next);
+      else app.appendChild(next);
+      next.__goMarkup = markup;
+      return next;
+    }
+
+    function renderOverlayMarkup() {
+      return renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() +
+        (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') +
+        (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') +
+        (typeof renderStatsInsightOverlay === 'function' ? renderStatsInsightOverlay() : '') +
+        (typeof renderAccountGate === 'function' ? renderAccountGate() : '') +
+        (typeof renderPasskeyOverlay === 'function' ? renderPasskeyOverlay() : '') +
+        (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '') +
+        (typeof renderPlatformOverlays === 'function' ? renderPlatformOverlays() : '');
+    }
+
     function render() {
       var app = document.getElementById('app');
       if (!app) return;
+      var savedPosition = captureRenderPosition(app);
       var switchClass = state.tabSwitchFx ? (' screen-switch screen-switch-' + (state.tabSwitchDir || 'forward')) : '';
       var showPrimaryNav = ['home', 'calendar', 'stats', 'vacations', 'payslips'].indexOf(state.activeTab) !== -1;
-      app.innerHTML =
-        '<div id="goA11yStatus" class="go-sr-only" aria-live="polite" aria-atomic="true"></div>' +
-        '<section class="screen home-screen ' + (state.activeTab === 'home' ? ('active' + switchClass) : '') + '">' + renderHome() + '</section>' +
-        '<section class="screen calendar-screen ' + (state.activeTab === 'calendar' ? ('active' + switchClass) : '') + '">' + renderCalendar() + '</section>' +
-        '<section class="screen stats-screen ' + (state.activeTab === 'stats' ? ('active' + switchClass) : '') + '">' + renderStats() + '</section>' +
-        '<section class="screen vacations-screen ' + (state.activeTab === 'vacations' ? ('active' + switchClass) : '') + '">' + renderVacationScreen() + '</section>' +
-        '<section class="screen profile-screen ' + (state.activeTab === 'profile' ? ('active' + switchClass) : '') + '">' + renderProfile() + '</section>' +
-        '<section class="screen payslips-screen ' + (state.activeTab === 'payslips' ? ('active' + switchClass) : '') + '">' + renderPayslips() + '</section>' +
-        '<section class="screen exports-screen ' + (state.activeTab === 'exports' ? ('active' + switchClass) : '') + '">' + renderExports() + '</section>' +
-        '<section class="screen settings-screen ' + (state.activeTab === 'settings' ? ('active' + switchClass) : '') + '">' + renderSettings() + '</section>' +
-        (showPrimaryNav ? renderNav() : '') + renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') + (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') + (typeof renderStatsInsightOverlay === 'function' ? renderStatsInsightOverlay() : '') + (typeof renderAccountGate === 'function' ? renderAccountGate() : '') + (typeof renderPasskeyOverlay === 'function' ? renderPasskeyOverlay() : '') + (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '') + (typeof renderPlatformOverlays === 'function' ? renderPlatformOverlays() : '');
+
+      var status = document.getElementById('goA11yStatus');
+      if (!status) {
+        app.insertAdjacentHTML('afterbegin', '<div id="goA11yStatus" class="go-sr-only" aria-live="polite" aria-atomic="true"></div>');
+      }
+
+      var screen = replaceMarkup(app.querySelector('.screen[data-go-screen]'), renderActiveScreen(switchClass), app);
+      var nav = app.querySelector('.bottom-nav');
+      if (showPrimaryNav) {
+        nav = replaceMarkup(nav, renderNav(), app);
+      } else if (nav) {
+        nav.remove();
+      }
+
+      var overlayHost = document.getElementById('goOverlayHost');
+      if (!overlayHost) {
+        overlayHost = document.createElement('div');
+        overlayHost.id = 'goOverlayHost';
+        overlayHost.style.display = 'contents';
+        app.appendChild(overlayHost);
+      }
+      var overlayMarkup = renderOverlayMarkup();
+      if (overlayHost.__goMarkup !== overlayMarkup) {
+        overlayHost.innerHTML = overlayMarkup;
+        overlayHost.__goMarkup = overlayMarkup;
+      }
+
       bindEvents();
       if (typeof bindAccountEvents === 'function') bindAccountEvents();
       if (typeof bindPlatformEvents === 'function') bindPlatformEvents();
-      initHomeTitleMorph();
+      if (state.activeTab === 'home') initHomeTitleMorph();
+      restoreRenderPosition(savedPosition, screen);
+      if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(function () { restoreRenderPosition(savedPosition, screen); });
+      }
       state.tabSwitchFx = false;
     }
