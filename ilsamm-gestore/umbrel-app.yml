@@ -4,7 +4,7 @@ name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.6.1"
+version: "1.6.2"
 port: 8080
 
 description: >-
@@ -12,10 +12,10 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iPhone.
 
 releaseNotes: >-
-  GestOre 1.6.1 rinnova il Calendario con viste Mese e Agenda, dettaglio
-  del giorno selezionato, riepilogo mensile compatto e filtri raccolti
-  negli strumenti. Il primo tocco mostra il riepilogo senza aprire
-  l'editor, mantenendo intatti dati, nav e funzioni avanzate.
+  GestOre 1.6.2 riallinea il nuovo Calendario allo stile originale
+  dell'app: superfici blu navy, accenti viola coerenti, celle piu pulite
+  e card meno invasive. Le viste Mese e Agenda restano disponibili senza
+  modificare dati, nav o funzioni avanzate.
 
 developer: IlSamm
 website: ""
