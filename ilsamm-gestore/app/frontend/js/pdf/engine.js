@@ -8,12 +8,17 @@
     pageGlow: '#09142d',
     panel: '#0b1429',
     panelStrong: '#101d3b',
-    panelSoft: '#111a31',
-    panelAlt: '#0d172c',
-    border: '#263965',
-    borderSoft: '#1a2948',
+    panelSoft: '#0e1830',
+    panelAlt: '#0a1326',
+    header: '#101e3d',
+    headerSoft: '#14284d',
+    headerPanel: '#172f59',
+    border: '#293d6d',
+    borderSoft: '#1a2a4b',
     text: '#f8fafc',
+    textOnDark: '#f8fafc',
     muted: '#93a4c3',
+    mutedOnDark: '#a9b8cf',
     faint: '#60708f',
     blue: '#58b9ff',
     blueStrong: '#5f82ff',
@@ -150,14 +155,45 @@
       roundedRect(page, x, top, diameter, diameter, diameter / 2, color, null, 0);
     }
 
+    function circle(page, centerX, centerTop, radius, fill, stroke, lineWidth) {
+      var r = Math.max(0, Number(radius) || 0);
+      var cx = Number(centerX) || 0;
+      var cy = PAGE_H - (Number(centerTop) || 0);
+      var c = r * 0.5522847498;
+      var parts = [];
+      if (fill) parts.push(colorCommand('rg', fill));
+      if (stroke) parts.push(colorCommand('RG', stroke), number(lineWidth || 1) + ' w');
+      parts.push(
+        number(cx + r) + ' ' + number(cy) + ' m',
+        number(cx + r) + ' ' + number(cy + c) + ' ' + number(cx + c) + ' ' + number(cy + r) + ' ' + number(cx) + ' ' + number(cy + r) + ' c',
+        number(cx - c) + ' ' + number(cy + r) + ' ' + number(cx - r) + ' ' + number(cy + c) + ' ' + number(cx - r) + ' ' + number(cy) + ' c',
+        number(cx - r) + ' ' + number(cy - c) + ' ' + number(cx - c) + ' ' + number(cy - r) + ' ' + number(cx) + ' ' + number(cy - r) + ' c',
+        number(cx + c) + ' ' + number(cy - r) + ' ' + number(cx + r) + ' ' + number(cy - c) + ' ' + number(cx + r) + ' ' + number(cy) + ' c',
+        'h',
+        fill && stroke ? 'B' : (fill ? 'f' : 'S')
+      );
+      page.commands.push(parts.join('\n'));
+    }
+
+    function polyline(page, points, color, lineWidth) {
+      var source = Array.isArray(points) ? points : [];
+      if (source.length < 2) return;
+      var parts = [colorCommand('RG', color || colors.blueStrong), number(lineWidth || 1) + ' w'];
+      source.forEach(function (point, index) {
+        parts.push(number(point[0]) + ' ' + pdfY(point[1]) + ' ' + (index ? 'l' : 'm'));
+      });
+      parts.push('S');
+      page.commands.push(parts.join('\n'));
+    }
+
     function createPage() {
       var page = { commands: [] };
       pages.push(page);
       rect(page, 0, 0, PAGE_W, PAGE_H, colors.page, null, 0);
-      rect(page, 0, 0, PAGE_W, 154, colors.pageGlow, null, 0);
-      rect(page, 0, 0, PAGE_W * .44, 3.5, colors.blue, null, 0);
-      rect(page, PAGE_W * .44, 0, PAGE_W * .34, 3.5, colors.blueStrong, null, 0);
-      rect(page, PAGE_W * .78, 0, PAGE_W * .22, 3.5, colors.purple, null, 0);
+      rect(page, 0, 0, PAGE_W, 170, colors.pageGlow, null, 0);
+      rect(page, 0, 0, PAGE_W * .42, 4, colors.blue, null, 0);
+      rect(page, PAGE_W * .42, 0, PAGE_W * .36, 4, colors.blueStrong, null, 0);
+      rect(page, PAGE_W * .78, 0, PAGE_W * .22, 4, colors.purple, null, 0);
       return page;
     }
 
@@ -203,6 +239,8 @@
       textRight: textRight,
       textCenter: textCenter,
       dot: dot,
+      circle: circle,
+      polyline: polyline,
       buildBlob: buildBlob
     };
   }
@@ -221,21 +259,22 @@
     return truncate(String(settings.userName || 'Profilo personale').trim() || 'Profilo personale', 24);
   }
 
-  function drawBrand(pdf, page, x, top, size) {
+  function drawBrand(pdf, page, x, top, size, onDark) {
     var name = safeText((state && state.settings && state.settings.appName) || 'GestOre');
+    var baseColor = onDark ? colors.textOnDark : colors.text;
     if (name.toLowerCase() !== 'gestore') {
-      pdf.text(page, name, x, top, size, 'F2', colors.text);
+      pdf.text(page, name, x, top, size, 'F2', baseColor);
       return;
     }
-    pdf.text(page, 'Gest', x, top, size, 'F2', colors.text);
+    pdf.text(page, 'Gest', x, top, size, 'F2', baseColor);
     pdf.text(page, 'Ore', x + textWidth('Gest', size, 'F2') - 1, top, size, 'F2', colors.blue);
   }
 
   function drawFooter(pdf, page, pageIndex, pageCount, reportLabel) {
-    pdf.line(page, 28, 805, PAGE_W - 28, 805, colors.borderSoft, 0.8);
-    drawBrand(pdf, page, 28, 823, 9);
-    pdf.text(page, reportLabel + '  |  Generato il ' + todayLabel(), 78, 823, 7.5, 'F1', colors.faint);
-    pdf.textRight(page, 'Pagina ' + pageIndex + ' / ' + pageCount, PAGE_W - 28, 823, 7.5, 'F1', colors.faint);
+    pdf.line(page, 28, 808, PAGE_W - 28, 808, colors.borderSoft, 0.8);
+    drawBrand(pdf, page, 28, 826, 9, false);
+    pdf.text(page, reportLabel + '  |  Generato il ' + todayLabel(), 78, 826, 7.2, 'F1', colors.faint);
+    pdf.textRight(page, 'Pagina ' + pageIndex + ' / ' + pageCount, PAGE_W - 28, 826, 7.2, 'F1', colors.faint);
   }
 
   function drawMetric(pdf, page, x, top, width, label, value, accent, meta) {
