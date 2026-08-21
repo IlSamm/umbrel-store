@@ -45,6 +45,7 @@ var state = {
       calendarFilter: 'all',
       calendarView: 'month',
       calendarSelectedDate: toISODate(new Date()),
+      calendarDetailOpen: false,
       editingDate: null,
       draft: null,
       typeOpen: false,

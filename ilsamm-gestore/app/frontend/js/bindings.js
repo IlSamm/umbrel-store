@@ -889,12 +889,14 @@ function bindEvents() {
         var now = new Date();
         state.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         state.calendarSelectedDate = toISODate(now);
+        state.calendarDetailOpen = true;
         render();
       };
       var calPrev = document.querySelector('[data-calendar-prev]');
       if (calPrev) calPrev.onclick = function () {
         state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() - 1, 1);
         state.calendarSelectedDate = toISODate(state.currentMonth);
+        state.calendarDetailOpen = false;
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
@@ -906,6 +908,7 @@ function bindEvents() {
       if (calNext) calNext.onclick = function () {
         state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + 1, 1);
         state.calendarSelectedDate = toISODate(state.currentMonth);
+        state.calendarDetailOpen = false;
         state.calendarSelectionMode = false;
         state.calendarSelectedDates = [];
         state.calendarBulkDialogOpen = false;
@@ -923,6 +926,7 @@ function bindEvents() {
           var nextFilter = btn.dataset.calendarFilter;
           if (['all', 'work', 'absence', 'rest'].indexOf(nextFilter) === -1) return;
           state.calendarFilter = nextFilter;
+          state.calendarDetailOpen = false;
           if (btn.closest('.calendar-actions-dialog')) state.calendarActionsOpen = false;
           render();
         };
@@ -932,6 +936,7 @@ function bindEvents() {
           var nextView = btn.dataset.calendarView;
           if (nextView !== 'month' && nextView !== 'agenda') return;
           state.calendarView = nextView;
+          state.calendarDetailOpen = false;
           if (nextView === 'agenda') state.calendarSelectionMode = false;
           render();
         };
@@ -941,12 +946,40 @@ function bindEvents() {
           var date = parseLocalDateKey(btn.dataset.calendarPickDate);
           if (!date) return;
           state.calendarSelectedDate = toISODate(date);
+          state.calendarDetailOpen = true;
           if (date.getFullYear() !== state.currentMonth.getFullYear() || date.getMonth() !== state.currentMonth.getMonth()) {
             state.currentMonth = new Date(date.getFullYear(), date.getMonth(), 1);
           }
           render();
         };
       });
+      document.querySelectorAll('[data-close-calendar-detail]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.calendarDetailOpen = false;
+          render();
+        };
+      });
+      var calendarSwipeTarget = document.querySelector('.calendar-v2-month-card');
+      if (calendarSwipeTarget && !state.calendarSelectionMode) {
+        var calendarTouchStart = null;
+        calendarSwipeTarget.addEventListener('touchstart', function (event) {
+          if (!event.touches || event.touches.length !== 1) return;
+          calendarTouchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+        }, { passive: true });
+        calendarSwipeTarget.addEventListener('touchend', function (event) {
+          if (!calendarTouchStart || !event.changedTouches || event.changedTouches.length !== 1) return;
+          var dx = event.changedTouches[0].clientX - calendarTouchStart.x;
+          var dy = event.changedTouches[0].clientY - calendarTouchStart.y;
+          calendarTouchStart = null;
+          if (Math.abs(dx) < 55 || Math.abs(dx) <= Math.abs(dy) * 1.35) return;
+          var monthOffset = dx < 0 ? 1 : -1;
+          state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth() + monthOffset, 1);
+          state.calendarSelectedDate = toISODate(state.currentMonth);
+          state.calendarDetailOpen = false;
+          state.calendarSelectedDates = [];
+          render();
+        }, { passive: true });
+      }
       var calendarSelectionToggle = document.querySelector('[data-toggle-calendar-selection]');
       if (calendarSelectionToggle) calendarSelectionToggle.onclick = function () {
         if (state.calendarSelectionMode) stopCalendarSelection();

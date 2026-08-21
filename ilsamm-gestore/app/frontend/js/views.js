@@ -484,7 +484,7 @@ function getCalendarSelectedDateKey(month) {
         : '<div><span>Copertura</span><strong>' + (breakdown.covered ? formatDuration(breakdown.covered) : '--') + '</strong></div><div><span>Stato</span><strong>' + escapeHtml(visual.label) + '</strong></div>';
       var actionLabel = isStored ? 'Modifica' : (entry ? 'Personalizza' : 'Inserisci');
       return '<section class="calendar-day-focus ' + visual.className + '" style="--calendar-accent:' + visual.color + '">' +
-        '<div class="calendar-day-focus-head"><div><small>GIORNO SELEZIONATO</small><h2>' + escapeHtml(dateLabel) + '</h2></div><span class="calendar-day-type-pill"><i></i>' + escapeHtml(visual.label) + '</span></div>' +
+        '<div class="calendar-day-focus-head"><div><small>GIORNO SELEZIONATO</small><h2>' + escapeHtml(dateLabel) + '</h2></div><div class="calendar-day-focus-head-actions"><span class="calendar-day-type-pill"><i></i>' + escapeHtml(visual.label) + '</span><button class="calendar-day-focus-close" data-close-calendar-detail="1" aria-label="Chiudi dettaglio">' + icons.x + '</button></div></div>' +
         '<div class="calendar-day-focus-main"><span class="calendar-day-focus-icon">' + visual.icon + '</span><div class="calendar-day-focus-copy"><strong>' + primaryValue + '</strong><span>' + getCalendarEntryTimeLabel(entry, dateKey) + '</span></div><button data-open-date="' + dateKey + '">' + actionLabel + icons.right + '</button></div>' +
         '<div class="calendar-day-focus-metrics">' + metrics + '</div>' +
       '</section>';
@@ -497,6 +497,7 @@ function getCalendarSelectedDateKey(month) {
       if (!rows.length) {
         return '<section class="calendar-agenda-empty"><span>' + icons.calendar + '</span><strong>Nessuna giornata da mostrare</strong><p>Modifica il filtro oppure inserisci una nuova giornata dal calendario.</p></section>';
       }
+      var previousWeekKey = '';
       return '<section class="calendar-agenda-card"><div class="calendar-agenda-head"><div><small>AGENDA DEL MESE</small><strong>' + rows.length + (rows.length === 1 ? ' giornata' : ' giornate') + '</strong></div><span>Seleziona per il dettaglio</span></div><div class="calendar-agenda-list">' + rows.map(function (pair) {
         var key = pair[0];
         var entry = pair[1];
@@ -507,7 +508,19 @@ function getCalendarSelectedDateKey(month) {
         var weekday = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(date).replace('.', '').slice(0, 3);
         var monthLabel = new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(date).replace('.', '');
         var value = minutes ? formatDuration(minutes) : (entry.type === 'riposo' ? 'Riposo' : '--');
-        return '<button class="calendar-agenda-row ' + visual.className + ' ' + (key === selectedKey ? 'is-selected' : '') + '" style="--calendar-accent:' + visual.color + '" data-calendar-pick-date="' + key + '">' +
+        var weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - mondayIndex(date.getDay()));
+        var weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        var weekKey = toISODate(weekStart);
+        var weekHeading = '';
+        if (weekKey !== previousWeekKey) {
+          previousWeekKey = weekKey;
+          var weekStartLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short' }).format(weekStart).replace('.', '');
+          var weekEndLabel = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short' }).format(weekEnd).replace('.', '');
+          weekHeading = '<div class="calendar-agenda-week"><span>Settimana</span><strong>' + escapeHtml(weekStartLabel + ' - ' + weekEndLabel) + '</strong></div>';
+        }
+        return weekHeading + '<button class="calendar-agenda-row ' + visual.className + ' ' + (state.calendarDetailOpen && key === selectedKey ? 'is-selected' : '') + '" style="--calendar-accent:' + visual.color + '" data-calendar-pick-date="' + key + '">' +
           '<span class="calendar-agenda-date"><strong>' + date.getDate() + '</strong><small>' + escapeHtml(monthLabel) + '</small></span>' +
           '<span class="calendar-agenda-icon">' + visual.icon + '</span>' +
           '<span class="calendar-agenda-copy"><small>' + escapeHtml(weekday) + '</small><strong>' + escapeHtml(visual.label) + '</strong><em>' + getCalendarEntryTimeLabel(entry, key) + '</em></span>' +
@@ -525,6 +538,7 @@ function getCalendarSelectedDateKey(month) {
       var calendarFilter = allowedFilters.indexOf(state.calendarFilter) !== -1 ? state.calendarFilter : 'all';
       var calendarView = state.calendarView === 'agenda' ? 'agenda' : 'month';
       var selectedKey = getCalendarSelectedDateKey(state.currentMonth);
+      var detailOpen = Boolean(state.calendarDetailOpen);
       var selectedDates = Array.isArray(state.calendarSelectedDates) ? state.calendarSelectedDates : [];
       var filterCounts = getMonthEntries(state.currentMonth).reduce(function (counts, pair) {
         var group = getCalendarEntryGroup(pair[1]);
@@ -550,7 +564,7 @@ function getCalendarSelectedDateKey(month) {
           var entryGroup = getCalendarEntryGroup(entry);
           var isFilteredOut = entry && calendarFilter !== 'all' && entryGroup !== calendarFilter;
           var isBulkSelected = selectedDates.indexOf(key) !== -1;
-          var isFocused = !state.calendarSelectionMode && key === selectedKey;
+          var isFocused = detailOpen && !state.calendarSelectionMode && key === selectedKey;
           var visual = getCalendarTypeVisual(entry);
           var actionAttribute = state.calendarSelectionMode ? 'data-calendar-select-date' : 'data-calendar-pick-date';
           var typeLabel = entry ? visual.label : 'non compilato';
@@ -560,17 +574,16 @@ function getCalendarSelectedDateKey(month) {
           '<div class="mini center"><div class="big">' + formatDuration(stats.totalMinutes) + '</div><div class="small muted">Ore mese</div></div>' +
           '<div class="mini center"><div class="big">' + recordedDays + '</div><div class="small muted">Giorni segnati</div></div>' +
         '</div></div></section>' +
-        renderCalendarDayFocus(selectedKey) +
-        '<section class="card calendar-v2-legend-card"><div class="card-body"><div class="section-title" style="margin-top:0">Legenda</div><div class="legend-grid">' +
+        (detailOpen ? renderCalendarDayFocus(selectedKey) : '') +
+        '<details class="card calendar-v2-legend-card"><summary><span>Legenda</span>' + icons.right + '</summary><div class="calendar-v2-legend-body"><div class="legend-grid">' +
           Object.keys(dayTypes).map(function (key) { return '<div class="legend-item"><span class="legend-dot" style="background:' + dayTypes[key].dot + '"></span><span>' + dayTypes[key].label + '</span></div>'; }).join('') +
-        '</div></div></section>' +
-        '<button class="calendar-advanced-link" data-open-calendar-actions="1">' + icons.settings + '<span><strong>Gestisci calendario</strong><small>Selezione, copia settimana e pianificazione</small></span>' + icons.right + '</button>';
+        '</div></div></details>';
       var selectionToolbar = typeof renderCalendarSelectionToolbar === 'function' ? renderCalendarSelectionToolbar() : '';
       var content = calendarView === 'agenda'
-        ? renderCalendarDayFocus(selectedKey) + renderCalendarAgenda(state.currentMonth, calendarFilter, selectedKey) + '<button class="calendar-advanced-link" data-open-calendar-actions="1">' + icons.settings + '<span><strong>Gestisci calendario</strong><small>Selezione, copia settimana e pianificazione</small></span>' + icons.right + '</button>'
+        ? (detailOpen ? renderCalendarDayFocus(selectedKey) : '') + renderCalendarAgenda(state.currentMonth, calendarFilter, selectedKey)
         : monthContent;
       return '<div class="month-page-top calendar-v2-header"><div><span>GESTIONE MENSILE</span><h1>Calendario</h1></div><div class="month-page-switch"><button data-calendar-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-calendar-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
-        '<div class="calendar-v2-view-row"><div class="calendar-view-switch" role="group" aria-label="Vista calendario"><button data-calendar-view="month" class="' + (calendarView === 'month' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'month') + '">Mese</button><button data-calendar-view="agenda" class="' + (calendarView === 'agenda' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'agenda') + '">Agenda</button></div><button class="calendar-v2-today" data-calendar-today="1">Oggi</button></div>' +
+        '<div class="calendar-v2-view-row"><div class="calendar-view-switch" role="group" aria-label="Vista calendario"><button data-calendar-view="month" class="' + (calendarView === 'month' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'month') + '">Mese</button><button data-calendar-view="agenda" class="' + (calendarView === 'agenda' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'agenda') + '">Agenda</button></div><div class="calendar-v2-top-actions"><button class="calendar-v2-today" data-calendar-today="1">Oggi</button><button class="calendar-v2-manage" data-open-calendar-actions="1" aria-label="Gestisci calendario">' + icons.settings + '</button></div></div>' +
         '<div class="stack calendar-v2-stack">' +
           (state.monthPlanNotice ? '<div class="calendar-plan-notice" role="status">' + escapeHtml(state.monthPlanNotice) + '</div>' : '') +
           '<div class="calendar-filter-bar calendar-v2-filter-bar" role="group" aria-label="Filtra giornate">' + calendarFilterHtml + '</div>' + selectionToolbar + content +

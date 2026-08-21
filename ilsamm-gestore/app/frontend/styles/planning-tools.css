@@ -195,50 +195,6 @@
   background: rgba(26, 151, 118, .1);
 }
 
-.calendar-advanced-link {
-  display: grid;
-  width: 100%;
-  min-height: 54px;
-  grid-template-columns: 30px minmax(0, 1fr) 16px;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  color: rgba(203, 216, 246, .68);
-  text-align: left;
-  border: 1px solid rgba(113, 143, 207, .13);
-  border-radius: 18px;
-  background: rgba(8, 15, 35, .48);
-}
-
-.calendar-advanced-link > svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-}
-
-.calendar-advanced-link > svg:last-child {
-  width: 15px;
-  color: rgba(180, 197, 232, .38);
-}
-
-.calendar-advanced-link > span {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.calendar-advanced-link strong {
-  color: rgba(233, 239, 255, .84);
-  font-size: 11px;
-}
-
-.calendar-advanced-link small {
-  color: rgba(170, 187, 222, .48);
-  font-size: 8px;
-}
-
 .calendar-grid .cell.is-selected {
   color: #fff;
   background: linear-gradient(145deg, rgba(48, 139, 255, .54), rgba(132, 76, 245, .52));

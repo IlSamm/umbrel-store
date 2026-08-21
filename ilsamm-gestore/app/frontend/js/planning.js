@@ -163,6 +163,7 @@ function renderMonthPlanDialog() {
 function startCalendarSelection() {
   state.calendarActionsOpen = false;
   state.calendarView = 'month';
+  state.calendarDetailOpen = false;
   state.calendarSelectionMode = true;
   state.calendarSelectedDates = [];
   state.calendarBulkDialogOpen = false;
@@ -456,27 +457,11 @@ function closeCalendarActions() {
 function renderCalendarActionsDialog() {
   if (!state.calendarActionsOpen) return '';
   var preview = getMonthlyTemplatePreview(state.currentMonth);
-  var activeFilter = ['all', 'work', 'absence', 'rest'].indexOf(state.calendarFilter) !== -1 ? state.calendarFilter : 'all';
-  var filterCounts = getMonthEntries(state.currentMonth).reduce(function (counts, pair) {
-    var group = getCalendarEntryGroup(pair[1]);
-    counts.all += 1;
-    if (group) counts[group] += 1;
-    return counts;
-  }, { all: 0, work: 0, absence: 0, rest: 0 });
-  var filters = [
-    { key: 'all', label: 'Tutte' },
-    { key: 'work', label: 'Lavoro' },
-    { key: 'absence', label: 'Assenze' },
-    { key: 'rest', label: 'Riposi' }
-  ].map(function (item) {
-    return '<button data-calendar-filter="' + item.key + '" class="' + (activeFilter === item.key ? 'is-active' : '') + '" aria-pressed="' + (activeFilter === item.key) + '"><span>' + item.label + '</span><strong>' + filterCounts[item.key] + '</strong></button>';
-  }).join('');
   return '<div class="planning-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="calendarActionsTitle">' +
     '<section class="planning-dialog calendar-actions-dialog">' +
       '<button class="planning-dialog-close" data-close-calendar-actions="1" aria-label="Chiudi">' + icons.x + '</button>' +
       '<span class="planning-dialog-icon is-blue">' + icons.calendar + '</span><small>GESTIONE MESE</small><h2 id="calendarActionsTitle">Cosa vuoi fare?</h2>' +
       '<p>Le operazioni avanzate sono raccolte qui. I dati gia presenti non vengono mai sovrascritti senza conferma.</p>' +
-      '<div class="calendar-dialog-filter"><small>VISUALIZZA</small><div>' + filters + '</div></div>' +
       '<div class="calendar-actions-list">' +
         '<button data-toggle-calendar-selection="1"><span class="is-blue">' + icons.check + '</span><div><strong>Seleziona piu giorni</strong><small>Applica un turno, ferie, permesso o riposo</small></div>' + icons.right + '</button>' +
         '<button data-open-calendar-week-copy="1"><span class="is-violet">' + icons.activity + '</span><div><strong>Copia una settimana</strong><small>Riporta turni e riposi nella settimana successiva</small></div>' + icons.right + '</button>' +

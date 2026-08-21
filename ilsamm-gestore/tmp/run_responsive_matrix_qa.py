@@ -321,11 +321,22 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
               state.settingsSection='';
               state.calendarView='month';
               state.calendarFilter='all';
+              state.calendarDetailOpen=false;
               state.calendarSelectionMode=false;
               state.editingDate=null;
               state.draft=null;
               document.body.classList.remove('editor-open');
               render();
+              var legend=document.querySelector('.calendar-v2-legend-card');
+              var initial={
+                detailHidden:!document.querySelector('.calendar-day-focus'),
+                manageAtTop:!!document.querySelector('.calendar-v2-top-actions .calendar-v2-manage[data-open-calendar-actions]'),
+                oldBottomActionRemoved:!document.querySelector('.calendar-advanced-link'),
+                legendClosed:!!legend && !legend.open
+              };
+              if(legend) legend.open=true;
+              initial.legendOpens=!!legend && legend.open && !!legend.querySelector('.legend-grid');
+              if(legend) legend.open=false;
               var cell=document.querySelector('.calendar-grid .cell.has-entry:not(.out)');
               var key=cell && cell.dataset.calendarPickDate;
               if(cell) cell.click();
@@ -336,6 +347,11 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
                 focusVisible:!!document.querySelector('.calendar-day-focus'),
                 focusMatches:!!document.querySelector('.calendar-day-focus [data-open-date="'+key+'"]')
               };
+              var closeDetail=document.querySelector('[data-close-calendar-detail]');
+              if(closeDetail) closeDetail.click();
+              monthSelection.closesCleanly=!state.calendarDetailOpen && !document.querySelector('.calendar-day-focus');
+              var selectedCell=document.querySelector('[data-calendar-pick-date="'+key+'"]');
+              if(selectedCell) selectedCell.click();
               var edit=document.querySelector('.calendar-day-focus [data-open-date]');
               if(edit) edit.click();
               monthSelection.editorOpened=!!state.editingDate;
@@ -355,12 +371,26 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
                 active:state.calendarView==='agenda',
                 rows:agendaRows.length,
                 selected:!!agendaKey && state.calendarSelectedDate===agendaKey,
+                detailVisible:!!document.querySelector('.calendar-day-focus'),
+                grouped:document.querySelectorAll('.calendar-agenda-week').length>=1,
                 editorStayedClosed:!state.editingDate,
                 overflow:Math.max(0,document.documentElement.scrollWidth-document.documentElement.clientWidth)
               };
+              var calendarScreen=document.querySelector('.calendar-screen');
+              if(calendarScreen) calendarScreen.scrollTop=calendarScreen.scrollHeight;
+              var agendaCard=document.querySelector('.calendar-agenda-card');
+              var bottomNav=document.querySelector('.bottom-nav');
+              agenda.bottomClearance=!!agendaCard && !!bottomNav && agendaCard.getBoundingClientRect().bottom<=bottomNav.getBoundingClientRect().top-4;
               var tools=document.querySelector('[data-open-calendar-actions]');
               if(tools) tools.click();
-              var filterButton=document.querySelector('.calendar-dialog-filter [data-calendar-filter="absence"]');
+              var toolsCheck={
+                opens:state.calendarActionsOpen && !!document.querySelector('.calendar-actions-dialog'),
+                noDuplicateFilters:!document.querySelector('.calendar-dialog-filter'),
+                actions:document.querySelectorAll('.calendar-actions-list > button').length===3
+              };
+              var closeTools=document.querySelector('[data-close-calendar-actions]');
+              if(closeTools) closeTools.click();
+              var filterButton=document.querySelector('.calendar-v2-filter-bar [data-calendar-filter="absence"]');
               var filterVisible=!!filterButton;
               if(filterButton) filterButton.click();
               var filters={
@@ -371,10 +401,10 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
               };
               state.calendarFilter='all';
               render();
-              return {monthSelection:monthSelection,agenda:agenda,filters:filters};
+              return {initial:initial,monthSelection:monthSelection,agenda:agenda,tools:toolsCheck,filters:filters};
             })()"""
         )
-        evaluate("state.activeTab='calendar';state.calendarView='agenda';state.calendarFilter='all';render();")
+        evaluate("state.activeTab='calendar';state.calendarView='agenda';state.calendarFilter='all';state.calendarDetailOpen=false;render();")
         screenshot("calendar-agenda-393.png", 393, 852)
 
         platform_checks = evaluate(
@@ -578,12 +608,17 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             and platform_checks["pushLoaded"]
             and platform_checks["audit"]
             and platform_checks["auditRows"] >= 1
+            and all(calendar_checks["initial"].values())
             and all(calendar_checks["monthSelection"].values())
             and calendar_checks["agenda"]["active"]
             and calendar_checks["agenda"]["rows"] >= 1
             and calendar_checks["agenda"]["selected"]
+            and calendar_checks["agenda"]["detailVisible"]
+            and calendar_checks["agenda"]["grouped"]
             and calendar_checks["agenda"]["editorStayedClosed"]
             and calendar_checks["agenda"]["overflow"] == 0
+            and calendar_checks["agenda"]["bottomClearance"]
+            and all(calendar_checks["tools"].values())
             and all(calendar_checks["filters"].values())
             and all(navigation_checks.values())
             and nav_drag_start["dragging"]
