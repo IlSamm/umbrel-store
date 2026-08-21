@@ -49,7 +49,8 @@
       pdf.roundedRect(page, 417, 48, 126, 30, 15, C.panelSoft, C.borderSoft, 0.8);
       pdf.dot(page, 430, 58, 9, C.green);
       pdf.text(page, 'Generato ' + E.todayLabel(), 446, 68, 8, 'F1', C.muted);
-      pdf.textRight(page, 'Target ' + formatHourValue(state.settings.dailyTarget) + '/giorno', 541, 110, 8, 'F1', C.muted);
+      pdf.textRight(page, 'Profilo  ' + E.profileName(), 541, 96, 8, 'F2', C.text);
+      pdf.textRight(page, 'Target ' + formatHourValue(state.settings.dailyTarget) + '/giorno', 541, 114, 8, 'F1', C.muted);
     }
 
     function drawSummary(page) {
@@ -65,6 +66,7 @@
       });
       pdf.roundedRect(page, 28, 234, E.width - 56, 72, 18, C.panel, C.borderSoft, 0.8);
       pdf.text(page, 'COMPOSIZIONE DEL MESE', 45, 257, 8, 'F2', C.muted);
+      pdf.textRight(page, recordedDays + (recordedDays === 1 ? ' giornata' : ' giornate'), 550, 257, 7.5, 'F1', C.faint);
       [
         { label: 'Lavoro', value: stats.workedDays || 0, color: C.green },
         { label: 'Ferie', value: stats.ferie || 0, color: C.blue },
@@ -85,7 +87,7 @@
       E.drawBrand(pdf, page, 46, 59, 14);
       pdf.text(page, 'DETTAGLIO MENSILE', 135, 52, 7.5, 'F2', C.blue);
       pdf.text(page, formatMonthYear(reportMonth), 135, 75, 16, 'F2', C.text);
-      pdf.textRight(page, 'Continuazione', 541, 67, 8, 'F1', C.muted);
+      pdf.textRight(page, E.profileName() + '  |  Continuazione', 541, 67, 8, 'F1', C.muted);
     }
 
     function drawTable(page, pageRows, top, startIndex) {

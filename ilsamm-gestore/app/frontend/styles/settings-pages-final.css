@@ -93,6 +93,23 @@
   border-radius: 25px;
 }
 
+.settings-hub-page .settings-hub-hero {
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  min-height: 104px;
+  padding: 14px;
+}
+
+.settings-hub-page .settings-hub-hero-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 17px;
+}
+
+.settings-hub-page .settings-hub-hero-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
 .settings-hub-hero-icon,
 .settings-detail-intro-icon {
   display: grid;
@@ -184,6 +201,10 @@
   text-align: left;
   border: 0;
   background: transparent;
+}
+
+.settings-hub-page .settings-hub-row {
+  min-height: 66px;
 }
 
 .settings-hub-row + .settings-hub-row::before {

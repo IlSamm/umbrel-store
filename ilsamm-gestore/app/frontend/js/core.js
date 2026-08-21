@@ -78,8 +78,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.6.5',
-      build: '20260821b',
+      version: '1.6.6',
+      build: '20260821c',
       appName: 'GestOre'
     };
 
@@ -1413,11 +1413,17 @@ var errorBox = document.getElementById('errorBox');
       date.setDate(date.getDate() + (Number(amount) || 0));
       return toISODate(date).replace(/-/g, '');
     }
-    function exportCalendarIcs() {
+    function exportCalendarIcs(options) {
+      var config = options && typeof options === 'object' ? options : {};
+      var exportYear = Math.max(2000, Math.min(2100, Number(config.year) || state.currentMonth.getFullYear()));
+      var availableTypes = ['lavoro', 'lavoro_ferie', 'ferie', 'malattia', 'permesso', 'festivita_pagata', 'riposo'];
+      var selectedTypes = Array.isArray(config.types)
+        ? config.types.filter(function (type) { return availableTypes.indexOf(type) !== -1; })
+        : availableTypes.slice();
       var stamp = formatIcsTimestamp(new Date());
       var rows = Object.keys(state.entries || {}).sort().reduce(function (events, dateKey) {
         var entry = state.entries[dateKey];
-        if (!entry || typeof entry !== 'object') return events;
+        if (dateKey.slice(0, 4) !== String(exportYear) || !entry || typeof entry !== 'object' || selectedTypes.indexOf(entry.type) === -1) return events;
         var type = dayTypes[entry.type] || { label: entry.type || 'Giornata' };
         var breakdown = getBreakdown(entry);
         var dateValue = dateKey.replace(/-/g, '');
@@ -1460,13 +1466,14 @@ var errorBox = document.getElementById('errorBox');
       var calendar = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//GestOre//Calendario lavoro//IT',
+        'PRODID:-//GestOre//Calendario personale//IT',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
-        'X-WR-CALNAME:GestOre',
+        'X-WR-CALNAME:GestOre ' + exportYear,
         'X-WR-TIMEZONE:Europe/Rome'
       ].concat(rows).concat(['END:VCALENDAR', '']).join('\r\n');
-      downloadTextFile('GestOre_Calendario_' + state.currentMonth.getFullYear() + '.ics', calendar, 'text/calendar;charset=utf-8');
+      downloadTextFile('GestOre_Calendario_' + exportYear + '.ics', calendar, 'text/calendar;charset=utf-8');
+      return rows.length;
     }
     function exportTextReportLegacy() {
       var rows = getMonthEntries(state.currentMonth).sort(function (a, b) { return a[0].localeCompare(b[0]); }).map(function (pair) {

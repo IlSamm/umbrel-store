@@ -1347,7 +1347,53 @@ function bindEvents() {
       var csvBtn = document.querySelector('[data-export-csv]');
       if (csvBtn) csvBtn.onclick = exportCSV;
       var calendarExportBtn = document.querySelector('[data-export-calendar]');
-      if (calendarExportBtn) calendarExportBtn.onclick = exportCalendarIcs;
+      if (calendarExportBtn) calendarExportBtn.onclick = function () {
+        state.calendarExportYear = state.currentMonth.getFullYear();
+        state.calendarExportTypes = ['lavoro', 'lavoro_ferie', 'ferie', 'malattia', 'permesso', 'festivita_pagata', 'riposo'];
+        state.calendarExportOpen = true;
+        render();
+      };
+      document.querySelectorAll('[data-close-calendar-export]').forEach(function (btn) {
+        btn.onclick = function () {
+          state.calendarExportOpen = false;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-calendar-export-year]').forEach(function (btn) {
+        btn.onclick = function () {
+          var direction = Number(btn.dataset.calendarExportYear) || 0;
+          state.calendarExportYear = Math.max(2000, Math.min(2100, (Number(state.calendarExportYear) || state.currentMonth.getFullYear()) + direction));
+          render();
+        };
+      });
+      document.querySelectorAll('[data-calendar-export-type]').forEach(function (btn) {
+        btn.onclick = function () {
+          var type = btn.dataset.calendarExportType;
+          var available = ['lavoro', 'lavoro_ferie', 'ferie', 'malattia', 'permesso', 'festivita_pagata', 'riposo'];
+          if (available.indexOf(type) === -1) return;
+          var selected = Array.isArray(state.calendarExportTypes) ? state.calendarExportTypes.slice() : [];
+          var index = selected.indexOf(type);
+          if (index === -1) selected.push(type);
+          else selected.splice(index, 1);
+          state.calendarExportTypes = selected;
+          render();
+        };
+      });
+      var calendarExportAll = document.querySelector('[data-calendar-export-all]');
+      if (calendarExportAll) calendarExportAll.onclick = function () {
+        var allTypes = ['lavoro', 'lavoro_ferie', 'ferie', 'malattia', 'permesso', 'festivita_pagata', 'riposo'];
+        state.calendarExportTypes = Array.isArray(state.calendarExportTypes) && state.calendarExportTypes.length === allTypes.length ? [] : allTypes;
+        render();
+      };
+      var calendarExportConfirm = document.querySelector('[data-confirm-calendar-export]');
+      if (calendarExportConfirm) calendarExportConfirm.onclick = function () {
+        exportCalendarIcs({
+          year: Number(state.calendarExportYear) || state.currentMonth.getFullYear(),
+          types: Array.isArray(state.calendarExportTypes) ? state.calendarExportTypes.slice() : []
+        });
+        state.calendarExportOpen = false;
+        render();
+      };
       var repBtn = document.querySelector('[data-export-report]');
       if (repBtn) repBtn.onclick = exportReport;
       var repYearBtn = document.querySelector('[data-export-report-year]');

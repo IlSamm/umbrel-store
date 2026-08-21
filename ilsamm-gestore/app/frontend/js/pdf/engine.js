@@ -213,6 +213,11 @@
     return formatDuration(Math.max(0, Math.round(Number(minutes) || 0)));
   }
 
+  function profileName() {
+    var settings = state && state.settings ? state.settings : {};
+    return truncate(String(settings.userName || 'Profilo personale').trim() || 'Profilo personale', 24);
+  }
+
   function drawBrand(pdf, page, x, top, size) {
     var name = safeText((state && state.settings && state.settings.appName) || 'GestOre');
     if (name.toLowerCase() !== 'gestore') {
@@ -247,6 +252,7 @@
     textWidth: textWidth,
     createDocument: createDocument,
     duration: duration,
+    profileName: profileName,
     todayLabel: todayLabel,
     drawBrand: drawBrand,
     drawFooter: drawFooter,

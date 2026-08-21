@@ -298,6 +298,8 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             ("vacations", "vacations", ""),
             ("salary", "payslips", ""),
             ("profile", "profile", ""),
+            ("settings", "settings", ""),
+            ("exports", "exports", ""),
             ("data", "settings", "data"),
             ("privacy", "settings", "privacy"),
         ]
@@ -311,8 +313,18 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
                 time.sleep(0.18)
                 result = measure_screen(f"{screen_name}-{width}")
                 results.append(result)
-                if width == 393 and screen_name in {"home", "calendar", "statistics", "vacations", "salary", "profile", "data", "privacy"}:
+                if width == 393 and screen_name in {"home", "calendar", "statistics", "vacations", "salary", "profile", "settings", "exports", "data", "privacy"}:
                     screenshot(f"{screen_name}-{width}.png", width, height)
+
+        set_viewport(393, 852)
+        evaluate(
+            "state.activeTab='exports';state.settingsSection='';state.calendarExportOpen=true;"
+            "state.calendarExportYear=new Date().getFullYear();render();"
+        )
+        time.sleep(0.18)
+        results.append(measure_screen("calendar-export-dialog-393"))
+        screenshot("calendar-export-dialog-393.png", 393, 852)
+        evaluate("state.calendarExportOpen=false;render();")
 
         set_viewport(393, 852)
         calendar_checks = evaluate(

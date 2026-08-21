@@ -36,7 +36,8 @@
     pdf.text(page, 'Report ' + reportYear.getFullYear(), 48, 116, 25, 'F2', C.text);
     pdf.roundedRect(page, 440, 49, 102, 30, 15, C.panelSoft, C.borderSoft, 0.8);
     pdf.textCenter(page, String(reportYear.getFullYear()), 440, 102, 69, 10, 'F2', C.text);
-    pdf.textRight(page, 'Generato il ' + E.todayLabel(), 541, 111, 8, 'F1', C.muted);
+    pdf.textRight(page, 'Profilo  ' + E.profileName(), 541, 98, 8, 'F2', C.text);
+    pdf.textRight(page, 'Generato il ' + E.todayLabel(), 541, 114, 8, 'F1', C.muted);
 
     var gap = 9;
     var metricWidth = (E.width - 56 - (gap * 3)) / 4;
@@ -100,6 +101,7 @@
     var tableW = E.width - 56;
     pdf.roundedRect(page, tableX, tableTop, tableW, 322, 18, C.panel, C.borderSoft, 0.8);
     pdf.text(page, 'RIEPILOGO DEI 12 MESI', tableX + 17, tableTop + 25, 8, 'F2', C.blue);
+    pdf.textRight(page, recordedDays + (recordedDays === 1 ? ' giornata' : ' giornate') + ' registrate', tableX + tableW - 17, tableTop + 25, 7.5, 'F1', C.faint);
     pdf.roundedRect(page, tableX + 12, tableTop + 36, tableW - 24, 24, 8, C.panelStrong, null, 0);
     [
       ['MESE', tableX + 24], ['GIORNI', tableX + 224], ['ORDINARIE', tableX + 310],

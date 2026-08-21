@@ -756,6 +756,7 @@ function getCalendarSelectedDateKey(month) {
       var availableTodayDays = hasAllowance ? ((allowanceMinutes - usedToDateMinutes) / balance.dailyMinutes) : 0;
       var plannedDays = plannedMinutes / balance.dailyMinutes;
       var projectedDays = hasAllowance ? ((allowanceMinutes - balance.usedMinutes) / balance.dailyMinutes) : 0;
+      var nextVacation = details.filter(function (item) { return item.key > todayKey; }).sort(function (a, b) { return a.key.localeCompare(b.key); })[0] || null;
       var remainingValue = hasAllowance ? formatVacationDayValue(availableTodayDays) : '--';
       var remainingLabel = hasAllowance ? 'giorni disponibili oggi' : 'imposta il saldo annuale';
       var projectedCopy = !hasAllowance
@@ -763,6 +764,16 @@ function getCalendarSelectedDateKey(month) {
         : (projectedDays < 0
           ? formatVacationDayValue(Math.abs(projectedDays)) + ' gg oltre il saldo al 31 dicembre'
           : formatVacationDayValue(projectedDays) + ' gg previsti al 31 dicembre');
+      var vacationInsightMarkup = '';
+      if (nextVacation) {
+        var nextVacationDate = parseLocalDateKey(nextVacation.key);
+        var nextVacationLabel = nextVacationDate
+          ? new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).format(nextVacationDate)
+          : nextVacation.key;
+        vacationInsightMarkup = '<div class="vacation-page-insight"><span>' + icons.calendar + '</span><div><small>PROSSIMA ASSENZA</small><strong>' + escapeHtml(nextVacationLabel) + '</strong><p>' + formatDuration(nextVacation.minutes) + ' di ferie programmate</p></div><b>In programma</b></div>';
+      } else {
+        vacationInsightMarkup = '<div class="vacation-page-projection' + (projectedDays < 0 ? ' is-warning' : '') + '"><span>' + icons.activity + '</span><div><small>PROIEZIONE DI FINE ANNO</small><strong>' + escapeHtml(projectedCopy) + '</strong></div></div>';
+      }
       var recentRows = details.slice(0, 4).map(function (item) {
         var date = parseLocalDateKey(item.key);
         var dayLabel = date ? new Intl.DateTimeFormat('it-IT', { weekday: 'long' }).format(date) : item.key;
@@ -782,12 +793,12 @@ function getCalendarSelectedDateKey(month) {
         '<section class="vacation-page-hero' + (over ? ' is-over' : '') + '">' +
           '<div class="vacation-page-hero-head"><div><span class="vacation-page-kicker">SALDO RESIDUO</span><h2>' + remainingValue + '</h2><p>' + remainingLabel + '</p></div>' +
           '<div class="vacation-page-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>impegnato</span></div></div></div>' +
-          '<div class="vacation-page-metrics"><div><span>Totale</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Gia usate</span><strong>' + formatVacationDayValue(usedToDateMinutes / balance.dailyMinutes) + ' gg</strong></div><div><span>Programmate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong></div></div>' +
-          '<div class="vacation-page-projection' + (projectedDays < 0 ? ' is-warning' : '') + '"><span>' + icons.activity + '</span><div><small>PROIEZIONE DI FINE ANNO</small><strong>' + escapeHtml(projectedCopy) + '</strong></div></div>' +
-          '<div class="vacation-page-actions"><button class="vacation-page-add" data-open-vacation-range="' + year + '"><span>' + icons.umbrella + '</span><strong>Aggiungi ferie</strong></button><button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><strong>Modifica saldo</strong></button></div>' +
+          '<div class="vacation-page-metrics"><div><span>Totale anno</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Utilizzate</span><strong>' + formatVacationDayValue(usedToDateMinutes / balance.dailyMinutes) + ' gg</strong></div><div><span>Pianificate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong></div></div>' +
+          vacationInsightMarkup +
+          '<div class="vacation-page-actions"><button class="vacation-page-add" data-open-vacation-range="' + year + '"><span>' + icons.plus + '</span><div><strong>Inserisci ferie</strong><small>Uno o pi&ugrave; giorni</small></div></button><button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><div><strong>Saldo annuale</strong><small>Modifica disponibilit&agrave;</small></div></button></div>' +
           status +
         '</section>' +
-        '<div class="vacation-page-section-head"><div><span>PERIODI</span><h2>Ferie registrate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
+        '<div class="vacation-page-section-head"><div><span>STORICO ' + year + '</span><h2>Ferie registrate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
         '<section class="vacation-page-history">' + (recentRows || '<div class="vacation-page-empty"><span>' + icons.calendar + '</span><strong>Nessuna ferie registrata</strong><small>Quando inserisci una giornata, la ritroverai qui.</small></div>') + '</section>' +
       '</div>';
     }
@@ -2069,11 +2080,16 @@ function getCalendarSelectedDateKey(month) {
           '<div><span>SETTIMANA</span><strong>' + weeklyTarget + '</strong><small>target</small></div>' +
           '<div><span>CEDOLINI</span><strong>' + savedCount + '</strong><small>salvati</small></div>' +
         '</section>' +
-        '<div class="profile-section-title">Gestione personale</div>' +
+        '<div class="profile-section-title">Preferenze</div>' +
+        '<section class="profile-group profile-v2-group">' +
+          '<button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni dell&apos;app</strong><small>Home, obiettivi, turni, calendario e notifiche</small></span><span class="profile-row-value">Personalizza</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+        '</section>' +
+        '<div class="profile-section-title">Account, dati e documenti</div>' +
         '<section class="profile-group profile-v2-group">' +
           accountManagementRow +
-          '<button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni</strong><small>Profilo, calendario, notifiche, privacy e dati</small></span><span class="profile-row-value">5 sezioni</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-blue">' + icons.download + '</span><span class="profile-row-copy"><strong>Report e file</strong><small>PDF mensile, PDF annuale ed Excel</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Account e backup</strong><small>Database personale, spazio occupato e copie protette</small></span><span class="profile-row-value is-live">Al sicuro</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong><small>Excel, calendario, PDF mensile e annuale</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="privacy"><span class="profile-row-icon is-blue">' + icons.lock + '</span><span class="profile-row-copy"><strong>Privacy e sicurezza</strong><small>Protezione dell&apos;app e accesso all&apos;account</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
         '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span></div>' +
       '</div>';
@@ -2084,18 +2100,56 @@ function getCalendarSelectedDateKey(month) {
       var yearLabel = escapeHtml(String(state.currentMonth.getFullYear()));
       var entriesCount = Object.keys(state.entries || {}).length;
       return '<div class="exports-page">' +
-        '<div class="profile-subpage-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>DATI E ARCHIVIO</span><h1>Esporta dati</h1></div><i></i></div>' +
-        '<section class="exports-hero"><span class="exports-hero-icon">' + icons.download + '</span><div><span>ARCHIVIO GESTORE</span><h2>I tuoi dati, nel formato giusto</h2><p>' + entriesCount + (entriesCount === 1 ? ' giornata registrata' : ' giornate registrate') + ' disponibili per l\'esportazione.</p></div></section>' +
-        '<div class="settings-modern-section-title">Tutti i dati</div>' +
+        '<div class="profile-subpage-top"><button data-back-profile="1" aria-label="Torna al profilo">' + icons.left + '</button><div><span>REPORT E FILE</span><h1>Esporta</h1></div><i></i></div>' +
+        '<section class="exports-hero"><span class="exports-hero-icon">' + icons.download + '</span><div><span>ARCHIVIO GESTORE</span><h2>Scegli cosa portare con te</h2><p>Crea una copia leggibile senza modificare i dati salvati nell&apos;app.</p></div></section>' +
+        '<section class="exports-summary"><div><span>GIORNATE</span><strong>' + entriesCount + '</strong></div><div><span>MESE</span><strong>' + monthLabel.slice(0, 3) + '</strong></div><div><span>ANNO</span><strong>' + yearLabel + '</strong></div></section>' +
+        '<div class="settings-modern-section-title">Calendario e tabella</div>' +
         '<section class="exports-group"><button class="exports-row" data-export-csv="1"><span class="exports-row-icon is-green">' + icons.activity + '</span><span class="exports-row-copy"><strong>Esporta Excel</strong><small>Tutte le giornate e tutte le ore registrate</small></span><span class="exports-format">.CSV</span>' + icons.right + '</button>' +
-          '<button class="exports-row" data-export-calendar="1"><span class="exports-row-icon is-blue">' + icons.calendar + '</span><span class="exports-row-copy"><strong>Calendario GestOre</strong><small>Importa giornate, ferie e riposi nel calendario</small></span><span class="exports-format">.ICS</span>' + icons.right + '</button></section>' +
+          '<button class="exports-row" data-export-calendar="1"><span class="exports-row-icon is-blue">' + icons.calendar + '</span><span class="exports-row-copy"><strong>Calendario GestOre</strong><small>Scegli anno e categorie da includere</small></span><span class="exports-format">.ICS</span>' + icons.right + '</button></section>' +
         '<div class="settings-modern-section-title">Report PDF</div>' +
         '<section class="exports-group">' +
           '<button class="exports-row" data-export-report="1"><span class="exports-row-icon is-blue">' + icons.note + '</span><span class="exports-row-copy"><strong>' + monthLabel + ' ' + yearLabel + '</strong><small>Report completo del mese corrente</small></span><span class="exports-format">PDF</span>' + icons.right + '</button>' +
-          '<button class="exports-row" data-export-report-year="1"><span class="exports-row-icon is-violet">' + icons.calendar + '</span><span class="exports-row-copy"><strong>Anno ' + yearLabel + '</strong><small>Riepilogo annuale nello stesso formato GestOre</small></span><span class="exports-format">PDF</span>' + icons.right + '</button>' +
+          '<button class="exports-row" data-export-report-year="1"><span class="exports-row-icon is-violet">' + icons.calendar + '</span><span class="exports-row-copy"><strong>Anno ' + yearLabel + '</strong><small>Riepilogo completo dei 12 mesi</small></span><span class="exports-format">PDF</span>' + icons.right + '</button>' +
         '</section>' +
         '<div class="exports-note"><span>' + icons.check + '</span><p>L\'esportazione crea una copia dei dati e non modifica nulla di ciò che hai salvato.</p></div>' +
       '</div>';
+    }
+
+    function renderCalendarExportDialog() {
+      if (!state.calendarExportOpen) return '';
+      var selectedYear = Number(state.calendarExportYear) || state.currentMonth.getFullYear();
+      var selectedTypes = Array.isArray(state.calendarExportTypes) ? state.calendarExportTypes : [];
+      var options = [
+        { key: 'lavoro', label: 'Lavoro', copy: 'Giornate con orario', icon: icons.briefcase, tone: 'green' },
+        { key: 'lavoro_ferie', label: 'Lavoro + ferie', copy: 'Giornate miste', icon: icons.activity, tone: 'blue' },
+        { key: 'ferie', label: 'Ferie', copy: 'Assenze programmate', icon: icons.umbrella, tone: 'cyan' },
+        { key: 'malattia', label: 'Malattia', copy: 'Giornate registrate', icon: icons.plus, tone: 'amber' },
+        { key: 'permesso', label: 'Permessi', copy: 'Ore o giorni coperti', icon: icons.clock, tone: 'violet' },
+        { key: 'festivita_pagata', label: 'Festivit&agrave;', copy: 'Festivit&agrave; pagate', icon: icons.star, tone: 'pink' },
+        { key: 'riposo', label: 'Riposi', copy: 'Giornate non lavorative', icon: icons.coffee, tone: 'slate' }
+      ];
+      var counts = {};
+      Object.keys(state.entries || {}).forEach(function (key) {
+        var entry = state.entries[key];
+        if (key.slice(0, 4) !== String(selectedYear) || !entry || !entry.type) return;
+        counts[entry.type] = (counts[entry.type] || 0) + 1;
+      });
+      var selectedCount = options.reduce(function (total, option) {
+        return total + (selectedTypes.indexOf(option.key) !== -1 ? (counts[option.key] || 0) : 0);
+      }, 0);
+      var optionRows = options.map(function (option) {
+        var checked = selectedTypes.indexOf(option.key) !== -1;
+        return '<button class="calendar-export-option is-' + option.tone + (checked ? ' is-selected' : '') + '" data-calendar-export-type="' + option.key + '" aria-pressed="' + (checked ? 'true' : 'false') + '"><span class="calendar-export-option-icon">' + option.icon + '</span><span><strong>' + option.label + '</strong><small>' + option.copy + '</small></span><b>' + (counts[option.key] || 0) + '</b><i>' + icons.check + '</i></button>';
+      }).join('');
+      return '<div class="calendar-export-overlay" role="dialog" aria-modal="true" aria-label="Esporta calendario">' +
+        '<button class="calendar-export-backdrop" data-close-calendar-export="1" aria-label="Chiudi"></button>' +
+        '<section class="calendar-export-dialog">' +
+          '<header><span class="calendar-export-dialog-icon">' + icons.calendar + '</span><div><small>CALENDARIO GESTORE</small><h2>Scegli cosa esportare</h2><p>Il file conterr&agrave; soltanto le categorie selezionate.</p></div><button data-close-calendar-export="1" aria-label="Chiudi">' + icons.x + '</button></header>' +
+          '<div class="calendar-export-year"><button data-calendar-export-year="-1" aria-label="Anno precedente">' + icons.left + '</button><div><span>ANNO DEL CALENDARIO</span><strong>' + selectedYear + '</strong></div><button data-calendar-export-year="1" aria-label="Anno successivo">' + icons.right + '</button></div>' +
+          '<div class="calendar-export-select-head"><span>CATEGORIE</span><button data-calendar-export-all="1">' + (selectedTypes.length === options.length ? 'Deseleziona tutte' : 'Seleziona tutte') + '</button></div>' +
+          '<div class="calendar-export-options">' + optionRows + '</div>' +
+          '<footer><div><strong>' + selectedCount + '</strong><span>' + (selectedCount === 1 ? 'evento pronto' : 'eventi pronti') + '</span></div><button class="solid" data-confirm-calendar-export="1"' + (!selectedTypes.length || !selectedCount ? ' disabled' : '') + '>Crea calendario .ICS</button></footer>' +
+        '</section></div>';
     }
 
     function renderSettings() {
@@ -2290,8 +2344,8 @@ function getCalendarSelectedDateKey(month) {
 
       return '<div class="settings-modern-page settings-page-v2 settings-hub-page">' +
         topBar('Impostazioni', false) +
-        '<section class="settings-hub-hero"><span class="settings-hub-hero-icon">' + icons.settings + '</span><div><span>CENTRO DI CONTROLLO</span><h2>Tutto al suo posto</h2><p>Ogni preferenza ha ora una sezione dedicata.</p></div><b>v' + escapeHtml(state.settings.version) + '</b></section>' +
-        '<div class="settings-v2-section-title">Preferenze personali</div>' +
+        '<section class="settings-hub-hero"><span class="settings-hub-hero-icon">' + icons.settings + '</span><div><span>CENTRO DI CONTROLLO</span><h2>La tua app, come serve a te</h2><p>Preferenze ordinate per lavoro, sicurezza e dati.</p></div><b>v' + escapeHtml(state.settings.version) + '</b></section>' +
+        '<div class="settings-v2-section-title">Esperienza e lavoro</div>' +
         '<section class="settings-hub-group">' +
           '<button class="settings-hub-row" data-open-settings-section="home"><span class="settings-v2-icon is-violet">' + icons.home + '</span><span class="settings-v2-copy"><strong>Personalizza Home</strong><small>Scegli riepiloghi, scorciatoie e anteprima stipendio</small></span><span class="settings-hub-value">' + homeSectionsEnabled + ' blocchi</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong><small>Nome, target giornaliero e settimanale</small></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
@@ -2299,12 +2353,15 @@ function getCalendarSelectedDateKey(month) {
           '<button class="settings-hub-row" data-open-settings-section="shifts"><span class="settings-v2-icon is-green">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Turni rapidi</strong><small>Orari e pause che usi pi&ugrave; spesso</small></span><span class="settings-hub-value">' + escapeHtml(shiftStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="planning"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Settimana tipo</strong><small>Prepara il mese senza sovrascrivere dati</small></span><span class="settings-hub-value">' + escapeHtml(templateStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="timer"><span class="settings-v2-icon is-violet">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Timer turno</strong><small>Modalita alternativa per la Home</small></span><span class="settings-hub-value">' + timerStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+        '</section>' +
+        '<div class="settings-v2-section-title">Avvisi e protezione</div>' +
+        '<section class="settings-hub-group">' +
           '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong><small>Promemoria per registrare la giornata</small></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-onboarding="1"><span class="settings-v2-icon is-green">' + icons.check + '</span><span class="settings-v2-copy"><strong>Configurazione guidata</strong><small>Rivedi obiettivi, turno, ferie e promemoria</small></span><span class="settings-hub-value">3 passaggi</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="privacy"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Privacy e sicurezza</strong><small>Protezione quando riapri l&apos;app</small></span><span class="settings-hub-value">' + privacyStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
         '</section>' +
-        '<div class="settings-v2-section-title">Dati e app</div>' +
-        '<section class="settings-hub-group"><button class="settings-hub-row" data-open-settings-section="data"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Account e backup</strong><small>Database personale e salvataggi sul telefono</small></span><span class="settings-hub-value is-live">Protetto</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+        '<div class="settings-v2-section-title">Account e configurazione</div>' +
+        '<section class="settings-hub-group"><button class="settings-hub-row" data-open-settings-section="data"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Account e backup</strong><small>Database personale, spazio e copie sul telefono</small></span><span class="settings-hub-value is-live">Protetto</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-onboarding="1"><span class="settings-v2-icon is-blue">' + icons.check + '</span><span class="settings-v2-copy"><strong>Configurazione guidata</strong><small>Rivedi obiettivi, turno, ferie e promemoria</small></span><span class="settings-hub-value">3 passaggi</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
         '<div class="settings-v2-footer"><strong>GestOre</strong><span>Le tue preferenze si salvano automaticamente</span></div>' +
       '</div>';
     }
@@ -2397,7 +2454,7 @@ function getCalendarSelectedDateKey(month) {
     }
 
     function renderOverlayMarkup() {
-      return renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() +
+      return renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderCalendarExportDialog() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() +
         (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') +
         (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') +
         (typeof renderStatsInsightOverlay === 'function' ? renderStatsInsightOverlay() : '') +

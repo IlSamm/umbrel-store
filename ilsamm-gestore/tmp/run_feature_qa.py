@@ -139,15 +139,14 @@ with tempfile.TemporaryDirectory(prefix="gestore-feature-qa-") as temp_root:
             raise RuntimeError("Registrazione non disponibile")
 
         evaluate(
-            """(async function(){
+            """(function(){
               var form=document.querySelector('[data-account-form=register]');
               form.querySelector('[name=username]').value='featureqa';
               form.querySelector('[name=password]').value='password-qa-2026';
               form.querySelector('[name=confirmPassword]').value='password-qa-2026';
-              await submitAccountRegistration(form);
+              submitAccountRegistration(form);
               return true;
             })()"""
-            ,await_promise=True
         )
         for _ in range(100):
             try:
@@ -346,16 +345,18 @@ with tempfile.TemporaryDirectory(prefix="gestore-feature-qa-") as temp_root:
               var captured={};
               state.entries['2026-08-03']={type:'lavoro',start:'08:00',end:'17:00',breakHours:1,notes:'Riga, importante'};
               state.entries['2026-08-04']={type:'ferie',notes:'Giornata intera'};
+              state.entries['2025-08-04']={type:'ferie',notes:'Anno precedente'};
               downloadTextFile=function(name,content,type){captured={name:name,content:content,type:type};};
-              exportCalendarIcs();
+              var exportedCount=exportCalendarIcs({year:2026,types:['ferie']});
               downloadTextFile=previousDownload;
               return {
                 fileName:captured.name||'',
                 mime:captured.type||'',
                 calendar:/BEGIN:VCALENDAR/.test(captured.content||''),
-                timed:/DTSTART;TZID=Europe\\/Rome:20260803T080000/.test(captured.content||''),
+                workExcluded:!/DTSTART;TZID=Europe\\/Rome:20260803T080000/.test(captured.content||''),
                 allDay:/DTSTART;VALUE=DATE:20260804/.test(captured.content||''),
-                escapedNote:/Riga\\\\, importante/.test(captured.content||''),
+                previousYearExcluded:!/20250804/.test(captured.content||''),
+                exportedCount:exportedCount,
                 events:((captured.content||'').match(/BEGIN:VEVENT/g)||[]).length
               };
             })()"""

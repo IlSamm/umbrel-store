@@ -4,7 +4,7 @@ name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.6.5"
+version: "1.6.6"
 port: 8080
 
 description: >-
@@ -12,11 +12,10 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iPhone.
 
 releaseNotes: >-
-  GestOre 1.6.5 rinnova la sezione Stipendio con una gerarchia piu chiara:
-  netto previsto, stato della stima, lordo, trattenute e confronto con il
-  cedolino del mese sono ora riuniti in una sola card. Calcolo, nuovo
-  cedolino e archivio sono immediatamente accessibili, con riepilogo annuale
-  piu leggibile e senza modificare formule o dati salvati.
+  GestOre 1.6.6 rende piu chiare le aree Ferie, Profilo e Impostazioni,
+  aggiunge la scelta di anno e categorie nell'esportazione Calendario e
+  rifinisce i report PDF mensile e annuale. I dati esistenti, gli account,
+  i saldi ferie e i cedolini restano invariati.
 
 developer: IlSamm
 website: ""
