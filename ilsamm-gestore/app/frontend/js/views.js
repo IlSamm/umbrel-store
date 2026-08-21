@@ -1819,39 +1819,57 @@ function getCalendarSelectedDateKey(month) {
 
     function renderSalaryHubV2() {
       var items = (state.payslips || []).slice();
-      var totalAmount = items.reduce(function (sum, item) { return sum + Math.max(0, parseDecimalInput(item.netto, 0)); }, 0);
       var currentEstimateDate = new Date();
       var currentYear = currentEstimateDate.getFullYear();
+      var currentMonth = currentEstimateDate.getMonth() + 1;
+      var currentMonthName = monthNames[currentMonth - 1];
       var currentEstimate = getPayrollNetEstimateForMonth(
         currentYear,
-        currentEstimateDate.getMonth() + 1
+        currentMonth
       );
       var currentEstimateValue = currentEstimate.valid
         ? formatSalaryEstimateMoney(currentEstimate.estimatedMonthWithOvertimeNet)
         : 'Configura stima';
       var currentEstimateHint = currentEstimate.valid
         ? (currentEstimate.incomplete
-          ? 'Netto stimato · Inserisci il Comune per completare'
-          : 'Netto stimato con imposte e contributi')
-        : 'Completa i dati fiscali e retributivi';
+          ? 'Stima parziale: completa i dati fiscali per maggiore precisione.'
+          : 'Calcolo aggiornato con imposte e contributi.')
+        : 'Inserisci i dati retributivi e fiscali per iniziare.';
+      var currentEstimateStatus = currentEstimate.valid
+        ? (currentEstimate.incomplete ? 'Stima parziale' : 'Stima completa')
+        : 'Da configurare';
+      var currentEstimateStatusClass = currentEstimate.valid
+        ? (currentEstimate.incomplete ? ' is-partial' : ' is-complete')
+        : ' is-missing';
+      var monthBreakdown = currentEstimate.valid && currentEstimate.monthlyBreakdown
+        ? currentEstimate.monthlyBreakdown.withOvertime
+        : null;
+      var monthGross = monthBreakdown ? Math.max(0, Number(monthBreakdown.grossCents) || 0) / 100 : 0;
+      var monthNet = monthBreakdown ? Math.max(0, Number(monthBreakdown.netCents) || 0) / 100 : 0;
+      var monthDeductions = Math.max(0, monthGross - monthNet);
       var currentMonthPayslip = items.find(function (item) {
-        return Number(item.year) === currentYear && Number(item.month) === currentEstimateDate.getMonth() + 1;
+        return Number(item.year) === currentYear && Number(item.month) === currentMonth;
       }) || null;
       var currentActualNet = currentMonthPayslip ? Math.max(0, parseDecimalInput(currentMonthPayslip.netto, 0)) : 0;
       var currentPredictedNet = currentEstimate.valid ? Math.max(0, Number(currentEstimate.estimatedMonthWithOvertimeNet) || 0) : 0;
       var comparisonDelta = currentActualNet - currentPredictedNet;
       var comparisonPercent = currentPredictedNet > 0 ? Math.round((comparisonDelta / currentPredictedNet) * 100) : 0;
       var comparisonTone = comparisonDelta < 0 ? ' is-lower' : ' is-higher';
-      var comparisonMarkup = '';
-      if (currentActualNet > 0 && currentPredictedNet > 0) {
-        comparisonMarkup = '<section class="salary-comparison-card' + comparisonTone + '">' +
-          '<div class="salary-comparison-head"><div><small>PREVISIONE E REALT&Agrave;</small><h2>Confronto del mese</h2></div><span>' + icons.activity + '</span></div>' +
-          '<div class="salary-comparison-values"><div><small>STIMATO</small><strong>' + formatSalaryEstimateMoney(currentPredictedNet) + '</strong></div><i></i><div><small>RICEVUTO</small><strong>' + formatSalaryEstimateMoney(currentActualNet) + '</strong></div></div>' +
-          '<div class="salary-comparison-result"><span>' + icons.arrowUp + '</span><div><strong>' + (comparisonDelta >= 0 ? '+' : '-') + formatMoneyEuro(Math.abs(comparisonDelta)) + '</strong><small>' + (comparisonDelta >= 0 ? '+' : '') + comparisonPercent + '% rispetto alla stima</small></div><button data-open-payslip="' + escapeHtml(currentMonthPayslip.id) + '">Apri cedolino ' + icons.right + '</button></div>' +
-        '</section>';
-      } else {
-        comparisonMarkup = '<section class="salary-comparison-card is-empty"><span class="salary-comparison-empty-icon">' + icons.receipt + '</span><div><small>PREVISIONE E REALT&Agrave;</small><h2>' + (currentActualNet > 0 ? 'Completa la stima' : 'Manca il cedolino del mese') + '</h2><p>' + (currentActualNet > 0 ? 'Configura il calcolo per confrontarlo con il netto ricevuto.' : 'Quando salvi il cedolino vedrai subito quanto la stima si avvicina al netto reale.') + '</p></div><button ' + (currentActualNet > 0 ? 'data-open-payslip-estimate="1"' : 'data-new-payslip="1"') + '>' + (currentActualNet > 0 ? 'Configura' : 'Aggiungi') + ' ' + icons.right + '</button></section>';
-      }
+      var monthReviewMarkup = currentActualNet > 0
+        ? '<button class="salary-month-review' + (currentPredictedNet > 0 ? comparisonTone : '') + '" data-open-payslip="' + escapeHtml(currentMonthPayslip.id) + '">' +
+            '<span class="salary-month-review-icon">' + icons.receipt + '</span>' +
+            '<span class="salary-month-review-copy"><small>CEDOLINO DI ' + escapeHtml(currentMonthName.toUpperCase()) + '</small><strong>' + formatSalaryEstimateMoney(currentActualNet) + ' ricevuti</strong></span>' +
+            (currentPredictedNet > 0
+              ? '<span class="salary-month-review-delta"><strong>' + (comparisonDelta >= 0 ? '+' : '-') + formatMoneyEuro(Math.abs(comparisonDelta)) + '</strong><small>' + (comparisonDelta >= 0 ? '+' : '') + comparisonPercent + '% dalla stima</small></span>'
+              : '<span class="salary-month-review-delta is-action"><strong>Apri</strong><small>Dettaglio</small></span>') +
+            '<i>' + icons.right + '</i>' +
+          '</button>'
+        : '<button class="salary-month-review is-empty" data-new-payslip="1">' +
+            '<span class="salary-month-review-icon">' + icons.receipt + '</span>' +
+            '<span class="salary-month-review-copy"><small>CEDOLINO DI ' + escapeHtml(currentMonthName.toUpperCase()) + '</small><strong>Aggiungi il netto ricevuto</strong></span>' +
+            '<span class="salary-month-review-delta is-action"><strong>Confronta</strong><small>con la stima</small></span>' +
+            '<i>' + icons.right + '</i>' +
+          '</button>';
       var yearItems = items.filter(function (item) {
         return Number(item.year) === currentYear;
       });
@@ -1891,19 +1909,22 @@ function getCalendarSelectedDateKey(month) {
       return '<div class="salary-hub-page">' +
         '<header class="salary-hub-top"><div><span>FINANZE PERSONALI</span><h1>Stipendio</h1></div><span class="salary-hub-top-icon">' + icons.wallet + '</span></header>' +
         '<div class="stack payroll-stack salary-hub-stack">' +
-          '<section class="salary-hub-hero"><div class="salary-hub-hero-head"><span class="salary-hub-wallet">' + icons.wallet + '</span><div><small>STIMA DI ' + escapeHtml(monthNames[currentEstimateDate.getMonth()].toUpperCase()) + '</small><h2>Netto previsto</h2></div><span class="salary-hub-month">' + escapeHtml(String(currentEstimateDate.getFullYear())) + '</span></div><strong class="salary-hub-estimate' + (currentEstimate.valid ? '' : ' is-setup') + '">' + currentEstimateValue + '</strong><p>' + escapeHtml(currentEstimateHint) + '</p><button data-open-payslip-estimate="1"><span>Apri il calcolo</span>' + icons.right + '</button></section>' +
-          comparisonMarkup +
-          '<section class="salary-hub-actions" aria-label="Azioni stipendio"><button data-new-payslip="1"><span class="is-blue">' + icons.receipt + '</span><div><strong>Aggiungi</strong><small>Nuovo cedolino</small></div>' + icons.right + '</button><button data-open-payslip-stats="1"><span class="is-violet">' + icons.activity + '</span><div><strong>Statistiche</strong><small>Andamento netto</small></div>' + icons.right + '</button></section>' +
+          '<section class="salary-hub-hero">' +
+            '<div class="salary-hub-hero-head"><span class="salary-hub-wallet">' + icons.wallet + '</span><div><small>STIMA · ' + escapeHtml(currentMonthName.toUpperCase()) + ' ' + escapeHtml(String(currentYear)) + '</small><h2>Netto previsto</h2></div><span class="salary-estimate-status' + currentEstimateStatusClass + '">' + escapeHtml(currentEstimateStatus) + '</span></div>' +
+            '<div class="salary-hub-amount"><strong class="salary-hub-estimate' + (currentEstimate.valid ? '' : ' is-setup') + '">' + currentEstimateValue + '</strong><p>' + escapeHtml(currentEstimateHint) + '</p></div>' +
+            '<div class="salary-hub-breakdown" aria-label="Riepilogo della stima"><div><span>LORDO MESE</span><strong>' + (currentEstimate.valid ? formatSalaryEstimateMoney(monthGross) : '--') + '</strong></div><div><span>TRATTENUTE</span><strong>' + (currentEstimate.valid ? ('-' + formatSalaryEstimateMoney(monthDeductions)) : '--') + '</strong></div><div><span>NETTO</span><strong>' + (currentEstimate.valid ? formatSalaryEstimateMoney(monthNet) : '--') + '</strong></div></div>' +
+            monthReviewMarkup +
+          '</section>' +
+          '<section class="salary-hub-actions" aria-label="Azioni stipendio">' +
+            '<button data-open-payslip-estimate="1"><span class="is-violet">' + icons.target + '</span><strong>Calcolo</strong><small>Dettaglio</small></button>' +
+            '<button data-new-payslip="1"><span class="is-blue">' + icons.plus + '</span><strong>Nuovo</strong><small>Cedolino</small></button>' +
+            '<button data-open-payslip-archive="1"><span class="is-cyan">' + icons.history + '</span><strong>Archivio</strong><small>' + items.length + (items.length === 1 ? ' salvato' : ' salvati') + '</small></button>' +
+          '</section>' +
           '<section class="salary-year-card"><div class="salary-year-head"><div><small>QUEST\'ANNO</small><h2>' + annualLabel + '</h2></div><button data-open-payslip-stats="1">Analisi ' + icons.right + '</button></div>' +
             '<div class="salary-year-body"><div class="salary-year-total"><strong>' + annualValue + '</strong><span>' + (yearMonths.length ? (yearMonths.length + (yearMonths.length === 1 ? ' mese registrato' : ' mesi registrati')) : 'basata sulla configurazione attuale') + '</span></div>' +
             yearChartMarkup + '</div>' +
             '<div class="salary-year-metrics"><div><span>MEDIA MESE</span><strong>' + (yearMonths.length ? formatMoneyEuro(yearAverage) : '--') + '</strong></div><div><span>CEDOLINI</span><strong>' + yearItems.length + '</strong></div><div class="' + (trendValue < 0 ? 'is-down' : 'is-up') + '"><span>VARIAZIONE</span><strong>' + trendText + '</strong><small>' + trendLabel + '</small></div></div>' +
           '</section>' +
-          '<button class="salary-archive-entry" data-open-payslip-archive="1"><span class="salary-archive-entry-icon">' + icons.history + '</span><span class="salary-archive-entry-copy"><small>DOCUMENTI</small><strong>Archivio cedolini</strong><em>' +
-            (items.length
-              ? (items.length + (items.length === 1 ? ' cedolino' : ' cedolini') + ' · ' + formatMoneyEuro(totalAmount) + ' archiviati')
-              : 'Le foto e gli importi salvati saranno qui') +
-          '</em></span><i>' + icons.right + '</i></button>' +
         '</div></div>';
     }
 

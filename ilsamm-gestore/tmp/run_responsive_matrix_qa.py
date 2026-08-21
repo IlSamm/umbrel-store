@@ -493,6 +493,45 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             await_promise=True,
         )
 
+        evaluate(
+            "state.activeTab='payslips';state.payslipArchiveOpen=true;"
+            "state.payslipDetailId=null;state.payslipEditorOpen=false;render();"
+        )
+        time.sleep(0.18)
+        results.append(measure_screen("salary-archive-393"))
+        screenshot("salary-archive-393.png", 393, 852)
+        evaluate("state.payslipArchiveOpen=false;render();")
+
+        salary_hub_checks = evaluate(
+            """(function(){
+              state.activeTab='payslips';
+              state.payslipArchiveOpen=false;
+              render();
+              return {
+                hero:!!document.querySelector('.salary-hub-hero'),
+                status:!!document.querySelector('.salary-estimate-status'),
+                breakdown:document.querySelectorAll('.salary-hub-breakdown > div').length===3,
+                monthReview:!!document.querySelector('.salary-month-review'),
+                actions:document.querySelectorAll('.salary-hub-actions > button').length===3,
+                oldComparisonRemoved:!document.querySelector('.salary-comparison-card'),
+                oldArchiveEntryRemoved:!document.querySelector('.salary-archive-entry')
+              };
+            })()"""
+        )
+        evaluate(
+            "window.__qaSalaryPayslips=state.payslips;state.payslips=[];render();"
+        )
+        time.sleep(0.12)
+        results.append(measure_screen("salary-empty-393"))
+        screenshot("salary-empty-393.png", 393, 852)
+        salary_hub_checks["empty"] = evaluate(
+            "!!document.querySelector('.salary-month-review.is-empty[data-new-payslip]')"
+        )
+        salary_hub_checks["restored"] = evaluate(
+            "state.payslips=window.__qaSalaryPayslips;delete window.__qaSalaryPayslips;render();"
+            "state.payslips.length>0"
+        )
+
         nav_drag_start = evaluate(
             """(function(){
               state.activeTab='home';
@@ -621,6 +660,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             and all(calendar_checks["tools"].values())
             and all(calendar_checks["filters"].values())
             and all(navigation_checks.values())
+            and all(salary_hub_checks.values())
             and nav_drag_start["dragging"]
             and nav_drag_start["preview"] == "vacations"
             and nav_drag_end == {"tab": "vacations", "dragging": False},
@@ -633,6 +673,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             "calendarV2": calendar_checks,
             "platform": platform_checks,
             "navigation": navigation_checks,
+            "salaryHub": salary_hub_checks,
             "navDrag": {"start": nav_drag_start, "end": nav_drag_end},
             "inlineFailures": evaluate(
                 "runInlineTests().filter(function(test){return !test.passed;}).map(function(test){return test.name;})"
