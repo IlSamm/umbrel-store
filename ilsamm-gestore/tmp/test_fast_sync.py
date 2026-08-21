@@ -116,6 +116,33 @@ def main() -> None:
         )
         assert len(final["entries"]) == 14
 
+        assert server.resolve_auto_backup_interval_ms({"settings": {"protectedHistoryFrequency": "off"}}) is None
+        assert server.resolve_auto_backup_interval_ms({"settings": {"protectedHistoryFrequency": "daily"}}) == 24 * 60 * 60 * 1000
+        assert server.resolve_auto_backup_interval_ms({"settings": {"protectedHistoryFrequency": "every3days"}}) == 3 * 24 * 60 * 60 * 1000
+        assert server.resolve_auto_backup_interval_ms({"settings": {"protectedHistoryFrequency": "weekly"}}) == 7 * 24 * 60 * 60 * 1000
+        assert server.resolve_auto_backup_interval_ms({"settings": {"protectedHistoryFrequency": "monthly"}}) == 30 * 24 * 60 * 60 * 1000
+
+        schedule_dir = Path(temp_dir) / "schedule-test"
+        schedule_dir.mkdir(parents=True, exist_ok=True)
+        schedule_db = schedule_dir / "profile.sqlite3"
+        schedule_snapshot = {
+            "entries": {},
+            "settings": {"protectedHistoryFrequency": "off"},
+            "payslips": [],
+            "updatedAt": int(time.time() * 1000),
+        }
+        server.save_snapshot(schedule_snapshot, db_path=schedule_db, force_replace=True)
+        assert server.create_scheduled_backup(schedule_db, schedule_snapshot) is None
+        assert server.list_versioned_backups(schedule_db) == []
+
+        schedule_snapshot["settings"]["protectedHistoryFrequency"] = "daily"
+        first_scheduled = server.create_scheduled_backup(schedule_db, schedule_snapshot)
+        second_scheduled = server.create_scheduled_backup(schedule_db, schedule_snapshot)
+        assert first_scheduled is not None
+        assert second_scheduled is not None
+        assert first_scheduled["id"] == second_scheduled["id"]
+        assert len(server.list_versioned_backups(schedule_db)) == 1
+
         compact_started = time.perf_counter()
         for _ in range(40):
             server.load_compact_snapshot(db_path=db_path)
@@ -131,6 +158,7 @@ def main() -> None:
             "payslips": len(final["payslips"]),
             "entries": len(final["entries"]),
             "concurrentWritesPreserved": True,
+            "protectedHistoryScheduleVerified": True,
         }))
 
 

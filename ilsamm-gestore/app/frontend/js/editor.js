@@ -152,6 +152,7 @@ var editorAutosaveTimer = 0;
       if (breakEl) breakEl.textContent = formatDuration(hoursToMinutes(state.draft.breakHours || 0));
       if (autoToggle) {
         autoToggle.classList.toggle('is-on', !state.draft.overtimeManual);
+        autoToggle.setAttribute('aria-checked', state.draft.overtimeManual ? 'false' : 'true');
         autoToggle.setAttribute('aria-pressed', state.draft.overtimeManual ? 'false' : 'true');
       }
       if (overtimeMode) overtimeMode.textContent = state.draft.overtimeManual ? 'Valore impostato manualmente' : 'Calcolate dagli orari inseriti';

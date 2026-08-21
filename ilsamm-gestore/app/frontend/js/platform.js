@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.6.6-20260821c';
+var PLATFORM_BUILD = '1.6.8-20260821e';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -568,7 +568,7 @@ function renderAccountSecuritySettings() {
   return (typeof renderPasskeySettings === 'function' ? renderPasskeySettings() : '') +
     '<div class="settings-v2-section-title">Notifiche dal server</div>' +
     '<section class="settings-v2-group platform-push-card">' +
-      '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Avvisi anche ad app chiusa</strong><small>' + pushHelp + '</small></span><button class="toggle-btn ' + (pushEnabled ? 'on' : '') + '" data-platform-push-toggle="1" aria-label="Avvisi anche ad app chiusa" aria-pressed="' + (pushEnabled ? 'true' : 'false') + '" ' + (push.busy || !push.available ? 'disabled' : '') + '><span class="knob"></span></button></div>' +
+      '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Avvisi anche ad app chiusa</strong><small>' + pushHelp + '</small></span><button role="switch" class="toggle-btn ' + (pushEnabled ? 'on' : '') + '" data-platform-push-toggle="1" aria-label="Avvisi anche ad app chiusa" aria-checked="' + (pushEnabled ? 'true' : 'false') + '" aria-pressed="' + (pushEnabled ? 'true' : 'false') + '" ' + (push.busy || !push.available ? 'disabled' : '') + '><span class="knob"></span></button></div>' +
       (pushEnabled ? '<div class="settings-v2-divider"></div><button class="platform-inline-action" data-platform-push-test="1" ' + (push.busy ? 'disabled' : '') + '>' + icons.bell + '<span>Invia una notifica di prova</span>' + icons.right + '</button>' : '') +
     '</section>' +
     '<div class="settings-v2-section-title">Recupero account</div>' +

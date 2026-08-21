@@ -170,12 +170,41 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
                     var rect=el.getBoundingClientRect();
                     return {className:String(el.className||'').slice(0,80),left:Math.round(rect.left),right:Math.round(rect.right)};
                   });
+                  var switchTracks=Array.from(document.querySelectorAll(
+                    'button.toggle-btn,button.day-editor-auto-toggle,'+
+                    '.payroll-estimate-limit-head > button[role="switch"],'+
+                    '.payroll-private-head > button[role="switch"],.payroll-rate-switch'
+                  )).filter(function(track){
+                    var style=getComputedStyle(track), rect=track.getBoundingClientRect();
+                    return style.display!=='none' && style.visibility!=='hidden' && rect.width>0 && rect.height>0;
+                  });
+                  var switchIssues=switchTracks.map(function(track){
+                    var knob=track.querySelector(':scope > .knob,:scope > span,:scope > i');
+                    if(!knob) return {kind:'missing-knob',className:String(track.className||'')};
+                    var trackRect=track.getBoundingClientRect(), knobRect=knob.getBoundingClientRect();
+                    var active=track.classList.contains('on') || track.classList.contains('is-on') ||
+                      track.getAttribute('aria-checked')==='true' ||
+                      (!!track.closest('.payroll-rate-reuse') && track.closest('.payroll-rate-reuse').classList.contains('is-on'));
+                    var leftGap=knobRect.left-trackRect.left, rightGap=trackRect.right-knobRect.right;
+                    var centered=Math.abs((knobRect.top+knobRect.height/2)-(trackRect.top+trackRect.height/2))<=0.75;
+                    var inside=leftGap>=1 && rightGap>=1;
+                    var sized=Math.abs(trackRect.width-48)<=0.75 && Math.abs(trackRect.height-28)<=0.75 &&
+                      Math.abs(knobRect.width-20)<=0.75 && Math.abs(knobRect.height-20)<=0.75;
+                    var sided=active ? rightGap>=2 && rightGap<=4.5 : leftGap>=2 && leftGap<=4.5;
+                    return inside && centered && sized && sided ? null : {
+                      kind:'geometry',active:active,className:String(track.className||''),
+                      track:[trackRect.width,trackRect.height],knob:[knobRect.width,knobRect.height],
+                      leftGap:leftGap,rightGap:rightGap,centered:centered,inside:inside,sized:sized,sided:sided
+                    };
+                  }).filter(Boolean).slice(0,8);
                   return {
                     viewport:width,
                     horizontalOverflow:Math.max(0,document.documentElement.scrollWidth-width),
                     outside:outside,
                     undersized:undersized,
                     unnamed:unnamed,
+                    switchCount:switchTracks.length,
+                    switchIssues:switchIssues,
                     error:(document.getElementById('errorBox')||{}).textContent||''
                   };
                 })()"""
@@ -302,6 +331,10 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             ("exports", "exports", ""),
             ("data", "settings", "data"),
             ("privacy", "settings", "privacy"),
+            ("settings-home", "settings", "home"),
+            ("settings-calendar", "settings", "calendar"),
+            ("settings-notifications", "settings", "notifications"),
+            ("settings-timer", "settings", "timer"),
         ]
         for width, height in viewports:
             set_viewport(width, height)
@@ -313,7 +346,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
                 time.sleep(0.18)
                 result = measure_screen(f"{screen_name}-{width}")
                 results.append(result)
-                if width == 393 and screen_name in {"home", "calendar", "statistics", "vacations", "salary", "profile", "settings", "exports", "data", "privacy"}:
+                if width == 393 and screen_name in {"home", "calendar", "statistics", "vacations", "salary", "profile", "settings", "exports", "data", "privacy", "settings-home", "settings-calendar", "settings-notifications", "settings-timer"}:
                     screenshot(f"{screen_name}-{width}.png", width, height)
 
         set_viewport(393, 852)
@@ -435,9 +468,11 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
               var data={
                 diagnostics:platformState.diagnostics.loaded && !!platformState.diagnostics.value,
                 diagnosticsError:platformState.diagnostics.error,
-                history:platformState.history.loaded,
-                historyRows:document.querySelectorAll('.platform-history-row').length
+                history:platformState.history.loaded
               };
+              state.settingsSection='history';
+              render();
+              data.historyRows=document.querySelectorAll('.platform-history-row').length;
               state.settingsSection='privacy';
               render();
               loadPlatformSessions(true); loadPlatformPushConfig(true);
@@ -642,7 +677,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
         failures = [
             item
             for item in all_results
-            if item["horizontalOverflow"] > 1 or item["outside"] or item["unnamed"] or item["error"]
+            if item["horizontalOverflow"] > 1 or item["outside"] or item["unnamed"] or item["switchIssues"] or item["error"]
         ]
         qa = {
             "ok": not failures
@@ -678,6 +713,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-responsive-qa-") as temp_root:
             and nav_drag_end == {"tab": "vacations", "dragging": False},
             "screens": len(results),
             "viewports": [item[0] for item in viewports],
+            "switchesAudited": sum(item.get("switchCount", 0) for item in all_results),
             "failures": failures,
             "validationValid": validation_valid,
             "validationInvalid": validation_invalid,

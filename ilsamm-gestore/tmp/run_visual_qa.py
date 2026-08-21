@@ -157,14 +157,15 @@ try:
     else:
         raise RuntimeError("Registrazione visual QA non disponibile")
     evaluate(
-        """(function(){
+        """(async function(){
           var form=document.querySelector('[data-account-form=register]');
           form.querySelector('[name=username]').value='visualqa';
           form.querySelector('[name=password]').value='password-qa-2026';
           form.querySelector('[name=confirmPassword]').value='password-qa-2026';
-          form.requestSubmit();
+          await submitAccountRegistration(form);
           return true;
-        })()"""
+        })()""",
+        await_promise=True,
     )
     for _ in range(140):
         ready = evaluate(
@@ -191,6 +192,15 @@ try:
             '2026-07-03':{type:'ferie',quantityHours:8,notes:''},
             '2026-07-06':{type:'lavoro',start:'07:30',end:'16:30',breakHours:1,overtimeHours:0,overtimeManual:false,notes:''}
           };
+          for(var day=7;day<=31;day+=1){
+            var current=new Date(2026,6,day,12,0,0);
+            var weekday=current.getDay();
+            if(weekday===0||weekday===6) continue;
+            var key='2026-07-'+String(day).padStart(2,'0');
+            if(!state.entries[key]) state.entries[key]={type:'lavoro',start:'08:00',end:day%4===0?'18:00':'17:00',breakHours:1,overtimeHours:day%4===0?1:0,overtimeManual:true,notes:''};
+          }
+          state.entries['2026-07-15']={type:'malattia',quantityHours:8,notes:''};
+          state.entries['2026-07-24']={type:'permesso',quantityHours:4,notes:'Permesso pomeridiano'};
           state.payslips=[
             normalizePayslipRecord({id:'qa-may',month:5,year:2026,netto:1480,hourlyRate:12.5,overtimeRate:18.75,notes:'Maggio',photos:[{id:'p1',data:photo,thumbnail:photo,fileName:'maggio.png',createdAt:Date.now()}],createdAt:Date.now()-2000}),
             normalizePayslipRecord({id:'qa-june',month:6,year:2026,netto:1525,hourlyRate:12.5,overtimeRate:18.75,notes:'Giugno',photos:[{id:'p2',data:photo,thumbnail:photo,fileName:'giugno.png',createdAt:Date.now()}],createdAt:Date.now()-1000}),
@@ -240,10 +250,47 @@ try:
     evaluate("(function(){var screen=document.querySelector('.payslips-screen'); if(screen){screen.scrollTop=screen.scrollHeight;} return screen ? {top:screen.scrollTop,height:screen.scrollHeight} : null;})()")
     time.sleep(0.15)
     screenshot("payslips-editor-bottom.png")
+    rate_switch_geometry = evaluate(
+        """(function(){
+          var track=document.querySelector('.payroll-rate-switch');
+          var knob=track && track.querySelector('i');
+          if(!track || !knob) return {present:false};
+          var t=track.getBoundingClientRect(), k=knob.getBoundingClientRect();
+          return {present:true,track:[t.width,t.height],knob:[k.width,k.height],left:k.left-t.left,right:t.right-k.right,
+            inside:k.left>=t.left+1 && k.right<=t.right-1,centered:Math.abs((k.top+k.height/2)-(t.top+t.height/2))<0.75};
+        })()"""
+    )
 
     evaluate("(function(){var input=document.getElementById('payslipNetto'); input.value='1843,25'; input.dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('[data-save-payslip]').click();})()")
     time.sleep(0.35)
     save_state = evaluate("({detail:state.payslipDetailId, editor:state.payslipEditorOpen, amount:(state.payslips.find(function(item){return item.id===state.payslipDetailId;})||{}).netto})")
+
+    evaluate("state.payslipArchiveOpen=false;state.payslipDetailId=null;state.payslipEstimateOpen=true;state.payslipEstimateConfigOpen=true;state.payrollPrivateUnlocked=true;render();")
+    time.sleep(0.25)
+    private_switch_before = evaluate(
+        """(function(){
+          var track=document.querySelector('[data-payroll-private-toggle]');
+          var knob=track && track.querySelector('i');
+          if(!track || !knob) return {present:false};
+          track.scrollIntoView({block:'center'});
+          var t=track.getBoundingClientRect(), k=knob.getBoundingClientRect();
+          return {present:true,checked:track.getAttribute('aria-checked'),track:[t.width,t.height],knob:[k.width,k.height],
+            left:k.left-t.left,right:t.right-k.right,inside:k.left>=t.left+1 && k.right<=t.right-1,
+            centered:Math.abs((k.top+k.height/2)-(t.top+t.height/2))<0.75};
+        })()"""
+    )
+    screenshot("payroll-private-switch-off.png", full_page=False)
+    evaluate("document.querySelector('[data-payroll-private-toggle]').click()")
+    time.sleep(0.28)
+    private_switch_after = evaluate(
+        """(function(){
+          var track=document.querySelector('[data-payroll-private-toggle]'),knob=track.querySelector('i');
+          var t=track.getBoundingClientRect(),k=knob.getBoundingClientRect();
+          return {checked:track.getAttribute('aria-checked'),left:k.left-t.left,right:t.right-k.right,
+            inside:k.left>=t.left+1 && k.right<=t.right-1,centered:Math.abs((k.top+k.height/2)-(t.top+t.height/2))<0.75};
+        })()"""
+    )
+    screenshot("payroll-private-switch-on.png", full_page=False)
 
     pdf_script = """
       (async function () {
@@ -270,6 +317,8 @@ try:
         "archiveClick": archive_click_state,
         "editClick": edit_click_state,
         "saveClick": save_state,
+        "rateSwitch": rate_switch_geometry,
+        "privateSwitch": {"before": private_switch_before, "after": private_switch_after},
         "inlineTests": evaluate("runInlineTests()"),
         "errorBox": evaluate("document.getElementById('errorBox') ? document.getElementById('errorBox').textContent : ''"),
         "payslips": evaluate("state.payslips.length"),

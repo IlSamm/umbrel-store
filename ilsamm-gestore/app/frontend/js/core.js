@@ -63,6 +63,7 @@ var errorBox = document.getElementById('errorBox');
       smartReminderMissingDays: true,
       smartReminderWeeklyReview: true,
       smartReminderPayslips: true,
+      protectedHistoryFrequency: 'daily',
       homeShowQuickActions: true,
       homeShowActionCenter: true,
       homeShowWeeklyAnalytics: true,
@@ -78,8 +79,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.6.6',
-      build: '20260821c',
+      version: '1.6.8',
+      build: '20260821e',
       appName: 'GestOre'
     };
 
@@ -423,6 +424,9 @@ var errorBox = document.getElementById('errorBox');
       merged.smartReminderMissingDays = merged.smartReminderMissingDays !== false;
       merged.smartReminderWeeklyReview = merged.smartReminderWeeklyReview !== false;
       merged.smartReminderPayslips = merged.smartReminderPayslips !== false;
+      if (['off', 'daily', 'every3days', 'weekly', 'monthly'].indexOf(String(merged.protectedHistoryFrequency || '')) === -1) {
+        merged.protectedHistoryFrequency = defaultSettings.protectedHistoryFrequency;
+      }
       merged.homeShowQuickActions = merged.homeShowQuickActions !== false;
       merged.homeShowActionCenter = merged.homeShowActionCenter !== false;
       merged.homeShowWeeklyAnalytics = merged.homeShowWeeklyAnalytics !== false;
@@ -2288,6 +2292,7 @@ var errorBox = document.getElementById('errorBox');
       add('festivita italiane includono Pasqua 2026', (getItalianHolidayInfo(new Date(2026, 3, 5)) || {}).name === 'Pasqua');
       add('festivita pagata copre il target giornaliero', getBreakdown({ type:'festivita_pagata', quantityHours:getDefaultPaidDayHours() }).leave === getDailyTargetMinutes());
       add('migra i vecchi giorni lavorativi lun-ven nel formato nuovo', normalizeRuntimeSettings({ workdays:[1,2,3,4,5], autoRestDays:[0] }).workdays.join(',') === '0,1,2,3,4' && normalizeRuntimeSettings({ workdays:[1,2,3,4,5], autoRestDays:[0] }).autoRestDays.join(',') === '6');
+      add('normalizza la frequenza dello storico protetto', normalizeRuntimeSettings({ protectedHistoryFrequency:'weekly' }).protectedHistoryFrequency === 'weekly' && normalizeRuntimeSettings({ protectedHistoryFrequency:'casuale' }).protectedHistoryFrequency === 'daily');
       add('festivita pagata usa il target passato nelle impostazioni', getAutoHolidayHours(new Date(2026, 3, 6), { workdays:[0,1,2,3,4], holidayHoursOnOffDays:false, dailyTarget:6 }) === 6);
       add('festivita su sabato attivo senza override non copre ore', getAutoHolidayHours(new Date(2026, 7, 15), { workdays:[0,1,2,3,4,5], holidayHoursOnOffDays:false, dailyTarget:8 }) === 0);
       add('festivita su domenica senza override non copre ore', getAutoHolidayHours(new Date(2026, 3, 5), { workdays:[0,1,2,3,4], holidayHoursOnOffDays:false, dailyTarget:8 }) === 0);

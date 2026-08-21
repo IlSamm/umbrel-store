@@ -1,0 +1,127 @@
+/* Shared switch geometry. Keep every switch inside its track on mobile Safari. */
+:root {
+  --go-switch-width: 48px;
+  --go-switch-height: 28px;
+  --go-switch-knob: 20px;
+  --go-switch-inset: 3px;
+  --go-switch-travel: 22px;
+}
+
+button.toggle-btn,
+button.day-editor-auto-toggle,
+.payroll-estimate-limit-head > button[role="switch"],
+.payroll-private-head > button[role="switch"],
+.payroll-rate-switch {
+  position: relative !important;
+  display: inline-block !important;
+  width: var(--go-switch-width) !important;
+  min-width: var(--go-switch-width) !important;
+  max-width: var(--go-switch-width) !important;
+  height: var(--go-switch-height) !important;
+  min-height: var(--go-switch-height) !important;
+  max-height: var(--go-switch-height) !important;
+  flex: 0 0 var(--go-switch-width) !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(137, 154, 198, .22) !important;
+  border-radius: 999px !important;
+  outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(180deg, rgba(73, 85, 116, .58), rgba(48, 59, 88, .66)) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .28), 0 1px 0 rgba(255, 255, 255, .035) !important;
+  vertical-align: middle;
+  isolation: isolate;
+  contain: layout paint;
+  touch-action: manipulation;
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, opacity .2s ease !important;
+}
+
+button.toggle-btn > .knob,
+button.day-editor-auto-toggle > span,
+.payroll-estimate-limit-head > button[role="switch"] > i,
+.payroll-private-head > button[role="switch"] > i,
+.payroll-rate-switch > i {
+  position: absolute !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: var(--go-switch-inset) !important;
+  display: block !important;
+  width: var(--go-switch-knob) !important;
+  min-width: var(--go-switch-knob) !important;
+  max-width: var(--go-switch-knob) !important;
+  height: var(--go-switch-knob) !important;
+  min-height: var(--go-switch-knob) !important;
+  max-height: var(--go-switch-knob) !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: #f8faff !important;
+  box-shadow: 0 2px 7px rgba(0, 4, 18, .38), inset 0 0 0 1px rgba(8, 19, 45, .06) !important;
+  transform: translate3d(0, -50%, 0) !important;
+  transform-origin: center;
+  pointer-events: none;
+  transition: transform .22s cubic-bezier(.22, .8, .24, 1), background .2s ease, box-shadow .2s ease !important;
+}
+
+button.toggle-btn.on,
+button.day-editor-auto-toggle.is-on,
+.payroll-estimate-limit-head > button[role="switch"][aria-checked="true"],
+.payroll-private-head > button[role="switch"][aria-checked="true"],
+.payroll-rate-reuse.is-on .payroll-rate-switch {
+  border-color: rgba(137, 127, 255, .62) !important;
+  background: linear-gradient(135deg, #5d70f5 0%, #8c5cf1 100%) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .16), 0 4px 14px rgba(83, 79, 232, .18) !important;
+}
+
+button.toggle-btn.on > .knob,
+button.day-editor-auto-toggle.is-on > span,
+.payroll-estimate-limit-head > button[role="switch"][aria-checked="true"] > i,
+.payroll-private-head > button[role="switch"][aria-checked="true"] > i,
+.payroll-rate-reuse.is-on .payroll-rate-switch > i {
+  transform: translate3d(var(--go-switch-travel), -50%, 0) !important;
+}
+
+.payroll-private-head > button[role="switch"][aria-checked="true"] {
+  border-color: rgba(230, 177, 91, .58) !important;
+  background: linear-gradient(135deg, #a96b26, #dda64b) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .16), 0 4px 14px rgba(196, 129, 39, .16) !important;
+}
+
+button.toggle-btn:focus-visible,
+button.day-editor-auto-toggle:focus-visible,
+.payroll-estimate-limit-head > button[role="switch"]:focus-visible,
+.payroll-private-head > button[role="switch"]:focus-visible,
+.payroll-rate-reuse:focus-visible .payroll-rate-switch {
+  border-color: rgba(124, 170, 255, .88) !important;
+  box-shadow: 0 0 0 3px rgba(72, 130, 255, .18), inset 0 1px 2px rgba(0, 0, 0, .2) !important;
+}
+
+button.toggle-btn:disabled,
+button.day-editor-auto-toggle:disabled,
+.payroll-estimate-limit-head > button[role="switch"]:disabled,
+.payroll-private-head > button[role="switch"]:disabled,
+.payroll-rate-reuse:disabled .payroll-rate-switch {
+  opacity: .42 !important;
+  filter: saturate(.65);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.toggle-btn,
+  button.toggle-btn > .knob,
+  button.day-editor-auto-toggle,
+  button.day-editor-auto-toggle > span,
+  .payroll-estimate-limit-head > button[role="switch"],
+  .payroll-estimate-limit-head > button[role="switch"] > i,
+  .payroll-private-head > button[role="switch"],
+  .payroll-private-head > button[role="switch"] > i,
+  .payroll-rate-switch,
+  .payroll-rate-switch > i {
+    transition: none !important;
+  }
+}

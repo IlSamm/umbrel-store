@@ -155,6 +155,9 @@
       pages.push(page);
       rect(page, 0, 0, PAGE_W, PAGE_H, colors.page, null, 0);
       rect(page, 0, 0, PAGE_W, 154, colors.pageGlow, null, 0);
+      rect(page, 0, 0, PAGE_W * .44, 3.5, colors.blue, null, 0);
+      rect(page, PAGE_W * .44, 0, PAGE_W * .34, 3.5, colors.blueStrong, null, 0);
+      rect(page, PAGE_W * .78, 0, PAGE_W * .22, 3.5, colors.purple, null, 0);
       return page;
     }
 

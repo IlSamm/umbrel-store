@@ -883,7 +883,54 @@ function formatAccountBackupDate(value) {
 function getAccountBackupKindLabel(kind) {
   if (kind === 'manual') return 'Salvataggio manuale';
   if (kind === 'pre-restore') return 'Prima del ripristino';
-  return 'Copia automatica';
+  return 'Salvataggio programmato';
+}
+
+function getProtectedHistoryFrequencyOptions() {
+  return [
+    { value: 'off', label: 'Solo manuale', interval: 0 },
+    { value: 'daily', label: 'Ogni giorno', interval: 24 * 60 * 60 * 1000 },
+    { value: 'every3days', label: 'Ogni 3 giorni', interval: 3 * 24 * 60 * 60 * 1000 },
+    { value: 'weekly', label: 'Ogni settimana', interval: 7 * 24 * 60 * 60 * 1000 },
+    { value: 'monthly', label: 'Ogni mese', interval: 30 * 24 * 60 * 60 * 1000 }
+  ];
+}
+
+function getProtectedHistoryFrequency() {
+  var value = String(state.settings && state.settings.protectedHistoryFrequency || 'daily');
+  return getProtectedHistoryFrequencyOptions().some(function (option) { return option.value === value; }) ? value : 'daily';
+}
+
+function getProtectedHistoryTiming(items, frequency) {
+  var option = getProtectedHistoryFrequencyOptions().find(function (candidate) { return candidate.value === frequency; });
+  var latest = (items || []).find(function (item) { return item.kind === 'auto'; });
+  if (!option || !option.interval) {
+    return {
+      last: latest ? formatAccountBackupDate(latest.createdAt) : 'Nessuna copia programmata',
+      next: 'Creazione automatica disattivata'
+    };
+  }
+  if (!latest) {
+    return { last: 'Non ancora eseguita', next: 'Alla prossima modifica' };
+  }
+  var nextAt = Math.max(0, Number(latest.createdAt) || 0) + option.interval;
+  return {
+    last: formatAccountBackupDate(latest.createdAt),
+    next: nextAt <= Date.now() ? 'Alla prossima modifica' : formatAccountBackupDate(nextAt)
+  };
+}
+
+function updateProtectedHistoryFrequency(value) {
+  var cleanValue = String(value || '');
+  var option = getProtectedHistoryFrequencyOptions().find(function (candidate) { return candidate.value === cleanValue; });
+  if (!option || !state.settings || getProtectedHistoryFrequency() === cleanValue) return;
+  state.settings.protectedHistoryFrequency = cleanValue;
+  state.settingsDraft = Object.assign({}, state.settings);
+  saveSettings();
+  state.account.notice = cleanValue === 'off'
+    ? 'Storico automatico disattivato. Puoi sempre creare una copia manuale.'
+    : 'Storico protetto impostato: ' + option.label.toLowerCase() + '.';
+  render();
 }
 
 async function loadVersionedAccountBackups(force) {
@@ -1246,6 +1293,12 @@ function renderAccountDataSettings() {
       : 'Misurazione del database personale');
   var backups = state.account.backups || {};
   var backupItems = Array.isArray(backups.items) ? backups.items : [];
+  var protectedHistoryFrequency = getProtectedHistoryFrequency();
+  var protectedHistoryOption = getProtectedHistoryFrequencyOptions().find(function (option) { return option.value === protectedHistoryFrequency; });
+  var protectedHistoryTiming = getProtectedHistoryTiming(backupItems, protectedHistoryFrequency);
+  var protectedHistoryOptions = getProtectedHistoryFrequencyOptions().map(function (option) {
+    return '<option value="' + option.value + '"' + (option.value === protectedHistoryFrequency ? ' selected' : '') + '>' + option.label + '</option>';
+  }).join('');
   var isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
   var isSyncPending = Boolean(state.syncPending);
   var syncHealthTone = !isOnline ? ' is-offline' : (isSyncPending ? ' is-pending' : ' is-synced');
@@ -1272,21 +1325,24 @@ function renderAccountDataSettings() {
   var conflictNotice = state.syncConflictNotice
     ? '<section class="account-sync-conflict" role="status" aria-live="polite"><span>' + icons.activity + '</span><div><strong>Dati uniti in sicurezza</strong><p>' + escapeHtml(state.syncConflictNotice) + '</p></div><button data-retry-server-sync="1">Verifica ora</button><button data-dismiss-sync-conflict="1" aria-label="Chiudi avviso">' + icons.x + '</button></section>'
     : '';
-  return '<section class="account-current-card"><span>' + escapeHtml(initial) + '</span><div><small>ACCOUNT ATTIVO</small><strong>' + escapeHtml(username) + '</strong><p>Database personale collegato</p></div><i>' + icons.check + '</i></section>' +
-    '<div class="settings-v2-section-title">Stato dei dati</div>' +
-    '<section class="account-sync-health' + syncHealthTone + '">' +
+  return '<section class="account-current-card account-data-hero"><span>' + escapeHtml(initial) + '</span><div><small>DATABASE PERSONALE</small><strong>' + escapeHtml(username) + '</strong><p>Ore, ferie e cedolini restano separati dagli altri account</p></div><i>' + icons.check + '</i></section>' +
+    '<div class="settings-v2-section-title">Sincronizzazione</div>' +
+    '<section class="account-sync-health account-data-status' + syncHealthTone + '">' +
       '<div class="account-sync-health-head"><span>' + (isOnline ? icons.cloud : icons.activity) + '</span><div><small>SINCRONIZZAZIONE</small><strong>' + syncHealthTitle + '</strong><p data-sync-status-label aria-live="polite">' + escapeHtml(getSyncStatusMessage()) + '</p></div><b data-sync-status-state data-state="' + (isSyncPending ? 'pending' : (!isOnline ? 'offline' : 'synced')) + '">' + (isSyncPending ? 'IN ATTESA' : (!isOnline ? 'OFFLINE' : 'SALVATO')) + '</b></div>' +
-      '<div class="account-sync-health-grid"><div><span>Server</span><strong>' + (isOnline ? 'Online' : 'Offline') + '</strong></div><div><span>Ultimo invio</span><strong>' + escapeHtml(lastSyncLabel) + '</strong></div><div><span>Copie protette</span><strong>' + backupItems.length + '</strong></div></div>' +
+      '<div class="account-sync-health-grid"><div><span>Server</span><strong>' + (isOnline ? 'Online' : 'Offline') + '</strong></div><div><span>Ultimo invio</span><strong>' + escapeHtml(lastSyncLabel) + '</strong></div><div><span>Spazio</span><strong>' + storageValue + '</strong></div></div>' +
+      '<button class="account-data-refresh" type="button" data-refresh-account-storage="1" ' + (storage.loading ? 'disabled' : '') + '>' + icons.activity + '<span>' + escapeHtml(storageMeta) + '</span><b>Aggiorna</b></button>' +
     '</section>' +
     conflictNotice +
-    '<div class="settings-v2-section-title">Spazio sul server</div>' +
-    '<section class="account-storage-card"><span class="account-storage-icon">' + icons.receipt + '</span><div class="account-storage-copy"><small>SPAZIO TOTALE OCCUPATO</small><strong>' + storageValue + '</strong><p>' + storageMeta + (storage.loaded && storage.backups ? (' - ' + storage.backups + ' copie protette') : '') + '</p></div><button type="button" data-refresh-account-storage="1" aria-label="Aggiorna spazio database" ' + (storage.loading ? 'disabled' : '') + '>' + icons.activity + '<span>Aggiorna</span></button></section>' +
-    '<div class="settings-v2-section-title">Punti di ripristino</div>' +
-    '<section class="account-versioned-card"><div class="account-versioned-head"><div><strong>Storico protetto</strong><small>Copie automatiche e manuali del tuo account</small></div><button data-create-versioned-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.cloud + '<span>Crea copia</span></button></div><div class="account-versioned-list">' + backupList + '</div></section>' +
-    '<div class="settings-v2-section-title">Backup sul telefono</div>' +
-    '<section class="account-backup-card"><div class="account-backup-copy"><span class="settings-v2-icon is-blue">' + icons.download + '</span><div><strong>Il tuo database, sempre con te</strong><p>Scarica un file SQLite con ore, ferie, impostazioni e cedolini del solo account ' + escapeHtml(username) + '.</p></div></div>' +
-      '<button class="account-backup-primary" data-download-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.download + '<span>Scarica database</span></button>' +
-      '<button class="account-backup-secondary" data-select-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.arrowUp + '<span>Ripristina un backup</span></button>' +
+    '<div class="settings-v2-section-title">Storico protetto</div>' +
+    '<section class="account-history-card"><div class="account-history-head"><span>' + icons.history + '</span><div><strong>Punti di ripristino</strong><small>Decidi tu quando GestOre conserva una versione precedente</small></div><button data-create-versioned-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.plus + '<span>Crea ora</span></button></div>' +
+      '<label class="account-history-schedule"><span><small>FREQUENZA</small><strong>' + escapeHtml(protectedHistoryOption ? protectedHistoryOption.label : 'Ogni giorno') + '</strong></span><select data-protected-history-frequency="1" aria-label="Frequenza dello storico protetto">' + protectedHistoryOptions + '</select></label>' +
+      '<div class="account-history-timing"><div><span>Ultima programmata</span><strong>' + escapeHtml(protectedHistoryTiming.last) + '</strong></div><div><span>Prossima</span><strong>' + escapeHtml(protectedHistoryTiming.next) + '</strong></div></div>' +
+      '<details class="account-history-details"' + (backups.loading || backups.error ? ' open' : '') + '><summary><span>Apri storico</span><b>' + backupItems.length + '</b>' + icons.right + '</summary><div class="account-versioned-list">' + backupList + '</div></details>' +
+    '</section>' +
+    '<div class="settings-v2-section-title">Copia sul telefono</div>' +
+    '<section class="account-backup-card account-portable-card"><div class="account-backup-copy"><span class="settings-v2-icon is-blue">' + icons.download + '</span><div><strong>File personale portatile</strong><p>Scarica oppure ripristina un file completo del solo account ' + escapeHtml(username) + '.</p></div></div>' +
+      '<div class="account-portable-actions"><button class="account-backup-primary" data-download-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.download + '<span>Scarica</span></button>' +
+      '<button class="account-backup-secondary" data-select-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.arrowUp + '<span>Ripristina</span></button></div>' +
       '<input id="accountBackupFile" type="file" accept=".sqlite,.sqlite3,application/vnd.sqlite3,application/x-sqlite3" hidden>' +
     '</section>' +
     message +
@@ -1352,6 +1408,10 @@ function bindAccountEvents() {
   if (refreshStorage) refreshStorage.onclick = function () { loadAccountStorageUsage(true); };
   var createVersioned = document.querySelector('[data-create-versioned-backup]');
   if (createVersioned) createVersioned.onclick = createVersionedAccountBackup;
+  var protectedHistoryFrequency = document.querySelector('[data-protected-history-frequency]');
+  if (protectedHistoryFrequency) protectedHistoryFrequency.onchange = function () {
+    updateProtectedHistoryFrequency(protectedHistoryFrequency.value);
+  };
   document.querySelectorAll('[data-restore-versioned-backup]').forEach(function (button) {
     button.onclick = function () { requestVersionedBackupAction('restore', button.dataset.restoreVersionedBackup); };
   });

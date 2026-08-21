@@ -512,6 +512,7 @@ function bindEvents() {
             : 'Voce Nero disattivata e salvata.';
           section.classList.toggle('is-enabled', enabled);
           button.setAttribute('aria-checked', enabled ? 'true' : 'false');
+          button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
           updatePayrollCalculatorPreviewFromInputs();
         };
       });

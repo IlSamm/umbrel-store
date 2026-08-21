@@ -56,8 +56,8 @@ MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
 MAX_PAYSLIP_ASSET_BYTES = 24 * 1024 * 1024
 MAX_PAYSLIP_ASSETS = 12
-BUILD_VERSION = "1.6.6"
-BUILD_CACHE = "20260821c"
+BUILD_VERSION = "1.6.8"
+BUILD_CACHE = "20260821e"
 AUTH_STORE = AuthStore(DATA_DIR)
 PUSH_SERVICE = PushService(AUTH_STORE, DATA_DIR)
 
@@ -66,7 +66,13 @@ _DB_SCHEMA_READY: set[str] = set()
 _SNAPSHOT_LOCKS_GUARD = threading.Lock()
 _SNAPSHOT_LOCKS: dict[str, threading.RLock] = {}
 _VERSIONED_BACKUP_LOCK = threading.RLock()
-AUTO_BACKUP_INTERVAL_MS = 20 * 60 * 60 * 1000
+AUTO_BACKUP_DEFAULT_FREQUENCY = "daily"
+AUTO_BACKUP_INTERVALS_MS = {
+    "daily": 24 * 60 * 60 * 1000,
+    "every3days": 3 * 24 * 60 * 60 * 1000,
+    "weekly": 7 * 24 * 60 * 60 * 1000,
+    "monthly": 30 * 24 * 60 * 60 * 1000,
+}
 AUTO_BACKUP_LIMIT = 14
 MANUAL_BACKUP_LIMIT = 8
 RESTORE_BACKUP_LIMIT = 4
@@ -934,7 +940,24 @@ def _prune_versioned_backups(db_path: Path) -> None:
             (directory / f"{stale['id']}.sqlite3").unlink(missing_ok=True)
 
 
-def create_versioned_backup(db_path: Path, kind: str = "manual", force: bool = False) -> dict | None:
+def resolve_auto_backup_frequency(snapshot: dict | None) -> str:
+    source = snapshot if isinstance(snapshot, dict) else {}
+    settings = source.get("settings") if isinstance(source.get("settings"), dict) else {}
+    frequency = str(settings.get("protectedHistoryFrequency") or AUTO_BACKUP_DEFAULT_FREQUENCY).strip().lower()
+    return frequency if frequency in {"off", *AUTO_BACKUP_INTERVALS_MS.keys()} else AUTO_BACKUP_DEFAULT_FREQUENCY
+
+
+def resolve_auto_backup_interval_ms(snapshot: dict | None) -> int | None:
+    frequency = resolve_auto_backup_frequency(snapshot)
+    return None if frequency == "off" else AUTO_BACKUP_INTERVALS_MS[frequency]
+
+
+def create_versioned_backup(
+    db_path: Path,
+    kind: str = "manual",
+    force: bool = False,
+    auto_interval_ms: int | None = None,
+) -> dict | None:
     kind = str(kind or "manual")
     if kind not in {"auto", "manual", "pre-restore"}:
         raise ValueError("Tipo di backup non valido.")
@@ -944,8 +967,9 @@ def create_versioned_backup(db_path: Path, kind: str = "manual", force: bool = F
     with _VERSIONED_BACKUP_LOCK:
         existing = list_versioned_backups(database)
         if kind == "auto" and not force:
+            interval_ms = max(60 * 60 * 1000, int(auto_interval_ms or AUTO_BACKUP_INTERVALS_MS[AUTO_BACKUP_DEFAULT_FREQUENCY]))
             latest_auto = next((item for item in existing if item["kind"] == "auto"), None)
-            if latest_auto and int(time.time() * 1000) - int(latest_auto["createdAt"]) < AUTO_BACKUP_INTERVAL_MS:
+            if latest_auto and int(time.time() * 1000) - int(latest_auto["createdAt"]) < interval_ms:
                 return latest_auto
         if not force and not snapshot_has_data(load_compact_snapshot(db_path=database)):
             return None
@@ -964,6 +988,13 @@ def create_versioned_backup(db_path: Path, kind: str = "manual", force: bool = F
             temporary.unlink(missing_ok=True)
         _prune_versioned_backups(database)
         return _versioned_backup_metadata(target)
+
+
+def create_scheduled_backup(db_path: Path, snapshot: dict | None = None) -> dict | None:
+    interval_ms = resolve_auto_backup_interval_ms(snapshot)
+    if interval_ms is None:
+        return None
+    return create_versioned_backup(db_path, "auto", auto_interval_ms=interval_ms)
 
 
 def delete_versioned_backup(db_path: Path, backup_id: str) -> dict:
@@ -1317,7 +1348,12 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                         "serverSnapshot": existing,
                     }, HTTPStatus.CONFLICT)
                     return
-                create_versioned_backup(db_path, "auto")
+                schedule_snapshot = {
+                    "settings": payload.get("settings")
+                    if isinstance(payload.get("settings"), dict)
+                    else existing.get("settings", {})
+                }
+                create_scheduled_backup(db_path, schedule_snapshot)
                 saved = save_snapshot(payload, db_path=db_path, _existing_snapshot=existing)
                 record_snapshot_changes(
                     db_path,
@@ -1350,7 +1386,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 (item for item in before_snapshot.get("payslips") or [] if _payslip_key(item) == payslip_id),
                 None,
             )
-            create_versioned_backup(db_path, "auto")
+            create_scheduled_backup(db_path, before_snapshot)
             saved = save_payslip_record(payslip, db_path, payload.get("updatedAt"))
             after_snapshot = load_snapshot(db_path=db_path)
             after_payslip = next(
@@ -1849,7 +1885,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                     (item for item in before_snapshot.get("payslips") or [] if _payslip_key(item) == payslip_id),
                     None,
                 )
-                create_versioned_backup(db_path, "auto")
+                create_scheduled_backup(db_path, before_snapshot)
                 saved = delete_payslip_record(payslip_id, db_path, payload.get("updatedAt"))
                 current_user = self._current_user() or {}
                 record_payslip_change(

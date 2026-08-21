@@ -139,14 +139,15 @@ with tempfile.TemporaryDirectory(prefix="gestore-feature-qa-") as temp_root:
             raise RuntimeError("Registrazione non disponibile")
 
         evaluate(
-            """(function(){
+            """(async function(){
               var form=document.querySelector('[data-account-form=register]');
               form.querySelector('[name=username]').value='featureqa';
               form.querySelector('[name=password]').value='password-qa-2026';
               form.querySelector('[name=confirmPassword]').value='password-qa-2026';
-              submitAccountRegistration(form);
+              await submitAccountRegistration(form);
               return true;
             })()"""
+            , await_promise=True
         )
         for _ in range(100):
             try:
