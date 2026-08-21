@@ -2,7 +2,7 @@
   "name": "GestOre",
   "short_name": "GestOre",
   "id": "/",
-  "start_url": "/?v=20260821f",
+  "start_url": "/?v=20260821g",
   "scope": "/",
   "description": "Ore, ferie, statistiche, stipendio e cedolini in un unico spazio personale.",
   "lang": "it-IT",
@@ -36,12 +36,14 @@
     {
       "src": "assets/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "assets/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

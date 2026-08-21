@@ -56,9 +56,20 @@ MAX_JSON_BYTES = 64 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
 MAX_PAYSLIP_ASSET_BYTES = 24 * 1024 * 1024
 MAX_PAYSLIP_ASSETS = 12
-BUILD_VERSION = "1.6.9"
-BUILD_CACHE = "20260821f"
-AUTH_STORE = AuthStore(DATA_DIR)
+LEGAL_VERSION = "2026-08-21"
+BUILD_VERSION = "1.7.0"
+BUILD_CACHE = "20260821g"
+DEPLOYMENT_MODE = str(os.environ.get("GESTORE_DEPLOYMENT_MODE", "private")).strip().lower()
+if DEPLOYMENT_MODE not in {"private", "public"}:
+    DEPLOYMENT_MODE = "private"
+PUBLIC_MODE = DEPLOYMENT_MODE == "public"
+_configured_origins = {
+    value.strip().rstrip("/")
+    for value in str(os.environ.get("GESTORE_ALLOWED_ORIGINS", "")).split(",")
+    if value.strip()
+}
+ALLOWED_APP_ORIGINS = _configured_origins | ({"capacitor://localhost"} if PUBLIC_MODE else set())
+AUTH_STORE = AuthStore(DATA_DIR, public_mode=PUBLIC_MODE)
 PUSH_SERVICE = PushService(AUTH_STORE, DATA_DIR)
 
 _DB_SCHEMA_LOCK = threading.Lock()
@@ -1024,6 +1035,11 @@ class GestOreHandler(SimpleHTTPRequestHandler):
 
     def end_headers(self) -> None:
         path = urlparse(self.path).path
+        cors_origin = self._cors_origin() if path.startswith("/api/") else ""
+        if cors_origin:
+            self.send_header("Access-Control-Allow-Origin", cors_origin)
+            self.send_header("Access-Control-Allow-Credentials", "true")
+            self.send_header("Vary", "Origin")
         if path.startswith("/api/") or path in ("", "/", "/index.html"):
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.send_header("Pragma", "no-cache")
@@ -1040,6 +1056,13 @@ class GestOreHandler(SimpleHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "same-origin")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; connect-src 'self' https: wss:; img-src 'self' data: blob:; "
+            "media-src 'self' blob:; font-src 'self' data:; script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; object-src 'none'; "
+            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+        )
         self.send_header("Permissions-Policy", "camera=(self), fullscreen=(self), geolocation=(), microphone=(), publickey-credentials-get=(self)")
         if str(self.headers.get("X-Forwarded-Proto", "")).lower() == "https":
             self.send_header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
@@ -1138,9 +1161,11 @@ class GestOreHandler(SimpleHTTPRequestHandler):
     def _session_cookie(self, token: str, clear: bool = False) -> str:
         value = "" if clear else token
         max_age = 0 if clear else 180 * 24 * 60 * 60
-        cookie = f"{SESSION_COOKIE}={value}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age}"
+        native_cross_origin = bool(self._cors_origin())
+        same_site = "None" if native_cross_origin else "Lax"
+        cookie = f"{SESSION_COOKIE}={value}; Path=/; HttpOnly; SameSite={same_site}; Max-Age={max_age}"
         forwarded_proto = str(self.headers.get("X-Forwarded-Proto", "")).lower()
-        if forwarded_proto == "https":
+        if forwarded_proto == "https" or native_cross_origin:
             cookie += "; Secure"
         return cookie
 
@@ -1163,9 +1188,15 @@ class GestOreHandler(SimpleHTTPRequestHandler):
         self._send_json({"error": "Accedi per aprire i tuoi dati.", "code": "authentication_required"}, HTTPStatus.UNAUTHORIZED)
         return None
 
+    def _cors_origin(self) -> str:
+        origin = str(self.headers.get("Origin", "")).strip().rstrip("/")
+        return origin if origin in ALLOWED_APP_ORIGINS else ""
+
     def _same_origin(self) -> bool:
-        origin = str(self.headers.get("Origin", "")).strip()
+        origin = str(self.headers.get("Origin", "")).strip().rstrip("/")
         if not origin:
+            return True
+        if origin in ALLOWED_APP_ORIGINS:
             return True
         origin_host = urlparse(origin).netloc.lower()
         request_host = str(self.headers.get("Host", "")).lower()
@@ -1191,6 +1222,24 @@ class GestOreHandler(SimpleHTTPRequestHandler):
         payload.update(extra)
         return payload
 
+    def do_OPTIONS(self) -> None:
+        parsed = urlparse(self.path)
+        if not parsed.path.startswith("/api/"):
+            self.send_error(HTTPStatus.NOT_FOUND, "Endpoint non trovato")
+            return
+        origin = str(self.headers.get("Origin", "")).strip().rstrip("/")
+        if origin and not self._same_origin():
+            self._send_json({"error": "Origine richiesta non valida."}, HTTPStatus.FORBIDDEN)
+            return
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header(
+            "Access-Control-Allow-Headers",
+            "Content-Type, X-GestOre-Device, X-GestOre-Mutation-Id, X-Requested-With",
+        )
+        self.send_header("Access-Control-Max-Age", "600")
+        self.end_headers()
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/api/build":
@@ -1215,6 +1264,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                 "hasAccounts": account_count > 0,
                 "setupRequired": account_count == 0,
                 "hasLegacyData": has_legacy_data,
+                "deploymentMode": DEPLOYMENT_MODE,
             })
             return
         if parsed.path == "/api/auth/sessions":
@@ -1606,13 +1656,15 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                         payload.get("password", ""),
                         self.headers.get("User-Agent", ""),
                         self._device_label(),
+                        bool(payload.get("acceptedTerms")),
+                        str(payload.get("termsVersion") or LEGAL_VERSION),
                     )
                 except AuthError:
                     register_auth_failure(register_key)
                     raise
                 clear_auth_failures(register_key)
                 user_db = AUTH_STORE.user_db_path(user["id"])
-                if first_account:
+                if first_account and not PUBLIC_MODE:
                     initial = merge_snapshots(load_snapshot(db_path=DB_PATH), payload.get("snapshot"))
                     save_snapshot(initial, db_path=user_db, force_replace=True)
                 else:
@@ -1621,7 +1673,7 @@ class GestOreHandler(SimpleHTTPRequestHandler):
                     {
                         "ok": True,
                         "user": user,
-                        "importedLegacyData": first_account,
+                        "importedLegacyData": first_account and not PUBLIC_MODE,
                         "recoveryCode": recovery_code,
                     },
                     HTTPStatus.CREATED,
@@ -1854,6 +1906,18 @@ class GestOreHandler(SimpleHTTPRequestHandler):
             return
         parsed = urlparse(self.path)
         try:
+            if parsed.path == "/api/auth/account":
+                payload = self._read_json_body()
+                deleted = AUTH_STORE.delete_own_account(
+                    self._session_token(),
+                    payload.get("password", ""),
+                    payload.get("confirmation", ""),
+                )
+                self._send_json(
+                    {"ok": True, "deleted": deleted},
+                    cookie=self._session_cookie("", clear=True),
+                )
+                return
             if parsed.path == "/api/auth/sessions":
                 payload = self._read_json_body()
                 revoked = AUTH_STORE.revoke_session(self._session_token(), payload.get("sessionId", ""))

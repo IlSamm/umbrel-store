@@ -307,6 +307,23 @@
   font-size: 11px;
 }
 
+.profile-app-footer nav {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.profile-app-footer a {
+  color: rgba(151, 185, 249, .72);
+  text-decoration: none;
+}
+
+.profile-app-footer a:focus-visible {
+  outline: 2px solid #6b9dff;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
 .profile-subpage-top {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) 42px;

@@ -400,12 +400,30 @@ function bindEvents() {
       var unlockBtn = document.querySelector('[data-unlock-app]');
       if (unlockBtn) unlockBtn.onclick = unlockPrivacyScreen;
       document.querySelectorAll('[data-trigger-payslip-camera], [data-trigger-payslip-gallery]').forEach(function (btn) {
-        btn.onclick = function () {
+        btn.onclick = async function () {
           if (state.privacyLocked) return;
           if (state.payslipBusy) return;
+          var mode = btn.hasAttribute('data-trigger-payslip-camera') ? 'camera' : 'gallery';
+          var nativePicker = window.GestOreNative && window.GestOreNative.isNative && window.GestOreNative.pickPayslipPhotos;
+          if (nativePicker) {
+            try {
+              var remaining = Math.max(1, MAX_PAYSLIP_PHOTOS - normalizePayslipPhotos(ensurePayslipDraft()).length);
+              var selected = await window.GestOreNative.pickPayslipPhotos(mode, remaining);
+              var files = await Promise.all((selected || []).map(async function (item, index) {
+                var response = await fetch(item.dataUrl);
+                var blob = await response.blob();
+                return new File([blob], item.fileName || ('cedolino-' + Date.now() + '-' + index + '.jpg'), { type: blob.type || 'image/jpeg' });
+              }));
+              if (files.length) await processPayslipFiles(files);
+            } catch (err) {
+              state.payslipStatus = 'Foto non selezionata. Puoi riprovare quando vuoi.';
+              render();
+            }
+            return;
+          }
           var input = document.getElementById('payslipFileInput');
           if (!input) return;
-          if (btn.hasAttribute('data-trigger-payslip-camera')) {
+          if (mode === 'camera') {
             input.setAttribute('capture', 'environment');
             input.removeAttribute('multiple');
           } else {

@@ -32,10 +32,11 @@ class AuthError(Exception):
 
 
 class AuthStore:
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(self, data_dir: Path, public_mode: bool = False) -> None:
         self.data_dir = Path(data_dir).resolve()
         self.accounts_db = self.data_dir / "accounts.sqlite3"
         self.users_dir = self.data_dir / "users"
+        self.public_mode = bool(public_mode)
         self._schema_lock = threading.Lock()
         self._schema_ready = False
 
@@ -55,8 +56,7 @@ class AuthStore:
             self._schema_ready = True
         return conn
 
-    @staticmethod
-    def _initialize_schema(conn: sqlite3.Connection) -> None:
+    def _initialize_schema(self, conn: sqlite3.Connection) -> None:
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -68,6 +68,8 @@ class AuthStore:
                 recovery_salt BLOB,
                 recovery_hash BLOB,
                 role TEXT NOT NULL DEFAULT 'user',
+                terms_accepted_at INTEGER,
+                terms_version TEXT,
                 created_at INTEGER NOT NULL
             )
             """
@@ -79,13 +81,21 @@ class AuthStore:
             conn.execute("ALTER TABLE users ADD COLUMN recovery_salt BLOB")
         if "recovery_hash" not in user_columns:
             conn.execute("ALTER TABLE users ADD COLUMN recovery_hash BLOB")
-        conn.execute(
-            """
-            UPDATE users SET role = 'owner'
-            WHERE id = (SELECT id FROM users ORDER BY created_at ASC, id ASC LIMIT 1)
-              AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'owner')
-            """
-        )
+        if "terms_accepted_at" not in user_columns:
+            conn.execute("ALTER TABLE users ADD COLUMN terms_accepted_at INTEGER")
+        if "terms_version" not in user_columns:
+            conn.execute("ALTER TABLE users ADD COLUMN terms_version TEXT")
+        if self.public_mode:
+            # A public deployment must never let one customer administer another.
+            conn.execute("UPDATE users SET role = 'user' WHERE role != 'user'")
+        else:
+            conn.execute(
+                """
+                UPDATE users SET role = 'owner'
+                WHERE id = (SELECT id FROM users ORDER BY created_at ASC, id ASC LIMIT 1)
+                  AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'owner')
+                """
+            )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS sessions (
@@ -304,6 +314,8 @@ class AuthStore:
         password: str,
         user_agent: str = "",
         device_label: str = "",
+        accepted_terms: bool = False,
+        terms_version: str = "",
     ) -> tuple[dict, str, bool, str]:
         display, key = self.normalize_username(username)
         password = self.validate_password(password)
@@ -314,19 +326,31 @@ class AuthStore:
         recovery_code = self._new_recovery_code()
         recovery_salt = os.urandom(16)
         recovery_hash = self._hash_recovery_code(recovery_code, recovery_salt)
+        if self.public_mode and not accepted_terms:
+            raise AuthError(
+                "Accetta Privacy Policy e Termini per creare l'account.",
+                status=400,
+                code="terms_required",
+            )
+        terms_accepted_at = now if accepted_terms else None
+        clean_terms_version = str(terms_version or "")[:32] if accepted_terms else None
         with closing(self._connect()) as conn:
             conn.execute("BEGIN IMMEDIATE")
             first_account = int(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] or 0) == 0
-            role = "owner" if first_account else "user"
+            role = "owner" if first_account and not self.public_mode else "user"
             try:
                 conn.execute(
                     """
                     INSERT INTO users (
                         id, username, username_key, password_salt, password_hash,
-                        recovery_salt, recovery_hash, role, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        recovery_salt, recovery_hash, role, terms_accepted_at,
+                        terms_version, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (user_id, display, key, salt, password_hash, recovery_salt, recovery_hash, role, now),
+                    (
+                        user_id, display, key, salt, password_hash, recovery_salt,
+                        recovery_hash, role, terms_accepted_at, clean_terms_version, now,
+                    ),
                 )
                 conn.commit()
             except sqlite3.IntegrityError as exc:
@@ -629,8 +653,8 @@ class AuthStore:
         admin_id = str(row["session_admin_id"] or "")
         admin_role = str(row["session_admin_role"] or "")
         user["impersonating"] = bool(admin_id and admin_id != user["id"])
-        user["canManageAccounts"] = user["role"] == "owner" or admin_role == "owner"
-        if admin_id:
+        user["canManageAccounts"] = not self.public_mode and (user["role"] == "owner" or admin_role == "owner")
+        if admin_id and not self.public_mode:
             user["owner"] = {
                 "id": admin_id,
                 "username": str(row["session_admin_username"] or "Proprietario"),
@@ -640,6 +664,8 @@ class AuthStore:
         return user
 
     def list_accounts(self, token: str) -> list[dict]:
+        if self.public_mode:
+            raise AuthError("Gestione account non disponibile.", status=403, code="owner_required")
         session_user = self.get_user_for_token(token)
         if not session_user or not session_user.get("canManageAccounts"):
             raise AuthError("Solo il Proprietario puo vedere gli account.", status=403, code="owner_required")
@@ -701,6 +727,8 @@ class AuthStore:
             conn.commit()
 
     def list_audit(self, token: str, limit: int = 50) -> list[dict]:
+        if self.public_mode:
+            raise AuthError("Gestione account non disponibile.", status=403, code="owner_required")
         session_user = self.get_user_for_token(token)
         if not session_user or session_user.get("role") != "owner" or session_user.get("impersonating"):
             raise AuthError("Solo il Proprietario puo vedere il registro.", status=403, code="owner_required")
@@ -933,6 +961,8 @@ class AuthStore:
             return False
 
     def switch_admin_account(self, token: str, target_user_id: str) -> dict:
+        if self.public_mode:
+            raise AuthError("Gestione account non disponibile.", status=403, code="owner_required")
         session_user = self.get_user_for_token(token)
         if not session_user or not session_user.get("canManageAccounts"):
             raise AuthError("Solo il Proprietario puo aprire altri account.", status=403, code="owner_required")
@@ -967,12 +997,16 @@ class AuthStore:
         return switched
 
     def return_to_owner(self, token: str) -> dict:
+        if self.public_mode:
+            raise AuthError("Gestione account non disponibile.", status=403, code="owner_required")
         session_user = self.get_user_for_token(token)
         if not session_user or not session_user.get("impersonating") or not session_user.get("owner"):
             raise AuthError("Non stai gestendo un altro account.", status=409, code="not_impersonating")
         return self.switch_admin_account(token, str(session_user["owner"]["id"]))
 
     def delete_account(self, token: str, target_user_id: str, confirmation: str) -> dict:
+        if self.public_mode:
+            raise AuthError("Gestione account non disponibile.", status=403, code="owner_required")
         session_user = self.get_user_for_token(token)
         if not session_user or session_user.get("role") != "owner" or session_user.get("impersonating"):
             raise AuthError("Solo il Proprietario puo eliminare un account.", status=403, code="owner_required")
@@ -989,14 +1023,63 @@ class AuthStore:
             conn.execute("DELETE FROM users WHERE id = ?", (target_id,))
             conn.commit()
 
+        self._remove_user_directory(target_id)
+        self.log_audit(str(session_user["id"]), target_id, "account.deleted", {"username": public_target["username"]})
+        return public_target
+
+    def delete_own_account(self, token: str, password: str, confirmation: str) -> dict:
+        session_user = self.get_user_for_token(token)
+        if not session_user:
+            raise AuthError("Accedi per continuare.", status=401, code="authentication_required")
+        if session_user.get("impersonating"):
+            raise AuthError(
+                "Torna al profilo Proprietario prima di eliminare un account.",
+                status=409,
+                code="impersonating_account",
+            )
+
+        user_id = str(session_user.get("id") or "")
+        with closing(self._connect()) as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            if not row:
+                conn.rollback()
+                raise AuthError("Account non trovato.", status=404, code="account_not_found")
+            username = str(row["username"] or "")
+            if str(confirmation or "").strip() != username:
+                conn.rollback()
+                raise AuthError(
+                    "Conferma il nome utente esatto prima di eliminare.",
+                    status=400,
+                    code="delete_confirmation_required",
+                )
+            supplied_hash = self._hash_password(str(password or ""), bytes(row["password_salt"]))
+            if not hmac.compare_digest(bytes(row["password_hash"]), supplied_hash):
+                conn.rollback()
+                raise AuthError("Password non corretta.", status=401, code="invalid_credentials")
+
+            public_user = self._public_user(row)
+            was_owner = str(row["role"] or "user") == "owner"
+            conn.execute("DELETE FROM audit_log WHERE actor_user_id = ? OR target_user_id = ?", (user_id, user_id))
+            conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            if was_owner and not self.public_mode:
+                next_owner = conn.execute(
+                    "SELECT id FROM users ORDER BY created_at ASC, id ASC LIMIT 1"
+                ).fetchone()
+                if next_owner:
+                    conn.execute("UPDATE users SET role = 'owner' WHERE id = ?", (str(next_owner["id"]),))
+            conn.commit()
+
+        self._remove_user_directory(user_id)
+        return public_user
+
+    def _remove_user_directory(self, user_id: str) -> None:
         users_root = self.users_dir.resolve()
-        target_dir = (users_root / target_id).resolve()
+        target_dir = (users_root / str(user_id or "")).resolve()
         if target_dir.parent != users_root:
             raise AuthError("Percorso account non valido.", status=400, code="invalid_account")
         if target_dir.exists():
             shutil.rmtree(target_dir)
-        self.log_audit(str(session_user["id"]), target_id, "account.deleted", {"username": public_target["username"]})
-        return public_target
 
     def logout(self, token: str) -> None:
         if not token:

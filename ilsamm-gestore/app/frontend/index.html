@@ -3,7 +3,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
@@ -11,14 +11,16 @@
 <meta content="#030711" media="(prefers-color-scheme: light)" name="theme-color"/>
 <meta content="#030711" media="(prefers-color-scheme: dark)" name="theme-color"/>
 <meta content="dark" name="color-scheme"/>
-<title>GestOre iPhone</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor:; connect-src 'self' capacitor: https: wss:; img-src 'self' capacitor: data: blob:; media-src 'self' capacitor: blob:; font-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"/>
+<title>GestOre - Ore di lavoro</title>
+<meta name="description" content="Registra ore, ferie, straordinari e cedolini in un archivio personale."/>
 <meta name="application-name" content="GestOre"/>
-  <meta name="gestore-build" content="1.6.9-20260821f"/>
-  <link rel="manifest" href="site.webmanifest?v=20260821f"/>
+  <meta name="gestore-build" content="1.7.0-20260821g"/>
+  <link rel="manifest" href="site.webmanifest?v=20260821g"/>
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png"/>
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icons/icon-512.png"/>
-    <link rel="stylesheet" href="style.css?v=20260821f">
+    <link rel="stylesheet" href="style.css?v=20260821g">
 </head>
 <body class="app-booting">
 <div class="error-box" id="errorBox"></div>
@@ -67,11 +69,14 @@
 
 
 
+<script src="js/runtime-config.js"></script>
+<script src="js/native-runtime.js"></script>
+<script src="js/native-bridge.js"></script>
+
   <script>
 (function () {
   var root = document.documentElement;
   var body = document.body;
-  var lastTouchEnd = 0;
   var KEYBOARD_THRESHOLD = 120;
   var stableViewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
   var lastNonKeyboardHeight = stableViewportHeight;
@@ -94,10 +99,6 @@
     if (!el) return false;
     var tag = String(el.tagName || '').toLowerCase();
     return tag === 'input' || tag === 'textarea' || tag === 'select' || !!el.isContentEditable;
-  }
-
-  function preventDefaultIfCancelable(event) {
-    if (event && event.cancelable) event.preventDefault();
   }
 
   function resetWindowScroll() {
@@ -206,56 +207,33 @@
     }, 120);
   }, true);
 
-  document.addEventListener('gesturestart', preventDefaultIfCancelable, { passive: false });
-  document.addEventListener('gesturechange', preventDefaultIfCancelable, { passive: false });
-  document.addEventListener('gestureend', preventDefaultIfCancelable, { passive: false });
-  document.addEventListener('touchstart', function (event) {
-    if (event.touches && event.touches.length > 1) preventDefaultIfCancelable(event);
-  }, { passive: false });
-  document.addEventListener('touchmove', function (event) {
-    if (event.touches && event.touches.length > 1) preventDefaultIfCancelable(event);
-  }, { passive: false });
-  document.addEventListener('touchend', function (event) {
-    var now = Date.now();
-    if (now - lastTouchEnd < 320) preventDefaultIfCancelable(event);
-    lastTouchEnd = now;
-  }, { passive: false });
-  window.addEventListener('wheel', function (event) {
-    if (event.ctrlKey) preventDefaultIfCancelable(event);
-  }, { passive: false });
-  window.addEventListener('keydown', function (event) {
-    var key = String(event.key || '');
-    if ((event.ctrlKey || event.metaKey) && (key === '+' || key === '=' || key === '-' || key === '_' || key === '0')) {
-      event.preventDefault();
-    }
-  }, { passive: false });
 })();
 </script>
 
-<script src="js/loading.js?v=20260821f"></script>
-<script src="js/payroll/currency-utils.js?v=20260821f"></script>
-<script src="js/payroll/payroll-types.js?v=20260821f"></script>
-<script src="js/tax-config/municipal-taxes.generated.js?v=20260821f"></script>
-<script src="js/tax-config/2025.js?v=20260821f"></script>
-<script src="js/tax-config/2026.js?v=20260821f"></script>
-<script src="js/payroll/progressive-tax-calculator.js?v=20260821f"></script>
-<script src="js/payroll/contribution-calculator.js?v=20260821f"></script>
-<script src="js/payroll/employee-deduction-calculator.js?v=20260821f"></script>
-<script src="js/payroll/regional-tax-calculator.js?v=20260821f"></script>
-<script src="js/payroll/municipal-tax-calculator.js?v=20260821f"></script>
-<script src="js/payroll/payroll-validation.js?v=20260821f"></script>
-<script src="js/payroll/payroll-calculator.js?v=20260821f"></script>
-<script src="js/core.js?v=20260821f"></script>
-<script src="js/validation.js?v=20260821f"></script>
-<script src="js/payslips.js?v=20260821f"></script>
-<script src="js/account.js?v=20260821f"></script>
-<script src="js/platform.js?v=20260821f"></script>
-<script src="js/features.js?v=20260821f"></script>
-<script src="js/planning.js?v=20260821f"></script>
-<script src="js/experience.js?v=20260821f"></script>
-<script src="js/views.js?v=20260821f"></script>
-<script src="js/bindings.js?v=20260821f"></script>
-<script src="js/editor.js?v=20260821f"></script>
+<script src="js/loading.js?v=20260821g"></script>
+<script src="js/payroll/currency-utils.js?v=20260821g"></script>
+<script src="js/payroll/payroll-types.js?v=20260821g"></script>
+<script src="js/tax-config/municipal-taxes.generated.js?v=20260821g"></script>
+<script src="js/tax-config/2025.js?v=20260821g"></script>
+<script src="js/tax-config/2026.js?v=20260821g"></script>
+<script src="js/payroll/progressive-tax-calculator.js?v=20260821g"></script>
+<script src="js/payroll/contribution-calculator.js?v=20260821g"></script>
+<script src="js/payroll/employee-deduction-calculator.js?v=20260821g"></script>
+<script src="js/payroll/regional-tax-calculator.js?v=20260821g"></script>
+<script src="js/payroll/municipal-tax-calculator.js?v=20260821g"></script>
+<script src="js/payroll/payroll-validation.js?v=20260821g"></script>
+<script src="js/payroll/payroll-calculator.js?v=20260821g"></script>
+<script src="js/core.js?v=20260821g"></script>
+<script src="js/validation.js?v=20260821g"></script>
+<script src="js/payslips.js?v=20260821g"></script>
+<script src="js/account.js?v=20260821g"></script>
+<script src="js/platform.js?v=20260821g"></script>
+<script src="js/features.js?v=20260821g"></script>
+<script src="js/planning.js?v=20260821g"></script>
+<script src="js/experience.js?v=20260821g"></script>
+<script src="js/views.js?v=20260821g"></script>
+<script src="js/bindings.js?v=20260821g"></script>
+<script src="js/editor.js?v=20260821g"></script>
 </body>
 </html>
 

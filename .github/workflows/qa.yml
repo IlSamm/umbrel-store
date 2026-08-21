@@ -31,3 +31,11 @@ jobs:
         run: python tmp/run_core_qa.py
       - name: Run payroll tax unit tests
         run: node --test tests/*.test.js
+      - name: Install frontend and iOS dependencies
+        run: npm ci
+      - name: Audit JavaScript dependencies
+        run: npm audit --audit-level=moderate
+      - name: Build and validate the iOS web bundle
+        run: npm run build:ios
+      - name: Type-check native bridge
+        run: npm run typecheck:native

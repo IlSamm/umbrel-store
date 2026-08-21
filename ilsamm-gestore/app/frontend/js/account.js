@@ -3,6 +3,7 @@ var ACCOUNT_REGISTER_URL = '/api/auth/register';
 var ACCOUNT_LOGIN_URL = '/api/auth/login';
 var ACCOUNT_RECOVER_URL = '/api/auth/recover';
 var ACCOUNT_LOGOUT_URL = '/api/auth/logout';
+var ACCOUNT_SELF_DELETE_URL = '/api/auth/account';
 var ACCOUNT_BACKUP_URL = '/api/backup';
 var ACCOUNT_RESTORE_URL = '/api/backup/restore';
 var ACCOUNT_BACKUPS_URL = '/api/backups';
@@ -81,7 +82,8 @@ state.account = {
   passkeyDeleteCandidate: null,
   adminAccounts: null,
   adminLoading: false,
-  deleteCandidate: null
+  deleteCandidate: null,
+  selfDeleteOpen: false
 };
 
 function getStoredActiveAccountId() {
@@ -737,7 +739,13 @@ async function submitAccountRegistration(form) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
-      body: JSON.stringify({ username: username, password: password, snapshot: buildStateSnapshot({ includePayslipPhotos: true }) })
+      body: JSON.stringify({
+        username: username,
+        password: password,
+        acceptedTerms: true,
+        termsVersion: '2026-08-21',
+        snapshot: buildStateSnapshot({ includePayslipPhotos: true })
+      })
     });
     var payload = await readJsonResponse(response);
     var newAccountId = payload.user && payload.user.id;
@@ -818,6 +826,39 @@ async function logoutAccount() {
   clearGestOreDeviceCache({ preserveAccountCaches: true });
   resetRuntimeAccountData();
   window.location.reload();
+}
+
+async function deleteOwnAccount(form) {
+  if (state.account.busy) return;
+  var user = state.account.user || {};
+  var confirmation = String(form.querySelector('[name="selfAccountConfirmation"]').value || '').trim();
+  var password = String(form.querySelector('[name="selfAccountPassword"]').value || '');
+  if (confirmation !== String(user.username || '')) {
+    setAccountUiState({ error: 'Scrivi esattamente ' + String(user.username || '') + ' per confermare.' });
+    return;
+  }
+  if (!password) {
+    setAccountUiState({ error: 'Inserisci la password attuale.' });
+    return;
+  }
+  setAccountUiState({ busy: true, error: '', notice: '' });
+  try {
+    var response = await fetch(ACCOUNT_SELF_DELETE_URL, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      body: JSON.stringify({ password: password, confirmation: confirmation })
+    });
+    await readJsonResponse(response);
+    var accountId = String(user.id || getStoredActiveAccountId() || '');
+    if (accountId) removeAccountDeviceCache(accountId);
+    try { localStorage.removeItem(STORAGE_ACTIVE_ACCOUNT); } catch (err) {}
+    clearGestOreDeviceCache({ preserveAccountCaches: true });
+    resetRuntimeAccountData();
+    window.location.reload();
+  } catch (err) {
+    setAccountUiState({ busy: false, error: err.message || 'Eliminazione non riuscita.' });
+  }
 }
 
 function getDownloadFilename(response, fallback) {
@@ -1156,6 +1197,7 @@ function renderAccountGate() {
       (recoverMode ? '<label><span>Codice di recupero</span><input name="recoveryCode" type="text" minlength="20" maxlength="32" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required></label>' : '') +
       '<label><span>' + (recoverMode ? 'Nuova password' : 'Password') + '</span><input name="password" type="password" minlength="8" maxlength="128" autocomplete="' + (registerMode || recoverMode ? 'new-password' : 'current-password') + '" placeholder="Almeno 8 caratteri" required></label>' +
       (registerMode || recoverMode ? '<label><span>Ripeti password</span><input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Ripeti la password" required></label>' : '') +
+      (registerMode ? '<label class="account-consent"><input name="acceptedTerms" type="checkbox" required><span>Accetto la <a href="/legal/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> e i <a href="/legal/terms.html" target="_blank" rel="noopener">Termini di utilizzo</a>.</span></label>' : '') +
       status +
       '<button class="account-primary" type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Attendi...' : (recoverMode ? 'Imposta nuova password' : (registerMode ? 'Crea account' : 'Accedi'))) + '</button>' +
       (!registerMode && !recoverMode && supportsAccountPasskeys()
@@ -1169,6 +1211,7 @@ function renderAccountGate() {
           (!registerMode ? '<button class="account-recovery-switch" data-account-mode="recover">Password dimenticata?</button>' : '')
     )) +
     '<div class="account-security-note">' + icons.lock + '<span>Password protetta, passkey opzionale e database separato per ogni utente.</span></div>' +
+    '<nav class="account-legal-links" aria-label="Informazioni legali"><a href="/legal/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/legal/terms.html" target="_blank" rel="noopener">Termini</a><a href="/legal/support.html" target="_blank" rel="noopener">Supporto</a></nav>' +
   '</div></div>';
 }
 
@@ -1325,6 +1368,17 @@ function renderAccountDataSettings() {
   var conflictNotice = state.syncConflictNotice
     ? '<section class="account-sync-conflict" role="status" aria-live="polite"><span>' + icons.activity + '</span><div><strong>Dati uniti in sicurezza</strong><p>' + escapeHtml(state.syncConflictNotice) + '</p></div><button data-retry-server-sync="1">Verifica ora</button><button data-dismiss-sync-conflict="1" aria-label="Chiudi avviso">' + icons.x + '</button></section>'
     : '';
+  var selfDeleteDialog = state.account.selfDeleteOpen
+    ? '<div class="account-delete-overlay" role="dialog" aria-modal="true" aria-labelledby="selfAccountDeleteTitle"><form class="account-delete-dialog" data-self-delete-form="1">' +
+      '<button type="button" class="account-delete-close" data-self-delete-cancel="1" aria-label="Chiudi">' + icons.x + '</button>' +
+      '<span class="account-delete-icon">' + icons.trash + '</span><small>ELIMINAZIONE DEFINITIVA</small><h2 id="selfAccountDeleteTitle">Eliminare il tuo account?</h2>' +
+      '<p>Verranno eliminati definitivamente giornate, ferie, cedolini, foto, backup, passkey e sessioni di <b>' + escapeHtml(username) + '</b>. Non potrai annullare questa operazione.</p>' +
+      '<label><span>Scrivi <b>' + escapeHtml(username) + '</b> per confermare</span><input name="selfAccountConfirmation" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required></label>' +
+      '<label><span>Password attuale</span><input name="selfAccountPassword" type="password" autocomplete="current-password" required></label>' +
+      (state.account.error ? '<div class="account-delete-error" role="alert">' + escapeHtml(state.account.error) + '</div>' : '') +
+      '<div class="account-delete-actions"><button type="button" data-self-delete-cancel="1">Annulla</button><button type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Eliminazione...' : 'Elimina account') + '</button></div>' +
+    '</form></div>'
+    : '';
   return '<section class="account-current-card account-data-hero"><span>' + escapeHtml(initial) + '</span><div><small>DATABASE PERSONALE</small><strong>' + escapeHtml(username) + '</strong><p>Ore, ferie e cedolini restano separati dagli altri account</p></div><i>' + icons.check + '</i></section>' +
     '<div class="settings-v2-section-title">Sincronizzazione</div>' +
     '<section class="account-sync-health account-data-status' + syncHealthTone + '">' +
@@ -1348,7 +1402,9 @@ function renderAccountDataSettings() {
     message +
     '<div class="settings-v2-section-title">Sessione</div>' +
     '<section class="settings-v2-group"><button class="account-logout-row" data-account-logout="1"><span class="settings-v2-icon is-violet">' + icons.user + '</span><span class="settings-v2-copy"><strong>Esci da ' + escapeHtml(username) + '</strong><small>Potrai accedere con un altro account</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
-    backupDecisionDialog;
+    '<div class="settings-v2-section-title">Eliminazione account</div>' +
+    '<section class="settings-v2-group account-danger-group"><button class="account-logout-row account-self-delete-row" data-self-delete-open="1"><span class="settings-v2-icon">' + icons.trash + '</span><span class="settings-v2-copy"><strong>Elimina definitivamente</strong><small>Cancella il profilo e tutti i dati associati</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+    backupDecisionDialog + selfDeleteDialog;
 }
 
 function bindAccountEvents() {
@@ -1393,6 +1449,18 @@ function bindAccountEvents() {
   if (input) input.onchange = function () { restoreAccountBackup(input.files && input.files[0]); };
   var logout = document.querySelector('[data-account-logout]');
   if (logout) logout.onclick = logoutAccount;
+  var selfDeleteOpen = document.querySelector('[data-self-delete-open]');
+  if (selfDeleteOpen) selfDeleteOpen.onclick = function () {
+    setAccountUiState({ selfDeleteOpen: true, error: '', notice: '' });
+  };
+  document.querySelectorAll('[data-self-delete-cancel]').forEach(function (button) {
+    button.onclick = function () { setAccountUiState({ selfDeleteOpen: false, error: '', notice: '' }); };
+  });
+  var selfDeleteForm = document.querySelector('[data-self-delete-form]');
+  if (selfDeleteForm) selfDeleteForm.onsubmit = function (event) {
+    event.preventDefault();
+    deleteOwnAccount(selfDeleteForm);
+  };
   var retrySync = document.querySelector('[data-retry-server-sync]');
   if (retrySync) retrySync.onclick = function () {
     state.syncConflictNotice = '';

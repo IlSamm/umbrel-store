@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.6.9-20260821f';
+var PLATFORM_BUILD = '1.7.0-20260821g';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -135,6 +135,7 @@ function readPendingRecoveryCode() {
 }
 
 async function registerGestOreServiceWorker() {
+  if (window.GestOreNative && window.GestOreNative.isNative) return null;
   if (!('serviceWorker' in navigator)) return null;
   try {
     var registration = await navigator.serviceWorker.register('/service-worker.js', {
@@ -232,10 +233,10 @@ function initializePlatformServices() {
   var pendingCode = readPendingRecoveryCode();
   if (pendingCode) showRecoveryCode(pendingCode);
   window.addEventListener('gestore:account-ready', function () {
-    loadPlatformPushConfig(true);
+    if (!(window.GestOreNative && window.GestOreNative.isNative)) loadPlatformPushConfig(true);
     handlePlatformDeepLink();
   });
-  if (typeof state !== 'undefined' && state.account && state.account.authenticated) {
+  if (typeof state !== 'undefined' && state.account && state.account.authenticated && !(window.GestOreNative && window.GestOreNative.isNative)) {
     loadPlatformPushConfig(true);
   }
 }

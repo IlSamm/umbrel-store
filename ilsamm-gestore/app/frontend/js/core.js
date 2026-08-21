@@ -79,8 +79,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.6.9',
-      build: '20260821f',
+      version: '1.7.0',
+      build: '20260821g',
       appName: 'GestOre'
     };
 
@@ -981,11 +981,21 @@ var errorBox = document.getElementById('errorBox');
       });
     }
     function downloadBlobFile(filename, blob) {
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      window.setTimeout(function () { URL.revokeObjectURL(url); }, 1200);
+      function browserDownload() {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 1200);
+      }
+      var nativeBridge = window.GestOreNative;
+      if (nativeBridge && nativeBridge.isNative && typeof nativeBridge.shareBlob === 'function') {
+        nativeBridge.shareBlob(filename, blob).then(function (shared) {
+          if (!shared) browserDownload();
+        }).catch(browserDownload);
+        return;
+      }
+      browserDownload();
     }
     function downloadTextFile(filename, content, mime) {
       var blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
@@ -2044,6 +2054,11 @@ var errorBox = document.getElementById('errorBox');
       return completed;
     }
     async function ensureNotificationPermission(requestIfNeeded) {
+      var nativeBridge = window.GestOreNative;
+      if (nativeBridge && nativeBridge.isNative && typeof nativeBridge.requestNotifications === 'function') {
+        if (!requestIfNeeded && nativeBridge.notificationPermission === 'prompt') return 'default';
+        return nativeBridge.requestNotifications();
+      }
       if (!('Notification' in window)) return 'unsupported';
       var permission = Notification.permission;
       if (permission !== 'granted' && requestIfNeeded) permission = await Notification.requestPermission();
@@ -2119,7 +2134,6 @@ var errorBox = document.getElementById('errorBox');
       return null;
     }
     function sendReminderNotification(source) {
-      if (!('Notification' in window) || Notification.permission !== 'granted') return false;
       var reminderTime = getReminderTimeValue();
       if (!reminderTime) return false;
       var content = source === 'manual'
@@ -2129,6 +2143,17 @@ var errorBox = document.getElementById('errorBox');
       var reminderKey = toISODate(new Date()) + '|' + reminderTime + '|' + content.kind;
       if (source !== 'manual' && reminderLastSentKey === reminderKey) return false;
       if (source !== 'manual') reminderLastSentKey = reminderKey;
+      var nativeBridge = window.GestOreNative;
+      if (nativeBridge && nativeBridge.isNative && typeof nativeBridge.notifyNow === 'function') {
+        nativeBridge.notifyNow({
+          id: 91001,
+          title: content.title || state.settings.appName,
+          body: content.body,
+          extra: { kind: content.kind }
+        }).catch(function () {});
+        return true;
+      }
+      if (!('Notification' in window) || Notification.permission !== 'granted') return false;
       new Notification(content.title || state.settings.appName, {
         body: content.body,
         tag: 'gestore-' + content.kind
@@ -2138,6 +2163,26 @@ var errorBox = document.getElementById('errorBox');
     function updateReminderSchedule() {
       clearReminderSchedule();
       if (!state || !state.settings || !state.settings.remindersEnabled) return;
+      var nativeBridge = window.GestOreNative;
+      if (nativeBridge && nativeBridge.isNative && typeof nativeBridge.scheduleNotification === 'function') {
+        var nativeNextReminder = getNextReminderDate(new Date());
+        var nativeContent = getSmartReminderContent(new Date()) || {
+          kind: 'daily-check',
+          title: state.settings.appName || 'GestOre',
+          body: 'Controlla che la giornata sia registrata correttamente.'
+        };
+        nativeBridge.cancelNotification(91002).then(function () {
+          if (!nativeNextReminder) return;
+          return nativeBridge.scheduleNotification({
+            id: 91002,
+            title: nativeContent.title,
+            body: nativeContent.body,
+            at: nativeNextReminder,
+            extra: { kind: nativeContent.kind }
+          });
+        }).catch(function () {});
+        return;
+      }
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       var nextReminder = getNextReminderDate(new Date());
       if (!nextReminder) return;
@@ -2148,6 +2193,13 @@ var errorBox = document.getElementById('errorBox');
       }, delay);
     }
     function getReminderHelperText() {
+      var nativeBridge = window.GestOreNative;
+      if (nativeBridge && nativeBridge.isNative) {
+        if (!state || !state.settings || !state.settings.remindersEnabled) return 'Attiva il promemoria per ricevere una notifica locale anche quando GestOre e chiusa.';
+        var nativeNext = getNextReminderDate(new Date());
+        if (!nativeNext) return 'Imposta un orario valido per il promemoria.';
+        return 'Prossimo controllo alle ' + pad(nativeNext.getHours()) + ':' + pad(nativeNext.getMinutes()) + ', anche con app chiusa.';
+      }
       if (!('Notification' in window)) return 'Notifiche non disponibili in questo browser.';
       if (!state || !state.settings || !state.settings.remindersEnabled) return 'Attiva il promemoria per ricevere una notifica locale quando GestOre resta aperta.';
       if (Notification.permission !== 'granted') return 'Serve il permesso notifiche per far partire il promemoria automatico.';

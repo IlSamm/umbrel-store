@@ -158,6 +158,37 @@
   color: rgba(166, 183, 219, .34);
 }
 
+.account-form .account-consent {
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 2px 3px;
+}
+
+.account-form .account-consent input {
+  width: 22px;
+  min-height: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  accent-color: #5f7cff;
+}
+
+.account-form .account-consent > span {
+  padding: 1px 0 0;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.account-form .account-consent a,
+.account-legal-links a {
+  color: #83b7ff;
+  text-underline-offset: 3px;
+}
+
 .account-primary,
 .account-mode-switch {
   width: 100%;
@@ -226,6 +257,14 @@
   width: 14px;
   height: 14px;
   color: #49d0a5;
+}
+
+.account-legal-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 10px;
 }
 
 .account-current-card,
@@ -462,6 +501,26 @@
   text-align: left;
   border: 0;
   background: transparent;
+}
+
+.account-danger-group {
+  border-color: rgba(255, 99, 130, .18) !important;
+  background: linear-gradient(145deg, rgba(44, 13, 29, .30), rgba(7, 12, 27, .94)) !important;
+}
+
+.account-self-delete-row,
+.account-self-delete-row .settings-v2-icon,
+.account-self-delete-row .settings-v2-chevron {
+  color: #ff718d;
+}
+
+.account-self-delete-row .settings-v2-icon {
+  border-color: rgba(255, 101, 132, .22);
+  background: rgba(164, 30, 59, .14);
+}
+
+.account-self-delete-row .settings-v2-copy small {
+  color: rgba(231, 176, 188, .58);
 }
 
 .account-owner-card,

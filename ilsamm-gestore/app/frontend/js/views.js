@@ -2091,7 +2091,7 @@ function getCalendarSelectedDateKey(month) {
           '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong><small>Excel, calendario, PDF mensile e annuale</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="settings" data-settings-section="privacy"><span class="profile-row-icon is-blue">' + icons.lock + '</span><span class="profile-row-copy"><strong>Privacy e sicurezza</strong><small>Protezione dell&apos;app e accesso all&apos;account</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
-        '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span></div>' +
+        '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span><nav aria-label="Informazioni legali"><a href="/legal/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/legal/terms.html" target="_blank" rel="noopener">Termini</a><a href="/legal/support.html" target="_blank" rel="noopener">Supporto</a></nav></div>' +
       '</div>';
     }
 
