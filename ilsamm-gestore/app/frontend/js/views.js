@@ -1949,7 +1949,7 @@ function getCalendarSelectedDateKey(month) {
       return Object.keys(grouped).sort(function (a, b) {
         return Number(b) - Number(a);
       }).map(function (year) {
-        var rows = grouped[year].map(function (item) {
+        var rows = sortPayslipsByPeriod(grouped[year]).map(function (item) {
           var photos = normalizePayslipPhotos(item);
           var photoCount = getPayslipPhotoCount(item);
           var cover = photos[0] || null;
@@ -1974,7 +1974,7 @@ function getCalendarSelectedDateKey(month) {
     }
 
     function renderPayslipArchiveV2() {
-      var items = (state.payslips || []).slice();
+      var items = sortPayslipsByPeriod(state.payslips || []);
       var totalAmount = items.reduce(function (sum, item) {
         return sum + Math.max(0, parseDecimalInput(item.netto, 0));
       }, 0);

@@ -136,7 +136,7 @@ var state = {
       });
     }
     function normalizePayslipCollection(items) {
-      return (Array.isArray(items) ? items : []).map(normalizePayslipRecord);
+      return sortPayslipsByPeriod((Array.isArray(items) ? items : []).map(normalizePayslipRecord));
     }
     function getPayslipPhotoCount(payslip) {
       var localCount = normalizePayslipPhotos(payslip).length;
@@ -290,6 +290,14 @@ var state = {
     function getPayslipPeriodValue(payslip) {
       var date = getPayslipMonthDate(payslip);
       return date ? (date.getFullYear() * 12 + date.getMonth()) : -1;
+    }
+    function sortPayslipsByPeriod(items) {
+      if (window.GestOrePayslipOrdering && typeof window.GestOrePayslipOrdering.sortNewestFirst === 'function') {
+        return window.GestOrePayslipOrdering.sortNewestFirst(items);
+      }
+      return (Array.isArray(items) ? items : []).slice().sort(function (a, b) {
+        return getPayslipPeriodValue(b) - getPayslipPeriodValue(a);
+      });
     }
     function findPreviousPayslipWithRates(payslip) {
       var current = payslip || {};
@@ -1936,10 +1944,7 @@ var state = {
       var index = (state.payslips || []).findIndex(function (item) { return item.id === saved.id; });
       if (index >= 0) state.payslips[index] = saved;
       else state.payslips.unshift(saved);
-      state.payslips.sort(function (a, b) {
-        var ad = getPayslipMonthDate(a), bd = getPayslipMonthDate(b);
-        return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
-      });
+      state.payslips = sortPayslipsByPeriod(state.payslips);
       state.payslipDraft = clonePayslipForDraft(saved);
       state.payslipBusy = true;
       state.payslipStatus = 'Salvataggio nel database...';
