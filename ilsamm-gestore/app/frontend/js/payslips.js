@@ -37,6 +37,8 @@ function clearPendingPayslipDraft() {
 var state = {
       activeTab: 'home',
       settingsSection: '',
+      avatarPickerOpen: false,
+      legalPage: '',
       entries: loadEntriesWithRecovery(),
       settings: normalizeRuntimeSettings(loadWithMigration(STORAGE_SETTINGS, LEGACY_SETTINGS_KEYS, SETTINGS_BACKUP_KEYS, {}, 'settings')),
       settingsDraft: {},
@@ -1285,20 +1287,20 @@ var state = {
     }
     function getPayrollEstimateDefaultsForMonth(year, month) {
       var api = getPayrollCalculatorApi();
-      var defaults = api && api.DEFAULT_PAYROLL_INPUT
-        ? Object.assign({}, api.DEFAULT_PAYROLL_INPUT)
+      var defaults = api && api.EMPTY_PAYROLL_INPUT
+        ? Object.assign({}, api.EMPTY_PAYROLL_INPUT)
         : {
-            baseMonthlyGross: 1766,
-            salaryMonths: 14,
-            overtimeHoursMonthly: 20,
-            overtimeHourlyRate: 10.98,
-            monthsWithOvertime: 12,
+            baseMonthlyGross: 0,
+            salaryMonths: 12,
+            overtimeHoursMonthly: 0,
+            overtimeHourlyRate: 0,
+            monthsWithOvertime: 0,
             otherAnnualGross: 0,
-            employeeContributionRate: 9.19,
-            region: 'Lombardia',
+            employeeContributionRate: 0,
+            region: '',
             municipality: '',
             taxYear: 2026,
-            employmentDays: 365,
+            employmentDays: 0,
             employmentType: 'permanent',
             otherAnnualDeductions: 0,
             annualReimbursements: 0,
@@ -1308,11 +1310,6 @@ var state = {
       var selectedYear = Number(year) || new Date().getFullYear();
       if (typeof globalThis !== 'undefined' && globalThis.GestOreTaxConfigs && globalThis.GestOreTaxConfigs[selectedYear]) {
         defaults.taxYear = selectedYear;
-      }
-      var legacyRates = getSalaryEstimateRates(year, month);
-      if (legacyRates.overtimeRate > 0) defaults.overtimeHourlyRate = legacyRates.overtimeRate;
-      if (legacyRates.overtimeLimitEnabled && legacyRates.overtimeHoursLimit > 0) {
-        defaults.overtimeHoursMonthly = legacyRates.overtimeHoursLimit;
       }
       return api && typeof api.normalizePayrollInput === 'function'
         ? api.normalizePayrollInput(defaults)

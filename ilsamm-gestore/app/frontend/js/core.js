@@ -54,6 +54,9 @@ var errorBox = document.getElementById('errorBox');
       pushEnabled: false,
       reminderTime: '20:00',
       userName: 'Utente',
+      profileAvatarMode: 'preset',
+      profileAvatarPreset: 'nova',
+      profileAvatarData: '',
       lockApp: false,
       workdays: [0,1,2,3,4],
       autoRestDays: [],
@@ -79,8 +82,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.7.1',
-      build: '20260821h',
+      version: '1.8.0',
+      build: '20260822a',
       appName: 'GestOre'
     };
 
@@ -137,6 +140,7 @@ var errorBox = document.getElementById('errorBox');
       ,cloud: '<svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .8-7.92A6 6 0 0 0 6.3 8.2 5 5 0 0 0 7 18Z"></path><path d="m9 13 2 2 4-4"></path></svg>'
       ,history: '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5M12 7v5l3 2"></path></svg>'
       ,wallet: '<svg viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H18a2 2 0 0 1 2 2v2H7a3 3 0 0 0 0 6h13v4a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 17.5v-11Z"></path><path d="M20 8H7a3 3 0 0 0 0 6h13V8Z"></path><circle cx="8" cy="11" r=".8"></circle></svg>'
+      ,camera: '<svg viewBox="0 0 24 24"><path d="M4 7h4l1.5-2h5L16 7h4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"></path><circle cx="12" cy="13" r="4"></circle></svg>'
     };
 
     function loadStorage(key, fallback) {
@@ -256,6 +260,9 @@ var errorBox = document.getElementById('errorBox');
         Boolean(candidate.pushEnabled) === Boolean(defaultSettings.pushEnabled) &&
         String(candidate.reminderTime || '') === String(defaultSettings.reminderTime || '') &&
         String(candidate.userName || '') === String(defaultSettings.userName || '') &&
+        String(candidate.profileAvatarMode || '') === String(defaultSettings.profileAvatarMode || '') &&
+        String(candidate.profileAvatarPreset || '') === String(defaultSettings.profileAvatarPreset || '') &&
+        String(candidate.profileAvatarData || '') === String(defaultSettings.profileAvatarData || '') &&
         Boolean(candidate.lockApp) === Boolean(defaultSettings.lockApp) &&
         normalizeWeekdayList(candidate.workdays || []).join(',') === normalizeWeekdayList(defaultSettings.workdays || []).join(',') &&
         normalizeWeekdayList(candidate.autoRestDays || []).join(',') === normalizeWeekdayList(defaultSettings.autoRestDays || []).join(',') &&
@@ -432,6 +439,27 @@ var errorBox = document.getElementById('errorBox');
       merged.homeShowWeeklyAnalytics = merged.homeShowWeeklyAnalytics !== false;
       merged.homeShowMonthlyAnalytics = merged.homeShowMonthlyAnalytics !== false;
       merged.homeShowSalaryPreview = merged.homeShowSalaryPreview === true;
+      merged.profileAvatarMode = ['preset', 'photo', 'initials'].indexOf(String(merged.profileAvatarMode || '')) !== -1
+        ? String(merged.profileAvatarMode)
+        : defaultSettings.profileAvatarMode;
+      var avatarPresetAliases = {
+        orbit: 'nova',
+        hours: 'byte',
+        work: 'milo',
+        focus: 'lumi',
+        vacation: 'pico',
+        pay: 'nori'
+      };
+      var requestedAvatarPreset = String(merged.profileAvatarPreset || '');
+      requestedAvatarPreset = avatarPresetAliases[requestedAvatarPreset] || requestedAvatarPreset;
+      merged.profileAvatarPreset = ['nova', 'byte', 'milo', 'lumi', 'pico', 'nori'].indexOf(requestedAvatarPreset) !== -1
+        ? requestedAvatarPreset
+        : defaultSettings.profileAvatarPreset;
+      var avatarData = typeof merged.profileAvatarData === 'string' ? merged.profileAvatarData : '';
+      merged.profileAvatarData = /^data:image\/(?:jpeg|png|webp);base64,/i.test(avatarData) && avatarData.length <= 500000
+        ? avatarData
+        : '';
+      if (merged.profileAvatarMode === 'photo' && !merged.profileAvatarData) merged.profileAvatarMode = 'preset';
       merged.shiftPresets = normalizeShiftPresets(merged.shiftPresets);
       merged.weeklyTemplate = normalizeWeeklyTemplate(merged.weeklyTemplate);
       var rawVacationAllowances = merged.vacationAllowanceByYear && typeof merged.vacationAllowanceByYear === 'object' && !Array.isArray(merged.vacationAllowanceByYear)

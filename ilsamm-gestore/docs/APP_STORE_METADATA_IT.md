@@ -7,7 +7,7 @@
 - Category: Productivity
 - Secondary category: Business
 - Bundle identifier: `it.ilsamm.gestore`
-- Version: `1.7.1`
+- Version: `1.8.0`
 
 ## Promotional text
 

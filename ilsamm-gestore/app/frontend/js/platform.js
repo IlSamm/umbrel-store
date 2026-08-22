@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.7.1-20260821h';
+var PLATFORM_BUILD = '1.8.0-20260822a';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'La navigazione ha ora un vetro piu profondo, luminoso e coerente con lo stile premium di GestOre.',
-  'Il selettore attivo e piu fluido, centrato e segue il dito durante il trascinamento.',
-  'Icone ed etichette sono uniformi e restano leggibili anche sugli iPhone piu stretti.',
-  'La safe area inferiore e i dati gia salvati restano invariati.'
+  'Il profilo ha sei nuove mascotte illustrate, oltre a foto da galleria, fotocamera e iniziali.',
+  'La stima stipendio parte vuota per i nuovi profili e gestisce in modo chiaro 12, 13 o 14 mensilita.',
+  'Ricerca, ferie, calendario, impostazioni e pagine legali sono piu ordinate e restano dentro GestOre.',
+  'Lo zoom e bloccato nell app e rimane disponibile soltanto sulle foto dei cedolini.'
 ];
 
 async function readPlatformJson(response) {

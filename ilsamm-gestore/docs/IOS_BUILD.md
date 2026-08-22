@@ -21,7 +21,7 @@ The release build intentionally fails if `GESTORE_API_BASE_URL` is missing or do
 
 1. Open `ios/App/App.xcodeproj`.
 2. Select the Apple Developer team and confirm bundle identifier `it.ilsamm.gestore`.
-3. Keep the app on iPhone, portrait orientation, version `1.7.1`, build `171`.
+3. Keep the app on iPhone, portrait orientation, version `1.8.0`, build `180`.
 4. Test account creation/deletion, camera, gallery, photo zoom, keyboard, notifications, exports and offline/error states on a real iPhone.
 5. Use Product > Archive, validate the archive, then upload it to TestFlight.
 

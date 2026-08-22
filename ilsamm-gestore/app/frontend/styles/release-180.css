@@ -1,0 +1,790 @@
+/* GestOre 1.8: final interaction and hierarchy pass. */
+html,
+body,
+#app {
+  touch-action: pan-x pan-y;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+[data-payslip-zoom-surface] {
+  touch-action: none !important;
+}
+
+/* Bottom navigation: compact glass, stable labels, click-only motion. */
+:root {
+  --shell-nav-width: min(calc(100% - 18px), 404px);
+  --shell-nav-height: 68px;
+  --shell-nav-float: 11px;
+  --shell-content-bottom: calc(var(--shell-nav-height) + var(--shell-nav-float) + 18px);
+}
+
+.bottom-nav.nav-v13,
+#app > .bottom-nav.nav-v13 {
+  border-radius: 25px !important;
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.095), transparent 32%) padding-box,
+    linear-gradient(180deg, rgba(12, 21, 47, 0.89), rgba(3, 8, 21, 0.96)) padding-box,
+    linear-gradient(135deg, rgba(207, 222, 255, 0.22), rgba(99, 121, 202, 0.08) 55%, rgba(132, 94, 238, 0.17)) border-box !important;
+  box-shadow:
+    0 18px 42px rgba(0, 2, 14, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(72, 95, 178, 0.08) !important;
+  backdrop-filter: blur(30px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(1.5) !important;
+}
+
+.nav-v13 .nav-grid-v2,
+#app > .bottom-nav.nav-v13 .nav-grid.nav-grid-v2 {
+  --nav-inner-pad: 5px;
+  min-height: 66px !important;
+  padding: var(--nav-inner-pad) !important;
+  touch-action: manipulation !important;
+  background: radial-gradient(circle at 50% -60%, rgba(150, 174, 255, 0.12), transparent 66%) !important;
+}
+
+.nav-v13 .nav-active-indicator::before {
+  width: min(calc(100% - 2px), 71px) !important;
+  height: 54px !important;
+  border-radius: 19px !important;
+  border-color: rgba(211, 222, 255, 0.2) !important;
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.16), transparent 38%),
+    radial-gradient(circle at 32% -12%, rgba(201, 215, 255, 0.26), transparent 55%),
+    linear-gradient(145deg, rgba(100, 111, 226, 0.35), rgba(43, 91, 177, 0.25) 58%, rgba(102, 69, 188, 0.24)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 9px 22px rgba(24, 34, 113, 0.28) !important;
+}
+
+.nav-v13 .nav-active-indicator::after {
+  width: min(calc(100% - 8px), 63px) !important;
+  height: 45px !important;
+  border-radius: 17px !important;
+  opacity: 0.72 !important;
+}
+
+.nav-v13 .nav-btn-v2,
+#app > .bottom-nav.nav-v13 .nav-btn.nav-btn-v2 {
+  grid-template-rows: 24px 13px !important;
+  min-height: 56px !important;
+  gap: 2px !important;
+  padding: 4px 0 3px !important;
+  color: rgba(199, 210, 239, 0.5) !important;
+}
+
+.nav-v13 .nav-btn-v2 .nav-icon-shell,
+.nav-v13 .nav-btn-v2.nav-home .nav-icon-shell {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.nav-v13 .nav-btn-v2 .nav-icon-shell svg,
+.nav-v13 .nav-btn-v2.nav-home .nav-icon-shell svg {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+.nav-v13 .nav-btn-v2 .nav-label,
+#app > .bottom-nav.nav-v13 .nav-btn.nav-btn-v2 .nav-label {
+  max-width: 100% !important;
+  overflow: visible !important;
+  font-size: clamp(8.6px, 2.35vw, 10px) !important;
+  line-height: 12px !important;
+  text-overflow: clip !important;
+}
+
+.nav-v13 .nav-grid-v2.nav-animated .nav-active-indicator {
+  animation-duration: 360ms !important;
+}
+
+/* Reusable profile avatars. */
+.go-profile-avatar {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  place-items: center;
+  border-radius: inherit;
+  color: #fff;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(163, 205, 255, 0.3), transparent 42%),
+    linear-gradient(145deg, #326dea, #7255db 62%, #173874);
+}
+
+.go-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.go-profile-avatar svg {
+  width: 48%;
+  height: 48%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.go-profile-avatar b {
+  font-size: 0.34em;
+  letter-spacing: -0.04em;
+}
+
+.go-profile-avatar.is-preset {
+  background:
+    radial-gradient(circle at 50% 82%, rgba(90, 126, 235, 0.35), transparent 54%),
+    linear-gradient(145deg, #172d5a, #101a3b 58%, #32235d);
+}
+
+.go-profile-avatar.is-preset img {
+  object-fit: contain;
+  transform: scale(1.08);
+}
+
+.home-profile-avatar > .go-profile-avatar {
+  position: absolute;
+  inset: 0;
+}
+
+.profile-v2-hero {
+  padding-block: 20px !important;
+}
+
+.profile-v2-identity {
+  align-items: center !important;
+}
+
+.profile-v2-avatar-button {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  padding: 3px;
+  border: 1px solid rgba(113, 158, 255, 0.5);
+  border-radius: 25px;
+  color: #fff;
+  background: rgba(5, 12, 31, 0.72);
+  box-shadow: 0 12px 26px rgba(3, 8, 25, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.profile-v2-avatar-button > i {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border: 2px solid #0a142c;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(145deg, #4e83ff, #8356e8);
+}
+
+.profile-v2-avatar-button > i svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+}
+
+.profile-app-footer nav button {
+  padding: 4px 6px;
+  border: 0;
+  color: #8296c8;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+}
+
+.avatar-picker-overlay,
+.calendar-detail-overlay,
+.legal-app-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 320;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background: rgba(1, 5, 15, 0.62);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.avatar-picker-backdrop,
+.calendar-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+}
+
+.avatar-picker-dialog {
+  position: relative;
+  width: min(100%, 392px);
+  padding: 20px;
+  border: 1px solid rgba(139, 163, 242, 0.23);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 95% 0%, rgba(119, 82, 231, 0.2), transparent 36%),
+    linear-gradient(155deg, rgba(19, 33, 69, 0.98), rgba(5, 12, 29, 0.99));
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.avatar-picker-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.avatar-picker-head small,
+.legal-app-page header small {
+  color: #86a6ff;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+
+.avatar-picker-head h2 {
+  margin: 5px 0 0;
+  font-size: 25px;
+  letter-spacing: -0.045em;
+}
+
+.avatar-picker-head p {
+  margin: 6px 0 0;
+  color: #8795b4;
+  font-size: 12px;
+}
+
+.avatar-picker-head > button,
+.legal-app-page header > button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border: 1px solid rgba(126, 149, 221, 0.16);
+  border-radius: 14px;
+  color: #b8c6ed;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.avatar-picker-head svg,
+.legal-app-page header > button svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.avatar-picker-presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.avatar-preset {
+  display: grid;
+  gap: 7px;
+  padding: 10px 6px 9px;
+  place-items: center;
+  border: 1px solid rgba(126, 149, 221, 0.13);
+  border-radius: 18px;
+  color: #aab9df;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.avatar-preset > span {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 19px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 50% 82%, rgba(90, 126, 235, 0.36), transparent 54%),
+    linear-gradient(145deg, #172d5a, #101a3b 58%, #32235d);
+}
+
+.avatar-preset img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: scale(1.08);
+}
+
+.avatar-preset small {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.avatar-preset.is-selected {
+  border-color: rgba(111, 139, 255, 0.55);
+  color: #fff;
+  background: rgba(90, 100, 230, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(119, 149, 255, 0.14);
+}
+
+.avatar-picker-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.avatar-picker-actions button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 62px;
+  padding: 10px;
+  border: 1px solid rgba(126, 149, 221, 0.15);
+  border-radius: 18px;
+  color: #eaf0ff;
+  background: rgba(255, 255, 255, 0.045);
+  text-align: left;
+}
+
+.avatar-picker-actions svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: #79a9ff;
+  stroke-width: 1.9;
+}
+
+.avatar-picker-actions span { display: grid; gap: 2px; }
+.avatar-picker-actions strong { font-size: 11px; }
+.avatar-picker-actions small { color: #7d8caa; font-size: 8px; }
+
+.avatar-picker-initials {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: 0;
+  color: #8fa4d6;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Calendar detail is a centered popup instead of inline content. */
+.calendar-detail-dialog {
+  position: relative;
+  width: min(100%, 392px);
+}
+
+.calendar-detail-dialog .calendar-day-focus {
+  margin: 0 !important;
+  border-radius: 28px !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.calendar-detail-dialog .calendar-day-focus-main {
+  min-height: 96px;
+}
+
+/* In-app legal pages. */
+.legal-app-overlay {
+  padding: 0;
+  background: #030817;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.legal-app-page {
+  width: min(100%, 430px);
+  height: var(--real-app-vh, 100dvh);
+  padding: max(18px, env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  color: #f6f8ff;
+  background:
+    radial-gradient(circle at 88% -8%, rgba(114, 80, 221, 0.16), transparent 34%),
+    radial-gradient(circle at 8% 4%, rgba(65, 129, 225, 0.14), transparent 38%),
+    linear-gradient(180deg, #091329, #030817 72%);
+}
+
+.legal-app-page header {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 12px;
+}
+
+.legal-app-page header > div { text-align: center; }
+.legal-app-page header h1 { margin: 3px 0 0; font-size: 29px; letter-spacing: -0.05em; }
+
+.legal-app-intro {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid rgba(112, 146, 225, 0.2);
+  border-radius: 23px;
+  background: linear-gradient(145deg, rgba(30, 50, 96, 0.82), rgba(8, 17, 39, 0.9));
+}
+
+.legal-app-intro > span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 16px;
+  color: #8ab2ff;
+  background: rgba(73, 112, 225, 0.17);
+}
+
+.legal-app-intro svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.legal-app-intro p { margin: 0; color: #c4cee8; font-size: 13px; line-height: 1.48; }
+
+.legal-app-sections {
+  display: grid;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.legal-app-sections article {
+  padding: 17px;
+  border: 1px solid rgba(112, 136, 202, 0.13);
+  border-radius: 20px;
+  background: rgba(11, 22, 48, 0.72);
+}
+
+.legal-app-sections h2 { margin: 0; font-size: 15px; }
+.legal-app-sections p { margin: 7px 0 0; color: #8f9dbb; font-size: 12px; line-height: 1.52; }
+.legal-app-updated { margin: 22px 0 0; color: #617093; font-size: 10px; text-align: center; }
+
+/* Global search. */
+.global-search-overlay {
+  align-items: stretch !important;
+  padding: 0 !important;
+  background: rgba(1, 5, 15, 0.78) !important;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+}
+
+.global-search-panel {
+  width: min(100%, 430px) !important;
+  height: var(--visible-app-vh, 100dvh) !important;
+  max-height: none !important;
+  margin: 0 auto !important;
+  padding: max(16px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(113, 78, 224, 0.16), transparent 34%),
+    linear-gradient(180deg, #09132a, #030817 76%) !important;
+}
+
+.global-search-hero {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  margin-top: 14px;
+  padding: 13px 14px;
+  border: 1px solid rgba(116, 144, 219, 0.15);
+  border-radius: 19px;
+  background: rgba(20, 35, 70, 0.55);
+}
+
+.global-search-hero > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 14px;
+  color: #8db4ff;
+  background: rgba(77, 113, 224, 0.16);
+}
+
+.global-search-hero svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; }
+.global-search-hero div { display: grid; gap: 3px; }
+.global-search-hero strong { font-size: 13px; }
+.global-search-hero small { color: #8391af; font-size: 10px; }
+
+.global-search-field {
+  min-height: 54px !important;
+  margin-top: 12px !important;
+  border-radius: 18px !important;
+  border-color: rgba(112, 148, 234, 0.24) !important;
+  background: rgba(5, 13, 31, 0.88) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.global-search-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.global-search-filters button {
+  min-height: 35px;
+  padding: 0 5px;
+  border: 1px solid rgba(112, 137, 204, 0.12);
+  border-radius: 12px;
+  color: #7f8eac;
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 9.5px;
+  font-weight: 750;
+}
+
+.global-search-filters button.is-active {
+  border-color: rgba(120, 140, 255, 0.34);
+  color: #fff;
+  background: linear-gradient(145deg, rgba(83, 105, 226, 0.3), rgba(119, 76, 214, 0.24));
+}
+
+.global-search-caption {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 17px !important;
+}
+
+.global-search-caption b {
+  display: grid;
+  min-width: 25px;
+  height: 25px;
+  padding: 0 7px;
+  place-items: center;
+  border-radius: 999px;
+  color: #b9c9f2;
+  background: rgba(116, 139, 219, 0.12);
+  font-size: 10px;
+}
+
+.global-search-results {
+  padding-bottom: 20px;
+}
+
+.global-search-result {
+  min-height: 67px !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, rgba(18, 31, 62, 0.82), rgba(6, 14, 33, 0.9)) !important;
+}
+
+/* Salary estimator: clear empty state, compact hierarchy and explicit extra salaries. */
+.payroll-calculator-stack {
+  gap: 12px !important;
+}
+
+.payroll-calculator-stack.is-invalid > .payroll-calculator-breakdown,
+.payroll-calculator-stack.is-invalid > .payroll-calculator-periods,
+.payroll-calculator-stack.is-invalid > .payroll-calculator-details {
+  display: none !important;
+}
+
+.payroll-calculator-hero {
+  min-height: 252px;
+  padding: 21px !important;
+  border-radius: 28px !important;
+}
+
+.payroll-calculator-hero .payroll-estimate-total {
+  margin-top: 25px;
+  font-size: clamp(46px, 14vw, 61px) !important;
+}
+
+.payroll-calculator-hero-metrics {
+  margin-top: 22px !important;
+}
+
+.payroll-calculator-config-entry {
+  min-height: 96px !important;
+  border-radius: 23px !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(117, 75, 223, 0.13), transparent 38%),
+    linear-gradient(150deg, rgba(21, 37, 74, 0.94), rgba(6, 14, 34, 0.97)) !important;
+}
+
+.payroll-calculator-config-intro {
+  border-radius: 25px !important;
+}
+
+.payroll-calculator-form,
+.payroll-calculator-breakdown,
+.payroll-calculator-periods,
+.payroll-calculator-details,
+.payroll-calculator-save-panel {
+  border-radius: 24px !important;
+}
+
+.payroll-calculator-grid {
+  gap: 11px !important;
+}
+
+.payroll-calculator-field {
+  min-width: 0;
+}
+
+.payroll-calculator-field > div {
+  min-height: 54px !important;
+  border-radius: 16px !important;
+}
+
+.payroll-calculator-field select,
+.payroll-calculator-field input {
+  font-size: 16px !important;
+}
+
+.payroll-region-field,
+.payroll-municipality-field {
+  grid-column: 1 / -1;
+}
+
+.payroll-calculator-period-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+.payroll-calculator-period-grid > div {
+  min-height: 83px !important;
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+
+.payroll-calculator-period-grid strong {
+  font-size: clamp(16px, 5vw, 21px) !important;
+}
+
+.payroll-calculator-period-grid > div:nth-child(3),
+.payroll-calculator-period-grid > div:nth-child(4) {
+  border-color: rgba(146, 112, 244, 0.2);
+  background: linear-gradient(145deg, rgba(96, 72, 193, 0.13), rgba(6, 14, 33, 0.45));
+}
+
+/* Add payslip: less empty space, strong numbered flow. */
+.payroll-editor-stack {
+  gap: 11px !important;
+}
+
+.payroll-editor-intro {
+  min-height: 86px !important;
+  padding: 16px !important;
+  border-radius: 23px !important;
+}
+
+.payroll-editor-stack > .payroll-panel {
+  padding: 17px !important;
+  border-radius: 23px !important;
+}
+
+.payroll-editor-stack .payroll-section-head small {
+  color: #84a7ff;
+}
+
+.payroll-period-grid label,
+.payroll-rate-field,
+.payroll-notes-field {
+  border-radius: 16px !important;
+}
+
+.payroll-photo-empty {
+  min-height: 128px !important;
+  border-radius: 18px !important;
+}
+
+.payroll-upload-actions button {
+  min-height: 48px !important;
+  border-radius: 16px !important;
+}
+
+.payroll-editor-save {
+  min-height: 54px !important;
+  border-radius: 18px !important;
+}
+
+/* Vacation screen: clearer balance and denser actions/history. */
+.vacation-page {
+  gap: 14px !important;
+}
+
+.vacation-page-top {
+  min-height: 62px !important;
+}
+
+.vacation-page-hero {
+  gap: 14px !important;
+  padding: 18px !important;
+  border-radius: 27px !important;
+}
+
+.vacation-page-hero-head h2 {
+  font-size: clamp(46px, 13vw, 57px) !important;
+}
+
+.vacation-page-ring {
+  width: 86px !important;
+  height: 86px !important;
+  flex-basis: 86px !important;
+}
+
+.vacation-page-actions {
+  gap: 9px !important;
+}
+
+.vacation-page-add,
+.vacation-page-edit {
+  min-height: 70px !important;
+  border-radius: 19px !important;
+}
+
+.vacation-page-history {
+  border-radius: 24px !important;
+}
+
+.vacation-page-history-row {
+  min-height: 70px !important;
+}
+
+@media (max-width: 370px) {
+  :root {
+    --shell-nav-width: calc(100% - 12px);
+  }
+
+  .nav-v13 .nav-btn-v2 .nav-label,
+  #app > .bottom-nav.nav-v13 .nav-btn.nav-btn-v2 .nav-label {
+    font-size: 8.3px !important;
+  }
+
+  .payroll-calculator-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .payroll-region-field,
+  .payroll-municipality-field {
+    grid-column: auto;
+  }
+
+  .avatar-picker-dialog {
+    padding: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-active-indicator,
+  .nav-active-indicator::before,
+  .nav-btn-v2 .nav-icon-shell {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}

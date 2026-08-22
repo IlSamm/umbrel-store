@@ -241,8 +241,9 @@ function formatFeatureCurrency(value) {
   });
 }
 
-function getGlobalSearchResults(query) {
+function getGlobalSearchResults(query, requestedFilter) {
   var normalizedQuery = normalizeFeatureSearch(query);
+  var filter = ['all', 'days', 'vacations', 'payslips'].indexOf(requestedFilter) !== -1 ? requestedFilter : 'all';
   var results = [];
   Object.keys(state.entries || {}).sort().reverse().forEach(function (key) {
     var entry = state.entries[key];
@@ -253,8 +254,11 @@ function getGlobalSearchResults(query) {
     var title = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(date);
     var searchable = normalizeFeatureSearch([key, title, type.label, entry.notes, entry.holidayName, entry.start, entry.end].join(' '));
     if (normalizedQuery && searchable.indexOf(normalizedQuery) === -1) return;
+    var category = entry.type === 'ferie' || entry.type === 'lavoro_ferie' ? 'vacations' : 'days';
+    if (filter !== 'all' && filter !== category) return;
     results.push({
       kind: 'day',
+      category: category,
       key: key,
       title: title,
       meta: type.label + (breakdown.total ? ' - ' + formatDuration(breakdown.total) : ''),
@@ -263,6 +267,7 @@ function getGlobalSearchResults(query) {
     });
   });
   (state.payslips || []).forEach(function (item) {
+    if (filter !== 'all' && filter !== 'payslips') return;
     var month = Math.max(1, Math.min(12, Number(item.month) || 1));
     var year = Number(item.year) || new Date().getFullYear();
     var title = monthNames[month - 1] + ' ' + year;
@@ -280,8 +285,8 @@ function getGlobalSearchResults(query) {
   return results.slice(0, normalizedQuery ? 40 : 12);
 }
 
-function renderGlobalSearchResultsMarkup(query) {
-  var results = getGlobalSearchResults(query);
+function renderGlobalSearchResultsMarkup(query, filter) {
+  var results = getGlobalSearchResults(query, filter || state.globalSearchFilter);
   if (!results.length) {
     return '<div class="global-search-empty">' + icons.search + '<strong>Nessun risultato</strong><span>Prova con una data, una nota, ferie o un mese.</span></div>';
   }
@@ -300,12 +305,22 @@ function renderGlobalSearchResultsMarkup(query) {
 function renderGlobalSearchOverlay() {
   if (!state.globalSearchOpen) return '';
   var query = String(state.globalSearchQuery || '');
+  var filter = ['all', 'days', 'vacations', 'payslips'].indexOf(state.globalSearchFilter) !== -1 ? state.globalSearchFilter : 'all';
+  var resultCount = getGlobalSearchResults(query, filter).length;
+  var filters = [
+    { key: 'all', label: 'Tutto' },
+    { key: 'days', label: 'Giornate' },
+    { key: 'vacations', label: 'Ferie' },
+    { key: 'payslips', label: 'Cedolini' }
+  ];
   return '<div class="global-search-overlay" role="dialog" aria-modal="true" aria-labelledby="globalSearchTitle">' +
     '<section class="global-search-panel">' +
       '<div class="global-search-top"><button data-close-global-search="1" aria-label="Chiudi ricerca">' + icons.left + '</button><div><span>ARCHIVIO GESTORE</span><h2 id="globalSearchTitle">Cerca</h2></div><i></i></div>' +
-      '<label class="global-search-field">' + icons.search + '<input id="globalSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Data, nota, ferie, cedolino..." value="' + escapeHtml(query) + '"><button type="button" data-clear-global-search="1" aria-label="Cancella ricerca">' + icons.x + '</button></label>' +
-      '<div class="global-search-caption" id="globalSearchCaption">' + (query ? 'RISULTATI' : 'ELEMENTI RECENTI') + '</div>' +
-      '<div class="global-search-results" id="globalSearchResults">' + renderGlobalSearchResultsMarkup(query) + '</div>' +
+      '<div class="global-search-hero"><span>' + icons.search + '</span><div><strong>Trova subito ciò che cerchi</strong><small>Date, note, ferie e documenti in un solo posto.</small></div></div>' +
+      '<label class="global-search-field">' + icons.search + '<input id="globalSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Cerca nell’archivio..." value="' + escapeHtml(query) + '"><button type="button" data-clear-global-search="1" aria-label="Cancella ricerca">' + icons.x + '</button></label>' +
+      '<div class="global-search-filters" role="group" aria-label="Filtra ricerca">' + filters.map(function (item) { return '<button data-global-search-filter="' + item.key + '" class="' + (item.key === filter ? 'is-active' : '') + '" aria-pressed="' + (item.key === filter ? 'true' : 'false') + '">' + item.label + '</button>'; }).join('') + '</div>' +
+      '<div class="global-search-caption" id="globalSearchCaption"><span>' + (query ? 'RISULTATI' : 'ELEMENTI RECENTI') + '</span><b id="globalSearchCount">' + resultCount + '</b></div>' +
+      '<div class="global-search-results" id="globalSearchResults">' + renderGlobalSearchResultsMarkup(query, filter) + '</div>' +
     '</section>' +
   '</div>';
 }
@@ -523,5 +538,6 @@ state.timerNotice = '';
 state.timerDiscardConfirm = false;
 state.globalSearchOpen = false;
 state.globalSearchQuery = '';
+state.globalSearchFilter = 'all';
 state.weeklyReviewOpen = false;
 state.weeklyReviewDescriptor = null;

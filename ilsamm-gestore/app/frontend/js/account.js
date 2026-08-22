@@ -1197,7 +1197,7 @@ function renderAccountGate() {
       (recoverMode ? '<label><span>Codice di recupero</span><input name="recoveryCode" type="text" minlength="20" maxlength="32" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" required></label>' : '') +
       '<label><span>' + (recoverMode ? 'Nuova password' : 'Password') + '</span><input name="password" type="password" minlength="8" maxlength="128" autocomplete="' + (registerMode || recoverMode ? 'new-password' : 'current-password') + '" placeholder="Almeno 8 caratteri" required></label>' +
       (registerMode || recoverMode ? '<label><span>Ripeti password</span><input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Ripeti la password" required></label>' : '') +
-      (registerMode ? '<label class="account-consent"><input name="acceptedTerms" type="checkbox" required><span>Accetto la <a href="/legal/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> e i <a href="/legal/terms.html" target="_blank" rel="noopener">Termini di utilizzo</a>.</span></label>' : '') +
+      (registerMode ? '<label class="account-consent"><input name="acceptedTerms" type="checkbox" required><span>Accetto la <a href="/legal/privacy.html" data-open-legal="privacy">Privacy Policy</a> e i <a href="/legal/terms.html" data-open-legal="terms">Termini di utilizzo</a>.</span></label>' : '') +
       status +
       '<button class="account-primary" type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Attendi...' : (recoverMode ? 'Imposta nuova password' : (registerMode ? 'Crea account' : 'Accedi'))) + '</button>' +
       (!registerMode && !recoverMode && supportsAccountPasskeys()
@@ -1211,7 +1211,7 @@ function renderAccountGate() {
           (!registerMode ? '<button class="account-recovery-switch" data-account-mode="recover">Password dimenticata?</button>' : '')
     )) +
     '<div class="account-security-note">' + icons.lock + '<span>Password protetta, passkey opzionale e database separato per ogni utente.</span></div>' +
-    '<nav class="account-legal-links" aria-label="Informazioni legali"><a href="/legal/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/legal/terms.html" target="_blank" rel="noopener">Termini</a><a href="/legal/support.html" target="_blank" rel="noopener">Supporto</a></nav>' +
+    '<nav class="account-legal-links" aria-label="Informazioni legali"><a href="/legal/privacy.html" data-open-legal="privacy">Privacy</a><a href="/legal/terms.html" data-open-legal="terms">Termini</a><a href="/legal/support.html" data-open-legal="support">Supporto</a></nav>' +
   '</div></div>';
 }
 

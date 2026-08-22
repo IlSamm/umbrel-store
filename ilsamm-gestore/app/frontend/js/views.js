@@ -232,7 +232,7 @@
           : (homeEstimate.valid ? 'In attesa del cedolino' : 'Completa prima i dati della stima');
         homeSalaryPreview = '<button class="home-salary-preview" data-tab="payslips"><span class="home-salary-preview-icon">' + icons.wallet + '</span><span><small>STIPENDIO DEL MESE</small><strong>' + homeEstimateValue + '</strong><em>' + escapeHtml(homeEstimateMeta) + '</em></span>' + icons.right + '</button>';
       }
-      return '<header class="top home-top gestore-static-top go-home-logo go-home-header-v13"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div><button class="home-profile-avatar" data-open-profile="1" aria-label="Apri il profilo di ' + escapeHtml(homeProfileName) + '"><span>' + escapeHtml(homeProfileInitials) + '</span></button></header>' +
+      return '<header class="top home-top gestore-static-top go-home-logo go-home-header-v13"><div class="gestore-static-title" aria-label="GestOre"><span class="gestore-word gestore-word-main">Gest</span><span class="gestore-word gestore-word-accent">Ore</span></div><button class="home-profile-avatar" data-open-profile="1" aria-label="Apri il profilo di ' + escapeHtml(homeProfileName) + '">' + renderProfileAvatarMarkup('is-home', homeProfileInitials) + '</button></header>' +
         '<div class="stack home-stack go-home-stack go-home-v13">' +
           (typeof renderOnboardingInvite === 'function' ? renderOnboardingInvite() : '') +
           homeDayCard +
@@ -574,13 +574,12 @@ function getCalendarSelectedDateKey(month) {
           '<div class="mini center"><div class="big">' + formatDuration(stats.totalMinutes) + '</div><div class="small muted">Ore mese</div></div>' +
           '<div class="mini center"><div class="big">' + recordedDays + '</div><div class="small muted">Giorni segnati</div></div>' +
         '</div></div></section>' +
-        (detailOpen ? renderCalendarDayFocus(selectedKey) : '') +
         '<details class="card calendar-v2-legend-card"><summary><span>Legenda</span>' + icons.right + '</summary><div class="calendar-v2-legend-body"><div class="legend-grid">' +
           Object.keys(dayTypes).map(function (key) { return '<div class="legend-item"><span class="legend-dot" style="background:' + dayTypes[key].dot + '"></span><span>' + dayTypes[key].label + '</span></div>'; }).join('') +
         '</div></div></details>';
       var selectionToolbar = typeof renderCalendarSelectionToolbar === 'function' ? renderCalendarSelectionToolbar() : '';
       var content = calendarView === 'agenda'
-        ? (detailOpen ? renderCalendarDayFocus(selectedKey) : '') + renderCalendarAgenda(state.currentMonth, calendarFilter, selectedKey)
+        ? renderCalendarAgenda(state.currentMonth, calendarFilter, selectedKey)
         : monthContent;
       return '<div class="month-page-top calendar-v2-header"><div><span>GESTIONE MENSILE</span><h1>Calendario</h1></div><div class="month-page-switch"><button data-calendar-prev="1" aria-label="Mese precedente">' + icons.left + '</button><strong>' + formatMonthYear(state.currentMonth) + '</strong><button data-calendar-next="1" aria-label="Mese successivo">' + icons.right + '</button></div></div>' +
         '<div class="calendar-v2-view-row"><div class="calendar-view-switch" role="group" aria-label="Vista calendario"><button data-calendar-view="month" class="' + (calendarView === 'month' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'month') + '">Mese</button><button data-calendar-view="agenda" class="' + (calendarView === 'agenda' ? 'is-active' : '') + '" aria-pressed="' + (calendarView === 'agenda') + '">Agenda</button></div><div class="calendar-v2-top-actions"><button class="calendar-v2-today" data-calendar-today="1">Oggi</button><button class="calendar-v2-manage" data-open-calendar-actions="1" aria-label="Gestisci calendario">' + icons.settings + '</button></div></div>' +
@@ -1598,7 +1597,7 @@ function getCalendarSelectedDateKey(month) {
       var positiveMoney = function (value) {
         return Number(value) > 0 ? ('+ ' + moneyFromCents(value)) : moneyFromCents(0);
       };
-      var sourceLabel = 'Valori iniziali consigliati';
+      var sourceLabel = 'Inserisci i tuoi dati per iniziare';
       if (config.sourceType === 'saved') {
         var sourcePeriod = monthNames[Math.max(0, Number(config.sourceMonth || selectedMonth) - 1)] + ' ' + (config.sourceYear || selectedYear);
         sourceLabel = config.inherited
@@ -1626,7 +1625,7 @@ function getCalendarSelectedDateKey(month) {
       var privateHourlyRate = Math.max(0, Number(config.privateReconciliationHourlyRate) || 0);
       var privateAmount = Math.round(privateRemainingHours * privateHourlyRate * 100) / 100;
       var regions = api && Array.isArray(api.ITALIAN_REGIONS) ? api.ITALIAN_REGIONS : ['Lombardia'];
-      var regionOptions = regions.map(function (region) {
+      var regionOptions = '<option value=""' + (!config.region ? ' selected' : '') + '>Seleziona Regione</option>' + regions.map(function (region) {
         return '<option value="' + escapeHtml(region) + '"' + (region === config.region ? ' selected' : '') + '>' + escapeHtml(region) + '</option>';
       }).join('');
       var taxConfigs = (typeof globalThis !== 'undefined' && globalThis.GestOreTaxConfigs) || {};
@@ -1638,7 +1637,7 @@ function getCalendarSelectedDateKey(month) {
       var estimateTotal = estimate.valid ? money(estimate.estimatedMonthWithOvertimeNet) : '--';
       var completeness = estimate.valid
         ? (estimate.incomplete ? 'Stima parziale: alcune addizionali non sono incluse' : 'Stima completa con le tabelle selezionate')
-        : 'Correggi i dati per calcolare la stima';
+        : 'Inserisci retribuzione e dati fiscali per calcolare la stima';
       var municipalityValue = estimate.valid && estimate.municipalityConfig
         ? negativeMoney(monthBreakdown.municipalCents)
         : 'Non calcolata';
@@ -1691,9 +1690,10 @@ function getCalendarSelectedDateKey(month) {
         '<button class="payroll-estimate-panel payroll-calculator-config-entry" type="button" data-open-payroll-config="1">' +
           '<span class="payroll-calculator-config-entry-icon">' + icons.settings + '</span>' +
           '<span class="payroll-calculator-config-entry-copy"><small>DATI PER LA STIMA</small><strong>Retribuzione e dati fiscali</strong><p>' +
-            escapeHtml(money(config.baseMonthlyGross) + ' · ' + config.salaryMonths + ' mensilità · ' +
-              config.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h extra') +
-          '</p><em>' + escapeHtml(config.region + (config.municipality ? (' · ' + config.municipality) : ' · Comune da inserire')) + '</em></span>' +
+            escapeHtml(config.baseMonthlyGross > 0
+              ? (money(config.baseMonthlyGross) + ' · ' + config.salaryMonths + ' mensilità · ' + config.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h extra')
+              : 'Nessun dato precompilato: imposta i tuoi valori') +
+          '</p><em>' + escapeHtml(config.region ? (config.region + (config.municipality ? (' · ' + config.municipality) : ' · Comune da inserire')) : 'Residenza da configurare') + '</em></span>' +
           '<span class="payroll-calculator-config-entry-arrow">' + icons.right + '</span>' +
         '</button>' +
         '<div class="payroll-estimate-status payroll-calculator-summary-status' +
@@ -1734,7 +1734,7 @@ function getCalendarSelectedDateKey(month) {
           '<div class="payroll-estimate-rate-source"><span>' + icons.history + '</span><p>' + escapeHtml(sourceLabel) + '</p></div>' +
           '<div class="payroll-calculator-grid">' +
             '<label class="payroll-calculator-field"><span>LORDO MENSILE ORDINARIO</span><div><b>€</b><input data-payroll-field="baseMonthlyGross" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.baseMonthlyGross)) + '"></div></label>' +
-            '<label class="payroll-calculator-field"><span>MENSILITA</span><div class="is-select"><select data-payroll-field="salaryMonths"><option value="12"' + (config.salaryMonths === 12 ? ' selected' : '') + '>12</option><option value="13"' + (config.salaryMonths === 13 ? ' selected' : '') + '>13</option><option value="14"' + (config.salaryMonths === 14 ? ' selected' : '') + '>14</option></select></div></label>' +
+            '<label class="payroll-calculator-field"><span>MENSILITÀ CONTRATTUALI</span><div class="is-select"><select data-payroll-field="salaryMonths"><option value="12"' + (config.salaryMonths === 12 ? ' selected' : '') + '>12 mensilità</option><option value="13"' + (config.salaryMonths === 13 ? ' selected' : '') + '>13 · con tredicesima</option><option value="14"' + (config.salaryMonths === 14 ? ' selected' : '') + '>14 · con tredicesima e quattordicesima</option></select></div><small>Le mensilità aggiuntive non includono automaticamente gli straordinari.</small></label>' +
             '<label class="payroll-calculator-field"><span>ORE STRAORDINARIE AL MESE</span><div><input data-payroll-field="overtimeHoursMonthly" data-payroll-decimal type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.overtimeHoursMonthly)) + '"><em>h</em></div></label>' +
             '<label class="payroll-calculator-field"><span>PAGA STRAORDINARIA LORDA</span><div><b>€</b><input data-payroll-field="overtimeHourlyRate" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.overtimeHourlyRate)) + '"><em>/h</em></div></label>' +
             '<label class="payroll-calculator-field"><span>MESI CON STRAORDINARI</span><div><input data-payroll-field="monthsWithOvertime" data-payroll-integer type="number" inputmode="numeric" min="0" max="12" value="' + escapeHtml(String(config.monthsWithOvertime)) + '"><em>mesi</em></div></label>' +
@@ -2057,6 +2057,57 @@ function getCalendarSelectedDateKey(month) {
       return renderSalaryHubV2();
     }
 
+    function getProfileAvatarPresetAsset(preset) {
+      var avatars = {
+        nova: { label: 'Nova', src: 'assets/avatars/nova.webp' },
+        byte: { label: 'Byte', src: 'assets/avatars/byte.webp' },
+        milo: { label: 'Milo', src: 'assets/avatars/milo.webp' },
+        lumi: { label: 'Lumi', src: 'assets/avatars/lumi.webp' },
+        pico: { label: 'Pico', src: 'assets/avatars/pico.webp' },
+        nori: { label: 'Nori', src: 'assets/avatars/nori.webp' }
+      };
+      return avatars[preset] || avatars.nova;
+    }
+
+    function renderProfileAvatarMarkup(extraClass, fallbackInitials) {
+      var settings = state.settingsDraft || state.settings || {};
+      var mode = String(settings.profileAvatarMode || 'preset');
+      var preset = String(settings.profileAvatarPreset || 'nova');
+      var className = 'go-profile-avatar ' + (extraClass || '') + ' is-' + escapeHtml(mode);
+      if (mode === 'photo' && /^data:image\//i.test(String(settings.profileAvatarData || ''))) {
+        return '<span class="' + className + '"><img src="' + escapeHtml(settings.profileAvatarData) + '" alt=""></span>';
+      }
+      if (mode === 'initials') {
+        return '<span class="' + className + '"><b>' + escapeHtml(fallbackInitials || 'U') + '</b></span>';
+      }
+      var avatar = getProfileAvatarPresetAsset(preset);
+      return '<span class="' + className + ' is-preset is-preset-' + escapeHtml(preset) + '"><img src="' + escapeHtml(avatar.src) + '" alt=""></span>';
+    }
+
+    function renderProfileAvatarPicker() {
+      if (!state.avatarPickerOpen) return '';
+      var presets = [
+        { key: 'nova', label: 'Nova' },
+        { key: 'byte', label: 'Byte' },
+        { key: 'milo', label: 'Milo' },
+        { key: 'lumi', label: 'Lumi' },
+        { key: 'pico', label: 'Pico' },
+        { key: 'nori', label: 'Nori' }
+      ];
+      var selected = String((state.settingsDraft || {}).profileAvatarPreset || 'nova');
+      return '<div class="avatar-picker-overlay" role="dialog" aria-modal="true" aria-labelledby="avatarPickerTitle">' +
+        '<button class="avatar-picker-backdrop" data-close-avatar-picker="1" aria-label="Chiudi"></button>' +
+        '<section class="avatar-picker-dialog"><div class="avatar-picker-head"><div><small>IL TUO PROFILO</small><h2 id="avatarPickerTitle">Scegli il tuo personaggio</h2><p>Usa una mascotte GestOre oppure una tua foto.</p></div><button data-close-avatar-picker="1" aria-label="Chiudi">' + icons.x + '</button></div>' +
+        '<div class="avatar-picker-presets">' + presets.map(function (item) {
+          var avatar = getProfileAvatarPresetAsset(item.key);
+          return '<button class="avatar-preset is-' + item.key + (selected === item.key ? ' is-selected' : '') + '" data-select-avatar-preset="' + item.key + '"><span><img src="' + escapeHtml(avatar.src) + '" alt=""></span><small>' + item.label + '</small></button>';
+        }).join('') + '</div>' +
+        '<div class="avatar-picker-actions"><button data-trigger-avatar-gallery="1">' + icons.download + '<span><strong>Scegli dalla galleria</strong><small>JPG, PNG o WebP</small></span></button><button data-trigger-avatar-camera="1">' + icons.camera + '<span><strong>Scatta una foto</strong><small>Usa la fotocamera</small></span></button></div>' +
+        '<button class="avatar-picker-initials" data-select-avatar-initials="1">Usa le iniziali del nome</button>' +
+        '<input id="profileAvatarGalleryInput" type="file" accept="image/*" hidden><input id="profileAvatarCameraInput" type="file" accept="image/*" capture="user" hidden>' +
+        '</section></div>';
+    }
+
     function renderProfile() {
       var rawName = String(state.settingsDraft.userName || '').trim() || 'Utente';
       var safeName = escapeHtml(rawName);
@@ -2072,8 +2123,7 @@ function getCalendarSelectedDateKey(month) {
       return '<div class="profile-page profile-page-v2">' +
         '<header class="profile-v2-top profile-v2-top-with-back"><button data-close-profile="1" aria-label="Torna alla Home">' + icons.left + '</button><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Profilo</div></div><button class="profile-search-button" data-open-global-search="1" aria-label="Cerca nell&apos;archivio">' + icons.search + '</button></header>' +
         '<section class="profile-v2-hero">' +
-          '<div class="profile-v2-identity"><span class="profile-v2-avatar">' + escapeHtml(initials) + '</span><div class="profile-v2-copy"><span>IL TUO PROFILO</span><h1>Ciao, ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div></div>' +
-          '<div class="profile-v2-safe"><span>' + icons.check + '</span><div><strong data-sync-status-state>Dati al sicuro</strong><small data-sync-status-label>' + escapeHtml(getSyncStatusMessage()) + '</small></div><i></i></div>' +
+          '<div class="profile-v2-identity"><button class="profile-v2-avatar-button" data-open-avatar-picker="1" aria-label="Cambia foto profilo">' + renderProfileAvatarMarkup('is-profile', initials) + '<i>' + icons.plus + '</i></button><div class="profile-v2-copy"><span>IL TUO PROFILO</span><h1>Ciao, ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div></div>' +
         '</section>' +
         '<section class="profile-v2-summary" aria-label="Riepilogo profilo">' +
           '<div><span>OGGI</span><strong>' + dailyTarget + '</strong><small>target</small></div>' +
@@ -2087,11 +2137,12 @@ function getCalendarSelectedDateKey(month) {
         '<div class="profile-section-title">Account, dati e documenti</div>' +
         '<section class="profile-group profile-v2-group">' +
           accountManagementRow +
-          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Account e backup</strong><small>Database personale, spazio occupato e copie protette</small></span><span class="profile-row-value is-live">Al sicuro</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Account e backup</strong><small>Database personale, spazio occupato e copie protette</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="history"><span class="profile-row-icon is-blue">' + icons.history + '</span><span class="profile-row-copy"><strong>Cronologia dati</strong><small>Controlla e ripristina le ultime modifiche</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong><small>Excel, calendario, PDF mensile e annuale</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="settings" data-settings-section="privacy"><span class="profile-row-icon is-blue">' + icons.lock + '</span><span class="profile-row-copy"><strong>Privacy e sicurezza</strong><small>Protezione dell&apos;app e accesso all&apos;account</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
-        '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span><nav aria-label="Informazioni legali"><a href="/legal/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/legal/terms.html" target="_blank" rel="noopener">Termini</a><a href="/legal/support.html" target="_blank" rel="noopener">Supporto</a></nav></div>' +
+        '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span><nav aria-label="Informazioni legali"><button data-open-legal="privacy">Privacy</button><button data-open-legal="terms">Termini</button><button data-open-legal="support">Supporto</button></nav></div>' +
       '</div>';
     }
 
@@ -2360,17 +2411,68 @@ function getCalendarSelectedDateKey(month) {
           '<button class="settings-hub-row" data-open-settings-section="planning"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Settimana tipo</strong><small>Prepara il mese senza sovrascrivere dati</small></span><span class="settings-hub-value">' + escapeHtml(templateStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
           '<button class="settings-hub-row" data-open-settings-section="timer"><span class="settings-v2-icon is-violet">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Timer turno</strong><small>Modalita alternativa per la Home</small></span><span class="settings-hub-value">' + timerStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
         '</section>' +
-        '<div class="settings-v2-section-title">Avvisi e protezione</div>' +
+        '<div class="settings-v2-section-title">Avvisi</div>' +
         '<section class="settings-hub-group">' +
           '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong><small>Promemoria per registrare la giornata</small></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-settings-section="privacy"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Privacy e sicurezza</strong><small>Protezione quando riapri l&apos;app</small></span><span class="settings-hub-value">' + privacyStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
         '</section>' +
-        '<div class="settings-v2-section-title">Account e configurazione</div>' +
-        '<section class="settings-hub-group"><button class="settings-hub-row" data-open-settings-section="data"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Account e backup</strong><small>Sincronizzazione, storico protetto e file personali</small></span><span class="settings-hub-value is-live">Protetto</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-settings-section="history"><span class="settings-v2-icon is-blue">' + icons.history + '</span><span class="settings-v2-copy"><strong>Cronologia dati</strong><small>Integrit&agrave; e annullamento delle ultime modifiche</small></span><span class="settings-hub-value">Recupero</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+        '<div class="settings-v2-section-title">Configurazione</div>' +
+        '<section class="settings-hub-group">' +
           '<button class="settings-hub-row" data-open-onboarding="1"><span class="settings-v2-icon is-blue">' + icons.check + '</span><span class="settings-v2-copy"><strong>Configurazione guidata</strong><small>Rivedi obiettivi, turno, ferie e promemoria</small></span><span class="settings-hub-value">3 passaggi</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
         '<div class="settings-v2-footer"><strong>GestOre</strong><span>Le tue preferenze si salvano automaticamente</span></div>' +
       '</div>';
+    }
+
+    function renderCalendarDetailDialog() {
+      if (state.activeTab !== 'calendar' || !state.calendarDetailOpen) return '';
+      var selectedKey = getCalendarSelectedDateKey(state.currentMonth);
+      return '<div class="calendar-detail-overlay" role="dialog" aria-modal="true" aria-label="Dettaglio giorno selezionato">' +
+        '<button class="calendar-detail-backdrop" data-close-calendar-detail="1" aria-label="Chiudi dettaglio"></button>' +
+        '<div class="calendar-detail-dialog">' + renderCalendarDayFocus(selectedKey) + '</div>' +
+      '</div>';
+    }
+
+    function renderLegalOverlay() {
+      var page = String(state.legalPage || '');
+      if (!page) return '';
+      var pages = {
+        privacy: {
+          kicker: 'I TUOI DATI',
+          title: 'Privacy',
+          intro: 'GestOre conserva solo i dati necessari a offrirti account, sincronizzazione, backup e report.',
+          sections: [
+            ['Cosa viene salvato', 'Account, giornate, orari, ferie, note, preferenze, stime stipendio e i cedolini che scegli di caricare.'],
+            ['Come vengono usati', 'I dati servono esclusivamente al funzionamento dell’app. Non vengono venduti, non ci sono tracker pubblicitari e ogni account usa un archivio separato.'],
+            ['Controllo e cancellazione', 'Da Profilo, Account e backup puoi esportare una copia o eliminare definitivamente account e contenuti.']
+          ]
+        },
+        terms: {
+          kicker: 'CONDIZIONI DI UTILIZZO',
+          title: 'Termini',
+          intro: 'GestOre è uno strumento personale per organizzare ore, assenze, cedolini e stime.',
+          sections: [
+            ['Responsabilità', 'Controlla sempre i dati inseriti. Report e stime non sostituiscono cedolino, consulente del lavoro o calcolo fiscale ufficiale.'],
+            ['Account e contenuti', 'Proteggi credenziali e codice di recupero e carica soltanto documenti che sei autorizzato a conservare.'],
+            ['Disponibilità', 'Il servizio può ricevere manutenzioni e aggiornamenti. È consigliato creare periodicamente una copia personale.']
+          ]
+        },
+        support: {
+          kicker: 'AIUTO GESTORE',
+          title: 'Supporto',
+          intro: 'Qui trovi i passaggi più rapidi per risolvere problemi senza uscire dall’app.',
+          sections: [
+            ['Dati mancanti o lenti', 'Apri Profilo, Account e backup e controlla sincronizzazione e spazio occupato prima di uscire dall’account.'],
+            ['Backup e recupero', 'Nella stessa sezione puoi creare una copia, controllare la cronologia e gestire il codice di recupero.'],
+            ['Cedolini e stime', 'Le fotografie restano consultabili e ingrandibili. Per verifiche fiscali o contestazioni rivolgiti a un CAF o professionista abilitato.']
+          ]
+        }
+      };
+      var content = pages[page] || pages.support;
+      return '<div class="legal-app-overlay" role="dialog" aria-modal="true" aria-labelledby="legalAppTitle"><section class="legal-app-page">' +
+        '<header><button data-close-legal="1" aria-label="Torna al profilo">' + icons.left + '</button><div><small>' + content.kicker + '</small><h1 id="legalAppTitle">' + content.title + '</h1></div><i></i></header>' +
+        '<div class="legal-app-intro"><span>' + (page === 'privacy' ? icons.lock : (page === 'terms' ? icons.note : icons.user)) + '</span><p>' + content.intro + '</p></div>' +
+        '<div class="legal-app-sections">' + content.sections.map(function (section) { return '<article><h2>' + section[0] + '</h2><p>' + section[1] + '</p></article>'; }).join('') + '</div>' +
+        '<p class="legal-app-updated">Ultimo aggiornamento: agosto 2026</p>' +
+      '</section></div>';
     }
 
     function renderPrivacyLock() {
@@ -2461,7 +2563,7 @@ function getCalendarSelectedDateKey(month) {
     }
 
     function renderOverlayMarkup() {
-      return renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderCalendarExportDialog() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() +
+      return renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderCalendarExportDialog() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + renderProfileAvatarPicker() + renderLegalOverlay() + renderCalendarDetailDialog() +
         (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') +
         (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') +
         (typeof renderStatsInsightOverlay === 'function' ? renderStatsInsightOverlay() : '') +

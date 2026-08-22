@@ -193,6 +193,14 @@ function bindFluidNavigation() {
   var buttons = Array.from(grid.querySelectorAll('.nav-btn[data-tab]'));
   if (!buttons.length) return;
 
+  grid.classList.add('nav-click-only');
+  buttons.forEach(function (button) {
+    button.onpointerdown = function () { button.classList.add('nav-press'); };
+    button.onpointerup = button.onpointercancel = button.onpointerleave = function () { button.classList.remove('nav-press'); };
+    button.onclick = function () { activatePrimaryTab(button.dataset.tab, button, 60); };
+  });
+  return;
+
   var session = null;
   var holdTimer = 0;
   var HOLD_MS = 190;
@@ -325,6 +333,91 @@ function bindFluidNavigation() {
 
 function bindEvents() {
       bindFluidNavigation();
+      document.querySelectorAll('[data-open-legal]').forEach(function (link) {
+        link.onclick = function (event) {
+          if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          state.legalPage = String(link.dataset.openLegal || 'support');
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-legal]').forEach(function (button) {
+        button.onclick = function () {
+          state.legalPage = '';
+          render();
+        };
+      });
+      document.querySelectorAll('[data-open-avatar-picker]').forEach(function (button) {
+        button.onclick = function () {
+          state.avatarPickerOpen = true;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-close-avatar-picker]').forEach(function (button) {
+        button.onclick = function () {
+          state.avatarPickerOpen = false;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-select-avatar-preset]').forEach(function (button) {
+        button.onclick = function () {
+          state.settings.profileAvatarMode = 'preset';
+          state.settings.profileAvatarPreset = String(button.dataset.selectAvatarPreset || 'nova');
+          state.settings.profileAvatarData = '';
+          state.avatarPickerOpen = false;
+          saveSettings();
+          render();
+        };
+      });
+      document.querySelectorAll('[data-select-avatar-initials]').forEach(function (button) {
+        button.onclick = function () {
+          state.settings.profileAvatarMode = 'initials';
+          state.settings.profileAvatarData = '';
+          state.avatarPickerOpen = false;
+          saveSettings();
+          render();
+        };
+      });
+      var avatarGalleryInput = document.getElementById('profileAvatarGalleryInput');
+      var avatarCameraInput = document.getElementById('profileAvatarCameraInput');
+      var prepareAvatarFile = async function (file) {
+        if (!file || !/^image\//i.test(String(file.type || ''))) return;
+        var raw = await readFileAsDataURL(file);
+        var dataUrl = await new Promise(function (resolve) {
+          var image = new Image();
+          image.onload = function () {
+            var side = Math.max(1, Math.min(image.naturalWidth || image.width, image.naturalHeight || image.height));
+            var sourceX = Math.max(0, ((image.naturalWidth || image.width) - side) / 2);
+            var sourceY = Math.max(0, ((image.naturalHeight || image.height) - side) / 2);
+            var canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 320;
+            var context = canvas.getContext('2d', { alpha: false });
+            context.fillStyle = '#071126';
+            context.fillRect(0, 0, 320, 320);
+            context.drawImage(image, sourceX, sourceY, side, side, 0, 0, 320, 320);
+            resolve(canvas.toDataURL('image/jpeg', 0.82));
+          };
+          image.onerror = function () { resolve(''); };
+          image.src = raw;
+        });
+        if (!dataUrl) return;
+        state.settings.profileAvatarMode = 'photo';
+        state.settings.profileAvatarData = dataUrl;
+        state.avatarPickerOpen = false;
+        saveSettings();
+        render();
+      };
+      document.querySelectorAll('[data-trigger-avatar-gallery]').forEach(function (button) {
+        button.onclick = function () { if (avatarGalleryInput) avatarGalleryInput.click(); };
+      });
+      document.querySelectorAll('[data-trigger-avatar-camera]').forEach(function (button) {
+        button.onclick = function () { if (avatarCameraInput) avatarCameraInput.click(); };
+      });
+      if (avatarGalleryInput) avatarGalleryInput.onchange = function () { prepareAvatarFile(avatarGalleryInput.files && avatarGalleryInput.files[0]); };
+      if (avatarCameraInput) avatarCameraInput.onchange = function () { prepareAvatarFile(avatarCameraInput.files && avatarCameraInput.files[0]); };
       document.querySelectorAll('[data-open-profile]').forEach(function (btn) {
         btn.onclick = function () {
           state.settingsSection = '';
@@ -372,7 +465,7 @@ function bindEvents() {
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
           var section = btn.dataset.openSettingsSection;
-          if (['home', 'profile', 'calendar', 'shifts', 'planning', 'timer', 'notifications', 'privacy', 'data', 'accounts'].indexOf(section) === -1) return;
+          if (['home', 'profile', 'calendar', 'shifts', 'planning', 'timer', 'notifications', 'privacy', 'data', 'history', 'accounts'].indexOf(section) === -1) return;
           state.settingsSection = section;
           render();
         };
@@ -380,7 +473,7 @@ function bindEvents() {
       document.querySelectorAll('[data-back-settings]').forEach(function (btn) {
         btn.onclick = function () {
           state.settingsSection = '';
-          state.activeTab = 'profile';
+          state.activeTab = 'settings';
           render();
         };
       });
@@ -1549,6 +1642,7 @@ function bindEvents() {
         btn.onclick = function () {
           state.globalSearchOpen = true;
           state.globalSearchQuery = '';
+          state.globalSearchFilter = 'all';
           render();
           window.setTimeout(function () {
             var input = document.getElementById('globalSearchInput');
@@ -1565,9 +1659,12 @@ function bindEvents() {
           var input = document.getElementById('globalSearchInput');
           var results = document.getElementById('globalSearchResults');
           var caption = document.getElementById('globalSearchCaption');
+          var count = document.getElementById('globalSearchCount');
           if (input) { input.value = ''; input.focus({ preventScroll: true }); }
-          if (results) results.innerHTML = renderGlobalSearchResultsMarkup('');
-          if (caption) caption.textContent = 'ELEMENTI RECENTI';
+          if (results) results.innerHTML = renderGlobalSearchResultsMarkup('', state.globalSearchFilter);
+          if (caption) { var captionText = caption.querySelector('span'); if (captionText) captionText.textContent = 'ELEMENTI RECENTI'; }
+          if (count) count.textContent = getGlobalSearchResults('', state.globalSearchFilter).length;
+          bindGlobalSearchResultEvents();
         };
       });
       var globalSearchInput = document.getElementById('globalSearchInput');
@@ -1575,10 +1672,28 @@ function bindEvents() {
         state.globalSearchQuery = String(event.target.value || '');
         var results = document.getElementById('globalSearchResults');
         var caption = document.getElementById('globalSearchCaption');
-        if (results) results.innerHTML = renderGlobalSearchResultsMarkup(state.globalSearchQuery);
-        if (caption) caption.textContent = state.globalSearchQuery.trim() ? 'RISULTATI' : 'ELEMENTI RECENTI';
+        var count = document.getElementById('globalSearchCount');
+        if (results) results.innerHTML = renderGlobalSearchResultsMarkup(state.globalSearchQuery, state.globalSearchFilter);
+        if (caption) { var captionText = caption.querySelector('span'); if (captionText) captionText.textContent = state.globalSearchQuery.trim() ? 'RISULTATI' : 'ELEMENTI RECENTI'; }
+        if (count) count.textContent = getGlobalSearchResults(state.globalSearchQuery, state.globalSearchFilter).length;
         bindGlobalSearchResultEvents();
       };
+
+      document.querySelectorAll('[data-global-search-filter]').forEach(function (button) {
+        button.onclick = function () {
+          state.globalSearchFilter = String(button.dataset.globalSearchFilter || 'all');
+          document.querySelectorAll('[data-global-search-filter]').forEach(function (item) {
+            var active = item === button;
+            item.classList.toggle('is-active', active);
+            item.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
+          var results = document.getElementById('globalSearchResults');
+          var count = document.getElementById('globalSearchCount');
+          if (results) results.innerHTML = renderGlobalSearchResultsMarkup(state.globalSearchQuery, state.globalSearchFilter);
+          if (count) count.textContent = getGlobalSearchResults(state.globalSearchQuery, state.globalSearchFilter).length;
+          bindGlobalSearchResultEvents();
+        };
+      });
 
       function bindGlobalSearchResultEvents() {
         document.querySelectorAll('[data-search-open-date]').forEach(function (btn) {

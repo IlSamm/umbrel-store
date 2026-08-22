@@ -52,6 +52,27 @@
     privateReconciliationHourlyRate: 0
   });
 
+  // The calculator keeps documented reference values, while a new account
+  // starts from an intentionally empty form and never inherits demo data.
+  var EMPTY_PAYROLL_INPUT = Object.freeze({
+    baseMonthlyGross: 0,
+    salaryMonths: 12,
+    overtimeHoursMonthly: 0,
+    overtimeHourlyRate: 0,
+    monthsWithOvertime: 0,
+    otherAnnualGross: 0,
+    employeeContributionRate: 0,
+    region: '',
+    municipality: '',
+    taxYear: 2026,
+    employmentDays: 0,
+    employmentType: 'permanent',
+    otherAnnualDeductions: 0,
+    annualReimbursements: 0,
+    privateReconciliationEnabled: false,
+    privateReconciliationHourlyRate: 0
+  });
+
   var ITALIAN_REGIONS = Object.freeze([
     'Abruzzo', 'Basilicata', 'Calabria', 'Campania', 'Emilia-Romagna',
     'Friuli-Venezia Giulia', 'Lazio', 'Liguria', 'Lombardia', 'Marche',
@@ -62,6 +83,7 @@
   return {
     PAYROLL_SCHEMA_VERSION: 2,
     DEFAULT_PAYROLL_INPUT: DEFAULT_PAYROLL_INPUT,
+    EMPTY_PAYROLL_INPUT: EMPTY_PAYROLL_INPUT,
     ITALIAN_REGIONS: ITALIAN_REGIONS
   };
 });
