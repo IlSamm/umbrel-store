@@ -82,8 +82,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.8.0',
-      build: '20260822a',
+      version: '1.8.1',
+      build: '20260822b',
       appName: 'GestOre'
     };
 
@@ -443,7 +443,6 @@ var errorBox = document.getElementById('errorBox');
         ? String(merged.profileAvatarMode)
         : defaultSettings.profileAvatarMode;
       var avatarPresetAliases = {
-        orbit: 'nova',
         hours: 'byte',
         work: 'milo',
         focus: 'lumi',
@@ -452,7 +451,7 @@ var errorBox = document.getElementById('errorBox');
       };
       var requestedAvatarPreset = String(merged.profileAvatarPreset || '');
       requestedAvatarPreset = avatarPresetAliases[requestedAvatarPreset] || requestedAvatarPreset;
-      merged.profileAvatarPreset = ['nova', 'byte', 'milo', 'lumi', 'pico', 'nori'].indexOf(requestedAvatarPreset) !== -1
+      merged.profileAvatarPreset = ['nova', 'byte', 'milo', 'lumi', 'pico', 'nori', 'aria', 'zed', 'orbit', 'rex', 'kira', 'mocha'].indexOf(requestedAvatarPreset) !== -1
         ? requestedAvatarPreset
         : defaultSettings.profileAvatarPreset;
       var avatarData = typeof merged.profileAvatarData === 'string' ? merged.profileAvatarData : '';

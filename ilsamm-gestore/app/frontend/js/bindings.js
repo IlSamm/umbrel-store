@@ -421,6 +421,7 @@ function bindEvents() {
       document.querySelectorAll('[data-open-profile]').forEach(function (btn) {
         btn.onclick = function () {
           state.settingsSection = '';
+          state.settingsReturnTarget = 'profile';
           state.activeTab = 'profile';
           render();
         };
@@ -442,7 +443,10 @@ function bindEvents() {
         btn.onclick = function () {
           var section = btn.dataset.openProfileSection;
           if (section !== 'settings' && section !== 'payslips' && section !== 'exports') return;
-          if (section === 'settings') state.settingsSection = btn.dataset.settingsSection || '';
+          if (section === 'settings') {
+            state.settingsSection = btn.dataset.settingsSection || '';
+            state.settingsReturnTarget = 'profile';
+          }
           if (section === 'payslips') {
             resetPayslipNavigationState();
           }
@@ -465,15 +469,17 @@ function bindEvents() {
       document.querySelectorAll('[data-open-settings-section]').forEach(function (btn) {
         btn.onclick = function () {
           var section = btn.dataset.openSettingsSection;
-          if (['home', 'profile', 'calendar', 'shifts', 'planning', 'timer', 'notifications', 'privacy', 'data', 'history', 'accounts'].indexOf(section) === -1) return;
+          if (['home', 'profile', 'calendar', 'shifts', 'planning', 'timer', 'notifications', 'privacy', 'data', 'history'].indexOf(section) === -1) return;
           state.settingsSection = section;
+          state.settingsReturnTarget = 'settings';
           render();
         };
       });
       document.querySelectorAll('[data-back-settings]').forEach(function (btn) {
         btn.onclick = function () {
           state.settingsSection = '';
-          state.activeTab = 'settings';
+          state.activeTab = state.settingsReturnTarget === 'profile' ? 'profile' : 'settings';
+          state.settingsReturnTarget = 'profile';
           render();
         };
       });
@@ -546,9 +552,9 @@ function bindEvents() {
       });
       document.querySelectorAll('[data-open-payslip-estimate]').forEach(function (btn) {
         btn.onclick = function () {
-          var now = new Date();
-          state.payslipEstimateYear = now.getFullYear();
-          state.payslipEstimateMonth = now.getMonth() + 1;
+          var selected = state.salaryMonth instanceof Date ? state.salaryMonth : new Date();
+          state.payslipEstimateYear = selected.getFullYear();
+          state.payslipEstimateMonth = selected.getMonth() + 1;
           state.payslipEstimateStatus = '';
           state.payslipDetailId = '';
           state.payslipEditorOpen = false;
@@ -559,6 +565,17 @@ function bindEvents() {
           state.payrollSecretTapCount = 0;
           state.payrollSecretTapStartedAt = 0;
           state.payslipViewer = null;
+          render();
+        };
+      });
+      document.querySelectorAll('[data-salary-month]').forEach(function (btn) {
+        btn.onclick = function () {
+          var selected = state.salaryMonth instanceof Date ? state.salaryMonth : new Date();
+          state.salaryMonth = new Date(
+            selected.getFullYear(),
+            selected.getMonth() + (Number(btn.dataset.salaryMonth) || 0),
+            1
+          );
           render();
         };
       });
@@ -1453,6 +1470,16 @@ function bindEvents() {
           else { list.push(index); list.sort(function (a, b) { return a - b; }); }
           state.settingsDraft.autoRestDays = list;
           commitSettingsDraft();
+          render();
+        };
+      });
+      document.querySelectorAll('[data-export-month]').forEach(function (button) {
+        button.onclick = function () {
+          state.currentMonth = new Date(
+            state.currentMonth.getFullYear(),
+            state.currentMonth.getMonth() + (Number(button.dataset.exportMonth) || 0),
+            1
+          );
           render();
         };
       });

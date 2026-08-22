@@ -1326,7 +1326,6 @@ function renderAdminSessionUi() {
 function renderAccountDataSettings() {
   var user = state.account.user || {};
   var username = String(user.username || state.settings.userName || 'Utente');
-  var initial = username.charAt(0).toUpperCase() || 'U';
   var storage = state.account.storage || {};
   var storageValue = storage.loading ? 'Calcolo...' : (storage.loaded ? formatAccountStorageBytes(storage.bytes) : '--');
   var storageMeta = storage.error
@@ -1379,8 +1378,7 @@ function renderAccountDataSettings() {
       '<div class="account-delete-actions"><button type="button" data-self-delete-cancel="1">Annulla</button><button type="submit" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Eliminazione...' : 'Elimina account') + '</button></div>' +
     '</form></div>'
     : '';
-  return '<section class="account-current-card account-data-hero"><span>' + escapeHtml(initial) + '</span><div><small>DATABASE PERSONALE</small><strong>' + escapeHtml(username) + '</strong><p>Ore, ferie e cedolini restano separati dagli altri account</p></div><i>' + icons.check + '</i></section>' +
-    '<div class="settings-v2-section-title">Sincronizzazione</div>' +
+  return '<div class="settings-v2-section-title account-data-first-title">Sincronizzazione</div>' +
     '<section class="account-sync-health account-data-status' + syncHealthTone + '">' +
       '<div class="account-sync-health-head"><span>' + (isOnline ? icons.cloud : icons.activity) + '</span><div><small>SINCRONIZZAZIONE</small><strong>' + syncHealthTitle + '</strong><p data-sync-status-label aria-live="polite">' + escapeHtml(getSyncStatusMessage()) + '</p></div><b data-sync-status-state data-state="' + (isSyncPending ? 'pending' : (!isOnline ? 'offline' : 'synced')) + '">' + (isSyncPending ? 'IN ATTESA' : (!isOnline ? 'OFFLINE' : 'SALVATO')) + '</b></div>' +
       '<div class="account-sync-health-grid"><div><span>Server</span><strong>' + (isOnline ? 'Online' : 'Offline') + '</strong></div><div><span>Ultimo invio</span><strong>' + escapeHtml(lastSyncLabel) + '</strong></div><div><span>Spazio</span><strong>' + storageValue + '</strong></div></div>' +

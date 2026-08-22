@@ -37,12 +37,14 @@ function clearPendingPayslipDraft() {
 var state = {
       activeTab: 'home',
       settingsSection: '',
+      settingsReturnTarget: 'profile',
       avatarPickerOpen: false,
       legalPage: '',
       entries: loadEntriesWithRecovery(),
       settings: normalizeRuntimeSettings(loadWithMigration(STORAGE_SETTINGS, LEGACY_SETTINGS_KEYS, SETTINGS_BACKUP_KEYS, {}, 'settings')),
       settingsDraft: {},
       currentMonth: new Date(),
+      salaryMonth: new Date(),
       statsRange: 'month',
       calendarFilter: 'all',
       calendarView: 'month',
@@ -94,6 +96,7 @@ var state = {
       lastSyncedAt: 0
     };
     state.currentMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
+    state.salaryMonth = new Date(state.salaryMonth.getFullYear(), state.salaryMonth.getMonth(), 1);
     state.settingsDraft = Object.assign({}, state.settings);
     state.privacyLocked = Boolean(state.settings.lockApp);
 

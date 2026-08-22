@@ -1,0 +1,649 @@
+/* GestOre 1.8.1: profile, settings, salary period and exports polish. */
+
+/* Every mascot is an independent transparent asset, never a cropped sprite. */
+.go-profile-avatar.is-preset .avatar-image,
+.avatar-preset-art .avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transform: translateZ(0);
+}
+
+.go-profile-avatar.is-preset {
+  background: #081329;
+}
+
+.home-profile-avatar .avatar-image {
+  position: absolute;
+  inset: 0;
+}
+
+/* Profile is a true single-screen hub. */
+.profile-screen.active {
+  overflow: hidden !important;
+  padding-bottom: calc(12px + var(--safe-bottom)) !important;
+}
+
+.profile-page-v2 {
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  gap: 8px !important;
+  overflow: hidden;
+}
+
+.profile-page-v2 .profile-v2-top {
+  min-height: 52px;
+}
+
+.profile-page-v2 .profile-v2-hero {
+  min-height: 118px;
+  padding: 11px 14px !important;
+  border-radius: 24px;
+}
+
+.profile-v2-identity > .profile-v2-avatar-button {
+  width: 96px !important;
+  height: 96px !important;
+  flex: 0 0 96px !important;
+  padding: 3px !important;
+  border-radius: 25px !important;
+}
+
+.profile-v2-avatar-button > .go-profile-avatar {
+  border-radius: 21px;
+}
+
+.profile-page-v2 .profile-v2-copy h1 {
+  margin-block: 4px;
+  font-size: clamp(25px, 7.2vw, 30px);
+}
+
+.profile-page-v2 .profile-v2-copy p {
+  font-size: 10px;
+}
+
+.profile-page-v2 .profile-v2-summary {
+  min-height: 67px;
+  border-radius: 19px;
+}
+
+.profile-page-v2 .profile-v2-summary > div {
+  gap: 2px;
+  padding: 7px;
+}
+
+.profile-page-v2 .profile-v2-summary > div + div::before {
+  top: 12px;
+  bottom: 12px;
+}
+
+.profile-page-v2 .profile-v2-summary span,
+.profile-page-v2 .profile-v2-summary small {
+  font-size: 8px;
+}
+
+.profile-page-v2 .profile-v2-summary strong {
+  font-size: 19px;
+}
+
+.profile-page-v2 .profile-section-title {
+  padding: 2px 4px 0;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.profile-page-v2 .profile-v2-group {
+  border-radius: 19px;
+}
+
+.profile-page-v2 .profile-v2-group .profile-row {
+  min-height: 53px !important;
+  gap: 9px;
+  padding: 6px 10px;
+}
+
+.profile-page-v2 .profile-row + .profile-row::before {
+  left: 53px;
+  right: 10px;
+}
+
+.profile-page-v2 .profile-row-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 12px;
+}
+
+.profile-page-v2 .profile-row-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.profile-page-v2 .profile-row-copy {
+  gap: 2px;
+}
+
+.profile-page-v2 .profile-row-copy strong {
+  font-size: 12px;
+}
+
+.profile-page-v2 .profile-row-copy small {
+  font-size: 8.7px;
+}
+
+.profile-page-v2 .profile-row-value {
+  font-size: 8px;
+}
+
+.profile-page-v2 .profile-app-footer {
+  margin-top: auto;
+  gap: 1px;
+  padding: 2px 0 0;
+  font-size: 9px;
+}
+
+.profile-page-v2 .profile-app-footer strong {
+  font-size: 10px;
+}
+
+.profile-page-v2 .profile-app-footer nav {
+  gap: 8px;
+  margin-top: 1px;
+}
+
+.profile-page-v2 .profile-app-footer nav button {
+  padding: 2px 5px;
+  font-size: 9.5px;
+}
+
+/* Twelve mascot choices, with a taller character preview. */
+.avatar-picker-dialog {
+  max-height: calc(var(--visible-app-vh, 100dvh) - 24px);
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.avatar-picker-presets {
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.avatar-preset {
+  gap: 5px;
+  padding: 7px 4px 6px;
+  border-radius: 18px;
+}
+
+.avatar-preset > .avatar-preset-art {
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(103, 137, 238, .24);
+  border-radius: 17px;
+  background: #071329;
+}
+
+.avatar-preset small {
+  color: #e9efff;
+  font-size: 9px;
+}
+
+.avatar-picker-actions {
+  margin-top: 12px;
+}
+
+/* Salary month switch replaces the decorative wallet in the title bar. */
+.salary-hub-top > .salary-hub-month-switch {
+  display: grid;
+  grid-template-columns: 33px minmax(67px, 1fr) 33px;
+  align-items: center;
+  gap: 3px;
+  min-width: 142px;
+  min-height: 48px;
+  padding: 4px;
+  border: 1px solid rgba(112, 151, 235, .2);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.055), transparent 42%),
+    rgba(11, 23, 51, .82);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.salary-hub-month-switch > button {
+  display: grid;
+  width: 33px;
+  height: 33px;
+  padding: 0;
+  place-items: center;
+  color: #9ab8ff;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(77, 103, 191, .13);
+}
+
+.salary-hub-month-switch > button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.salary-hub-top .salary-hub-month-switch > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: inherit;
+  text-align: center;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.salary-hub-month-switch small {
+  overflow: hidden;
+  color: #f4f7ff;
+  font-size: 10px;
+  font-weight: 790;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salary-hub-month-switch strong {
+  color: #769cf0;
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+/* Settings overview stays fixed; detail pages keep their natural scroll. */
+.settings-hub-screen.active {
+  overflow: hidden !important;
+  padding-bottom: calc(12px + var(--safe-bottom)) !important;
+}
+
+.settings-hub-page {
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  gap: 8px !important;
+  overflow: hidden;
+}
+
+.settings-hub-page .settings-v2-top {
+  min-height: 52px;
+}
+
+.settings-hub-page .settings-v2-section-title {
+  padding: 2px 4px 0;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.settings-hub-page .settings-hub-group {
+  border-radius: 19px;
+}
+
+.settings-hub-page .settings-hub-row {
+  min-height: 54px !important;
+  gap: 8px;
+  padding: 5px 10px !important;
+}
+
+.settings-hub-page .settings-hub-row + .settings-hub-row::before {
+  left: 52px;
+  right: 10px;
+}
+
+.settings-hub-page .settings-v2-icon {
+  width: 35px;
+  height: 35px;
+  flex: 0 0 35px;
+  border-radius: 11px;
+}
+
+.settings-hub-page .settings-v2-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.settings-hub-page .settings-v2-copy {
+  gap: 2px;
+}
+
+.settings-hub-page .settings-v2-copy strong {
+  font-size: 11.5px;
+}
+
+.settings-hub-page .settings-v2-copy small {
+  font-size: 8.4px;
+}
+
+.settings-hub-page .settings-hub-value {
+  font-size: 8px;
+}
+
+.settings-hub-page .settings-v2-footer {
+  margin-top: auto;
+  padding: 3px 0 0;
+  font-size: 9px;
+}
+
+.settings-detail-page > .settings-v2-top + .settings-v2-section-title,
+.account-data-first-title {
+  padding-top: 2px;
+}
+
+/* Report and exports: compact period overview plus four clear actions. */
+.exports-page {
+  gap: 11px;
+}
+
+.exports-period-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(98, 151, 255, .27);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 0 0, rgba(58, 154, 255, .18), transparent 44%),
+    radial-gradient(circle at 100% 100%, rgba(131, 84, 232, .18), transparent 44%),
+    linear-gradient(150deg, rgba(18, 36, 73, .98), rgba(5, 14, 31, .995));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 18px 38px rgba(0,0,0,.2);
+}
+
+.exports-period-heading {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+}
+
+.exports-period-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: #70adff;
+  border: 1px solid rgba(87, 145, 255, .2);
+  border-radius: 15px;
+  background: rgba(53, 111, 222, .15);
+}
+
+.exports-period-icon svg,
+.exports-safe-note svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.exports-period-heading > div:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.exports-period-heading small,
+.exports-section-head span,
+.exports-period-metrics span {
+  color: #82a8fb;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+.exports-period-heading strong {
+  overflow: hidden;
+  color: #f7f9ff;
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exports-period-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.exports-period-controls button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  color: #a6baf0;
+  border: 1px solid rgba(126, 151, 222, .14);
+  border-radius: 12px;
+  background: rgba(255,255,255,.04);
+}
+
+.exports-period-controls svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+}
+
+.exports-period-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  border: 1px solid rgba(133, 158, 218, .12);
+  border-radius: 17px;
+  background: rgba(3, 10, 26, .34);
+}
+
+.exports-period-metrics > div {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 7px;
+  min-height: 50px;
+  padding: 10px 13px;
+}
+
+.exports-period-metrics > div + div {
+  border-left: 1px solid rgba(133, 158, 218, .12);
+}
+
+.exports-period-metrics strong {
+  color: #fff;
+  font-size: 19px;
+}
+
+.exports-period-metrics small {
+  color: #7f8da9;
+  font-size: 9px;
+}
+
+.exports-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 4px 0;
+}
+
+.exports-section-head small {
+  color: #667694;
+  font-size: 9px;
+}
+
+.exports-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.exports-action-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 15px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 4px 9px;
+  min-height: 112px;
+  padding: 13px;
+  color: #f4f7ff;
+  text-align: left;
+  border: 1px solid rgba(115, 147, 220, .17);
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, currentColor 12%, transparent), transparent 48%),
+    linear-gradient(150deg, rgba(17, 31, 62, .98), rgba(5, 13, 30, .995));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 12px 26px rgba(0,0,0,.16);
+}
+
+.exports-action-card > span {
+  grid-row: 1 / 3;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 13px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.exports-action-card > span svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.exports-action-card > b {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  padding: 4px 6px;
+  color: #7f98cf;
+  border: 1px solid rgba(135, 159, 220, .12);
+  border-radius: 999px;
+  background: rgba(255,255,255,.025);
+  font-size: 7px;
+  letter-spacing: .09em;
+}
+
+.exports-action-card > strong {
+  align-self: end;
+  padding-right: 24px;
+  font-size: 11px;
+}
+
+.exports-action-card > small {
+  overflow: hidden;
+  color: #7886a3;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exports-action-card > svg {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #7484a8;
+  stroke-width: 2;
+}
+
+.exports-action-card.is-green { color: #42d7ad; }
+.exports-action-card.is-blue { color: #6ea8ff; }
+.exports-action-card.is-cyan { color: #62c9f5; }
+.exports-action-card.is-violet { color: #a47bff; }
+.exports-action-card > strong { color: #f4f7ff; }
+
+.exports-safe-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: #7184ad;
+  font-size: 9px;
+  text-align: center;
+}
+
+.exports-safe-note svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: #49cfa7;
+}
+
+@media (max-width: 360px) {
+  .profile-v2-identity > .profile-v2-avatar-button {
+    width: 80px !important;
+    height: 80px !important;
+    flex-basis: 80px !important;
+  }
+
+  .salary-hub-top > .salary-hub-month-switch {
+    min-width: 130px;
+    grid-template-columns: 31px minmax(61px, 1fr) 31px;
+  }
+
+  .avatar-preset > .avatar-preset-art {
+    width: 64px;
+    height: 64px;
+  }
+
+  .exports-action-card {
+    grid-template-columns: 34px minmax(0, 1fr) 13px;
+    gap: 4px 7px;
+    padding: 11px;
+  }
+}
+
+@media (max-height: 720px) {
+  .profile-page-v2 {
+    gap: 5px !important;
+  }
+
+  .profile-page-v2 .profile-v2-top {
+    min-height: 46px;
+  }
+
+  .profile-page-v2 .profile-v2-hero {
+    min-height: 92px;
+    padding-block: 7px !important;
+  }
+
+  .profile-v2-identity > .profile-v2-avatar-button {
+    width: 74px !important;
+    height: 74px !important;
+    flex-basis: 74px !important;
+  }
+
+  .profile-page-v2 .profile-v2-summary {
+    min-height: 54px;
+  }
+
+  .profile-page-v2 .profile-v2-group .profile-row {
+    min-height: 44px !important;
+    padding-block: 4px;
+  }
+
+  .profile-page-v2 .profile-row-icon {
+    width: 31px;
+    height: 31px;
+    flex-basis: 31px;
+  }
+
+  .settings-hub-page .settings-hub-row {
+    min-height: 44px !important;
+  }
+
+  .profile-page-v2 .profile-app-footer > span {
+    display: none;
+  }
+}

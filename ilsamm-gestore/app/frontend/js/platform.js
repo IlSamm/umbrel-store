@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.0-20260822a';
+var PLATFORM_BUILD = '1.8.1-20260822b';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Il profilo ha sei nuove mascotte illustrate, oltre a foto da galleria, fotocamera e iniziali.',
-  'La stima stipendio parte vuota per i nuovi profili e gestisce in modo chiaro 12, 13 o 14 mensilita.',
-  'Ricerca, ferie, calendario, impostazioni e pagine legali sono piu ordinate e restano dentro GestOre.',
-  'Lo zoom e bloccato nell app e rimane disponibile soltanto sulle foto dei cedolini.'
+  'Profilo e Impostazioni ora restano fissi, piu leggibili e senza aree account duplicate.',
+  'Puoi scegliere tra dodici nuove mascotte GestOre, oltre a foto, fotocamera e iniziali.',
+  'Stipendio permette di cambiare mese direttamente dal titolo e Report ha quattro esportazioni piu chiare.',
+  'Privacy, Termini e Supporto sono completi, leggibili e si aprono sempre dentro GestOre.'
 ];
 
 async function readPlatformJson(response) {
@@ -554,18 +554,6 @@ function renderAccountSecuritySettings() {
     : (push.loading ? 'Controllo disponibilita...' : (push.available
       ? (pushEnabled ? 'Attive anche quando GestOre e chiusa' : 'Ricevi riepiloghi anche con l app chiusa')
       : 'Disponibili dopo il prossimo aggiornamento del server'));
-  var sessions = platformState.sessions;
-  var sessionRows = sessions.loading
-    ? '<div class="platform-empty">Carico i dispositivi...</div>'
-    : (sessions.error
-      ? '<div class="platform-empty is-error">' + escapeHtml(sessions.error) + '</div>'
-      : (sessions.items.length
-        ? sessions.items.map(function (item) {
-            return '<article class="platform-session-row"><span>' + icons.user + '</span><div><strong>' + escapeHtml(item.device || 'Dispositivo') + (item.current ? ' <b>QUESTO</b>' : '') + '</strong><small>' + escapeHtml(formatPlatformDate(item.lastSeenAt, 'Accesso recente')) + '</small></div>' +
-              (item.current ? '<i>' + icons.check + '</i>' : '<button data-platform-session-revoke="' + escapeHtml(item.id) + '" ' + (sessions.busyId ? 'disabled' : '') + '>Revoca</button>') +
-            '</article>';
-          }).join('')
-        : '<div class="platform-empty">Nessun dispositivo collegato.</div>'));
   return (typeof renderPasskeySettings === 'function' ? renderPasskeySettings() : '') +
     '<div class="settings-v2-section-title">Notifiche dal server</div>' +
     '<section class="settings-v2-group platform-push-card">' +
@@ -573,9 +561,7 @@ function renderAccountSecuritySettings() {
       (pushEnabled ? '<div class="settings-v2-divider"></div><button class="platform-inline-action" data-platform-push-test="1" ' + (push.busy ? 'disabled' : '') + '>' + icons.bell + '<span>Invia una notifica di prova</span>' + icons.right + '</button>' : '') +
     '</section>' +
     '<div class="settings-v2-section-title">Recupero account</div>' +
-    '<section class="platform-security-action"><span>' + icons.lock + '</span><div><strong>Codice di recupero</strong><p>Genera un codice nuovo e conservalo fuori da GestOre. Quello precedente verra disattivato.</p></div><button data-platform-recovery-code="1">Genera codice</button></section>' +
-    '<div class="settings-v2-section-title">Dispositivi collegati</div>' +
-    '<section class="platform-session-card"><div class="platform-card-head"><div><strong>Sessioni attive</strong><small>Revoca gli accessi che non riconosci</small></div><button data-platform-sessions-refresh="1" aria-label="Aggiorna dispositivi collegati">' + icons.activity + '</button></div><div>' + sessionRows + '</div></section>';
+    '<section class="platform-security-action"><span>' + icons.lock + '</span><div><strong>Codice di recupero</strong><p>Genera un codice nuovo e conservalo fuori da GestOre. Quello precedente verra disattivato.</p></div><button data-platform-recovery-code="1">Genera codice</button></section>';
 }
 
 function renderOwnerAuditSettings() {

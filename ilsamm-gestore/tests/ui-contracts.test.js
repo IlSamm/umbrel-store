@@ -33,12 +33,65 @@ test('calendario, ricerca e pagine legali vengono aperti dentro GestOre', () => 
   assert.match(features, /global-search-overlay/);
 });
 
-test('gli avatar predefiniti sono immagini ottimizzate e non semplici icone', () => {
+test('gli avatar predefiniti usano il set completo di mascotte', () => {
   const views = read('app/frontend/js/views.js');
-  for (const name of ['nova', 'byte', 'milo', 'lumi', 'pico', 'nori']) {
-    const asset = path.join(root, 'app', 'frontend', 'assets', 'avatars', name + '.webp');
+  const releaseStyles = read('app/frontend/styles/release-181.css');
+  const avatars = [
+    ['nova', 'webp'], ['byte', 'webp'], ['milo', 'webp'],
+    ['lumi', 'webp'], ['pico', 'webp'], ['nori', 'webp'],
+    ['aria', 'png'], ['zed', 'png'], ['orbit', 'png'],
+    ['rex', 'png'], ['kira', 'png'], ['mocha', 'png']
+  ];
+
+  assert.doesNotMatch(views, /avatar-sprite/);
+  assert.doesNotMatch(releaseStyles, /gestore-mascots\.jpg/);
+
+  for (const [name, extension] of avatars) {
+    const asset = path.join(root, 'app', 'frontend', 'assets', 'avatars', name + '.' + extension);
     assert.equal(fs.existsSync(asset), true, name + ' mancante');
-    assert.ok(fs.statSync(asset).size < 100000, name + ' non ottimizzato');
-    assert.match(views, new RegExp('assets/avatars/' + name + '\\.webp'));
+    assert.ok(fs.statSync(asset).size < 600000, name + ' non ottimizzato');
+    assert.match(views, new RegExp("key: '" + name + "'"), name + ' mancante');
+    assert.match(views, new RegExp("avatars/" + name + "\\." + extension), name + ' non collegato');
   }
+
+  assert.match(releaseStyles, /object-fit:\s*contain/);
+});
+
+test('profilo e impostazioni usano ritorni coerenti senza aree account obsolete', () => {
+  const views = read('app/frontend/js/views.js');
+  const bindings = read('app/frontend/js/bindings.js');
+  const platform = read('app/frontend/js/platform.js');
+  const releaseStyles = read('app/frontend/styles/release-181.css');
+
+  assert.doesNotMatch(views, /Gestione account/);
+  assert.doesNotMatch(platform, /Dispositivi collegati/);
+  assert.match(bindings, /settingsReturnTarget === 'profile'/);
+  assert.match(releaseStyles, /\.profile-screen\.active[\s\S]*overflow: hidden/);
+  assert.match(releaseStyles, /\.settings-hub-screen\.active[\s\S]*overflow: hidden/);
+  assert.match(releaseStyles, /profile-page-v2[\s\S]*?profile-app-footer[\s\S]*?margin-top:\s*auto/);
+  assert.match(releaseStyles, /settings-hub-page[\s\S]*?settings-v2-footer[\s\S]*?margin-top:\s*auto/);
+});
+
+test('stipendio e report espongono periodi navigabili e azioni chiare', () => {
+  const views = read('app/frontend/js/views.js');
+  const bindings = read('app/frontend/js/bindings.js');
+
+  assert.match(views, /data-salary-month="-1"/);
+  assert.match(views, /data-salary-month="1"/);
+  assert.match(bindings, /dataset\.salaryMonth/);
+  assert.match(views, /data-export-month="-1"/);
+  assert.match(views, /data-export-month="1"/);
+  assert.match(views, /Foglio Excel/);
+  assert.match(views, /Report mensile/);
+  assert.match(views, /Report annuale/);
+});
+
+test('privacy termini e supporto mantengono contenuti completi senza card introduttive', () => {
+  const views = read('app/frontend/js/views.js');
+
+  assert.doesNotMatch(views, /'<div class="legal-app-intro"/);
+  assert.match(views, /Dati del tuo account/);
+  assert.match(views, /Chiusura dell&apos;account/);
+  assert.match(views, /Segnalare un problema/);
+  assert.match(views, /data-close-legal/);
 });
