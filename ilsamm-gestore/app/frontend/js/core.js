@@ -82,8 +82,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.8.2',
-      build: '20260822c',
+      version: '1.8.3',
+      build: '20260823a',
       appName: 'GestOre'
     };
 
@@ -1044,6 +1044,16 @@ var errorBox = document.getElementById('errorBox');
       var appName = sanitizeFilenamePart((state && state.settings && state.settings.appName) || defaultSettings.appName || 'GestOre');
       return appName + '_Report_Anno_' + current.getFullYear() + '.pdf';
     }
+    function getCompleteYearlyReportPdfFilename(date) {
+      var current = date instanceof Date ? date : new Date();
+      var appName = sanitizeFilenamePart((state && state.settings && state.settings.appName) || defaultSettings.appName || 'GestOre');
+      return appName + '_Report_Annuale_Completo_' + current.getFullYear() + '.pdf';
+    }
+    function getSalaryReportPdfFilename(date) {
+      var current = date instanceof Date ? date : new Date();
+      var appName = sanitizeFilenamePart((state && state.settings && state.settings.appName) || defaultSettings.appName || 'GestOre');
+      return appName + '_Report_Stipendi_' + current.getFullYear() + '.pdf';
+    }
     function toPdfSafeText(value) {
       var text = String(value === undefined || value === null ? '' : value);
       try { text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (err) {}
@@ -1553,8 +1563,17 @@ var errorBox = document.getElementById('errorBox');
         document.head.appendChild(script);
       });
     }
+    function hasAllPdfReportModules() {
+      return Boolean(
+        window.GestOrePdfReports &&
+        typeof window.GestOrePdfReports.monthly === 'function' &&
+        typeof window.GestOrePdfReports.yearly === 'function' &&
+        typeof window.GestOrePdfReports.completeYearly === 'function' &&
+        typeof window.GestOrePdfReports.salaries === 'function'
+      );
+    }
     function loadPdfReportModules() {
-      if (window.GestOrePdfReports && typeof window.GestOrePdfReports.monthly === 'function' && typeof window.GestOrePdfReports.yearly === 'function') {
+      if (hasAllPdfReportModules()) {
         return Promise.resolve(window.GestOrePdfReports);
       }
       if (pdfReportModulesPromise) return pdfReportModulesPromise;
@@ -1565,8 +1584,10 @@ var errorBox = document.getElementById('errorBox');
       pdfReportModulesPromise = loadExternalScript('js/pdf/engine.js' + query)
         .then(function () { return loadExternalScript('js/pdf/monthly.js' + query); })
         .then(function () { return loadExternalScript('js/pdf/yearly.js' + query); })
+        .then(function () { return loadExternalScript('js/pdf/annual-complete.js' + query); })
+        .then(function () { return loadExternalScript('js/pdf/salaries.js' + query); })
         .then(function () {
-          if (!window.GestOrePdfReports || typeof window.GestOrePdfReports.monthly !== 'function' || typeof window.GestOrePdfReports.yearly !== 'function') {
+          if (!hasAllPdfReportModules()) {
             throw new Error('Il generatore PDF non e disponibile.');
           }
           return window.GestOrePdfReports;
@@ -1577,23 +1598,142 @@ var errorBox = document.getElementById('errorBox');
         });
       return pdfReportModulesPromise;
     }
-    async function exportReport() {
+    function getPdfReportSpec(kind) {
       var reportMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
+      var reportYear = new Date(state.currentMonth.getFullYear(), 0, 1);
+      var specs = {
+        monthly: {
+          kind: 'monthly',
+          title: 'Report mensile',
+          copy: 'Registro completo di ore e giornate del mese.',
+          period: formatMonthYear(reportMonth),
+          filename: getMonthlyReportPdfFilename(reportMonth),
+          builder: 'monthly',
+          date: reportMonth,
+          tone: 'cyan'
+        },
+        yearly: {
+          kind: 'yearly',
+          title: 'Report annuale',
+          copy: 'Riepilogo compatto delle ore registrate nell\'anno.',
+          period: 'Anno ' + reportYear.getFullYear(),
+          filename: getYearlyReportPdfFilename(reportYear),
+          builder: 'yearly',
+          date: reportYear,
+          tone: 'violet'
+        },
+        completeYearly: {
+          kind: 'completeYearly',
+          title: 'Report annuale completo',
+          copy: 'Ore, ferie, assenze, cedolini e stipendi mese per mese.',
+          period: 'Anno ' + reportYear.getFullYear(),
+          filename: getCompleteYearlyReportPdfFilename(reportYear),
+          builder: 'completeYearly',
+          date: reportYear,
+          tone: 'amber'
+        },
+        salaries: {
+          kind: 'salaries',
+          title: 'Report stipendi',
+          copy: 'Cedolini, importi netti e lordi, stime e andamento annuale.',
+          period: 'Anno ' + reportYear.getFullYear(),
+          filename: getSalaryReportPdfFilename(reportYear),
+          builder: 'salaries',
+          date: reportYear,
+          tone: 'green'
+        }
+      };
+      return specs[kind] || null;
+    }
+    function cleanupPdfPreview() {
+      if (state.pdfPreviewUrl) {
+        try { URL.revokeObjectURL(state.pdfPreviewUrl); } catch (error) {}
+      }
+      state.pdfPreviewUrl = '';
+      state.pdfPreviewName = '';
+      state.pdfPreviewBlob = null;
+      state.pdfPreviewOpen = false;
+    }
+    function openPdfExportDialog(kind) {
+      if (!getPdfReportSpec(kind)) return;
+      state.pdfExportKind = kind;
+      state.pdfExportOpen = true;
+      state.pdfExportBusy = false;
+      render();
+    }
+    function closePdfExportDialog() {
+      if (state.pdfExportBusy) return;
+      state.pdfExportOpen = false;
+      state.pdfExportKind = '';
+      render();
+    }
+    async function buildSelectedPdfReport() {
+      var spec = getPdfReportSpec(state.pdfExportKind);
+      if (!spec) throw new Error('Scegli un report valido.');
+      var reports = await loadPdfReportModules();
+      var builder = reports[spec.builder];
+      if (typeof builder !== 'function') throw new Error('Il report selezionato non e disponibile.');
+      return {
+        spec: spec,
+        blob: builder(spec.date)
+      };
+    }
+    async function previewSelectedPdfReport() {
+      if (state.pdfExportBusy) return;
+      state.pdfExportBusy = true;
+      render();
       try {
-        var reports = await loadPdfReportModules();
-        downloadBlobFile(getMonthlyReportPdfFilename(reportMonth), reports.monthly(reportMonth));
+        var artifact = await buildSelectedPdfReport();
+        cleanupPdfPreview();
+        state.pdfExportOpen = false;
+        state.pdfExportKind = artifact.spec.kind;
+        state.pdfExportBusy = false;
+        state.pdfPreviewName = artifact.spec.filename;
+        state.pdfPreviewBlob = artifact.blob;
+        state.pdfPreviewUrl = URL.createObjectURL(artifact.blob);
+        state.pdfPreviewOpen = true;
+        render();
       } catch (error) {
-        toast(error && error.message ? error.message : 'Non riesco a creare il PDF.');
+        state.pdfExportBusy = false;
+        render();
+        toast(error && error.message ? error.message : 'Non riesco a creare l\'anteprima PDF.');
       }
     }
-    async function exportYearReport() {
-      var reportYear = new Date(state.currentMonth.getFullYear(), 0, 1);
+    async function downloadSelectedPdfReport() {
+      if (state.pdfExportBusy) return;
+      state.pdfExportBusy = true;
+      render();
       try {
-        var reports = await loadPdfReportModules();
-        downloadBlobFile(getYearlyReportPdfFilename(reportYear), reports.yearly(reportYear));
+        var artifact = await buildSelectedPdfReport();
+        state.pdfExportOpen = false;
+        state.pdfExportBusy = false;
+        downloadBlobFile(artifact.spec.filename, artifact.blob);
+        render();
       } catch (error) {
-        toast(error && error.message ? error.message : 'Non riesco a creare il PDF annuale.');
+        state.pdfExportBusy = false;
+        render();
+        toast(error && error.message ? error.message : 'Non riesco a scaricare il PDF.');
       }
+    }
+    function closePdfPreview() {
+      cleanupPdfPreview();
+      render();
+    }
+    function downloadCurrentPdfPreview() {
+      if (!state.pdfPreviewBlob || !state.pdfPreviewName) return;
+      downloadBlobFile(state.pdfPreviewName, state.pdfPreviewBlob);
+    }
+    function exportReport() {
+      openPdfExportDialog('monthly');
+    }
+    function exportYearReport() {
+      openPdfExportDialog('yearly');
+    }
+    function exportCompleteYearReport() {
+      openPdfExportDialog('completeYearly');
+    }
+    function exportSalaryReport() {
+      openPdfExportDialog('salaries');
     }
     function normalizeServerSnapshot(payload) {
       var source = payload && typeof payload === 'object' ? payload : {};

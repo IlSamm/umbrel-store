@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.2-20260822c';
+var PLATFORM_BUILD = '1.8.3-20260823a';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Profilo e Impostazioni hanno testi, icone e aree di tocco piu grandi e leggibili.',
-  'Le descrizioni possono occupare due righe senza comprimere le informazioni importanti.',
-  'Il layout resta fisso su iPhone e mantiene versione, Privacy, Termini e Supporto in fondo.',
-  'Le dodici mascotte e tutti i dati gia salvati restano invariati.'
+  'I report PDF mensile e annuale che gia usavi restano invariati.',
+  'Il nuovo report annuale completo riunisce ore, ferie, assenze e stipendi.',
+  'Il nuovo report stipendi organizza cedolini, importi, tariffe e stima fiscale.',
+  'Prima di creare un PDF puoi scegliere se mostrarne l\'anteprima o scaricarlo.'
 ];
 
 async function readPlatformJson(response) {

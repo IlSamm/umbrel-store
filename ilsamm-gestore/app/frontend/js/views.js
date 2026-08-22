@@ -2152,7 +2152,7 @@ function getCalendarSelectedDateKey(month) {
         '<section class="profile-group profile-v2-group">' +
           '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Account e backup</strong><small>Database personale, spazio occupato e copie protette</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="settings" data-settings-section="history"><span class="profile-row-icon is-blue">' + icons.history + '</span><span class="profile-row-copy"><strong>Cronologia dati</strong><small>Controlla e ripristina le ultime modifiche</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong><small>Excel, calendario, PDF mensile e annuale</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong><small>Excel, calendario e quattro report PDF</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="settings" data-settings-section="privacy"><span class="profile-row-icon is-blue">' + icons.lock + '</span><span class="profile-row-copy"><strong>Privacy e sicurezza</strong><small>Protezione dell&apos;app e accesso all&apos;account</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
         '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span><nav aria-label="Informazioni legali"><button data-open-legal="privacy">Privacy</button><button data-open-legal="terms">Termini</button><button data-open-legal="support">Supporto</button></nav></div>' +
@@ -2179,8 +2179,40 @@ function getCalendarSelectedDateKey(month) {
           '<button class="exports-action-card is-blue" data-export-calendar="1"><span>' + icons.calendar + '</span><b>.ICS</b><strong>Calendario</strong><small>Scegli le categorie</small>' + icons.right + '</button>' +
           '<button class="exports-action-card is-cyan" data-export-report="1"><span>' + icons.note + '</span><b>PDF</b><strong>Report mensile</strong><small>' + monthLabel + ' ' + yearLabel + '</small>' + icons.right + '</button>' +
           '<button class="exports-action-card is-violet" data-export-report-year="1"><span>' + icons.download + '</span><b>PDF</b><strong>Report annuale</strong><small>Tutto il ' + yearLabel + '</small>' + icons.right + '</button>' +
+          '<button class="exports-action-card is-amber" data-export-report-complete-year="1"><span>' + icons.activity + '</span><b>PDF+</b><strong>Annuale completo</strong><small>Ore, ferie e stipendi</small>' + icons.right + '</button>' +
+          '<button class="exports-action-card is-pink" data-export-report-salaries="1"><span>' + icons.wallet + '</span><b>PDF</b><strong>Report stipendi</strong><small>Cedolini e andamento</small>' + icons.right + '</button>' +
         '</section>' +
         '<p class="exports-safe-note">' + icons.lock + '<span>I file sono copie: il tuo archivio GestOre non viene modificato.</span></p>' +
+      '</div>';
+    }
+
+    function renderPdfExportDialog() {
+      if (!state.pdfExportOpen) return '';
+      var spec = typeof getPdfReportSpec === 'function' ? getPdfReportSpec(state.pdfExportKind) : null;
+      if (!spec) return '';
+      var icon = spec.kind === 'salaries' ? icons.wallet : (spec.kind === 'completeYearly' ? icons.activity : icons.note);
+      var busy = Boolean(state.pdfExportBusy);
+      return '<div class="pdf-export-overlay" role="dialog" aria-modal="true" aria-labelledby="pdfExportDialogTitle">' +
+        '<button class="pdf-export-backdrop" data-close-pdf-export="1" aria-label="Chiudi"></button>' +
+        '<section class="pdf-export-dialog is-' + escapeHtml(spec.tone || 'blue') + '">' +
+          '<header><span class="pdf-export-dialog-icon">' + icon + '</span><div><small>REPORT PDF</small><h2 id="pdfExportDialogTitle">' + escapeHtml(spec.title) + '</h2><p>' + escapeHtml(spec.copy) + '</p></div><button data-close-pdf-export="1" aria-label="Chiudi"' + (busy ? ' disabled' : '') + '>' + icons.x + '</button></header>' +
+          '<div class="pdf-export-file"><span>' + icons.note + '</span><div><small>FILE PRONTO DA CREARE</small><strong>' + escapeHtml(spec.filename) + '</strong><p>' + escapeHtml(spec.period) + '</p></div></div>' +
+          '<div class="pdf-export-actions">' +
+            '<button data-preview-pdf-report="1"' + (busy ? ' disabled' : '') + '><span>' + icons.search + '</span><strong>' + (busy ? 'Preparazione...' : 'Mostra anteprima') + '</strong><small>Controlla tutte le pagine</small></button>' +
+            '<button class="is-primary" data-download-pdf-report="1"' + (busy ? ' disabled' : '') + '><span>' + icons.download + '</span><strong>' + (busy ? 'Preparazione...' : 'Scarica PDF') + '</strong><small>Salva o condividi il file</small></button>' +
+          '</div>' +
+          '<p class="pdf-export-hint">' + icons.lock + '<span>La creazione del report non modifica i dati salvati.</span></p>' +
+        '</section>' +
+      '</div>';
+    }
+
+    function renderPdfPreview() {
+      if (!state.pdfPreviewOpen || !state.pdfPreviewUrl) return '';
+      return '<div class="pdf-preview-overlay" role="dialog" aria-modal="true" aria-label="Anteprima PDF">' +
+        '<section class="pdf-preview-shell">' +
+          '<header><button data-close-pdf-preview="1" aria-label="Chiudi anteprima">' + icons.left + '</button><div><small>ANTEPRIMA PDF</small><strong>' + escapeHtml(state.pdfPreviewName || 'Report GestOre') + '</strong></div><button data-download-pdf-preview="1" aria-label="Scarica PDF">' + icons.download + '</button></header>' +
+          '<div class="pdf-preview-frame"><iframe src="' + escapeHtml(state.pdfPreviewUrl) + '#view=FitH" title="Anteprima del report PDF"></iframe><p>Se l&apos;anteprima non compare, usa il pulsante Scarica in alto.</p></div>' +
+        '</section>' +
       '</div>';
     }
 
@@ -2562,7 +2594,7 @@ function getCalendarSelectedDateKey(month) {
     }
 
     function renderOverlayMarkup() {
-      return renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderCalendarExportDialog() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + renderProfileAvatarPicker() + renderLegalOverlay() + renderCalendarDetailDialog() +
+      return renderOverlay() + renderConfirmModal() + renderVacationManager() + renderVacationHistory() + renderCalendarExportDialog() + renderPdfExportDialog() + renderPdfPreview() + renderPayslipViewer() + renderPayslipDecisionModal() + renderPrivacyLock() + renderProfileAvatarPicker() + renderLegalOverlay() + renderCalendarDetailDialog() +
         (typeof renderFeatureOverlays === 'function' ? renderFeatureOverlays() : '') +
         (typeof renderPlanningOverlays === 'function' ? renderPlanningOverlays() : '') +
         (typeof renderStatsInsightOverlay === 'function' ? renderStatsInsightOverlay() : '') +

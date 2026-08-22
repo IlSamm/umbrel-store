@@ -80,6 +80,7 @@ test('profilo e impostazioni usano ritorni coerenti senza aree account obsolete'
 test('stipendio e report espongono periodi navigabili e azioni chiare', () => {
   const views = read('app/frontend/js/views.js');
   const bindings = read('app/frontend/js/bindings.js');
+  const core = read('app/frontend/js/core.js');
 
   assert.match(views, /data-salary-month="-1"/);
   assert.match(views, /data-salary-month="1"/);
@@ -89,6 +90,22 @@ test('stipendio e report espongono periodi navigabili e azioni chiare', () => {
   assert.match(views, /Foglio Excel/);
   assert.match(views, /Report mensile/);
   assert.match(views, /Report annuale/);
+  assert.match(views, /data-export-report-complete-year="1"/);
+  assert.match(views, /data-export-report-salaries="1"/);
+  assert.match(views, /Annuale completo/);
+  assert.match(views, /Report stipendi/);
+  assert.match(views, /Mostra anteprima/);
+  assert.match(views, /Scarica PDF/);
+  assert.match(views, /pdf-preview-overlay/);
+  assert.match(bindings, /exportCompleteYearReport/);
+  assert.match(bindings, /exportSalaryReport/);
+  assert.match(bindings, /previewSelectedPdfReport/);
+  assert.match(core, /js\/pdf\/annual-complete\.js/);
+  assert.match(core, /js\/pdf\/salaries\.js/);
+  assert.match(core, /openPdfExportDialog\('monthly'\)/);
+  assert.match(core, /openPdfExportDialog\('yearly'\)/);
+  assert.equal(fs.existsSync(path.join(root, 'app/frontend/js/pdf/annual-complete.js')), true);
+  assert.equal(fs.existsSync(path.join(root, 'app/frontend/js/pdf/salaries.js')), true);
 });
 
 test('privacy termini e supporto mantengono contenuti completi senza card introduttive', () => {

@@ -1,0 +1,393 @@
+/* GestOre 1.8.3: extended PDF reports and deliberate preview/download flow. */
+
+.exports-action-card.is-amber { color: #ffb45f; }
+.exports-action-card.is-pink { color: #ff78a0; }
+
+.exports-page .exports-action-grid {
+  grid-auto-rows: minmax(102px, auto);
+}
+
+.exports-page .exports-action-card {
+  min-height: 102px;
+}
+
+.pdf-export-overlay,
+.pdf-export-overlay *,
+.pdf-preview-overlay,
+.pdf-preview-overlay * {
+  box-sizing: border-box;
+}
+
+.pdf-export-overlay {
+  position: fixed;
+  z-index: 9600;
+  inset: 0;
+  display: grid;
+  width: 100%;
+  height: var(--real-app-vh, 100dvh);
+  padding:
+    max(18px, env(safe-area-inset-top, 0px))
+    12px
+    max(18px, env(safe-area-inset-bottom, 0px));
+  place-items: center;
+  overflow: hidden;
+}
+
+.pdf-export-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(1, 5, 16, .76);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.pdf-export-dialog {
+  --pdf-tone: #69a8ff;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(100%, 374px);
+  max-height: calc(var(--real-app-vh, 100dvh) - 36px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  gap: 14px;
+  padding: 18px;
+  overflow: auto;
+  color: #f7f9ff;
+  border: 1px solid color-mix(in srgb, var(--pdf-tone) 31%, rgba(132, 155, 215, .16));
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 9% 0%, color-mix(in srgb, var(--pdf-tone) 18%, transparent), transparent 42%),
+    linear-gradient(150deg, rgba(18, 33, 66, .985), rgba(4, 11, 28, .995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 30px 90px rgba(0,0,0,.56),
+    0 0 52px color-mix(in srgb, var(--pdf-tone) 11%, transparent);
+  animation: gestore-dialog-enter .22s cubic-bezier(.2, .85, .3, 1) both;
+}
+
+.pdf-export-dialog.is-cyan { --pdf-tone: #62c9f5; }
+.pdf-export-dialog.is-violet { --pdf-tone: #a47bff; }
+.pdf-export-dialog.is-amber { --pdf-tone: #ffb45f; }
+.pdf-export-dialog.is-green { --pdf-tone: #42d7ad; }
+.pdf-export-dialog.is-pink { --pdf-tone: #ff78a0; }
+
+.pdf-export-dialog > header {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 36px;
+  align-items: start;
+  gap: 11px;
+}
+
+.pdf-export-dialog-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  color: var(--pdf-tone);
+  border: 1px solid color-mix(in srgb, var(--pdf-tone) 28%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--pdf-tone) 12%, rgba(12, 24, 52, .76));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.pdf-export-dialog-icon svg,
+.pdf-export-dialog > header > button svg,
+.pdf-export-file > span svg,
+.pdf-export-actions span svg,
+.pdf-export-hint svg,
+.pdf-preview-shell > header button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.pdf-export-dialog > header > div {
+  min-width: 0;
+}
+
+.pdf-export-dialog > header small,
+.pdf-export-file small {
+  display: block;
+  color: var(--pdf-tone);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .15em;
+}
+
+.pdf-export-dialog > header h2 {
+  margin: 4px 0 5px;
+  color: #fff;
+  font-size: 21px;
+  line-height: 1.05;
+  letter-spacing: -.04em;
+}
+
+.pdf-export-dialog > header p,
+.pdf-export-file p,
+.pdf-export-hint {
+  margin: 0;
+  color: #8898bb;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.pdf-export-dialog > header > button,
+.pdf-preview-shell > header button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  color: #cbd7f4;
+  border: 1px solid rgba(132, 157, 216, .15);
+  border-radius: 13px;
+  background: rgba(255,255,255,.035);
+}
+
+.pdf-export-file {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  min-height: 82px;
+  padding: 13px;
+  overflow: hidden;
+  border: 1px solid rgba(133, 159, 219, .14);
+  border-radius: 20px;
+  background: rgba(2, 9, 24, .38);
+}
+
+.pdf-export-file > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--pdf-tone);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--pdf-tone) 12%, transparent);
+}
+
+.pdf-export-file > div {
+  min-width: 0;
+}
+
+.pdf-export-file strong {
+  display: block;
+  margin: 5px 0 4px;
+  overflow: hidden;
+  color: #f5f8ff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-export-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pdf-export-actions > button {
+  display: grid;
+  min-width: 0;
+  min-height: 118px;
+  padding: 14px 11px;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  color: #dbe5ff;
+  text-align: center;
+  border: 1px solid rgba(132, 157, 216, .16);
+  border-radius: 21px;
+  background: linear-gradient(150deg, rgba(25, 41, 78, .78), rgba(7, 15, 34, .88));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.pdf-export-actions > button.is-primary {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--pdf-tone) 40%, transparent);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.13), transparent 46%),
+    linear-gradient(145deg, color-mix(in srgb, var(--pdf-tone) 68%, #2853d7), #5639bd);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 14px 28px rgba(36, 50, 151, .24);
+}
+
+.pdf-export-actions span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: var(--pdf-tone);
+  border-radius: 13px;
+  background: rgba(255,255,255,.055);
+}
+
+.pdf-export-actions .is-primary span {
+  color: #fff;
+  background: rgba(255,255,255,.12);
+}
+
+.pdf-export-actions strong {
+  font-size: 12px;
+}
+
+.pdf-export-actions small {
+  color: #8999ba;
+  font-size: 8px;
+  line-height: 1.25;
+}
+
+.pdf-export-actions .is-primary small {
+  color: rgba(255,255,255,.68);
+}
+
+.pdf-export-actions button:disabled,
+.pdf-export-dialog > header > button:disabled {
+  opacity: .55;
+}
+
+.pdf-export-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-align: center;
+}
+
+.pdf-export-hint svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  color: #46d4aa;
+}
+
+.pdf-preview-overlay {
+  position: fixed;
+  z-index: 9800;
+  inset: 0;
+  display: grid;
+  width: 100%;
+  height: var(--real-app-vh, 100dvh);
+  place-items: center;
+  overflow: hidden;
+  color: #f7f9ff;
+  background: rgba(1, 5, 15, .96);
+}
+
+.pdf-preview-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 430px);
+  height: var(--real-app-vh, 100dvh);
+  min-height: 0;
+  padding:
+    max(10px, env(safe-area-inset-top, 0px))
+    10px
+    max(10px, env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(circle at 50% -10%, rgba(69, 123, 245, .18), transparent 34%),
+    linear-gradient(180deg, #09142c, #030816 45%, #020611);
+}
+
+.pdf-preview-shell > header {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 10px;
+  min-height: 66px;
+  padding: 6px 2px 10px;
+}
+
+.pdf-preview-shell > header button {
+  width: 40px;
+  height: 40px;
+  color: #dce7ff;
+  border-radius: 14px;
+  background: rgba(31, 51, 93, .55);
+}
+
+.pdf-preview-shell > header > div {
+  min-width: 0;
+  text-align: center;
+}
+
+.pdf-preview-shell > header small {
+  display: block;
+  margin-bottom: 4px;
+  color: #7fa8ff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .15em;
+}
+
+.pdf-preview-shell > header strong {
+  display: block;
+  overflow: hidden;
+  color: #f7f9ff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-preview-frame {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(122, 153, 220, .22);
+  border-radius: 22px;
+  background: #111827;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 20px 48px rgba(0,0,0,.38);
+}
+
+.pdf-preview-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.pdf-preview-frame > p {
+  position: absolute;
+  z-index: -1;
+  inset: 50% 22px auto;
+  margin: 0;
+  color: #8495b8;
+  font-size: 11px;
+  text-align: center;
+}
+
+@media (max-width: 360px), (max-height: 700px) {
+  .exports-page .exports-action-grid {
+    gap: 8px;
+    grid-auto-rows: minmax(88px, auto);
+  }
+
+  .exports-page .exports-action-card {
+    min-height: 88px;
+    padding: 10px;
+  }
+
+  .pdf-export-dialog {
+    gap: 11px;
+    padding: 15px;
+    border-radius: 26px;
+  }
+
+  .pdf-export-actions > button {
+    min-height: 104px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdf-export-dialog {
+    animation: none;
+  }
+}

@@ -1537,6 +1537,21 @@ function bindEvents() {
       if (repBtn) repBtn.onclick = exportReport;
       var repYearBtn = document.querySelector('[data-export-report-year]');
       if (repYearBtn) repYearBtn.onclick = exportYearReport;
+      var repCompleteYearBtn = document.querySelector('[data-export-report-complete-year]');
+      if (repCompleteYearBtn) repCompleteYearBtn.onclick = exportCompleteYearReport;
+      var repSalariesBtn = document.querySelector('[data-export-report-salaries]');
+      if (repSalariesBtn) repSalariesBtn.onclick = exportSalaryReport;
+      document.querySelectorAll('[data-close-pdf-export]').forEach(function (button) {
+        button.onclick = closePdfExportDialog;
+      });
+      var previewPdfReportBtn = document.querySelector('[data-preview-pdf-report]');
+      if (previewPdfReportBtn) previewPdfReportBtn.onclick = previewSelectedPdfReport;
+      var downloadPdfReportBtn = document.querySelector('[data-download-pdf-report]');
+      if (downloadPdfReportBtn) downloadPdfReportBtn.onclick = downloadSelectedPdfReport;
+      var closePdfPreviewBtn = document.querySelector('[data-close-pdf-preview]');
+      if (closePdfPreviewBtn) closePdfPreviewBtn.onclick = closePdfPreview;
+      var downloadPdfPreviewBtn = document.querySelector('[data-download-pdf-preview]');
+      if (downloadPdfPreviewBtn) downloadPdfPreviewBtn.onclick = downloadCurrentPdfPreview;
 
       var reminderToggle = document.querySelector('[data-toggle-reminders]');
       if (reminderToggle) reminderToggle.onclick = async function () {
