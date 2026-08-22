@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.1-20260822b';
+var PLATFORM_BUILD = '1.8.2-20260822c';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Profilo e Impostazioni ora restano fissi, piu leggibili e senza aree account duplicate.',
-  'Puoi scegliere tra dodici nuove mascotte GestOre, oltre a foto, fotocamera e iniziali.',
-  'Stipendio permette di cambiare mese direttamente dal titolo e Report ha quattro esportazioni piu chiare.',
-  'Privacy, Termini e Supporto sono completi, leggibili e si aprono sempre dentro GestOre.'
+  'Profilo e Impostazioni hanno testi, icone e aree di tocco piu grandi e leggibili.',
+  'Le descrizioni possono occupare due righe senza comprimere le informazioni importanti.',
+  'Il layout resta fisso su iPhone e mantiene versione, Privacy, Termini e Supporto in fondo.',
+  'Le dodici mascotte e tutti i dati gia salvati restano invariati.'
 ];
 
 async function readPlatformJson(response) {

@@ -1,0 +1,292 @@
+/* GestOre 1.8.2: readable Profile and Settings proportions. */
+
+/* Use the available height instead of shrinking the Profile controls. */
+.profile-page-v2 {
+  gap: 9px !important;
+}
+
+.profile-page-v2 .profile-v2-top {
+  min-height: 58px;
+}
+
+.profile-page-v2 .profile-v2-hero {
+  min-height: 140px;
+  padding: 15px 16px !important;
+  border-radius: 26px;
+}
+
+.profile-v2-identity > .profile-v2-avatar-button {
+  width: 104px !important;
+  height: 104px !important;
+  flex: 0 0 104px !important;
+  border-radius: 27px !important;
+}
+
+.profile-v2-avatar-button > .go-profile-avatar {
+  border-radius: 23px;
+}
+
+.profile-page-v2 .profile-v2-copy > span {
+  font-size: 9px;
+}
+
+.profile-page-v2 .profile-v2-copy h1 {
+  margin-block: 6px;
+  font-size: clamp(27px, 7.6vw, 32px);
+}
+
+.profile-page-v2 .profile-v2-copy p {
+  font-size: 11px;
+}
+
+.profile-page-v2 .profile-v2-summary {
+  min-height: 78px;
+  border-radius: 21px;
+}
+
+.profile-page-v2 .profile-v2-summary > div {
+  gap: 3px;
+  padding: 10px 8px;
+}
+
+.profile-page-v2 .profile-v2-summary > div + div::before {
+  top: 15px;
+  bottom: 15px;
+}
+
+.profile-page-v2 .profile-v2-summary span {
+  font-size: 9px;
+}
+
+.profile-page-v2 .profile-v2-summary strong {
+  font-size: 23px;
+}
+
+.profile-page-v2 .profile-v2-summary small {
+  font-size: 9.5px;
+}
+
+.profile-page-v2 .profile-section-title {
+  padding: 3px 5px 0;
+  font-size: 12px;
+}
+
+.profile-page-v2 .profile-v2-group {
+  border-radius: 22px;
+}
+
+.profile-page-v2 .profile-v2-group .profile-row {
+  min-height: 70px !important;
+  gap: 11px;
+  padding: 9px 12px;
+}
+
+.profile-page-v2 .profile-row + .profile-row::before {
+  left: 62px;
+  right: 12px;
+}
+
+.profile-page-v2 .profile-row-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 15px;
+}
+
+.profile-page-v2 .profile-row-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.profile-page-v2 .profile-row-copy {
+  gap: 3px;
+}
+
+.profile-page-v2 .profile-row-copy strong {
+  font-size: 15.5px;
+}
+
+.profile-page-v2 .profile-row-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 10.8px;
+  line-height: 1.2;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.profile-page-v2 .profile-row-value {
+  font-size: 10px;
+}
+
+.profile-page-v2 .profile-row-chevron svg {
+  width: 17px;
+  height: 17px;
+}
+
+.profile-page-v2 .profile-app-footer {
+  gap: 2px;
+  padding-top: 4px;
+  font-size: 9.5px;
+}
+
+.profile-page-v2 .profile-app-footer strong {
+  font-size: 10.5px;
+}
+
+/* Settings uses the same readable hierarchy and remains a fixed hub. */
+.settings-hub-page {
+  gap: 9px !important;
+}
+
+.settings-hub-page .settings-v2-top {
+  min-height: 58px;
+}
+
+.settings-hub-page .settings-v2-section-title {
+  padding: 3px 5px 0;
+  font-size: 12px;
+}
+
+.settings-hub-page .settings-hub-group {
+  border-radius: 22px;
+}
+
+.settings-hub-page .settings-hub-row {
+  min-height: 68px !important;
+  gap: 10px;
+  padding: 8px 12px !important;
+}
+
+.settings-hub-page .settings-hub-row + .settings-hub-row::before {
+  left: 62px;
+  right: 12px;
+}
+
+.settings-hub-page .settings-v2-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 15px;
+}
+
+.settings-hub-page .settings-v2-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.settings-hub-page .settings-v2-copy {
+  gap: 3px;
+}
+
+.settings-hub-page .settings-v2-copy strong {
+  font-size: 15px;
+}
+
+.settings-hub-page .settings-v2-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 10.5px;
+  line-height: 1.2;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.settings-hub-page .settings-hub-value {
+  max-width: 72px;
+  font-size: 9.5px;
+}
+
+.settings-hub-page .settings-v2-chevron svg {
+  width: 17px;
+  height: 17px;
+}
+
+.settings-hub-page .settings-v2-footer {
+  padding-top: 4px;
+  font-size: 9.5px;
+}
+
+@media (max-width: 360px) {
+  .profile-v2-identity > .profile-v2-avatar-button {
+    width: 90px !important;
+    height: 90px !important;
+    flex-basis: 90px !important;
+  }
+
+  .profile-page-v2 .profile-row-copy strong,
+  .settings-hub-page .settings-v2-copy strong {
+    font-size: 13px;
+  }
+}
+
+@media (max-height: 760px) {
+  .profile-page-v2,
+  .settings-hub-page {
+    gap: 6px !important;
+  }
+
+  .profile-page-v2 .profile-v2-top,
+  .settings-hub-page .settings-v2-top {
+    min-height: 50px;
+  }
+
+  .profile-page-v2 .profile-v2-hero {
+    min-height: 108px;
+    padding-block: 8px !important;
+  }
+
+  .profile-v2-identity > .profile-v2-avatar-button {
+    width: 82px !important;
+    height: 82px !important;
+    flex-basis: 82px !important;
+  }
+
+  .profile-page-v2 .profile-v2-copy h1 {
+    font-size: 25px;
+  }
+
+  .profile-page-v2 .profile-v2-summary {
+    min-height: 62px;
+  }
+
+  .profile-page-v2 .profile-v2-summary strong {
+    font-size: 19px;
+  }
+
+  .profile-page-v2 .profile-section-title,
+  .settings-hub-page .settings-v2-section-title {
+    font-size: 10.5px;
+  }
+
+  .profile-page-v2 .profile-v2-group .profile-row,
+  .settings-hub-page .settings-hub-row {
+    min-height: 49px !important;
+    padding-block: 4px !important;
+  }
+
+  .profile-page-v2 .profile-row-icon,
+  .settings-hub-page .settings-v2-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border-radius: 11px;
+  }
+
+  .profile-page-v2 .profile-row-copy strong,
+  .settings-hub-page .settings-v2-copy strong {
+    font-size: 12.5px;
+  }
+
+  .profile-page-v2 .profile-row-copy small,
+  .settings-hub-page .settings-v2-copy small {
+    font-size: 8.6px;
+  }
+
+  .profile-page-v2 .profile-app-footer > span,
+  .settings-hub-page .settings-v2-footer > span {
+    display: none;
+  }
+}

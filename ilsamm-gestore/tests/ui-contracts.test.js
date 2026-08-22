@@ -62,6 +62,7 @@ test('profilo e impostazioni usano ritorni coerenti senza aree account obsolete'
   const bindings = read('app/frontend/js/bindings.js');
   const platform = read('app/frontend/js/platform.js');
   const releaseStyles = read('app/frontend/styles/release-181.css');
+  const readabilityStyles = read('app/frontend/styles/release-182.css');
 
   assert.doesNotMatch(views, /Gestione account/);
   assert.doesNotMatch(platform, /Dispositivi collegati/);
@@ -70,6 +71,10 @@ test('profilo e impostazioni usano ritorni coerenti senza aree account obsolete'
   assert.match(releaseStyles, /\.settings-hub-screen\.active[\s\S]*overflow: hidden/);
   assert.match(releaseStyles, /profile-page-v2[\s\S]*?profile-app-footer[\s\S]*?margin-top:\s*auto/);
   assert.match(releaseStyles, /settings-hub-page[\s\S]*?settings-v2-footer[\s\S]*?margin-top:\s*auto/);
+  assert.match(readabilityStyles, /profile-v2-group \.profile-row[\s\S]*?min-height:\s*70px/);
+  assert.match(readabilityStyles, /profile-row-copy strong[\s\S]*?font-size:\s*15\.5px/);
+  assert.match(readabilityStyles, /settings-hub-row[\s\S]*?min-height:\s*68px/);
+  assert.match(readabilityStyles, /settings-v2-copy strong[\s\S]*?font-size:\s*15px/);
 });
 
 test('stipendio e report espongono periodi navigabili e azioni chiare', () => {
