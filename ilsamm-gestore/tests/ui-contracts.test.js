@@ -141,3 +141,24 @@ test('privacy termini e supporto mantengono contenuti completi senza card introd
   assert.match(views, /Segnalare un problema/);
   assert.match(views, /data-close-legal/);
 });
+
+test('le pagine usano motion breve e i KPI si animano senza coinvolgere i campi', () => {
+  const index = read('app/frontend/index.html');
+  const views = read('app/frontend/js/views.js');
+  const motion = read('app/frontend/js/motion.js');
+  const styles = read('app/frontend/styles/release-185.css');
+  const worker = read('app/frontend/service-worker.js');
+
+  assert.match(index, /js\/motion\.js/);
+  assert.match(worker, /js\/motion\.js/);
+  assert.match(views, /function getRenderMotionKey/);
+  assert.match(views, /GestOreMotion\.render/);
+  assert.match(motion, /key === lastViewKey/);
+  assert.match(motion, /prefers-reduced-motion: reduce/);
+  assert.match(motion, /\.go-total-number/);
+  assert.match(motion, /\.salary-hub-estimate/);
+  assert.doesNotMatch(motion, /querySelectorAll\(['"]input/);
+  assert.match(styles, /220ms/);
+  assert.match(styles, /go-content-rise/);
+  assert.match(styles, /go-progress-grow/);
+});

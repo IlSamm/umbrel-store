@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.4-20260823b';
+var PLATFORM_BUILD = '1.8.5-20260823c';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Le anteprime PDF ora mostrano davvero tutte le pagine anche su iPhone.',
-  'Le impostazioni sono piu ordinate e senza configurazioni duplicate.',
-  'Notifiche, privacy e recupero account sono nelle sezioni corrette.',
-  'I dati e i report gia salvati restano invariati e compatibili.'
+  'Le schermate ora compaiono con transizioni rapide e piu fluide.',
+  'Card, valori principali e barre dei grafici si animano in modo coordinato.',
+  'Riduci movimento di iPhone viene rispettato automaticamente.',
+  'Salvataggi, sincronizzazione e dati esistenti restano invariati.'
 ];
 
 async function readPlatformJson(response) {

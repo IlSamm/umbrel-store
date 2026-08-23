@@ -2585,11 +2585,38 @@ function getCalendarSelectedDateKey(month) {
         (typeof renderPlatformOverlays === 'function' ? renderPlatformOverlays() : '');
     }
 
+    function getRenderMotionKey() {
+      var activeTab = state.activeTab || 'home';
+      var key = [activeTab];
+      var currentMonth = state.currentMonth instanceof Date ? state.currentMonth : new Date();
+      var monthKey = currentMonth.getFullYear() + '-' + String(currentMonth.getMonth() + 1).padStart(2, '0');
+
+      if (activeTab === 'calendar') key.push(state.calendarView || 'month', monthKey);
+      if (activeTab === 'stats') key.push(state.statsRange || 'month', monthKey);
+      if (activeTab === 'vacations') key.push(String(Number(state.vacationScreenYear) || new Date().getFullYear()));
+      if (activeTab === 'exports') key.push(monthKey);
+      if (activeTab === 'settings') key.push(state.settingsSection || 'hub');
+      if (activeTab === 'payslips') {
+        var salaryMonth = state.salaryMonth instanceof Date ? state.salaryMonth : new Date();
+        var salaryMonthKey = salaryMonth.getFullYear() + '-' + String(salaryMonth.getMonth() + 1).padStart(2, '0');
+        var payslipMode = state.payslipEditorOpen ? 'editor'
+          : (state.payslipEstimateConfigOpen ? 'estimate-config'
+            : (state.payslipEstimateOpen ? 'estimate'
+              : (state.payslipStatsOpen ? 'stats'
+                : (state.payslipArchiveOpen ? 'archive'
+                  : (state.payslipDetailId ? ('detail-' + state.payslipDetailId) : 'hub')))));
+        key.push(payslipMode, salaryMonthKey);
+      }
+      return key.join(':');
+    }
+
     function render() {
       var app = document.getElementById('app');
       if (!app) return;
       var savedPosition = captureRenderPosition(app);
       var switchClass = state.tabSwitchFx ? (' screen-switch screen-switch-' + (state.tabSwitchDir || 'forward')) : '';
+      var motionDirection = state.tabSwitchFx ? (state.tabSwitchDir || 'forward') : 'forward';
+      var motionKey = getRenderMotionKey();
       var showPrimaryNav = ['home', 'calendar', 'stats', 'vacations', 'payslips'].indexOf(state.activeTab) !== -1;
 
       var status = document.getElementById('goA11yStatus');
@@ -2623,6 +2650,9 @@ function getCalendarSelectedDateKey(month) {
       if (typeof bindPlatformEvents === 'function') bindPlatformEvents();
       if (state.pdfPreviewOpen && typeof queuePdfPreviewRender === 'function') queuePdfPreviewRender();
       if (state.activeTab === 'home') initHomeTitleMorph();
+      if (window.GestOreMotion && typeof window.GestOreMotion.render === 'function') {
+        window.GestOreMotion.render(screen, { key: motionKey, direction: motionDirection });
+      }
       restoreRenderPosition(savedPosition, screen);
       if (window.requestAnimationFrame) {
         window.requestAnimationFrame(function () { restoreRenderPosition(savedPosition, screen); });
