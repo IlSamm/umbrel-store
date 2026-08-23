@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.8-20260823f';
+var PLATFORM_BUILD = '1.8.9-20260823g';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,9 +26,9 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Il cambio pagina non sposta piu l intera schermata come un blocco.',
-  'Le sole card compaiono con una dissolvenza breve, leggera e progressiva.',
-  'Numeri, grafici e aggiornamenti interni restano fermi e subito leggibili.',
+  'Le card ora compaiono davvero una dopo l altra con un effetto fluido e visibile.',
+  'Risolto il conflitto che poteva disattivare l animazione in alcune schermate.',
+  'Intestazioni, nav, numeri e grafici restano fermi e subito leggibili.',
   'Scorrimento, documenti e dati salvati restano invariati.'
 ];
 

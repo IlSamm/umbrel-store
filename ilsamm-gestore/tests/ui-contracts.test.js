@@ -157,7 +157,7 @@ test('le pagine usano una transizione breve solo al cambio schermata e nascondon
   const views = read('app/frontend/js/views.js');
   const motion = read('app/frontend/js/motion.js');
   const scrollbarStyles = read('app/frontend/styles/release-187.css');
-  const motionStyles = read('app/frontend/styles/release-188.css');
+  const motionStyles = read('app/frontend/styles/release-189.css');
   const worker = read('app/frontend/service-worker.js');
   const motionKey = views.match(/function getRenderMotionKey\(\)[\s\S]*?\n    function render\(\)/)?.[0] || '';
 
@@ -165,6 +165,7 @@ test('le pagine usano una transizione breve solo al cambio schermata e nascondon
   assert.match(worker, /js\/motion\.js/);
   assert.match(worker, /styles\/release-187\.css/);
   assert.match(worker, /styles\/release-188\.css/);
+  assert.match(worker, /styles\/release-189\.css/);
   assert.match(views, /function getRenderMotionKey/);
   assert.match(views, /GestOreMotion\.render/);
   assert.match(motion, /key === lastViewKey/);
@@ -174,8 +175,10 @@ test('le pagine usano una transizione breve solo al cambio schermata e nascondon
   assert.match(motion, /go-card-enter-item/);
   assert.doesNotMatch(motion, /parseMetric|go-total-number|go-progress-motion|requestAnimationFrame/);
   assert.doesNotMatch(motionKey, /currentMonth|statsRange|vacationScreenYear|salaryMonth/);
-  assert.match(motionStyles, /220ms/);
-  assert.match(motionStyles, /go-card-soft-appear/);
+  assert.match(motionStyles, /380ms/);
+  assert.match(motionStyles, /go-card-premium-reveal/);
+  assert.match(motionStyles, /animation:\s*go-card-premium-reveal[^;]+!important/);
+  assert.match(motionStyles, /translate3d\(0,\s*12px,\s*0\)/);
   assert.match(motionStyles, /\.screen\.active\.go-view-enter\s*\{\s*animation:\s*none\s*!important/);
   assert.doesNotMatch(motionStyles, /go-view-settle|translate3d\([^,]+,\s*1px/);
   assert.match(scrollbarStyles, /scrollbar-width:\s*none\s*!important/);

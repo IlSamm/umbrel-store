@@ -54,15 +54,19 @@
     clearMotion(screen);
     void screen.offsetWidth;
 
+    var visibleCards = Array.prototype.filter.call(screen.querySelectorAll(cardSelector), function (item) {
+      return !item.hidden && item.getClientRects().length > 0;
+    }).slice(0, 8);
+
     screen.classList.add('go-view-enter');
-    Array.prototype.slice.call(screen.querySelectorAll(cardSelector), 0, 8).forEach(function (item, index) {
+    visibleCards.forEach(function (item, index) {
       item.classList.add('go-card-enter-item');
-      item.style.setProperty('--go-card-enter-delay', Math.min(42, index * 12) + 'ms');
+      item.style.setProperty('--go-card-enter-delay', Math.min(220, index * 48) + 'ms');
     });
 
     cleanupTimer = global.setTimeout(function () {
       if (screen.isConnected) clearMotion(screen);
-    }, 290);
+    }, 680);
   }
 
   global.GestOreMotion = {
