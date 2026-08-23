@@ -82,8 +82,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.8.5',
-      build: '20260823c',
+      version: '1.8.6',
+      build: '20260823d',
       appName: 'GestOre'
     };
 
@@ -1663,12 +1663,17 @@ var errorBox = document.getElementById('errorBox');
           var canvas = document.createElement('canvas');
           var pageCard = document.createElement('article');
           var pageLabel = document.createElement('span');
+          var displayWidth = Math.round(baseViewport.width * cssScale);
+          var displayHeight = Math.round(baseViewport.height * cssScale);
+          var previewScale = Math.max(1, Math.min(4, Number(host.dataset.pdfZoomScale) || 1));
           pageCard.className = 'pdf-preview-page';
           pageLabel.textContent = 'Pagina ' + pageNumber + ' di ' + pdfDocument.numPages;
           canvas.width = Math.ceil(renderViewport.width);
           canvas.height = Math.ceil(renderViewport.height);
-          canvas.style.width = Math.round(baseViewport.width * cssScale) + 'px';
-          canvas.style.height = Math.round(baseViewport.height * cssScale) + 'px';
+          canvas.dataset.pdfBaseWidth = String(displayWidth);
+          canvas.dataset.pdfBaseHeight = String(displayHeight);
+          canvas.style.width = Math.round(displayWidth * previewScale) + 'px';
+          canvas.style.height = Math.round(displayHeight * previewScale) + 'px';
           canvas.setAttribute('aria-label', 'Pagina ' + pageNumber + ' del report');
           pageCard.appendChild(pageLabel);
           pageCard.appendChild(canvas);

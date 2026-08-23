@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.5-20260823c';
+var PLATFORM_BUILD = '1.8.6-20260823d';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Le schermate ora compaiono con transizioni rapide e piu fluide.',
-  'Card, valori principali e barre dei grafici si animano in modo coordinato.',
-  'Riduci movimento di iPhone viene rispettato automaticamente.',
-  'Salvataggi, sincronizzazione e dati esistenti restano invariati.'
+  'Le anteprime PDF ora possono essere ingrandite fino al 400%.',
+  'Usa due dita, doppio tap oppure i controlli meno, percentuale e piu.',
+  'Le pagine ingrandite possono essere spostate in entrambe le direzioni.',
+  'Lo zoom resta disattivato nel resto dell app e i dati non cambiano.'
 ];
 
 async function readPlatformJson(response) {

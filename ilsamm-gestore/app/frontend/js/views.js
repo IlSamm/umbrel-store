@@ -2211,7 +2211,17 @@ function getCalendarSelectedDateKey(month) {
       return '<div class="pdf-preview-overlay" role="dialog" aria-modal="true" aria-label="Anteprima PDF">' +
         '<section class="pdf-preview-shell">' +
           '<header><button data-close-pdf-preview="1" aria-label="Chiudi anteprima">' + icons.left + '</button><div><small>ANTEPRIMA PDF</small><strong>' + escapeHtml(state.pdfPreviewName || 'Report GestOre') + '</strong></div><button data-download-pdf-preview="1" aria-label="Scarica PDF">' + icons.download + '</button></header>' +
-          '<div class="pdf-preview-frame"><div class="pdf-preview-status" data-pdf-preview-status role="status"><span></span><strong>Preparo le pagine</strong><p>Il report resta sul dispositivo.</p></div><div class="pdf-preview-pages" data-pdf-preview-pages aria-live="polite" aria-busy="true"></div></div>' +
+          '<div class="pdf-preview-stage" data-pdf-zoom-surface>' +
+            '<div class="pdf-preview-frame" data-pdf-zoom-viewport>' +
+              '<div class="pdf-preview-status" data-pdf-preview-status role="status"><span></span><strong>Preparo le pagine</strong><p>Il report resta sul dispositivo.</p></div>' +
+              '<div class="pdf-preview-pages" data-pdf-preview-pages aria-live="polite" aria-busy="true"></div>' +
+            '</div>' +
+            '<div class="pdf-preview-zoom-tools" role="toolbar" aria-label="Zoom anteprima PDF">' +
+              '<button data-pdf-zoom-out type="button" aria-label="Riduci zoom">&minus;</button>' +
+              '<button class="pdf-preview-zoom-value" data-pdf-zoom-reset type="button" aria-label="Ripristina zoom"><span data-pdf-zoom-label>100%</span></button>' +
+              '<button data-pdf-zoom-in type="button" aria-label="Aumenta zoom">+</button>' +
+            '</div>' +
+          '</div>' +
         '</section>' +
       '</div>';
     }

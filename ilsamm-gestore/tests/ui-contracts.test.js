@@ -18,11 +18,21 @@ test('un nuovo profilo usa una stima vuota senza cambiare i valori di riferiment
 test('lo zoom del documento e isolato dal resto dell app', () => {
   const index = read('app/frontend/index.html');
   const views = read('app/frontend/js/views.js');
+  const bindings = read('app/frontend/js/bindings.js');
   const zoomGuard = read('app/frontend/js/zoom-guard.js');
   assert.match(index, /maximum-scale=1, user-scalable=no/);
   assert.match(index, /js\/zoom-guard\.js/);
   assert.match(views, /data-payslip-zoom-surface/);
-  assert.match(zoomGuard, /closest\('\[data-payslip-zoom-surface\]'\)/);
+  assert.match(views, /data-pdf-zoom-surface/);
+  assert.match(views, /data-pdf-zoom-out/);
+  assert.match(views, /data-pdf-zoom-in/);
+  assert.match(views, /data-pdf-zoom-reset/);
+  assert.match(bindings, /function bindPdfPreviewZoom/);
+  assert.match(bindings, /touchstart/);
+  assert.match(bindings, /isDoubleTap/);
+  assert.match(bindings, /Math\.min\(max, value\)/);
+  assert.match(bindings, /bindPdfPreviewZoom\(\)/);
+  assert.match(zoomGuard, /data-payslip-zoom-surface.*data-pdf-zoom-surface/);
 });
 
 test('calendario, ricerca e pagine legali vengono aperti dentro GestOre', () => {
