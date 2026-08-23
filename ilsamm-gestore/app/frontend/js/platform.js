@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.6-20260823d';
+var PLATFORM_BUILD = '1.8.7-20260823e';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Le anteprime PDF ora possono essere ingrandite fino al 400%.',
-  'Usa due dita, doppio tap oppure i controlli meno, percentuale e piu.',
-  'Le pagine ingrandite possono essere spostate in entrambe le direzioni.',
-  'Lo zoom resta disattivato nel resto dell app e i dati non cambiano.'
+  'Gli indicatori laterali di scorrimento sono stati rimossi da tutta l app.',
+  'Numeri, grafici e card mostrano subito il valore finale senza ricaricarsi.',
+  'Il cambio schermata usa ora un passaggio molto piu breve e discreto.',
+  'Scorrimento, zoom dei documenti e dati salvati restano invariati.'
 ];
 
 async function readPlatformJson(response) {

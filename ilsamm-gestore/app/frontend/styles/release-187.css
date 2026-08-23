@@ -1,0 +1,43 @@
+/* GestOre 1.8.7: invisible scroll indicators and calm route-only motion. */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .screen.active.go-view-enter {
+    animation: go-view-settle 170ms cubic-bezier(.22, .78, .24, 1) both !important;
+  }
+
+  .screen.active.go-view-enter-back {
+    --go-view-offset: -5px;
+  }
+
+  .screen.active.go-view-enter-forward {
+    --go-view-offset: 5px;
+  }
+}
+
+@keyframes go-view-settle {
+  from {
+    opacity: .9;
+    transform: translate3d(var(--go-view-offset, 5px), 1px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen.active.go-view-enter {
+    animation: none !important;
+  }
+}

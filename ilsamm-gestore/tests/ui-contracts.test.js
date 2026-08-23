@@ -152,23 +152,28 @@ test('privacy termini e supporto mantengono contenuti completi senza card introd
   assert.match(views, /data-close-legal/);
 });
 
-test('le pagine usano motion breve e i KPI si animano senza coinvolgere i campi', () => {
+test('le pagine usano una transizione breve solo al cambio schermata e nascondono gli indicatori di scorrimento', () => {
   const index = read('app/frontend/index.html');
   const views = read('app/frontend/js/views.js');
   const motion = read('app/frontend/js/motion.js');
-  const styles = read('app/frontend/styles/release-185.css');
+  const styles = read('app/frontend/styles/release-187.css');
   const worker = read('app/frontend/service-worker.js');
+  const motionKey = views.match(/function getRenderMotionKey\(\)[\s\S]*?\n    function render\(\)/)?.[0] || '';
 
   assert.match(index, /js\/motion\.js/);
   assert.match(worker, /js\/motion\.js/);
+  assert.match(worker, /styles\/release-187\.css/);
   assert.match(views, /function getRenderMotionKey/);
   assert.match(views, /GestOreMotion\.render/);
   assert.match(motion, /key === lastViewKey/);
+  assert.match(motion, /hadPreviousView/);
   assert.match(motion, /prefers-reduced-motion: reduce/);
-  assert.match(motion, /\.go-total-number/);
-  assert.match(motion, /\.salary-hub-estimate/);
-  assert.doesNotMatch(motion, /querySelectorAll\(['"]input/);
-  assert.match(styles, /220ms/);
-  assert.match(styles, /go-content-rise/);
-  assert.match(styles, /go-progress-grow/);
+  assert.doesNotMatch(motion, /parseMetric|go-total-number|go-progress-motion|requestAnimationFrame/);
+  assert.doesNotMatch(motionKey, /currentMonth|statsRange|vacationScreenYear|salaryMonth/);
+  assert.match(styles, /170ms/);
+  assert.match(styles, /go-view-settle/);
+  assert.match(styles, /scrollbar-width:\s*none\s*!important/);
+  assert.match(styles, /\*::\-webkit-scrollbar/);
+  assert.match(styles, /width:\s*0\s*!important/);
+  assert.match(styles, /height:\s*0\s*!important/);
 });

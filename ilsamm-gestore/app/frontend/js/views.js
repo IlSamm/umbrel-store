@@ -2598,24 +2598,15 @@ function getCalendarSelectedDateKey(month) {
     function getRenderMotionKey() {
       var activeTab = state.activeTab || 'home';
       var key = [activeTab];
-      var currentMonth = state.currentMonth instanceof Date ? state.currentMonth : new Date();
-      var monthKey = currentMonth.getFullYear() + '-' + String(currentMonth.getMonth() + 1).padStart(2, '0');
-
-      if (activeTab === 'calendar') key.push(state.calendarView || 'month', monthKey);
-      if (activeTab === 'stats') key.push(state.statsRange || 'month', monthKey);
-      if (activeTab === 'vacations') key.push(String(Number(state.vacationScreenYear) || new Date().getFullYear()));
-      if (activeTab === 'exports') key.push(monthKey);
       if (activeTab === 'settings') key.push(state.settingsSection || 'hub');
       if (activeTab === 'payslips') {
-        var salaryMonth = state.salaryMonth instanceof Date ? state.salaryMonth : new Date();
-        var salaryMonthKey = salaryMonth.getFullYear() + '-' + String(salaryMonth.getMonth() + 1).padStart(2, '0');
         var payslipMode = state.payslipEditorOpen ? 'editor'
           : (state.payslipEstimateConfigOpen ? 'estimate-config'
             : (state.payslipEstimateOpen ? 'estimate'
               : (state.payslipStatsOpen ? 'stats'
                 : (state.payslipArchiveOpen ? 'archive'
                   : (state.payslipDetailId ? ('detail-' + state.payslipDetailId) : 'hub')))));
-        key.push(payslipMode, salaryMonthKey);
+        key.push(payslipMode);
       }
       return key.join(':');
     }
