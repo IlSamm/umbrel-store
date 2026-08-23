@@ -1399,7 +1399,7 @@ function renderAccountDataSettings() {
     '</section>' +
     message +
     '<div class="settings-v2-section-title">Sessione</div>' +
-    '<section class="settings-v2-group"><button class="account-logout-row" data-account-logout="1"><span class="settings-v2-icon is-violet">' + icons.user + '</span><span class="settings-v2-copy"><strong>Esci da ' + escapeHtml(username) + '</strong><small>Potrai accedere con un altro account</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+    '<section class="settings-v2-group"><button class="account-logout-row" data-account-logout="1"><span class="settings-v2-icon is-violet">' + icons.user + '</span><span class="settings-v2-copy"><strong>Esci da ' + escapeHtml(username) + '</strong></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
     '<div class="settings-v2-section-title">Eliminazione account</div>' +
     '<section class="settings-v2-group account-danger-group"><button class="account-logout-row account-self-delete-row" data-self-delete-open="1"><span class="settings-v2-icon">' + icons.trash + '</span><span class="settings-v2-copy"><strong>Elimina definitivamente</strong><small>Cancella il profilo e tutti i dati associati</small></span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
     backupDecisionDialog + selfDeleteDialog;

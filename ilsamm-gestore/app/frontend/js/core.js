@@ -82,8 +82,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.8.3',
-      build: '20260823a',
+      version: '1.8.4',
+      build: '20260823b',
       appName: 'GestOre'
     };
 
@@ -1538,6 +1538,8 @@ var errorBox = document.getElementById('errorBox');
       downloadTextFile('gestore-report.txt', content, 'text/plain;charset=utf-8');
     }
     var pdfReportModulesPromise = null;
+    var pdfPreviewRendererPromise = null;
+    var pdfPreviewRenderSequence = 0;
     function loadExternalScript(source) {
       return new Promise(function (resolve, reject) {
         var existing = document.querySelector('script[data-gestore-module="' + source + '"]');
@@ -1598,6 +1600,105 @@ var errorBox = document.getElementById('errorBox');
         });
       return pdfReportModulesPromise;
     }
+    function getPdfAssetQuery() {
+      var buildMeta = document.querySelector('meta[name="gestore-build"]');
+      var buildValue = String(buildMeta && buildMeta.content || '');
+      var cacheToken = buildValue.indexOf('-') >= 0 ? buildValue.slice(buildValue.lastIndexOf('-') + 1) : buildValue;
+      return cacheToken ? ('?v=' + encodeURIComponent(cacheToken)) : '';
+    }
+    function loadPdfPreviewRenderer() {
+      if (pdfPreviewRendererPromise) return pdfPreviewRendererPromise;
+      var query = getPdfAssetQuery();
+      var moduleUrl = new URL('vendor/pdfjs/pdf.min.mjs' + query, document.baseURI).href;
+      var workerUrl = new URL('vendor/pdfjs/pdf.worker.min.mjs' + query, document.baseURI).href;
+      pdfPreviewRendererPromise = import(moduleUrl).then(function (pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+        return pdfjsLib;
+      }).catch(function (error) {
+        pdfPreviewRendererPromise = null;
+        throw error;
+      });
+      return pdfPreviewRendererPromise;
+    }
+    async function renderPdfPreviewPages() {
+      var host = document.querySelector('[data-pdf-preview-pages]');
+      var status = document.querySelector('[data-pdf-preview-status]');
+      var blob = state.pdfPreviewBlob;
+      if (!host || !state.pdfPreviewOpen || !blob) return;
+      var previewKey = String(state.pdfPreviewName || 'report') + ':' + String(blob.size || 0);
+      if (host.dataset.previewKey === previewKey && host.dataset.previewState === 'ready') return;
+      var sequence = ++pdfPreviewRenderSequence;
+      host.dataset.previewKey = previewKey;
+      host.dataset.previewState = 'loading';
+      host.setAttribute('aria-busy', 'true');
+      host.replaceChildren();
+      if (status) {
+        status.hidden = false;
+        status.classList.remove('is-error');
+        var statusTitle = status.querySelector('strong');
+        var statusCopy = status.querySelector('p');
+        if (statusTitle) statusTitle.textContent = 'Preparo le pagine';
+        if (statusCopy) statusCopy.textContent = 'Il report resta sul dispositivo.';
+      }
+      try {
+        var pdfjsLib = await loadPdfPreviewRenderer();
+        var data = new Uint8Array(await blob.arrayBuffer());
+        var loadingTask = pdfjsLib.getDocument({ data: data, isEvalSupported: false, useSystemFonts: true });
+        var pdfDocument = await loadingTask.promise;
+        if (sequence !== pdfPreviewRenderSequence || !state.pdfPreviewOpen) {
+          await pdfDocument.destroy();
+          return;
+        }
+        var availableWidth = Math.max(260, (host.clientWidth || 360) - 16);
+        var pixelRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+        for (var pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
+          if (sequence !== pdfPreviewRenderSequence || !state.pdfPreviewOpen) {
+            await pdfDocument.destroy();
+            return;
+          }
+          var page = await pdfDocument.getPage(pageNumber);
+          var baseViewport = page.getViewport({ scale: 1 });
+          var cssScale = availableWidth / baseViewport.width;
+          var renderViewport = page.getViewport({ scale: cssScale * pixelRatio });
+          var canvas = document.createElement('canvas');
+          var pageCard = document.createElement('article');
+          var pageLabel = document.createElement('span');
+          pageCard.className = 'pdf-preview-page';
+          pageLabel.textContent = 'Pagina ' + pageNumber + ' di ' + pdfDocument.numPages;
+          canvas.width = Math.ceil(renderViewport.width);
+          canvas.height = Math.ceil(renderViewport.height);
+          canvas.style.width = Math.round(baseViewport.width * cssScale) + 'px';
+          canvas.style.height = Math.round(baseViewport.height * cssScale) + 'px';
+          canvas.setAttribute('aria-label', 'Pagina ' + pageNumber + ' del report');
+          pageCard.appendChild(pageLabel);
+          pageCard.appendChild(canvas);
+          host.appendChild(pageCard);
+          var context = canvas.getContext('2d', { alpha: false });
+          await page.render({ canvasContext: context, viewport: renderViewport, background: '#ffffff' }).promise;
+          page.cleanup();
+        }
+        host.dataset.previewState = 'ready';
+        host.setAttribute('aria-busy', 'false');
+        if (status) status.hidden = true;
+      } catch (error) {
+        if (sequence !== pdfPreviewRenderSequence) return;
+        host.dataset.previewState = 'error';
+        host.setAttribute('aria-busy', 'false');
+        if (status) {
+          status.hidden = false;
+          status.classList.add('is-error');
+          var errorTitle = status.querySelector('strong');
+          var errorCopy = status.querySelector('p');
+          if (errorTitle) errorTitle.textContent = 'Anteprima non disponibile';
+          if (errorCopy) errorCopy.textContent = 'Puoi comunque scaricare il PDF dal pulsante in alto.';
+        }
+      }
+    }
+    function queuePdfPreviewRender() {
+      if (!state.pdfPreviewOpen || !state.pdfPreviewBlob) return;
+      var schedule = window.requestAnimationFrame || function (callback) { return window.setTimeout(callback, 0); };
+      schedule(function () { schedule(renderPdfPreviewPages); });
+    }
     function getPdfReportSpec(kind) {
       var reportMonth = new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth(), 1);
       var reportYear = new Date(state.currentMonth.getFullYear(), 0, 1);
@@ -1646,6 +1747,7 @@ var errorBox = document.getElementById('errorBox');
       return specs[kind] || null;
     }
     function cleanupPdfPreview() {
+      pdfPreviewRenderSequence += 1;
       if (state.pdfPreviewUrl) {
         try { URL.revokeObjectURL(state.pdfPreviewUrl); } catch (error) {}
       }
@@ -1690,9 +1792,9 @@ var errorBox = document.getElementById('errorBox');
         state.pdfExportBusy = false;
         state.pdfPreviewName = artifact.spec.filename;
         state.pdfPreviewBlob = artifact.blob;
-        state.pdfPreviewUrl = URL.createObjectURL(artifact.blob);
         state.pdfPreviewOpen = true;
         render();
+        queuePdfPreviewRender();
       } catch (error) {
         state.pdfExportBusy = false;
         render();

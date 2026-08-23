@@ -1,6 +1,6 @@
 {
   "name": "gestore",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "private": true,
   "description": "GestOre web and iOS client",
   "scripts": {
@@ -32,6 +32,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.0",
     "esbuild": "^0.25.9",
+    "pdfjs-dist": "^4.10.38",
     "typescript": "^5.9.2"
   },
   "overrides": {

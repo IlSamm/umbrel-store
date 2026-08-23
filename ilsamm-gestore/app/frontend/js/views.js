@@ -2135,27 +2135,27 @@ function getCalendarSelectedDateKey(month) {
       var dailyTarget = Math.max(0, Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
       var weeklyTarget = Math.max(0, Number(state.settingsDraft.weeklyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
       return '<div class="profile-page profile-page-v2">' +
-        '<header class="profile-v2-top profile-v2-top-with-back"><button data-close-profile="1" aria-label="Torna alla Home">' + icons.left + '</button><div><span>AREA PERSONALE</span><div class="profile-v2-wordmark">Profilo</div></div><button class="profile-search-button" data-open-global-search="1" aria-label="Cerca nell&apos;archivio">' + icons.search + '</button></header>' +
+        '<header class="profile-v2-top profile-v2-top-with-back"><button data-close-profile="1" aria-label="Torna alla Home">' + icons.left + '</button><div><div class="profile-v2-wordmark">Profilo</div></div><button class="profile-search-button" data-open-global-search="1" aria-label="Cerca nell&apos;archivio">' + icons.search + '</button></header>' +
         '<section class="profile-v2-hero">' +
-          '<div class="profile-v2-identity"><button class="profile-v2-avatar-button" data-open-avatar-picker="1" aria-label="Cambia foto profilo">' + renderProfileAvatarMarkup('is-profile', initials) + '<i>' + icons.plus + '</i></button><div class="profile-v2-copy"><span>IL TUO PROFILO</span><h1>Ciao, ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div></div>' +
+          '<div class="profile-v2-identity"><button class="profile-v2-avatar-button" data-open-avatar-picker="1" aria-label="Cambia foto profilo">' + renderProfileAvatarMarkup('is-profile', initials) + '<i>' + icons.plus + '</i></button><div class="profile-v2-copy"><h1>Ciao, ' + safeName + '</h1><p>' + escapeHtml(todayLabel) + '</p></div></div>' +
         '</section>' +
         '<section class="profile-v2-summary" aria-label="Riepilogo profilo">' +
-          '<div><span>OGGI</span><strong>' + dailyTarget + '</strong><small>target</small></div>' +
-          '<div><span>SETTIMANA</span><strong>' + weeklyTarget + '</strong><small>target</small></div>' +
-          '<div><span>CEDOLINI</span><strong>' + savedCount + '</strong><small>salvati</small></div>' +
+          '<div><span>OGGI</span><strong>' + dailyTarget + '</strong></div>' +
+          '<div><span>SETTIMANA</span><strong>' + weeklyTarget + '</strong></div>' +
+          '<div><span>CEDOLINI</span><strong>' + savedCount + '</strong></div>' +
         '</section>' +
         '<div class="profile-section-title">Preferenze</div>' +
         '<section class="profile-group profile-v2-group">' +
-          '<button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni dell&apos;app</strong><small>Home, obiettivi, turni, calendario e notifiche</small></span><span class="profile-row-value">Personalizza</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings"><span class="profile-row-icon is-blue">' + icons.settings + '</span><span class="profile-row-copy"><strong>Impostazioni dell&apos;app</strong></span><span class="profile-row-value">Personalizza</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
         '<div class="profile-section-title">Account, dati e documenti</div>' +
         '<section class="profile-group profile-v2-group">' +
-          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Account e backup</strong><small>Database personale, spazio occupato e copie protette</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="history"><span class="profile-row-icon is-blue">' + icons.history + '</span><span class="profile-row-copy"><strong>Cronologia dati</strong><small>Controlla e ripristina le ultime modifiche</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong><small>Excel, calendario e quattro report PDF</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="privacy"><span class="profile-row-icon is-blue">' + icons.lock + '</span><span class="profile-row-copy"><strong>Privacy e sicurezza</strong><small>Protezione dell&apos;app e accesso all&apos;account</small></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Account e backup</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="history"><span class="profile-row-icon is-blue">' + icons.history + '</span><span class="profile-row-copy"><strong>Cronologia dati</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong></span><span class="profile-row-value">4 PDF</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="privacy"><span class="profile-row-icon is-blue">' + icons.lock + '</span><span class="profile-row-copy"><strong>Privacy e sicurezza</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
-        '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><span>Le tue ore, sempre sotto controllo</span><nav aria-label="Informazioni legali"><button data-open-legal="privacy">Privacy</button><button data-open-legal="terms">Termini</button><button data-open-legal="support">Supporto</button></nav></div>' +
+        '<div class="profile-app-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong><nav aria-label="Informazioni legali"><button data-open-legal="privacy">Privacy</button><button data-open-legal="terms">Termini</button><button data-open-legal="support">Supporto</button></nav></div>' +
       '</div>';
     }
 
@@ -2207,11 +2207,11 @@ function getCalendarSelectedDateKey(month) {
     }
 
     function renderPdfPreview() {
-      if (!state.pdfPreviewOpen || !state.pdfPreviewUrl) return '';
+      if (!state.pdfPreviewOpen || !state.pdfPreviewBlob) return '';
       return '<div class="pdf-preview-overlay" role="dialog" aria-modal="true" aria-label="Anteprima PDF">' +
         '<section class="pdf-preview-shell">' +
           '<header><button data-close-pdf-preview="1" aria-label="Chiudi anteprima">' + icons.left + '</button><div><small>ANTEPRIMA PDF</small><strong>' + escapeHtml(state.pdfPreviewName || 'Report GestOre') + '</strong></div><button data-download-pdf-preview="1" aria-label="Scarica PDF">' + icons.download + '</button></header>' +
-          '<div class="pdf-preview-frame"><iframe src="' + escapeHtml(state.pdfPreviewUrl) + '#view=FitH" title="Anteprima del report PDF"></iframe><p>Se l&apos;anteprima non compare, usa il pulsante Scarica in alto.</p></div>' +
+          '<div class="pdf-preview-frame"><div class="pdf-preview-status" data-pdf-preview-status role="status"><span></span><strong>Preparo le pagine</strong><p>Il report resta sul dispositivo.</p></div><div class="pdf-preview-pages" data-pdf-preview-pages aria-live="polite" aria-busy="true"></div></div>' +
         '</section>' +
       '</div>';
     }
@@ -2255,21 +2255,17 @@ function getCalendarSelectedDateKey(month) {
 
     function renderSettings() {
       var section = state.settingsSection || '';
+      if (section === 'timer') section = 'home';
       var workdays = normalizeWeekdayList(state.settingsDraft.workdays || []);
       var restDays = normalizeWeekdayList(state.settingsDraft.autoRestDays || []);
       var holidayHelper = escapeHtml(getHolidaySettingsHelperText(state.settingsDraft));
       var reminderHelper = escapeHtml(getReminderHelperText());
-      var syncStatusMessage = escapeHtml(getSyncStatusMessage());
-      var activeWorkdays = workdays.length ? workdays.map(function (index) { return weekNames[index]; }).join(', ') : 'Nessuno';
-      var activeRestDays = restDays.length ? restDays.map(function (index) { return weekNames[index]; }).join(', ') : 'Nessuno';
       var reminderStatus = state.settings.remindersEnabled ? ('Attivo alle ' + state.settings.reminderTime) : 'Disattivato';
-      var privacyStatus = state.settings.lockApp ? 'Attiva' : 'Disattivata';
-      var timerStatus = state.settings.timerEnabled ? 'Attivo' : 'Disattivato';
       var shiftPresets = getShiftPresets(state.settingsDraft);
       var shiftStatus = shiftPresets.length + (shiftPresets.length === 1 ? ' turno' : ' turni');
       var weeklyTemplate = typeof getWeeklyTemplate === 'function' ? getWeeklyTemplate(state.settingsDraft) : [0, 0, 0, 0, 0, null, null];
       var plannedTemplateDays = weeklyTemplate.filter(function (choice) { return choice !== null && choice !== undefined && choice !== ''; }).length;
-      var templateStatus = plannedTemplateDays ? (plannedTemplateDays + ' giorni configurati') : 'Da configurare';
+      var templateStatus = plannedTemplateDays ? (plannedTemplateDays + ' giorni') : 'Da configurare';
       var targetStatus = (Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h al giorno';
       var homeSectionsEnabled = [
         state.settingsDraft.homeShowQuickActions,
@@ -2279,28 +2275,33 @@ function getCalendarSelectedDateKey(month) {
         state.settingsDraft.homeShowSalaryPreview
       ].filter(Boolean).length;
       var topBar = function (title, isDetail) {
-        return '<div class="settings-v2-top"><button ' + (isDetail ? 'data-back-settings="1"' : 'data-back-profile="1"') + ' aria-label="Torna al profilo">' + icons.left + '</button><div><span>IMPOSTAZIONI</span><h1>' + title + '</h1></div><i></i></div>';
+        return '<div class="settings-v2-top"><button ' + (isDetail ? 'data-back-settings="1"' : 'data-back-profile="1"') + ' aria-label="Torna al profilo">' + icons.left + '</button><div><h1>' + title + '</h1></div><i></i></div>';
       };
       if (section === 'home') {
-        var homeOption = function (key, tone, icon, title, copy) {
+        var homeOption = function (key, tone, icon, title) {
           var enabled = Boolean(state.settingsDraft[key]);
-          return '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-' + tone + '">' + icon + '</span><span class="settings-v2-copy"><strong>' + title + '</strong><small>' + copy + '</small></span><button role="switch" class="toggle-btn ' + (enabled ? 'on' : '') + '" data-toggle-home-section="' + key + '" aria-label="' + title + '" aria-checked="' + (enabled ? 'true' : 'false') + '" aria-pressed="' + (enabled ? 'true' : 'false') + '"><span class="knob"></span></button></div>';
+          return '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-' + tone + '">' + icon + '</span><span class="settings-v2-copy"><strong>' + title + '</strong></span><button role="switch" class="toggle-btn ' + (enabled ? 'on' : '') + '" data-toggle-home-section="' + key + '" aria-label="' + title + '" aria-checked="' + (enabled ? 'true' : 'false') + '" aria-pressed="' + (enabled ? 'true' : 'false') + '"><span class="knob"></span></button></div>';
         };
+        var timerRunning = Boolean(state.shiftTimer && state.shiftTimer.active);
+        var timerHelper = timerRunning
+          ? 'Termina o annulla il turno in corso prima di disattivarlo.'
+          : (state.settings.timerEnabled ? 'La Home usa il timer del turno.' : 'Mantieni l\'inserimento manuale attuale.');
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
           topBar('Personalizza Home', true) +
-          '<div class="settings-v2-section-title">Blocchi della Home</div>' +
+          '<div class="settings-v2-section-title">Contenuti</div>' +
           '<section class="settings-v2-group home-layout-settings">' +
-            homeOption('homeShowQuickActions', 'green', icons.clock, 'Azioni rapide', 'Turno abituale, ferie e stipendio in un tocco') +
+            homeOption('homeShowQuickActions', 'green', icons.clock, 'Azioni rapide') +
             '<div class="settings-v2-divider"></div>' +
-            homeOption('homeShowActionCenter', 'blue', icons.check, 'Da completare', 'Giornate mancanti, cedolino e sync in attesa') +
+            homeOption('homeShowActionCenter', 'blue', icons.check, 'Da completare') +
             '<div class="settings-v2-divider"></div>' +
-            homeOption('homeShowWeeklyAnalytics', 'violet', icons.activity, 'Ritmo settimanale', 'Ore, obiettivo e andamento dei sette giorni') +
+            homeOption('homeShowWeeklyAnalytics', 'violet', icons.activity, 'Ritmo settimanale') +
             '<div class="settings-v2-divider"></div>' +
-            homeOption('homeShowMonthlyAnalytics', 'blue', icons.target, 'Composizione del mese', 'Ordinarie, straordinari e media giornaliera') +
+            homeOption('homeShowMonthlyAnalytics', 'blue', icons.target, 'Composizione del mese') +
             '<div class="settings-v2-divider"></div>' +
-            homeOption('homeShowSalaryPreview', 'violet', icons.wallet, 'Anteprima stipendio', 'Netto stimato e confronto con il cedolino') +
+            homeOption('homeShowSalaryPreview', 'violet', icons.wallet, 'Anteprima stipendio') +
           '</section>' +
-          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>Queste preferenze cambiano soltanto la Home. Nessun dato registrato viene modificato.</p></div>' +
+          '<div class="settings-v2-section-title">Inserimento ore</div>' +
+          '<section class="settings-v2-group"><div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.play + '</span><span class="settings-v2-copy"><strong>Timer del turno</strong><small>' + escapeHtml(timerHelper) + '</small></span><button role="switch" class="toggle-btn ' + (state.settings.timerEnabled ? 'on' : '') + '" data-toggle-shift-timer="1" aria-label="Timer del turno" aria-checked="' + (state.settings.timerEnabled ? 'true' : 'false') + '" aria-pressed="' + (state.settings.timerEnabled ? 'true' : 'false') + '"><span class="knob"></span></button></div></section>' +
         '</div>';
       }
 
@@ -2308,10 +2309,9 @@ function getCalendarSelectedDateKey(month) {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
           topBar('Profilo e obiettivi', true) +
           '<div class="settings-v2-section-title">Identit&agrave;</div>' +
-          '<section class="settings-v2-group"><label class="settings-v2-input-row"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span><strong>Nome utente</strong><small>Viene mostrato nel tuo profilo</small></span><input id="userNameInput" type="text" maxlength="24" placeholder="Il tuo nome" value="' + escapeHtml(state.settingsDraft.userName || '') + '"></label></section>' +
+          '<section class="settings-v2-group"><label class="settings-v2-input-row"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span><strong>Nome utente</strong></span><input id="userNameInput" type="text" maxlength="24" placeholder="Il tuo nome" value="' + escapeHtml(state.settingsDraft.userName || '') + '"></label></section>' +
           '<div class="settings-v2-section-title">Obiettivi ore</div>' +
-          '<section class="settings-v2-targets"><label><span>GIORNALIERO</span><div><input id="dailyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.dailyTarget + '"><b>ore</b></div><small>Usato nella scheda di ogni giornata</small></label><label><span>SETTIMANALE</span><div><input id="weeklyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.weeklyTarget + '"><b>ore</b></div><small>Usato nel riepilogo settimanale</small></label></section>' +
-          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>Le modifiche vengono salvate automaticamente senza cancellare le ore registrate.</p></div>' +
+          '<section class="settings-v2-targets"><label><span>GIORNALIERO</span><div><input id="dailyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.dailyTarget + '"><b>ore</b></div></label><label><span>SETTIMANALE</span><div><input id="weeklyTargetInput" type="number" inputmode="decimal" min="0" step="0.5" value="' + state.settingsDraft.weeklyTarget + '"><b>ore</b></div></label></section>' +
         '</div>';
       }
 
@@ -2319,9 +2319,9 @@ function getCalendarSelectedDateKey(month) {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
           topBar('Calendario di lavoro', true) +
           '<div class="settings-v2-section-title">Giorni lavorativi</div>' +
-          '<section class="settings-v2-group settings-v2-days-card"><div class="settings-v2-row-heading"><span class="settings-v2-icon is-blue">' + icons.briefcase + '</span><span><strong>Settimana attiva</strong><small>' + escapeHtml(activeWorkdays) + '</small></span></div><div class="settings-v2-days">' + weekNames.map(function (label, index) { return '<button class="' + (workdays.indexOf(index) !== -1 ? 'is-active' : '') + '" data-toggle-workday="' + index + '" aria-pressed="' + (workdays.indexOf(index) !== -1 ? 'true' : 'false') + '"><span>' + label.slice(0, 1) + '</span><small>' + label + '</small></button>'; }).join('') + '</div></section>' +
+          '<section class="settings-v2-group settings-v2-days-card"><div class="settings-v2-row-heading"><span class="settings-v2-icon is-blue">' + icons.briefcase + '</span><span><strong>Settimana attiva</strong></span></div><div class="settings-v2-days">' + weekNames.map(function (label, index) { return '<button class="' + (workdays.indexOf(index) !== -1 ? 'is-active' : '') + '" data-toggle-workday="' + index + '" aria-pressed="' + (workdays.indexOf(index) !== -1 ? 'true' : 'false') + '"><span>' + label.slice(0, 1) + '</span><small>' + label + '</small></button>'; }).join('') + '</div></section>' +
           '<div class="settings-v2-section-title">Riposo automatico</div>' +
-          '<section class="settings-v2-group settings-v2-days-card"><div class="settings-v2-row-heading"><span class="settings-v2-icon is-amber">' + icons.coffee + '</span><span><strong>Giorni di riposo</strong><small>' + escapeHtml(activeRestDays) + '</small></span></div><div class="settings-v2-days is-rest">' + weekNames.map(function (label, index) { return '<button class="' + (restDays.indexOf(index) !== -1 ? 'is-active' : '') + '" data-toggle-auto-rest-day="' + index + '" aria-pressed="' + (restDays.indexOf(index) !== -1 ? 'true' : 'false') + '"><span>' + label.slice(0, 1) + '</span><small>' + label + '</small></button>'; }).join('') + '</div><p>I dati inseriti manualmente hanno sempre la precedenza.</p></section>' +
+          '<section class="settings-v2-group settings-v2-days-card"><div class="settings-v2-row-heading"><span class="settings-v2-icon is-amber">' + icons.coffee + '</span><span><strong>Giorni di riposo</strong></span></div><div class="settings-v2-days is-rest">' + weekNames.map(function (label, index) { return '<button class="' + (restDays.indexOf(index) !== -1 ? 'is-active' : '') + '" data-toggle-auto-rest-day="' + index + '" aria-pressed="' + (restDays.indexOf(index) !== -1 ? 'true' : 'false') + '"><span>' + label.slice(0, 1) + '</span><small>' + label + '</small></button>'; }).join('') + '</div><p>I dati inseriti manualmente hanno sempre la precedenza.</p></section>' +
           '<div class="settings-v2-section-title">Festivit&agrave;</div>' +
           '<section class="settings-v2-group"><div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.star + '</span><span class="settings-v2-copy"><strong>Ore nei giorni non lavorativi</strong><small>' + holidayHelper + '</small></span><button role="switch" class="toggle-btn ' + (state.settingsDraft.holidayHoursOnOffDays ? 'on' : '') + '" data-toggle-holiday-offdays="1" aria-label="Ore festive nei giorni non lavorativi" aria-checked="' + (state.settingsDraft.holidayHoursOnOffDays ? 'true' : 'false') + '" aria-pressed="' + (state.settingsDraft.holidayHoursOnOffDays ? 'true' : 'false') + '"><span class="knob"></span></button></div></section>' +
         '</div>';
@@ -2344,7 +2344,8 @@ function getCalendarSelectedDateKey(month) {
             '<div class="settings-v2-divider"></div>' +
             '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-green">' + icons.receipt + '</span><span class="settings-v2-copy"><strong>Cedolino assente</strong><small>Dal giorno 10, se manca quello del mese precedente</small></span><button role="switch" class="toggle-btn ' + (state.settings.smartReminderPayslips ? 'on' : '') + '" data-toggle-smart-reminder="payslips" aria-label="Promemoria cedolino" aria-checked="' + (state.settings.smartReminderPayslips ? 'true' : 'false') + '" aria-pressed="' + (state.settings.smartReminderPayslips ? 'true' : 'false') + '"><span class="knob"></span></button></div>' +
           '</section>' +
-          '<div class="settings-v2-note"><span>' + icons.bell + '</span><p>Le notifiche vengono gestite dal dispositivo. Potrebbe essere necessario consentirle nelle impostazioni di iPhone.</p></div>' +
+          (typeof renderPlatformPushSettings === 'function' ? renderPlatformPushSettings() : '') +
+          (state.settings.remindersEnabled ? '<div class="settings-v2-note"><span>' + icons.bell + '</span><p>Se non ricevi avvisi, consenti le notifiche nelle impostazioni di iPhone.</p></div>' : '') +
         '</div>';
       }
 
@@ -2353,23 +2354,7 @@ function getCalendarSelectedDateKey(month) {
           topBar('Privacy e sicurezza', true) +
           '<div class="settings-v2-section-title">Protezione app</div>' +
           '<section class="settings-v2-group"><div class="settings-v2-toggle-row settings-v2-privacy-toggle"><span class="settings-v2-icon is-green">' + icons.lock + '</span><span class="settings-v2-copy"><strong>Schermata privacy</strong><small>Nasconde ore, ferie e importi quando riapri l&apos;app</small></span><button role="switch" class="toggle-btn ' + (state.settings.lockApp ? 'on' : '') + '" data-toggle-lock="1" aria-label="Schermata privacy" aria-checked="' + (state.settings.lockApp ? 'true' : 'false') + '" aria-pressed="' + (state.settings.lockApp ? 'true' : 'false') + '"><span class="knob"></span></button></div></section>' +
-          '<section class="settings-v2-security-info"><span>' + icons.check + '</span><div><strong>Nessuna modifica ai dati</strong><p>Questa opzione oscura solo lo schermo. Le giornate e i cedolini restano salvati normalmente.</p></div></section>' +
           (typeof renderAccountSecuritySettings === 'function' ? renderAccountSecuritySettings() : '') +
-        '</div>';
-      }
-
-      if (section === 'timer') {
-        var timerRunning = Boolean(state.shiftTimer && state.shiftTimer.active);
-        var timerHelper = timerRunning
-          ? 'Un turno e in corso: terminalo o annullalo dalla Home prima di disattivare il timer.'
-          : (state.settings.timerEnabled
-            ? 'La Home mostra il timer. Puoi comunque inserire una giornata manualmente.'
-            : 'La Home resta identica a quella attuale e non cambia nulla nei dati salvati.');
-        return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
-          topBar('Timer turno', true) +
-          '<div class="settings-v2-section-title">Modalita Home</div>' +
-          '<section class="settings-v2-group"><div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.play + '</span><span class="settings-v2-copy"><strong>Timer del turno</strong><small>' + escapeHtml(timerHelper) + '</small></span><button role="switch" class="toggle-btn ' + (state.settings.timerEnabled ? 'on' : '') + '" data-toggle-shift-timer="1" aria-label="Timer del turno" aria-checked="' + (state.settings.timerEnabled ? 'true' : 'false') + '" aria-pressed="' + (state.settings.timerEnabled ? 'true' : 'false') + '"><span class="knob"></span></button></div></section>' +
-          '<section class="settings-v2-security-info"><span>' + icons.check + '</span><div><strong>I dati restano compatibili</strong><p>Quando termini il timer viene creata una normale giornata di lavoro, visibile in calendario, statistiche e PDF.</p></div></section>' +
         '</div>';
       }
 
@@ -2388,7 +2373,6 @@ function getCalendarSelectedDateKey(month) {
           topBar('Turni rapidi', true) +
           '<div class="settings-v2-section-title">Modelli disponibili</div>' +
           '<div class="shift-preset-settings-list">' + shiftCards + '</div>' +
-          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>Applicare un turno compila entrata, uscita e pausa. Puoi sempre correggere i valori prima o dopo.</p></div>' +
         '</div>';
       }
 
@@ -2408,7 +2392,6 @@ function getCalendarSelectedDateKey(month) {
           '<div class="settings-v2-section-title">Modello settimanale</div>' +
           '<section class="weekly-template-card">' + templateRows + '</section>' +
           '<button class="weekly-template-preview" data-open-month-plan="1"><span>' + icons.calendar + '</span><div><small>ANTEPRIMA DEL MESE</small><strong>Prepara ' + escapeHtml(formatMonthYear(state.currentMonth)) + '</strong><p>Le giornate gi&agrave; presenti non verranno modificate.</p></div>' + icons.right + '</button>' +
-          '<div class="settings-v2-note"><span>' + icons.check + '</span><p>La settimana tipo &egrave; solo un modello: nessuna giornata viene aggiunta senza la tua conferma.</p></div>' +
         '</div>';
       }
 
@@ -2429,20 +2412,18 @@ function getCalendarSelectedDateKey(month) {
 
       return '<div class="settings-modern-page settings-page-v2 settings-hub-page">' +
         topBar('Impostazioni', false) +
-        '<div class="settings-v2-section-title">Esperienza e lavoro</div>' +
-        '<section class="settings-hub-group">' +
-          '<button class="settings-hub-row" data-open-settings-section="home"><span class="settings-v2-icon is-violet">' + icons.home + '</span><span class="settings-v2-copy"><strong>Personalizza Home</strong><small>Scegli riepiloghi, scorciatoie e anteprima stipendio</small></span><span class="settings-hub-value">' + homeSectionsEnabled + ' blocchi</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong><small>Nome, target giornaliero e settimanale</small></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-settings-section="calendar"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Calendario di lavoro</strong><small>Giorni attivi, riposi e festivit&agrave;</small></span><span class="settings-hub-value">' + workdays.length + ' giorni</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-settings-section="shifts"><span class="settings-v2-icon is-green">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Turni rapidi</strong><small>Orari e pause che usi pi&ugrave; spesso</small></span><span class="settings-hub-value">' + escapeHtml(shiftStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-settings-section="planning"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Settimana tipo</strong><small>Prepara il mese senza sovrascrivere dati</small></span><span class="settings-hub-value">' + escapeHtml(templateStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-settings-section="timer"><span class="settings-v2-icon is-violet">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Timer turno</strong><small>Modalita alternativa per la Home</small></span><span class="settings-hub-value">' + timerStatus + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<div class="settings-v2-section-title">Esperienza e lavoro</div>' +
+          '<section class="settings-hub-group">' +
+          '<button class="settings-hub-row" data-open-settings-section="home"><span class="settings-v2-icon is-violet">' + icons.home + '</span><span class="settings-v2-copy"><strong>Home</strong></span><span class="settings-hub-value">' + homeSectionsEnabled + ' blocchi</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="profile"><span class="settings-v2-icon is-blue">' + icons.user + '</span><span class="settings-v2-copy"><strong>Profilo e obiettivi</strong></span><span class="settings-hub-value">' + escapeHtml(targetStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="calendar"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Calendario di lavoro</strong></span><span class="settings-hub-value">' + workdays.length + ' giorni</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="shifts"><span class="settings-v2-icon is-green">' + icons.clock + '</span><span class="settings-v2-copy"><strong>Turni rapidi</strong></span><span class="settings-hub-value">' + escapeHtml(shiftStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
+          '<button class="settings-hub-row" data-open-settings-section="planning"><span class="settings-v2-icon is-blue">' + icons.calendar + '</span><span class="settings-v2-copy"><strong>Settimana tipo</strong></span><span class="settings-hub-value">' + escapeHtml(templateStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
         '</section>' +
-        '<div class="settings-v2-section-title">Avvisi e configurazione</div>' +
+        '<div class="settings-v2-section-title">Avvisi</div>' +
         '<section class="settings-hub-group">' +
-          '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong><small>Promemoria per registrare la giornata</small></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button>' +
-          '<button class="settings-hub-row" data-open-onboarding="1"><span class="settings-v2-icon is-blue">' + icons.check + '</span><span class="settings-v2-copy"><strong>Configurazione guidata</strong><small>Rivedi obiettivi, turno, ferie e promemoria</small></span><span class="settings-hub-value">3 passaggi</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
-        '<div class="settings-v2-footer"><strong>GestOre</strong><span>Le tue preferenze si salvano automaticamente</span></div>' +
+          '<button class="settings-hub-row" data-open-settings-section="notifications"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Notifiche</strong></span><span class="settings-hub-value">' + escapeHtml(reminderStatus) + '</span><span class="settings-v2-chevron">' + icons.right + '</span></button></section>' +
+        '<div class="settings-v2-footer"><strong>GestOre v' + escapeHtml(state.settings.version) + '</strong></div>' +
       '</div>';
     }
 
@@ -2640,6 +2621,7 @@ function getCalendarSelectedDateKey(month) {
       bindEvents();
       if (typeof bindAccountEvents === 'function') bindAccountEvents();
       if (typeof bindPlatformEvents === 'function') bindPlatformEvents();
+      if (state.pdfPreviewOpen && typeof queuePdfPreviewRender === 'function') queuePdfPreviewRender();
       if (state.activeTab === 'home') initHomeTitleMorph();
       restoreRenderPosition(savedPosition, screen);
       if (window.requestAnimationFrame) {

@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.3-20260823a';
+var PLATFORM_BUILD = '1.8.4-20260823b';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'I report PDF mensile e annuale che gia usavi restano invariati.',
-  'Il nuovo report annuale completo riunisce ore, ferie, assenze e stipendi.',
-  'Il nuovo report stipendi organizza cedolini, importi, tariffe e stima fiscale.',
-  'Prima di creare un PDF puoi scegliere se mostrarne l\'anteprima o scaricarlo.'
+  'Le anteprime PDF ora mostrano davvero tutte le pagine anche su iPhone.',
+  'Le impostazioni sono piu ordinate e senza configurazioni duplicate.',
+  'Notifiche, privacy e recupero account sono nelle sezioni corrette.',
+  'I dati e i report gia salvati restano invariati e compatibili.'
 ];
 
 async function readPlatformJson(response) {
@@ -547,6 +547,12 @@ function renderDataHistorySettings() {
 }
 
 function renderAccountSecuritySettings() {
+  return (typeof renderPasskeySettings === 'function' ? renderPasskeySettings() : '') +
+    '<div class="settings-v2-section-title">Recupero account</div>' +
+    '<section class="platform-security-action"><span>' + icons.lock + '</span><div><strong>Codice di recupero</strong><p>Genera un codice nuovo e conservalo fuori da GestOre. Quello precedente verra disattivato.</p></div><button data-platform-recovery-code="1">Genera codice</button></section>';
+}
+
+function renderPlatformPushSettings() {
   var push = platformState.push;
   var pushEnabled = Boolean(typeof state !== 'undefined' && state.settings && state.settings.pushEnabled && push.subscriptions);
   var pushHelp = push.error
@@ -554,14 +560,11 @@ function renderAccountSecuritySettings() {
     : (push.loading ? 'Controllo disponibilita...' : (push.available
       ? (pushEnabled ? 'Attive anche quando GestOre e chiusa' : 'Ricevi riepiloghi anche con l app chiusa')
       : 'Disponibili dopo il prossimo aggiornamento del server'));
-  return (typeof renderPasskeySettings === 'function' ? renderPasskeySettings() : '') +
-    '<div class="settings-v2-section-title">Notifiche dal server</div>' +
+  return '<div class="settings-v2-section-title">Notifiche dal server</div>' +
     '<section class="settings-v2-group platform-push-card">' +
       '<div class="settings-v2-toggle-row"><span class="settings-v2-icon is-violet">' + icons.bell + '</span><span class="settings-v2-copy"><strong>Avvisi anche ad app chiusa</strong><small>' + pushHelp + '</small></span><button role="switch" class="toggle-btn ' + (pushEnabled ? 'on' : '') + '" data-platform-push-toggle="1" aria-label="Avvisi anche ad app chiusa" aria-checked="' + (pushEnabled ? 'true' : 'false') + '" aria-pressed="' + (pushEnabled ? 'true' : 'false') + '" ' + (push.busy || !push.available ? 'disabled' : '') + '><span class="knob"></span></button></div>' +
       (pushEnabled ? '<div class="settings-v2-divider"></div><button class="platform-inline-action" data-platform-push-test="1" ' + (push.busy ? 'disabled' : '') + '>' + icons.bell + '<span>Invia una notifica di prova</span>' + icons.right + '</button>' : '') +
-    '</section>' +
-    '<div class="settings-v2-section-title">Recupero account</div>' +
-    '<section class="platform-security-action"><span>' + icons.lock + '</span><div><strong>Codice di recupero</strong><p>Genera un codice nuovo e conservalo fuori da GestOre. Quello precedente verra disattivato.</p></div><button data-platform-recovery-code="1">Genera codice</button></section>';
+    '</section>';
 }
 
 function renderOwnerAuditSettings() {
@@ -658,8 +661,7 @@ function bindPlatformEvents() {
     if (state.settingsSection === 'data') {
       loadPlatformHistory(false);
       loadPlatformDiagnostics(false);
-    } else if (state.settingsSection === 'privacy') {
-      loadPlatformSessions(false);
+    } else if (state.settingsSection === 'notifications') {
       loadPlatformPushConfig(false);
     } else if (state.settingsSection === 'accounts') {
       loadPlatformAudit(false);

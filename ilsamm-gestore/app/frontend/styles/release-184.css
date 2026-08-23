@@ -1,0 +1,128 @@
+/* GestOre 1.8.4: reliable PDF previews and quieter settings. */
+
+.pdf-preview-frame {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(80, 124, 229, .12), transparent 34%),
+    #030816;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(118, 149, 231, .45) transparent;
+}
+
+.pdf-preview-pages {
+  display: grid;
+  min-height: 100%;
+  padding: 12px 8px 18px;
+  align-content: start;
+  gap: 16px;
+}
+
+.pdf-preview-page {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  justify-items: center;
+  gap: 7px;
+}
+
+.pdf-preview-page > span {
+  color: rgba(200, 215, 248, .58);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pdf-preview-page canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid rgba(161, 182, 231, .18);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .34);
+}
+
+.pdf-preview-status {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  padding: 24px;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: #eaf1ff;
+  text-align: center;
+  background: rgba(3, 8, 22, .94);
+}
+
+.pdf-preview-status[hidden] {
+  display: none;
+}
+
+.pdf-preview-status > span {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 6px;
+  border: 3px solid rgba(101, 140, 229, .18);
+  border-top-color: #63b8ff;
+  border-right-color: #8b63ff;
+  border-radius: 50%;
+  animation: pdf-preview-spin .8s linear infinite;
+}
+
+.pdf-preview-status strong {
+  font-size: 15px;
+}
+
+.pdf-preview-status p {
+  margin: 0;
+  color: rgba(198, 211, 243, .58);
+  font-size: 10px;
+}
+
+.pdf-preview-status.is-error > span {
+  animation: none;
+  border-color: rgba(255, 107, 134, .28);
+  border-top-color: #ff6b86;
+}
+
+.settings-v2-top > div {
+  align-self: center;
+}
+
+.settings-v2-top h1 {
+  margin: 0;
+}
+
+.profile-page-v2 .profile-v2-copy h1 {
+  margin: 0 0 7px;
+}
+
+.profile-page-v2 .profile-v2-summary > div {
+  align-content: center;
+}
+
+.profile-page-v2 .profile-row-copy,
+.settings-hub-page .settings-v2-copy {
+  align-content: center;
+}
+
+.profile-page-v2 .profile-row-copy strong,
+.settings-hub-page .settings-v2-copy strong {
+  line-height: 1.2;
+}
+
+@keyframes pdf-preview-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdf-preview-status > span {
+    animation-duration: 1.8s;
+  }
+}

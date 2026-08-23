@@ -77,6 +77,22 @@ test('profilo e impostazioni usano ritorni coerenti senza aree account obsolete'
   assert.match(readabilityStyles, /settings-v2-copy strong[\s\S]*?font-size:\s*15px/);
 });
 
+test('le impostazioni restano ordinate e mostrano solo spiegazioni utili', () => {
+  const views = read('app/frontend/js/views.js');
+  const platform = read('app/frontend/js/platform.js');
+
+  assert.doesNotMatch(views, /data-open-settings-section="timer"/);
+  assert.doesNotMatch(views, /data-open-onboarding="1"/);
+  assert.doesNotMatch(views, /Scegli riepiloghi, scorciatoie/);
+  assert.doesNotMatch(views, /Nome, target giornaliero/);
+  assert.doesNotMatch(views, /Rivedi obiettivi, turno/);
+  assert.match(views, /data-toggle-shift-timer="1"/);
+  assert.match(views, /renderPlatformPushSettings/);
+  assert.match(platform, /function renderPlatformPushSettings/);
+  assert.match(platform, /settingsSection === 'notifications'[\s\S]*?loadPlatformPushConfig/);
+  assert.doesNotMatch(platform, /settingsSection === 'privacy'[\s\S]{0,120}loadPlatformPushConfig/);
+});
+
 test('stipendio e report espongono periodi navigabili e azioni chiare', () => {
   const views = read('app/frontend/js/views.js');
   const bindings = read('app/frontend/js/bindings.js');
@@ -97,6 +113,8 @@ test('stipendio e report espongono periodi navigabili e azioni chiare', () => {
   assert.match(views, /Mostra anteprima/);
   assert.match(views, /Scarica PDF/);
   assert.match(views, /pdf-preview-overlay/);
+  assert.match(views, /data-pdf-preview-pages/);
+  assert.doesNotMatch(views, /pdf-preview-frame"><iframe/);
   assert.match(bindings, /exportCompleteYearReport/);
   assert.match(bindings, /exportSalaryReport/);
   assert.match(bindings, /previewSelectedPdfReport/);
@@ -104,8 +122,14 @@ test('stipendio e report espongono periodi navigabili e azioni chiare', () => {
   assert.match(core, /js\/pdf\/salaries\.js/);
   assert.match(core, /openPdfExportDialog\('monthly'\)/);
   assert.match(core, /openPdfExportDialog\('yearly'\)/);
+  assert.match(core, /vendor\/pdfjs\/pdf\.min\.mjs/);
+  assert.match(core, /vendor\/pdfjs\/pdf\.worker\.min\.mjs/);
+  assert.match(core, /renderPdfPreviewPages/);
+  assert.match(core, /document\.createElement\('canvas'\)/);
   assert.equal(fs.existsSync(path.join(root, 'app/frontend/js/pdf/annual-complete.js')), true);
   assert.equal(fs.existsSync(path.join(root, 'app/frontend/js/pdf/salaries.js')), true);
+  assert.equal(fs.existsSync(path.join(root, 'app/frontend/vendor/pdfjs/pdf.min.mjs')), true);
+  assert.equal(fs.existsSync(path.join(root, 'app/frontend/vendor/pdfjs/pdf.worker.min.mjs')), true);
 });
 
 test('privacy termini e supporto mantengono contenuti completi senza card introduttive', () => {
