@@ -1,0 +1,28 @@
+/* GestOre 1.8.8: light card reveal without moving the whole screen. */
+@media (prefers-reduced-motion: no-preference) {
+  .screen.active.go-view-enter {
+    animation: none !important;
+  }
+
+  .screen.active.go-view-enter .go-card-enter-item {
+    animation: go-card-soft-appear 220ms cubic-bezier(.2, .78, .24, 1) both;
+    animation-delay: var(--go-card-enter-delay, 0ms);
+  }
+}
+
+@keyframes go-card-soft-appear {
+  from {
+    opacity: .72;
+    transform: translate3d(0, 3px, 0) scale(.998);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen.active.go-view-enter .go-card-enter-item {
+    animation: none !important;
+  }
+}

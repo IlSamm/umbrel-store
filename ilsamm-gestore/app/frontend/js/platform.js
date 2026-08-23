@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.7-20260823e';
+var PLATFORM_BUILD = '1.8.8-20260823f';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Gli indicatori laterali di scorrimento sono stati rimossi da tutta l app.',
-  'Numeri, grafici e card mostrano subito il valore finale senza ricaricarsi.',
-  'Il cambio schermata usa ora un passaggio molto piu breve e discreto.',
-  'Scorrimento, zoom dei documenti e dati salvati restano invariati.'
+  'Il cambio pagina non sposta piu l intera schermata come un blocco.',
+  'Le sole card compaiono con una dissolvenza breve, leggera e progressiva.',
+  'Numeri, grafici e aggiornamenti interni restano fermi e subito leggibili.',
+  'Scorrimento, documenti e dati salvati restano invariati.'
 ];
 
 async function readPlatformJson(response) {

@@ -3,6 +3,25 @@
 
   var lastViewKey = '';
   var cleanupTimer = 0;
+  var cardSelector = [
+    '.go-home-stack > *',
+    '.calendar-v2-stack > *',
+    '.analytics-stack > *',
+    '.vacation-page > .vacation-page-hero',
+    '.vacation-page > .vacation-page-insight',
+    '.vacation-page > .vacation-page-projection',
+    '.vacation-page > .vacation-page-actions',
+    '.vacation-page > .vacation-page-history',
+    '.salary-hub-stack > *',
+    '.salary-archive-stack > *',
+    '.payroll-stats-stack > *',
+    '.payroll-estimate-stack > *',
+    '.payroll-detail-stack > *',
+    '.payroll-editor-stack > *',
+    '.profile-page-v2 > section',
+    '.exports-page > section',
+    '.settings-page-v2 > section'
+  ].join(',');
 
   function reduceMotion() {
     return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -10,7 +29,11 @@
 
   function clearMotion(screen) {
     if (!screen) return;
-    screen.classList.remove('go-view-enter', 'go-view-enter-forward', 'go-view-enter-back');
+    screen.classList.remove('go-view-enter');
+    Array.prototype.forEach.call(screen.querySelectorAll('.go-card-enter-item'), function (item) {
+      item.classList.remove('go-card-enter-item');
+      item.style.removeProperty('--go-card-enter-delay');
+    });
   }
 
   function render(screen, options) {
@@ -32,11 +55,14 @@
     void screen.offsetWidth;
 
     screen.classList.add('go-view-enter');
-    screen.classList.add(options.direction === 'back' ? 'go-view-enter-back' : 'go-view-enter-forward');
+    Array.prototype.slice.call(screen.querySelectorAll(cardSelector), 0, 8).forEach(function (item, index) {
+      item.classList.add('go-card-enter-item');
+      item.style.setProperty('--go-card-enter-delay', Math.min(42, index * 12) + 'ms');
+    });
 
     cleanupTimer = global.setTimeout(function () {
       if (screen.isConnected) clearMotion(screen);
-    }, 190);
+    }, 290);
   }
 
   global.GestOreMotion = {

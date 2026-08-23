@@ -4,7 +4,7 @@ name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.8.7"
+version: "1.8.8"
 port: 8080
 
 description: >-
@@ -12,10 +12,10 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iPhone.
 
 releaseNotes: >-
-  GestOre 1.8.7 rimuove gli indicatori di scorrimento da tutta l app mantenendo
-  lo scorrimento tattile. Numeri, grafici e card non ripartono piu da zero dopo
-  aggiornamenti o cambi periodo; solo il cambio reale di schermata conserva una
-  transizione breve e discreta. Dati, report e zoom dei documenti restano invariati.
+  GestOre 1.8.8 sostituisce il movimento dell intera schermata con una comparsa
+  leggera e progressiva delle sole card. Titoli, nav, numeri e grafici restano
+  stabili, e l effetto non riparte durante salvataggi o cambi periodo. Indicatori
+  di scorrimento, dati, report e zoom dei documenti restano invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-gestore"
