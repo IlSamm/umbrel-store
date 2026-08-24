@@ -152,6 +152,28 @@ test('privacy termini e supporto mantengono contenuti completi senza card introd
   assert.match(views, /data-close-legal/);
 });
 
+test('lo splash usa il marchio GestOre e segue le vere fasi di avvio', () => {
+  const index = read('app/frontend/index.html');
+  const styles = read('app/frontend/styles/splash-final.css');
+  const loading = read('app/frontend/js/loading.js');
+  const core = read('app/frontend/js/core.js');
+  const account = read('app/frontend/js/account.js');
+  const worker = read('app/frontend/service-worker.js');
+
+  assert.match(index, /rel="preload" as="image" href="assets\/icons\/gestore-mark\.png"/);
+  assert.match(index, /go-splash-mark-stage/);
+  assert.match(index, /id="splashProgressFill"/);
+  assert.doesNotMatch(index, /go-time-loader|go-time-loader-digits/);
+  assert.match(styles, /goSplashStageReveal/);
+  assert.match(styles, /--go-splash-progress/);
+  assert.match(styles, /prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(styles, /goTimeRoll|goTimeOrbit/);
+  assert.match(loading, /window\.GestOreSplash/);
+  assert.match(core, /GestOreSplash\.update\('Carico i dati del tuo profilo',\s*\.56/);
+  assert.match(account, /GestOreSplash\.update\(splashMessage/);
+  assert.match(worker, /assets\/icons\/gestore-mark\.png/);
+});
+
 test('le pagine usano una transizione breve solo al cambio schermata e nascondono gli indicatori di scorrimento', () => {
   const index = read('app/frontend/index.html');
   const views = read('app/frontend/js/views.js');

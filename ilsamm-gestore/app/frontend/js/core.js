@@ -82,8 +82,8 @@ var errorBox = document.getElementById('errorBox');
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
       weekdayMode: 'monday',
-      version: '1.8.9',
-      build: '20260823g',
+      version: '1.8.10',
+      build: '20260825a',
       appName: 'GestOre'
     };
 
@@ -2245,8 +2245,12 @@ var errorBox = document.getElementById('errorBox');
       }
       var completed = false;
       try {
-        var splashStatus = document.getElementById('splashStatusText');
-        if (splashStatus) splashStatus.textContent = 'Carico i dati del tuo profilo';
+        if (window.GestOreSplash && typeof window.GestOreSplash.update === 'function') {
+          window.GestOreSplash.update('Carico i dati del tuo profilo', .56, 'loading');
+        } else {
+          var splashStatus = document.getElementById('splashStatusText');
+          if (splashStatus) splashStatus.textContent = 'Carico i dati del tuo profilo';
+        }
         var response = null;
         var bootstrapError = null;
         for (var requestAttempt = 0; requestAttempt < 3; requestAttempt += 1) {

@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.9-20260823g';
+var PLATFORM_BUILD = '1.8.10-20260825a';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Le card ora compaiono davvero una dopo l altra con un effetto fluido e visibile.',
-  'Risolto il conflitto che poteva disattivare l animazione in alcune schermate.',
-  'Intestazioni, nav, numeri e grafici restano fermi e subito leggibili.',
-  'Scorrimento, documenti e dati salvati restano invariati.'
+  'Nuova schermata di avvio con il marchio ufficiale GestOre e uno stile piu pulito.',
+  'La barra segue ora preparazione, caricamento del profilo e disponibilita dei dati.',
+  'Avvio piu rapido, senza orologio, numeri tecnici o passaggi su schermate vuote.',
+  'Account, documenti e dati gia salvati restano invariati.'
 ];
 
 async function readPlatformJson(response) {

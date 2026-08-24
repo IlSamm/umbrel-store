@@ -682,8 +682,13 @@ async function bootstrapAccountSession() {
     await bootstrapServerState();
     state.account.dataReady = true;
   } finally {
-    var splashStatus = document.getElementById('splashStatusText');
-    if (splashStatus) splashStatus.textContent = state.account.dataReady ? 'Dati pronti' : 'Connessione da riprovare';
+    var splashMessage = state.account.dataReady ? 'Il tuo spazio e pronto' : 'Connessione da riprovare';
+    if (window.GestOreSplash && typeof window.GestOreSplash.update === 'function') {
+      window.GestOreSplash.update(splashMessage, state.account.dataReady ? 1 : .82, state.account.dataReady ? 'ready' : 'warning');
+    } else {
+      var splashStatus = document.getElementById('splashStatusText');
+      if (splashStatus) splashStatus.textContent = splashMessage;
+    }
     if (typeof render === 'function') render();
     window.dispatchEvent(new CustomEvent('gestore:account-ready'));
     maybeOpenRegistrationOnboarding();

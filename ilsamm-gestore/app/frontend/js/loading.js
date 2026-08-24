@@ -1,4 +1,24 @@
 (function () {
+  var splashScreen = document.getElementById('splashScreen');
+  var splashStatus = document.getElementById('splashStatusText');
+
+  function updateSplash(message, progress, state) {
+    if (!splashScreen) return false;
+    if (message && splashStatus) splashStatus.textContent = String(message);
+    if (Number.isFinite(Number(progress))) {
+      var safeProgress = Math.max(0, Math.min(1, Number(progress)));
+      splashScreen.style.setProperty('--go-splash-progress', (safeProgress * 100) + '%');
+    }
+    splashScreen.classList.toggle('is-ready', state === 'ready');
+    splashScreen.classList.toggle('is-warning', state === 'warning');
+    return true;
+  }
+
+  window.GestOreSplash = {
+    update: updateSplash
+  };
+  updateSplash('Preparazione del tuo spazio', .16, 'loading');
+
   var overlay = document.getElementById('operationLoader');
   if (!overlay) return;
 

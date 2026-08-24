@@ -278,8 +278,8 @@ var editorAutosaveTimer = 0;
     return;
   }
 
-  var minVisibleMs = 1480;
-  var fadeMs = 500;
+  var minVisibleMs = 1120;
+  var fadeMs = 420;
   var startedAt = Date.now();
   var closed = false;
   var closeTimer = null;
@@ -313,6 +313,9 @@ var editorAutosaveTimer = 0;
       return;
     }
     var wait = Math.max(0, minVisibleMs - elapsed);
+    if (accountReady && window.GestOreSplash && typeof window.GestOreSplash.update === 'function') {
+      window.GestOreSplash.update('Il tuo spazio e pronto', 1, 'ready');
+    }
     closeTimer = window.setTimeout(closeSplash, wait);
   }
 
