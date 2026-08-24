@@ -261,9 +261,22 @@ try:
         })()"""
     )
 
-    evaluate("(function(){var input=document.getElementById('payslipNetto'); input.value='1843,25'; input.dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('[data-save-payslip]').click();})()")
+    evaluate("""(function(){
+      var netto=document.getElementById('payslipNetto');
+      var lordo=document.getElementById('payslipLordo');
+      var company=document.getElementById('payslipCompany');
+      netto.value='1843,25'; netto.dispatchEvent(new Event('input',{bubbles:true}));
+      lordo.value='2260,50'; lordo.dispatchEvent(new Event('input',{bubbles:true}));
+      company.value='GestOre QA Srl'; company.dispatchEvent(new Event('input',{bubbles:true}));
+      document.querySelector('[data-toggle-payslip-company-default]').click();
+      document.querySelector('[data-save-payslip]').click();
+    })()""")
     time.sleep(0.35)
-    save_state = evaluate("({detail:state.payslipDetailId, editor:state.payslipEditorOpen, amount:(state.payslips.find(function(item){return item.id===state.payslipDetailId;})||{}).netto})")
+    save_state = evaluate("""(function(){
+      var item=state.payslips.find(function(candidate){return candidate.id===state.payslipDetailId;})||{};
+      return {detail:state.payslipDetailId,editor:state.payslipEditorOpen,amount:item.netto,
+        gross:item.lordo,company:item.company,defaultCompany:state.settings.defaultPayslipCompany};
+    })()""")
 
     evaluate("state.payslipArchiveOpen=false;state.payslipDetailId=null;state.payslipEstimateOpen=true;state.payslipEstimateConfigOpen=true;state.payrollPrivateUnlocked=true;render();")
     time.sleep(0.25)

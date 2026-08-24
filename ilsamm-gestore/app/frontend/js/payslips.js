@@ -141,6 +141,9 @@ var state = {
         photos: photos,
         imageData: firstPhoto ? firstPhoto.data : '',
         fileName: firstPhoto ? firstPhoto.fileName : '',
+        company: String(source.company || '').trim(),
+        netto: parseDecimalInput(source.netto, 0),
+        lordo: parseDecimalInput(source.lordo, 0),
         hourlyRate: parseDecimalInput(source.hourlyRate, 0),
         overtimeRate: parseDecimalInput(source.overtimeRate, 0),
         reusePreviousRates: Boolean(source.reusePreviousRates),
@@ -1303,6 +1306,8 @@ var state = {
             baseMonthlyGross: 0,
             salaryMonths: 12,
             overtimeHoursMonthly: 0,
+            overtimeLimitEnabled: false,
+            overtimeHoursLimit: 0,
             overtimeHourlyRate: 0,
             monthsWithOvertime: 0,
             otherAnnualGross: 0,
@@ -1378,19 +1383,51 @@ var state = {
         inherited: false
       });
     }
+    function getRecordedPayrollOvertimeMeta(year, month, source) {
+      var recordedMinutes = 0;
+      getMonthEntries(new Date(Number(year), Math.max(0, Number(month) - 1), 1)).forEach(function (pair) {
+        recordedMinutes += Math.max(0, getBreakdown(pair[1]).overtime || 0);
+      });
+      var recordedHours = minutesToHours(recordedMinutes);
+      var config = source && typeof source === 'object' ? source : {};
+      var api = getPayrollCalculatorApi();
+      var includedHours = api && typeof api.resolveRecordedOvertimeHours === 'function'
+        ? api.resolveRecordedOvertimeHours(recordedHours, config.overtimeLimitEnabled, config.overtimeHoursLimit)
+        : (config.overtimeLimitEnabled
+          ? Math.min(recordedHours, Math.max(0, Number(config.overtimeHoursLimit) || 0))
+          : recordedHours);
+      var includedMinutes = Math.max(0, Math.min(recordedMinutes, Math.round(includedHours * 60)));
+      return {
+        recordedMinutes: recordedMinutes,
+        recordedHours: recordedHours,
+        includedMinutes: includedMinutes,
+        includedHours: minutesToHours(includedMinutes),
+        excludedMinutes: Math.max(0, recordedMinutes - includedMinutes),
+        excludedHours: minutesToHours(Math.max(0, recordedMinutes - includedMinutes))
+      };
+    }
+    function applyRecordedOvertimeToPayrollConfig(year, month, source) {
+      var config = Object.assign({}, source || {});
+      var overtime = getRecordedPayrollOvertimeMeta(year, month, config);
+      config.overtimeHoursMonthly = overtime.includedHours;
+      return { input: config, overtime: overtime };
+    }
     function getPayrollNetEstimateForMonth(year, month, configOverride) {
       var api = getPayrollCalculatorApi();
       var config = configOverride || getPayrollEstimateConfig(year, month);
+      var resolved = applyRecordedOvertimeToPayrollConfig(year, month, config);
       if (!api || typeof api.calculatePayrollEstimate !== 'function') {
         return {
           valid: false,
           incomplete: true,
           errors: { calculator: 'Motore di calcolo non disponibile.' },
-          input: config
+          input: resolved.input,
+          overtimeMeta: resolved.overtime
         };
       }
-      var estimate = api.calculatePayrollEstimate(config);
+      var estimate = api.calculatePayrollEstimate(resolved.input);
       estimate.configMeta = config;
+      estimate.overtimeMeta = resolved.overtime;
       estimate.actualPayslip = (state.payslips || []).find(function (item) {
         return Number(item.year) === Number(year) && Number(item.month) === Number(month);
       }) || null;
@@ -1401,7 +1438,8 @@ var state = {
       if (!api || typeof api.validatePayrollInput !== 'function') {
         return { valid: false, errors: { calculator: 'Motore di calcolo non disponibile.' } };
       }
-      var checked = api.validatePayrollInput(source);
+      var resolved = applyRecordedOvertimeToPayrollConfig(year, month, source);
+      var checked = api.validatePayrollInput(resolved.input);
       if (!checked.valid) return checked;
       var key = getSalaryEstimateMonthKey(year, month);
       var next = Object.assign({}, state.settings.payrollEstimateByMonth || {});
@@ -1569,8 +1607,23 @@ var state = {
       var page = document.querySelector('[data-payroll-calculator-page]');
       var api = getPayrollCalculatorApi();
       if (!page || !api || typeof api.calculatePayrollEstimate !== 'function') return null;
-      var estimate = api.calculatePayrollEstimate(collectPayrollCalculatorInputFromDom());
+      var resolved = applyRecordedOvertimeToPayrollConfig(
+        state.payslipEstimateYear,
+        state.payslipEstimateMonth,
+        collectPayrollCalculatorInputFromDom()
+      );
+      var estimate = api.calculatePayrollEstimate(resolved.input);
+      estimate.overtimeMeta = resolved.overtime;
       updatePayrollPrivateReconciliationPreview(estimate.input);
+      document.querySelectorAll('[data-payroll-recorded-overtime]').forEach(function (node) {
+        node.textContent = formatDuration(resolved.overtime.recordedMinutes);
+      });
+      document.querySelectorAll('[data-payroll-overtime-limit-note]').forEach(function (node) {
+        node.textContent = estimate.input.overtimeLimitEnabled
+          ? (formatDuration(resolved.overtime.includedMinutes) + ' conteggiate su ' +
+            formatDuration(resolved.overtime.recordedMinutes))
+          : 'Nessun limite applicato';
+      });
       renderPayrollEstimateValidation(estimate.errors);
       var municipalityFeedback = getPayrollMunicipalityFeedback(estimate);
       document.querySelectorAll('[data-payroll-municipality-feedback]').forEach(function (node) {
@@ -1867,6 +1920,7 @@ var state = {
       return missing;
     }
     function makeEmptyPayslipDraft() {
+      var defaultCompany = String(state.settings && state.settings.defaultPayslipCompany || '').trim();
       return Object.assign({
         id: '',
         photos: [],
@@ -1875,12 +1929,13 @@ var state = {
         hourlyRate: 0,
         overtimeRate: 0,
         reusePreviousRates: false,
+        rememberCompany: true,
         notes: '',
         createdAt: Date.now()
       }, reducePayslipToCoreFields({
         month: new Date().getMonth() + 1,
         year: new Date().getFullYear(),
-        company: '',
+        company: defaultCompany,
         netto: 0,
         lordo: 0,
         sourceText: ''
@@ -1913,13 +1968,17 @@ var state = {
       var draft = ensurePayslipDraft();
       var month = document.getElementById('payslipMonth');
       var year = document.getElementById('payslipYear');
+      var company = document.getElementById('payslipCompany');
       var netto = document.getElementById('payslipNetto');
+      var lordo = document.getElementById('payslipLordo');
       var hourly = document.getElementById('payslipHourlyRate');
       var overtime = document.getElementById('payslipOvertimeRate');
       var notes = document.getElementById('payslipNotes');
       if (month) draft.month = Math.max(1, Math.min(12, Number(month.value) || (new Date().getMonth() + 1)));
       if (year) draft.year = Math.max(2000, Math.min(2100, Number(year.value) || new Date().getFullYear()));
+      if (company) draft.company = String(company.value || '').trim().slice(0, 120);
       if (netto) draft.netto = parseDecimalInput(netto.value, 0);
+      if (lordo) draft.lordo = parseDecimalInput(lordo.value, 0);
       if (hourly) draft.hourlyRate = parseDecimalInput(hourly.value, 0);
       if (overtime) draft.overtimeRate = parseDecimalInput(overtime.value, 0);
       if (notes) draft.notes = String(notes.value || '').slice(0, 1000);
@@ -1982,6 +2041,10 @@ var state = {
       }
       saveSafetyBundle();
       clearPendingPayslipDraft();
+      if (draft.rememberCompany && String(draft.company || '').trim()) {
+        state.settings.defaultPayslipCompany = String(draft.company).trim().slice(0, 120);
+        saveSettings();
+      }
       if (state.account && state.account.storage) state.account.storage.loaded = false;
       state.payslipDetailId = saved.id;
       state.payslipEditorOpen = false;

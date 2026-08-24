@@ -53,6 +53,8 @@
       baseMonthlyGross: readNumber(raw, 'baseMonthlyGross', defaults.baseMonthlyGross),
       salaryMonths: Math.round(readNumber(raw, 'salaryMonths', defaults.salaryMonths)),
       overtimeHoursMonthly: readNumber(raw, 'overtimeHoursMonthly', defaults.overtimeHoursMonthly),
+      overtimeLimitEnabled: readBoolean(raw, 'overtimeLimitEnabled', defaults.overtimeLimitEnabled),
+      overtimeHoursLimit: readNumber(raw, 'overtimeHoursLimit', defaults.overtimeHoursLimit),
       overtimeHourlyRate: readNumber(raw, 'overtimeHourlyRate', defaults.overtimeHourlyRate),
       monthsWithOvertime: Math.round(readNumber(raw, 'monthsWithOvertime', defaults.monthsWithOvertime)),
       otherAnnualGross: readNumber(raw, 'otherAnnualGross', defaults.otherAnnualGross),
@@ -79,6 +81,13 @@
     };
   }
 
+  function resolveRecordedOvertimeHours(recordedHours, limitEnabled, limitHours) {
+    var recorded = Math.min(250, Math.max(0, currency.parseLocaleNumber(recordedHours, 0)));
+    if (!readBoolean({ enabled: limitEnabled }, 'enabled', false)) return recorded;
+    var limit = Math.min(250, Math.max(0, currency.parseLocaleNumber(limitHours, 0)));
+    return Math.min(recorded, limit);
+  }
+
   function validateRange(errors, field, label, value, min, max) {
     if (!Number.isFinite(value)) {
       errors[field] = label + ': inserisci un numero valido.';
@@ -95,6 +104,10 @@
       errors.salaryMonths = 'Le mensilita ammesse sono 12, 13 o 14.';
     }
     validateRange(errors, 'overtimeHoursMonthly', 'Ore straordinarie', input.overtimeHoursMonthly, 0, 250);
+    validateRange(errors, 'overtimeHoursLimit', 'Limite ore straordinarie', input.overtimeHoursLimit, 0, 250);
+    if (input.overtimeLimitEnabled && input.overtimeHoursLimit <= 0) {
+      errors.overtimeHoursLimit = 'Inserisci quante ore straordinarie conteggiare al massimo.';
+    }
     validateRange(errors, 'overtimeHourlyRate', 'Paga straordinaria', input.overtimeHourlyRate, 0, 10000);
     validateRange(errors, 'monthsWithOvertime', 'Mesi con straordinari', input.monthsWithOvertime, 0, 12);
     validateRange(errors, 'otherAnnualGross', 'Altri compensi', input.otherAnnualGross, 0, 10000000);
@@ -117,6 +130,7 @@
       ['baseMonthlyGross', 'Lordo mensile', false],
       ['salaryMonths', 'Mensilita', false],
       ['overtimeHoursMonthly', 'Ore straordinarie', true],
+      ['overtimeHoursLimit', 'Limite ore straordinarie', true],
       ['overtimeHourlyRate', 'Paga straordinaria', true],
       ['monthsWithOvertime', 'Mesi con straordinari', false],
       ['otherAnnualGross', 'Altri compensi', true],
@@ -145,6 +159,7 @@
 
   return {
     normalizePayrollInput: normalizePayrollInput,
-    validatePayrollInput: validatePayrollInput
+    validatePayrollInput: validatePayrollInput,
+    resolveRecordedOvertimeHours: resolveRecordedOvertimeHours
   };
 });

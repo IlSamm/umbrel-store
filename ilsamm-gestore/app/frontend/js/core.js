@@ -81,9 +81,10 @@ var errorBox = document.getElementById('errorBox');
       vacationAllowanceByYear: {},
       salaryRatesByMonth: {},
       payrollEstimateByMonth: {},
+      defaultPayslipCompany: '',
       weekdayMode: 'monday',
-      version: '1.8.11',
-      build: '20260825b',
+      version: '1.8.12',
+      build: '20260825c',
       appName: 'GestOre'
     };
 
@@ -459,6 +460,7 @@ var errorBox = document.getElementById('errorBox');
         ? avatarData
         : '';
       if (merged.profileAvatarMode === 'photo' && !merged.profileAvatarData) merged.profileAvatarMode = 'preset';
+      merged.defaultPayslipCompany = String(merged.defaultPayslipCompany || '').trim().slice(0, 120);
       merged.shiftPresets = normalizeShiftPresets(merged.shiftPresets);
       merged.weeklyTemplate = normalizeWeeklyTemplate(merged.weeklyTemplate);
       var rawVacationAllowances = merged.vacationAllowanceByYear && typeof merged.vacationAllowanceByYear === 'object' && !Array.isArray(merged.vacationAllowanceByYear)

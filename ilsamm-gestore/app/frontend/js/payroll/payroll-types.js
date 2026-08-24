@@ -37,6 +37,8 @@
     baseMonthlyGross: 1766,
     salaryMonths: 14,
     overtimeHoursMonthly: 20,
+    overtimeLimitEnabled: false,
+    overtimeHoursLimit: 0,
     overtimeHourlyRate: 10.98,
     monthsWithOvertime: 12,
     otherAnnualGross: 0,
@@ -58,6 +60,8 @@
     baseMonthlyGross: 0,
     salaryMonths: 12,
     overtimeHoursMonthly: 0,
+    overtimeLimitEnabled: false,
+    overtimeHoursLimit: 0,
     overtimeHourlyRate: 0,
     monthsWithOvertime: 0,
     otherAnnualGross: 0,
@@ -81,7 +85,7 @@
   ]);
 
   return {
-    PAYROLL_SCHEMA_VERSION: 2,
+    PAYROLL_SCHEMA_VERSION: 3,
     DEFAULT_PAYROLL_INPUT: DEFAULT_PAYROLL_INPUT,
     EMPTY_PAYROLL_INPUT: EMPTY_PAYROLL_INPUT,
     ITALIAN_REGIONS: ITALIAN_REGIONS

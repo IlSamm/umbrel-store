@@ -869,6 +869,23 @@ function bindEvents() {
           };
         }
       });
+      document.querySelectorAll('[data-payroll-overtime-limit-toggle]').forEach(function (button) {
+        button.onclick = function () {
+          var section = button.closest('[data-payroll-overtime-limit-setting]');
+          var field = section ? section.querySelector('[data-payroll-field="overtimeLimitEnabled"]') : null;
+          if (!section || !field) return;
+          var enabled = field.value !== 'true';
+          field.value = enabled ? 'true' : 'false';
+          section.classList.toggle('is-enabled', enabled);
+          button.setAttribute('aria-checked', enabled ? 'true' : 'false');
+          button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+          updatePayrollCalculatorPreviewFromInputs();
+          if (enabled) {
+            var limitInput = section.querySelector('[data-payroll-field="overtimeHoursLimit"]');
+            if (limitInput) limitInput.focus({ preventScroll: true });
+          }
+        };
+      });
       var municipalityInput = document.querySelector('[data-payroll-field="municipality"]');
       var municipalityResults = document.querySelector('[data-payroll-municipality-results]');
       if (municipalityInput && municipalityResults) {
@@ -923,14 +940,6 @@ function bindEvents() {
           }
         };
       }
-      document.querySelectorAll('[data-use-recorded-overtime]').forEach(function (button) {
-        button.onclick = function () {
-          var input = document.querySelector('[data-payroll-field="overtimeHoursMonthly"]');
-          if (!input) return;
-          input.value = formatEditorDecimal(Math.max(0, Number(button.dataset.useRecordedOvertime) || 0));
-          updatePayrollCalculatorPreviewFromInputs();
-        };
-      });
       var savePayslipEstimate = document.querySelector('[data-save-payslip-estimate]');
       if (savePayslipEstimate) savePayslipEstimate.onclick = function () {
         var active = document.activeElement;
@@ -1144,6 +1153,35 @@ function bindEvents() {
           e.target.value = formatEditorDecimal(state.payslipDraft.netto || 0);
         };
       }
+      var payslipLordo = document.getElementById('payslipLordo');
+      if (payslipLordo) {
+        payslipLordo.oninput = function (e) {
+          ensurePayslipDraft();
+          state.payslipDraft.lordo = parseDecimalInput(e.target.value, 0);
+        };
+        payslipLordo.onfocus = function (e) {
+          if (isZeroLikeDecimalText(e.target.value)) e.target.value = '';
+          requestAnimationFrame(function () { e.target.setSelectionRange(e.target.value.length, e.target.value.length); });
+        };
+        payslipLordo.onblur = function (e) {
+          ensurePayslipDraft();
+          state.payslipDraft.lordo = parseDecimalInput(e.target.value, 0);
+          e.target.value = formatEditorDecimal(state.payslipDraft.lordo || 0);
+        };
+      }
+      var payslipCompany = document.getElementById('payslipCompany');
+      if (payslipCompany) payslipCompany.oninput = function (event) {
+        ensurePayslipDraft();
+        state.payslipDraft.company = String(event.target.value || '').slice(0, 120);
+      };
+      var rememberPayslipCompany = document.querySelector('[data-toggle-payslip-company-default]');
+      if (rememberPayslipCompany) rememberPayslipCompany.onclick = function () {
+        var draft = ensurePayslipDraft();
+        draft.rememberCompany = !draft.rememberCompany;
+        rememberPayslipCompany.classList.toggle('is-on', draft.rememberCompany);
+        rememberPayslipCompany.setAttribute('aria-checked', draft.rememberCompany ? 'true' : 'false');
+        rememberPayslipCompany.setAttribute('aria-pressed', draft.rememberCompany ? 'true' : 'false');
+      };
       var rateReuse = document.querySelector('[data-toggle-payslip-rate-reuse]');
       if (rateReuse) rateReuse.onclick = function () {
         var draft = ensurePayslipDraft();

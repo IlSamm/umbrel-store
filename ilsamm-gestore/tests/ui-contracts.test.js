@@ -210,3 +210,24 @@ test('le pagine usano una transizione breve solo al cambio schermata e nascondon
   assert.match(scrollbarStyles, /width:\s*0\s*!important/);
   assert.match(scrollbarStyles, /height:\s*0\s*!important/);
 });
+
+test('la stima usa gli straordinari registrati e il cedolino salva azienda e lordo', () => {
+  const views = read('app/frontend/js/views.js');
+  const payslips = read('app/frontend/js/payslips.js');
+  const bindings = read('app/frontend/js/bindings.js');
+  const core = read('app/frontend/js/core.js');
+  const styles = read('app/frontend/styles/release-1812.css');
+
+  assert.match(payslips, /function getRecordedPayrollOvertimeMeta/);
+  assert.match(payslips, /applyRecordedOvertimeToPayrollConfig/);
+  assert.match(views, /Ore straordinarie dal calendario/);
+  assert.match(views, /data-payroll-overtime-limit-toggle/);
+  assert.doesNotMatch(views, /data-use-recorded-overtime/);
+  assert.match(views, /id="payslipCompany"/);
+  assert.match(views, /id="payslipLordo"/);
+  assert.match(views, /Proponi questa azienda ogni mese/);
+  assert.match(bindings, /state\.payslipDraft\.lordo/);
+  assert.match(bindings, /state\.payslipDraft\.company/);
+  assert.match(core, /defaultPayslipCompany/);
+  assert.match(styles, /payroll-company-amount-panel/);
+});

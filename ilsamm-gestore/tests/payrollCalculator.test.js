@@ -5,7 +5,8 @@ require('../app/frontend/js/tax-config/2025.js');
 require('../app/frontend/js/tax-config/2026.js');
 const { DEFAULT_PAYROLL_INPUT } = require('../app/frontend/js/payroll/payroll-types.js');
 const {
-  validatePayrollInput
+  validatePayrollInput,
+  resolveRecordedOvertimeHours
 } = require('../app/frontend/js/payroll/payroll-validation.js');
 const {
   calculatePayrollEstimate
@@ -32,6 +33,21 @@ test('assenza di straordinari non altera il lordo annuale base', () => {
   assert.equal(estimate.overtimeAnnualGross, 0);
   assert.equal(estimate.totalAnnualGross, 24724);
   assert.equal(estimate.estimatedOrdinaryMonthNet, estimate.estimatedMonthWithOvertimeNet);
+});
+
+test('le ore registrate restano dinamiche e il limite agisce solo quando attivo', () => {
+  assert.equal(resolveRecordedOvertimeHours(7.5, false, 2), 7.5);
+  assert.equal(resolveRecordedOvertimeHours(7.5, true, 4), 4);
+  assert.equal(resolveRecordedOvertimeHours(7.5, true, 12), 7.5);
+});
+
+test('un limite straordinari attivo richiede un numero di ore valido', () => {
+  const checked = validatePayrollInput(input({
+    overtimeLimitEnabled: true,
+    overtimeHoursLimit: 0
+  }), global.GestOreTaxConfigs);
+  assert.equal(checked.valid, false);
+  assert.ok(checked.errors.overtimeHoursLimit);
 });
 
 test('13 e 14 mensilita producono RAL diverse', () => {

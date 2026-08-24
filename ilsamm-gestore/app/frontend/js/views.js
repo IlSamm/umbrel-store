@@ -1586,6 +1586,7 @@ function getCalendarSelectedDateKey(month) {
       var api = getPayrollCalculatorApi();
       var config = getPayrollEstimateConfig(selectedYear, selectedMonth);
       var estimate = getPayrollNetEstimateForMonth(selectedYear, selectedMonth, config);
+      var overtimeMeta = estimate.overtimeMeta || getRecordedPayrollOvertimeMeta(selectedYear, selectedMonth, config);
       var periodLabel = monthNames[selectedMonth - 1] + ' ' + selectedYear;
       var money = api && api.formatCurrency ? api.formatCurrency : formatSalaryEstimateMoney;
       var moneyFromCents = api && api.formatCurrencyFromCents
@@ -1615,13 +1616,13 @@ function getCalendarSelectedDateKey(month) {
       var actualPayslip = estimate.actualPayslip || null;
       var actualGross = actualPayslip ? Math.max(0, parseDecimalInput(actualPayslip.lordo, 0)) : 0;
       var actualNet = actualPayslip ? Math.max(0, parseDecimalInput(actualPayslip.netto, 0)) : 0;
-      var recordedOvertimeMinutes = getMonthEntries(new Date(selectedYear, selectedMonth - 1, 1)).reduce(function (sum, pair) {
-        return sum + Math.max(0, getBreakdown(pair[1]).overtime || 0);
-      }, 0);
-      var recordedOvertimeHours = minutesToHours(recordedOvertimeMinutes);
+      var recordedOvertimeMinutes = overtimeMeta.recordedMinutes;
+      var recordedOvertimeHours = overtimeMeta.recordedHours;
+      var includedOvertimeMinutes = overtimeMeta.includedMinutes;
+      var includedOvertimeHours = overtimeMeta.includedHours;
       var privateEnabled = config.privateReconciliationEnabled === true;
       var privateUnlocked = Boolean(state.payrollPrivateUnlocked || privateEnabled);
-      var privateRemainingHours = Math.max(0, recordedOvertimeHours - Math.max(0, config.overtimeHoursMonthly));
+      var privateRemainingHours = overtimeMeta.excludedHours;
       var privateHourlyRate = Math.max(0, Number(config.privateReconciliationHourlyRate) || 0);
       var privateAmount = Math.round(privateRemainingHours * privateHourlyRate * 100) / 100;
       var regions = api && Array.isArray(api.ITALIAN_REGIONS) ? api.ITALIAN_REGIONS : ['Lombardia'];
@@ -1691,7 +1692,7 @@ function getCalendarSelectedDateKey(month) {
           '<span class="payroll-calculator-config-entry-icon">' + icons.settings + '</span>' +
           '<span class="payroll-calculator-config-entry-copy"><small>DATI PER LA STIMA</small><strong>Retribuzione e dati fiscali</strong><p>' +
             escapeHtml(config.baseMonthlyGross > 0
-              ? (money(config.baseMonthlyGross) + ' · ' + config.salaryMonths + ' mensilità · ' + config.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h extra')
+              ? (money(config.baseMonthlyGross) + ' · ' + config.salaryMonths + ' mensilità · ' + includedOvertimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h extra registrate')
               : 'Nessun dato precompilato: imposta i tuoi valori') +
           '</p><em>' + escapeHtml(config.region ? (config.region + (config.municipality ? (' · ' + config.municipality) : ' · Comune da inserire')) : 'Residenza da configurare') + '</em></span>' +
           '<span class="payroll-calculator-config-entry-arrow">' + icons.right + '</span>' +
@@ -1735,12 +1736,16 @@ function getCalendarSelectedDateKey(month) {
           '<div class="payroll-calculator-grid">' +
             '<label class="payroll-calculator-field"><span>LORDO MENSILE ORDINARIO</span><div><b>€</b><input data-payroll-field="baseMonthlyGross" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.baseMonthlyGross)) + '"></div></label>' +
             '<label class="payroll-calculator-field"><span>MENSILITÀ CONTRATTUALI</span><div class="is-select"><select data-payroll-field="salaryMonths"><option value="12"' + (config.salaryMonths === 12 ? ' selected' : '') + '>12 mensilità</option><option value="13"' + (config.salaryMonths === 13 ? ' selected' : '') + '>13 · con tredicesima</option><option value="14"' + (config.salaryMonths === 14 ? ' selected' : '') + '>14 · con tredicesima e quattordicesima</option></select></div><small>Le mensilità aggiuntive non includono automaticamente gli straordinari.</small></label>' +
-            '<label class="payroll-calculator-field"><span>ORE STRAORDINARIE AL MESE</span><div><input data-payroll-field="overtimeHoursMonthly" data-payroll-decimal type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.overtimeHoursMonthly)) + '"><em>h</em></div></label>' +
             '<label class="payroll-calculator-field"><span>PAGA STRAORDINARIA LORDA</span><div><b>€</b><input data-payroll-field="overtimeHourlyRate" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.overtimeHourlyRate)) + '"><em>/h</em></div></label>' +
             '<label class="payroll-calculator-field"><span>MESI CON STRAORDINARI</span><div><input data-payroll-field="monthsWithOvertime" data-payroll-integer type="number" inputmode="numeric" min="0" max="12" value="' + escapeHtml(String(config.monthsWithOvertime)) + '"><em>mesi</em></div></label>' +
             '<label class="payroll-calculator-field"><span>ALTRI COMPENSI LORDI ANNUI</span><div><b>€</b><input data-payroll-field="otherAnnualGross" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(config.otherAnnualGross)) + '"></div></label>' +
           '</div>' +
-          (recordedOvertimeHours > 0 ? '<button class="payroll-calculator-recorded" type="button" data-use-recorded-overtime="' + recordedOvertimeHours.toFixed(4) + '">' + icons.clock + '<span><b>Usa le ore registrate nell’app</b><small>' + escapeHtml(formatDuration(recordedOvertimeMinutes)) + ' in ' + escapeHtml(periodLabel) + '</small></span>' + icons.right + '</button>' : '') +
+          '<div class="payroll-calculator-recorded is-automatic">' + icons.clock + '<span><b>Ore straordinarie dal calendario</b><small>Si aggiornano automaticamente con le giornate del mese.</small></span><strong data-payroll-recorded-overtime>' + escapeHtml(formatDuration(recordedOvertimeMinutes)) + '</strong></div>' +
+          '<div class="payroll-estimate-limit-setting payroll-calculator-overtime-limit' + (config.overtimeLimitEnabled ? ' is-enabled' : '') + '" data-payroll-overtime-limit-setting>' +
+            '<input type="hidden" data-payroll-field="overtimeLimitEnabled" value="' + (config.overtimeLimitEnabled ? 'true' : 'false') + '">' +
+            '<div class="payroll-estimate-limit-head"><span class="payroll-estimate-limit-icon">' + icons.star + '</span><div><strong>Limita le ore nel cedolino</strong><p>La stima usa tutte le ore registrate, oppure al massimo il limite scelto.</p></div><button type="button" role="switch" aria-checked="' + (config.overtimeLimitEnabled ? 'true' : 'false') + '" aria-pressed="' + (config.overtimeLimitEnabled ? 'true' : 'false') + '" data-payroll-overtime-limit-toggle><i></i></button></div>' +
+            '<label class="payroll-calculator-field"><span>ORE STRAORDINARIE MASSIME</span><div><input data-payroll-field="overtimeHoursLimit" data-payroll-decimal type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(config.overtimeHoursLimit ? formatEditorDecimal(config.overtimeHoursLimit) : '') + '" placeholder="es. 20"><em>h</em></div><small data-payroll-overtime-limit-note>' + escapeHtml(config.overtimeLimitEnabled ? (formatDuration(includedOvertimeMinutes) + ' conteggiate su ' + formatDuration(recordedOvertimeMinutes)) : 'Nessun limite applicato') + '</small></label>' +
+          '</div>' +
         '</details>'
       );
       html.push(
@@ -1764,7 +1769,7 @@ function getCalendarSelectedDateKey(month) {
             '<input type="hidden" data-payroll-field="privateReconciliationEnabled" value="' + (privateEnabled ? 'true' : 'false') + '">' +
             '<div class="payroll-private-head"><span class="payroll-private-icon">' + icons.lock + '</span><div><small>VOCE PRIVATA</small><h2>Nero</h2><p>Anticipo da regolarizzare a fine mese.</p></div><button type="button" role="switch" aria-checked="' + (privateEnabled ? 'true' : 'false') + '" aria-pressed="' + (privateEnabled ? 'true' : 'false') + '" data-payroll-private-toggle><i></i></button></div>' +
             '<div class="payroll-private-content">' +
-              '<div class="payroll-private-equation"><span><small>REGISTRATE</small><b>' + escapeHtml(recordedOvertimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>−</i><span><small>IN CEDOLINO</small><b data-payroll-private-included>' + escapeHtml(config.overtimeHoursMonthly.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>=</i><span class="is-result"><small>RESIDUE</small><b data-payroll-private-hours>' + escapeHtml(privateRemainingHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span></div>' +
+              '<div class="payroll-private-equation"><span><small>REGISTRATE</small><b>' + escapeHtml(recordedOvertimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>−</i><span><small>IN CEDOLINO</small><b data-payroll-private-included>' + escapeHtml(includedOvertimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>=</i><span class="is-result"><small>RESIDUE</small><b data-payroll-private-hours>' + escapeHtml(privateRemainingHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span></div>' +
               '<div class="payroll-private-rate-row"><label class="payroll-calculator-field"><span>QUANTO VENGONO PAGATE</span><div><b>€</b><input data-payroll-field="privateReconciliationHourlyRate" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(privateHourlyRate)) + '"><em>/h</em></div></label><span class="payroll-private-total"><small>TOTALE DA REGOLARIZZARE</small><strong data-payroll-private-amount>' + escapeHtml(money(privateAmount)) + '</strong></span></div>' +
               '<p class="payroll-private-warning">Questa voce non entra nel netto fiscale stimato e deve essere riconciliata con il cedolino definitivo.</p>' +
             '</div>' +
@@ -1963,7 +1968,7 @@ function getCalendarSelectedDateKey(month) {
               (photoCount > 1 ? '<b>' + photoCount + '</b>' : '') +
             '</span>' +
             '<span class="payroll-archive-copy"><strong>' + escapeHtml(getPayslipMonthLabel(item)) + '</strong><small>' +
-              photoCount + (photoCount === 1 ? ' foto salvata' : ' foto salvate') +
+              escapeHtml(String(item.company || '').trim() || (photoCount + (photoCount === 1 ? ' foto salvata' : ' foto salvate'))) +
             '</small></span>' +
             '<span class="payroll-archive-amount">' + formatMoneyEuro(item.netto) + '</span>' +
             '<span class="payroll-archive-chevron">' + icons.right + '</span>' +
@@ -1998,16 +2003,18 @@ function getCalendarSelectedDateKey(month) {
       var created = new Date(Number(payslip.createdAt) || Date.now());
       var createdLabel = created.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
       var payslipNotes = String(payslip.notes || '').trim();
+      var company = String(payslip.company || '').trim();
+      var gross = Math.max(0, parseDecimalInput(payslip.lordo, 0));
       var hourlyRate = parseDecimalInput(payslip.hourlyRate, 0);
       var overtimeRate = parseDecimalInput(payslip.overtimeRate, 0);
       return '<div class="profile-subpage-top payroll-page-top"><button data-close-payslip-detail="1" aria-label="Torna indietro">' + icons.left + '</button><div><span>CEDOLINI</span><h1>Dettaglio</h1></div><i></i></div>' +
         '<div class="stack payroll-stack payroll-detail-stack">' +
-          '<section class="payroll-detail-hero"><div><small>CEDOLINO</small><h2>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</h2><span>Salvato il ' + escapeHtml(createdLabel) + '</span></div><strong>' + formatMoneyEuro(payslip.netto) + '</strong></section>' +
+          '<section class="payroll-detail-hero"><div><small>CEDOLINO</small><h2>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</h2><span>' + escapeHtml(company || ('Salvato il ' + createdLabel)) + '</span></div><strong>' + formatMoneyEuro(payslip.netto) + '</strong></section>' +
           '<section class="payroll-panel payroll-documents"><div class="payroll-section-head"><div><small>DOCUMENTI</small><h2>' + (photosLoading ? 'Carico le foto...' : (photoCount + (photoCount === 1 ? ' foto salvata' : ' foto salvate'))) + '</h2></div><span class="payroll-readonly-badge">Sola lettura</span></div>' +
             (photos.length ? '<div class="payroll-photo-grid is-readonly">' + renderPayrollPhotoGrid(photos, 'archive', payslip.id, false) + '</div>' : '') +
             '<p class="payroll-help">' + (photosLoading ? 'Recupero solo i documenti di questo cedolino dal database.' : 'Tocca una foto per aprirla a schermo intero. Da questa vista non puoi modificare o cancellare immagini.') + '</p>' +
           '</section>' +
-          '<section class="payroll-detail-info"><div><span>PERIODO</span><strong>' + escapeHtml(getPayslipMonthLabel(payslip)) + '</strong></div><div><span>IMPORTO RICEVUTO</span><strong>' + formatMoneyEuro(payslip.netto) + '</strong></div></section>' +
+          '<section class="payroll-detail-info is-three"><div><span>AZIENDA</span><strong>' + escapeHtml(company || '--') + '</strong></div><div><span>LORDO</span><strong>' + (gross > 0 ? formatMoneyEuro(gross) : '--') + '</strong></div><div><span>NETTO</span><strong>' + formatMoneyEuro(payslip.netto) + '</strong></div></section>' +
           '<section class="payroll-panel payroll-detail-compensation"><div class="payroll-section-head"><div><small>DATI DEL MESE</small><h2>Tariffe e note</h2></div></div>' +
             '<div class="payroll-detail-rate-grid"><div><span>PAGA ORARIA</span><strong>' + (hourlyRate > 0 ? (formatMoneyEuro(hourlyRate) + '/h') : '--') + '</strong></div><div><span>ORA STRAORDINARIA</span><strong>' + (overtimeRate > 0 ? (formatMoneyEuro(overtimeRate) + '/h') : '--') + '</strong></div></div>' +
             '<div class="payroll-detail-notes"><span>NOTE</span><p>' + (payslipNotes ? escapeHtml(payslipNotes) : 'Nessuna nota per questo mese.') + '</p></div>' +
@@ -2023,6 +2030,7 @@ function getCalendarSelectedDateKey(month) {
       var editing = Boolean(draft.id);
       var previousRates = findPreviousPayslipWithRates(draft);
       var reuseRates = Boolean(draft.reusePreviousRates);
+      var rememberCompany = draft.rememberCompany === true;
       var reuseHelp = previousRates
         ? ('Copia da ' + getPayslipMonthLabel(previousRates))
         : 'Nessun mese precedente con tariffe salvate';
@@ -2036,7 +2044,11 @@ function getCalendarSelectedDateKey(month) {
             (photos.length ? '<div class="payroll-photo-grid">' + renderPayrollPhotoGrid(photos, 'draft', '', true) + '</div>' : '<div class="payroll-photo-empty"><span>' + icons.receipt + '</span><strong>Nessuna foto</strong><p>Fotografa tutte le pagine oppure sceglile dalla galleria.</p></div>') +
             '<div class="payroll-upload-actions"><button class="solid" data-trigger-payslip-camera="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Scatta foto</button><button class="ghost" data-trigger-payslip-gallery="1" ' + (state.payslipBusy ? 'disabled' : '') + '>Apri galleria</button></div>' +
           '</section>' +
-          '<section class="payroll-panel"><div class="payroll-section-head"><div><small>3. IMPORTO</small><h2>Quanto hai ricevuto?</h2></div></div><label class="payroll-net-input"><span>EUR</span><input id="payslipNetto" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '" placeholder="0,00"></label><p class="payroll-help">Inserisci il netto effettivamente accreditato.</p></section>' +
+          '<section class="payroll-panel payroll-company-amount-panel"><div class="payroll-section-head"><div><small>3. DATI CEDOLINO</small><h2>Azienda e importi</h2></div></div>' +
+            '<label class="payroll-company-field"><span>AZIENDA</span><input id="payslipCompany" type="text" maxlength="120" autocomplete="organization" value="' + escapeHtml(draft.company || '') + '" placeholder="Nome della ditta"></label>' +
+            '<button type="button" role="switch" class="payroll-company-default ' + (rememberCompany ? 'is-on' : '') + '" data-toggle-payslip-company-default="1" aria-checked="' + (rememberCompany ? 'true' : 'false') + '" aria-pressed="' + (rememberCompany ? 'true' : 'false') + '"><span>' + icons.briefcase + '</span><span><strong>Proponi questa azienda ogni mese</strong><small>Potrai comunque cambiarla in ogni cedolino.</small></span><i><b></b></i></button>' +
+            '<div class="payroll-amount-grid"><label><span>NETTO ACCREDITATO</span><div class="payroll-net-input"><span>EUR</span><input id="payslipNetto" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.netto || 0)) + '" placeholder="0,00"></div></label><label><span>LORDO DEL MESE</span><div class="payroll-net-input is-gross"><span>EUR</span><input id="payslipLordo" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.lordo || 0)) + '" placeholder="0,00"></div></label></div>' +
+            '<p class="payroll-help">Il netto resta l’importo ricevuto; il lordo sarà usato nei dettagli e nei report.</p></section>' +
           '<section class="payroll-panel payroll-rates-panel"><div class="payroll-section-head"><div><small>4. TARIFFE E NOTE</small><h2>Dettagli del mese</h2></div></div>' +
             '<button type="button" role="switch" class="payroll-rate-reuse ' + (reuseRates ? 'is-on' : '') + '" data-toggle-payslip-rate-reuse="1" aria-checked="' + (reuseRates ? 'true' : 'false') + '" aria-pressed="' + (reuseRates ? 'true' : 'false') + '" ' + (!previousRates && !reuseRates ? 'disabled' : '') + '><span class="payroll-rate-reuse-icon">' + icons.activity + '</span><span class="payroll-rate-reuse-copy"><strong>Usa le tariffe del mese precedente</strong><small>' + escapeHtml(reuseHelp) + '</small></span><span class="payroll-rate-switch"><i></i></span></button>' +
             '<div class="payroll-rate-grid"><label class="payroll-rate-field"><span>PAGA ORARIA</span><div><b>EUR</b><input id="payslipHourlyRate" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.hourlyRate || 0)) + '" placeholder="0,00" ' + (reuseRates ? 'readonly' : '') + '><em>/h</em></div></label><label class="payroll-rate-field"><span>STRAORDINARIO</span><div><b>EUR</b><input id="payslipOvertimeRate" type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(draft.overtimeRate || 0)) + '" placeholder="0,00" ' + (reuseRates ? 'readonly' : '') + '><em>/h</em></div></label></div>' +
