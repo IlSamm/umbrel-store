@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.10-20260825a';
+var PLATFORM_BUILD = '1.8.11-20260825b';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,9 +26,9 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Nuova schermata di avvio con il marchio ufficiale GestOre e uno stile piu pulito.',
-  'La barra segue ora preparazione, caricamento del profilo e disponibilita dei dati.',
-  'Avvio piu rapido, senza orologio, numeri tecnici o passaggi su schermate vuote.',
+  'Schermata di avvio ancora piu essenziale con soltanto marchio e nome GestOre.',
+  'Nuovo contorno luminoso, riflesso sul logo e gradiente animato sulla parola Ore.',
+  'Rimossi dalla vista messaggi, tagline e barra per un ingresso piu pulito.',
   'Account, documenti e dati gia salvati restano invariati.'
 ];
 

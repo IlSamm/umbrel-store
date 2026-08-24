@@ -162,9 +162,11 @@ test('lo splash usa il marchio GestOre e segue le vere fasi di avvio', () => {
 
   assert.match(index, /rel="preload" as="image" href="assets\/icons\/gestore-mark\.png"/);
   assert.match(index, /go-splash-mark-stage/);
-  assert.match(index, /id="splashProgressFill"/);
-  assert.doesNotMatch(index, /go-time-loader|go-time-loader-digits/);
+  assert.match(index, /go-splash-accessible-status/);
+  assert.doesNotMatch(index, /go-time-loader|go-time-loader-digits|go-splash-tagline|go-splash-footer|go-splash-loader/);
   assert.match(styles, /goSplashStageReveal/);
+  assert.match(styles, /goSplashEdgeDrift/);
+  assert.match(styles, /goSplashWordmarkShimmer/);
   assert.match(styles, /--go-splash-progress/);
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(styles, /goTimeRoll|goTimeOrbit/);
