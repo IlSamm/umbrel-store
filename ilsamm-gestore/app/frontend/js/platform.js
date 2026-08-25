@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.14-20260825e';
+var PLATFORM_BUILD = '1.8.15-20260825f';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'La schermata Ferie ha un nuovo saldo annuale piu chiaro e leggibile.',
-  'Ferie utilizzate e pianificate sono separate, con percentuale residua e prossima assenza.',
-  'Lo storico mostra prima i periodi futuri e poi le giornate gia utilizzate.',
-  'Il logo della schermata di avvio ora viene mostrato interamente anche su iPhone.'
+  'Nuovo Centro mese con un riepilogo intelligente di giornate, cedolino, sincronizzazione e report.',
+  'Le giornate mancanti non rendono mai obbligatori sabato e domenica.',
+  'Confronta la stima dello stipendio con il cedolino reale e apre subito report e statistiche.',
+  'Feedback di salvataggio e conferme ora sono piu chiari e accessibili.'
 ];
 
 async function readPlatformJson(response) {

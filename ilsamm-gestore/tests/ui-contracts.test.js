@@ -43,6 +43,26 @@ test('calendario, ricerca e pagine legali vengono aperti dentro GestOre', () => 
   assert.match(features, /global-search-overlay/);
 });
 
+test('il Centro mese collega home, controlli, report e cache offline', () => {
+  const index = read('app/frontend/index.html');
+  const views = read('app/frontend/js/views.js');
+  const bindings = read('app/frontend/js/bindings.js');
+  const core = read('app/frontend/js/core.js');
+  const review = read('app/frontend/js/monthly-review.js');
+  const worker = read('app/frontend/service-worker.js');
+
+  assert.match(index, /js\/monthly-review\.js/);
+  assert.match(views, /GestOreMonthlyReview\.renderHomeCard/);
+  assert.match(views, /GestOreMonthlyReview\.renderOverlay/);
+  assert.match(bindings, /homeShowMonthlyReview/);
+  assert.match(core, /homeShowMonthlyReview:\s*true/);
+  assert.match(review, /Centro mese/);
+  assert.match(review, /openPdfExportDialog\('monthly'\)/);
+  assert.match(review, /weekday >= 5/);
+  assert.match(worker, /styles\/monthly-review\.css/);
+  assert.match(worker, /js\/monthly-review\.js/);
+});
+
 test('gli avatar predefiniti usano il set completo di mascotte', () => {
   const views = read('app/frontend/js/views.js');
   const releaseStyles = read('app/frontend/styles/release-181.css');

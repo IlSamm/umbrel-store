@@ -45,6 +45,8 @@ var state = {
       settingsDraft: {},
       currentMonth: new Date(),
       salaryMonth: new Date(),
+      monthlyReviewDate: new Date(),
+      monthlyReviewOpen: false,
       statsRange: 'month',
       calendarFilter: 'all',
       calendarView: 'month',
@@ -1777,6 +1779,7 @@ var state = {
       state.payslipDeletePendingId = '';
       state.payslipViewer = null;
       state.payslipStatus = 'Cedolino eliminato dal database.';
+      if (typeof confirmImportantAction === 'function') confirmImportantAction('Cedolino eliminato dal database', 'heavy');
       render();
       return true;
     }
@@ -2051,6 +2054,7 @@ var state = {
       state.payslipDraft = makeEmptyPayslipDraft();
       state.payslipStatus = 'Cedolino salvato nel database.';
       state.activeTab = 'payslips';
+      if (typeof confirmImportantAction === 'function') confirmImportantAction('Cedolino salvato nel database', 'medium');
       render();
       return true;
     }

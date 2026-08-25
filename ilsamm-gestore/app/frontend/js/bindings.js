@@ -957,6 +957,7 @@ function bindEvents() {
         }
         state.payslipEstimateStatus = 'Dati aggiornati per ' + monthNames[(Number(state.payslipEstimateMonth) || 1) - 1] + ' ' + state.payslipEstimateYear + '.';
         state.payslipEstimateConfigOpen = false;
+        if (typeof confirmImportantAction === 'function') confirmImportantAction('Stima stipendio aggiornata', 'medium');
         render();
       };
       document.querySelectorAll('[data-open-payslip-stats]').forEach(function (btn) {
@@ -1551,6 +1552,7 @@ function bindEvents() {
         state.vacationStatus = 'Disponibilita ferie aggiornata.';
         state.vacationManagerOpen = false;
         state.vacationManagerError = '';
+        if (typeof confirmImportantAction === 'function') confirmImportantAction('Disponibilita ferie aggiornata', 'medium');
         render();
       };
       var applyVacationRange = document.querySelector('[data-apply-vacation-range]');
@@ -1574,6 +1576,7 @@ function bindEvents() {
           : 'Nessun giorno aggiunto: il periodo non contiene giornate lavorative libere.';
         state.vacationManagerOpen = false;
         state.vacationManagerError = '';
+        if (result.added && typeof confirmImportantAction === 'function') confirmImportantAction('Ferie aggiunte al calendario', 'medium');
         render();
       };
 
@@ -1661,6 +1664,7 @@ function bindEvents() {
           var allowed = [
             'homeShowQuickActions',
             'homeShowActionCenter',
+            'homeShowMonthlyReview',
             'homeShowWeeklyAnalytics',
             'homeShowMonthlyAnalytics',
             'homeShowSalaryPreview'

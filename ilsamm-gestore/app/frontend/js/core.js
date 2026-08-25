@@ -69,6 +69,7 @@ var errorBox = document.getElementById('errorBox');
       protectedHistoryFrequency: 'daily',
       homeShowQuickActions: true,
       homeShowActionCenter: true,
+      homeShowMonthlyReview: true,
       homeShowWeeklyAnalytics: true,
       homeShowMonthlyAnalytics: true,
       homeShowSalaryPreview: false,
@@ -83,8 +84,8 @@ var errorBox = document.getElementById('errorBox');
       payrollEstimateByMonth: {},
       defaultPayslipCompany: '',
       weekdayMode: 'monday',
-      version: '1.8.14',
-      build: '20260825e',
+      version: '1.8.15',
+      build: '20260825f',
       appName: 'GestOre'
     };
 
@@ -275,6 +276,7 @@ var errorBox = document.getElementById('errorBox');
         Boolean(candidate.smartReminderPayslips) === Boolean(defaultSettings.smartReminderPayslips) &&
         Boolean(candidate.homeShowQuickActions) === Boolean(defaultSettings.homeShowQuickActions) &&
         Boolean(candidate.homeShowActionCenter) === Boolean(defaultSettings.homeShowActionCenter) &&
+        Boolean(candidate.homeShowMonthlyReview) === Boolean(defaultSettings.homeShowMonthlyReview) &&
         Boolean(candidate.homeShowWeeklyAnalytics) === Boolean(defaultSettings.homeShowWeeklyAnalytics) &&
         Boolean(candidate.homeShowMonthlyAnalytics) === Boolean(defaultSettings.homeShowMonthlyAnalytics) &&
         Boolean(candidate.homeShowSalaryPreview) === Boolean(defaultSettings.homeShowSalaryPreview) &&
@@ -437,6 +439,7 @@ var errorBox = document.getElementById('errorBox');
       }
       merged.homeShowQuickActions = merged.homeShowQuickActions !== false;
       merged.homeShowActionCenter = merged.homeShowActionCenter !== false;
+      merged.homeShowMonthlyReview = merged.homeShowMonthlyReview !== false;
       merged.homeShowWeeklyAnalytics = merged.homeShowWeeklyAnalytics !== false;
       merged.homeShowMonthlyAnalytics = merged.homeShowMonthlyAnalytics !== false;
       merged.homeShowSalaryPreview = merged.homeShowSalaryPreview === true;
@@ -2042,6 +2045,27 @@ var errorBox = document.getElementById('errorBox');
       if (!state || !state.lastSyncedAt) return label + '.';
       var when = new Date(state.lastSyncedAt);
       return label + ' alle ' + pad(when.getHours()) + ':' + pad(when.getMinutes()) + '.';
+    }
+    var appStatusAnnouncementTimer = 0;
+    function announceAppStatus(message) {
+      var node = document.getElementById('goA11yStatus');
+      if (!node) return;
+      if (appStatusAnnouncementTimer) window.clearTimeout(appStatusAnnouncementTimer);
+      node.textContent = '';
+      window.requestAnimationFrame(function () {
+        node.textContent = String(message || '');
+        appStatusAnnouncementTimer = window.setTimeout(function () {
+          node.textContent = '';
+          appStatusAnnouncementTimer = 0;
+        }, 2800);
+      });
+    }
+    function confirmImportantAction(message, hapticStyle) {
+      announceAppStatus(message);
+      var nativeBridge = window.GestOreNative;
+      if (nativeBridge && typeof nativeBridge.haptic === 'function') {
+        Promise.resolve(nativeBridge.haptic(hapticStyle || 'medium')).catch(function () {});
+      }
     }
     function makeServerMutationId(prefix) {
       return String(prefix || 'sync') + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);

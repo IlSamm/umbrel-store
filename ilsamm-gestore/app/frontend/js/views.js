@@ -238,6 +238,7 @@
           homeDayCard +
           (state.settings.homeShowQuickActions !== false ? homeQuickActions : '') +
           (typeof renderHomeCompletionCenter === 'function' ? renderHomeCompletionCenter() : '') +
+          (window.GestOreMonthlyReview && typeof window.GestOreMonthlyReview.renderHomeCard === 'function' ? window.GestOreMonthlyReview.renderHomeCard() : '') +
           homeSalaryPreview +
           '<section class="go-card go-analytics-card go-analysis-card-v3 go-week-card' + (state.settings.homeShowWeeklyAnalytics === false ? ' is-home-hidden' : '') + '">' +
             '<div class="go-card-head go-analysis-head-v3"><div><div class="go-kicker">Settimana</div><div class="go-card-title">Ritmo settimanale</div></div><div class="go-card-badge">' + weekPercentValue + '%</div></div>' +
@@ -2355,6 +2356,7 @@ function getCalendarSelectedDateKey(month) {
       var homeSectionsEnabled = [
         state.settingsDraft.homeShowQuickActions,
         state.settingsDraft.homeShowActionCenter,
+        state.settingsDraft.homeShowMonthlyReview,
         state.settingsDraft.homeShowWeeklyAnalytics,
         state.settingsDraft.homeShowMonthlyAnalytics,
         state.settingsDraft.homeShowSalaryPreview
@@ -2378,6 +2380,8 @@ function getCalendarSelectedDateKey(month) {
             homeOption('homeShowQuickActions', 'green', icons.clock, 'Azioni rapide') +
             '<div class="settings-v2-divider"></div>' +
             homeOption('homeShowActionCenter', 'blue', icons.check, 'Da completare') +
+            '<div class="settings-v2-divider"></div>' +
+            homeOption('homeShowMonthlyReview', 'violet', icons.target, 'Centro mese') +
             '<div class="settings-v2-divider"></div>' +
             homeOption('homeShowWeeklyAnalytics', 'violet', icons.activity, 'Ritmo settimanale') +
             '<div class="settings-v2-divider"></div>' +
@@ -2667,7 +2671,8 @@ function getCalendarSelectedDateKey(month) {
         (typeof renderAccountGate === 'function' ? renderAccountGate() : '') +
         (typeof renderPasskeyOverlay === 'function' ? renderPasskeyOverlay() : '') +
         (typeof renderAdminSessionUi === 'function' ? renderAdminSessionUi() : '') +
-        (typeof renderPlatformOverlays === 'function' ? renderPlatformOverlays() : '');
+        (typeof renderPlatformOverlays === 'function' ? renderPlatformOverlays() : '') +
+        (window.GestOreMonthlyReview && typeof window.GestOreMonthlyReview.renderOverlay === 'function' ? window.GestOreMonthlyReview.renderOverlay() : '');
     }
 
     function getRenderMotionKey() {
@@ -2722,6 +2727,7 @@ function getCalendarSelectedDateKey(month) {
       }
 
       bindEvents();
+      if (window.GestOreMonthlyReview && typeof window.GestOreMonthlyReview.bindEvents === 'function') window.GestOreMonthlyReview.bindEvents();
       if (typeof bindAccountEvents === 'function') bindAccountEvents();
       if (typeof bindPlatformEvents === 'function') bindPlatformEvents();
       if (state.pdfPreviewOpen && typeof queuePdfPreviewRender === 'function') queuePdfPreviewRender();

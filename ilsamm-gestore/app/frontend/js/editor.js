@@ -257,6 +257,7 @@ var editorAutosaveTimer = 0;
       delete state.entries[key];
       state.confirmClearOpen = false;
       saveEntries();
+      if (typeof confirmImportantAction === 'function') confirmImportantAction('Giornata cancellata', 'heavy');
       closeEditor({ skipAutosave: true });
     }
     function saveEditor() {

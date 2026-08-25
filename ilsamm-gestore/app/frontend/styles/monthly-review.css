@@ -1,0 +1,879 @@
+/* Monthly close center: one compact entry point for hours, absences, salary and sync. */
+.home-month-review {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 94px;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  color: var(--go-text);
+  text-align: left;
+  border: 1px solid rgba(116, 153, 231, .22);
+  border-radius: var(--go-radius-card);
+  background:
+    radial-gradient(circle at 8% 16%, rgba(69, 180, 255, .16), transparent 34%),
+    linear-gradient(145deg, rgba(25, 42, 83, .92), rgba(5, 12, 31, .96));
+  box-shadow: 0 18px 38px rgba(0, 4, 19, .24);
+}
+
+.home-month-review::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, .055), transparent 32%, transparent 68%, rgba(130, 88, 255, .045));
+}
+
+.home-month-review.is-warning {
+  border-color: rgba(151, 114, 255, .28);
+}
+
+.home-month-review-ring,
+.month-review-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, #53c9ff 0 var(--month-review-score), #9062ff var(--month-review-score) calc(var(--month-review-score) + 1%), rgba(112, 135, 191, .14) calc(var(--month-review-score) + 1%) 100%);
+  box-shadow: 0 0 22px rgba(73, 147, 255, .13);
+}
+
+.home-month-review-ring {
+  width: 58px;
+  height: 58px;
+}
+
+.home-month-review-ring::before,
+.month-review-ring::before {
+  position: absolute;
+  content: "";
+  border-radius: inherit;
+  background: linear-gradient(145deg, #101d3d, #050b1d);
+  box-shadow: inset 0 0 0 1px rgba(130, 157, 220, .13);
+}
+
+.home-month-review-ring::before {
+  inset: 6px;
+}
+
+.home-month-review-ring b,
+.home-month-review-ring small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  text-align: center;
+}
+
+.home-month-review-ring b {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.home-month-review-ring small {
+  margin-top: 2px;
+  color: rgba(184, 199, 233, .58);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.home-month-review-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.home-month-review-copy > small {
+  color: #86a4ff;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .15em;
+}
+
+.home-month-review-copy > strong {
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+}
+
+.home-month-review-copy > em {
+  overflow: hidden;
+  color: rgba(190, 204, 235, .62);
+  font-size: 9px;
+  font-style: normal;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.home-month-review-metrics {
+  min-width: 68px;
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+
+.home-month-review-metrics b {
+  color: #f9fbff;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.home-month-review-metrics small {
+  color: #a779ff;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.home-month-review > i {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: rgba(177, 195, 235, .5);
+  font-style: normal;
+}
+
+.home-month-review > i svg {
+  width: 16px;
+  height: 16px;
+}
+
+.month-review-overlay {
+  position: fixed;
+  z-index: calc(var(--go-z-dialog) + 40);
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  color: var(--go-text);
+  background: rgba(1, 5, 16, .76);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  animation: month-review-fade .2s ease-out both;
+}
+
+.month-review-sheet {
+  position: relative;
+  overflow: hidden;
+  width: min(100%, 430px);
+  height: var(--real-app-vh, 100dvh);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  border-inline: 1px solid rgba(102, 137, 211, .13);
+  background:
+    radial-gradient(circle at 50% -2%, rgba(58, 99, 211, .24), transparent 34%),
+    linear-gradient(180deg, #07142e 0%, #030918 42%, #020713 100%);
+  box-shadow: 0 0 70px rgba(0, 4, 18, .62);
+  animation: month-review-rise .28s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.month-review-top {
+  flex: 0 0 auto;
+  min-height: calc(64px + env(safe-area-inset-top, 0px));
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: end;
+  gap: 10px;
+  padding: env(safe-area-inset-top, 0px) 16px 10px;
+  border-bottom: 1px solid rgba(117, 147, 211, .1);
+  background: linear-gradient(180deg, rgba(7, 18, 43, .98), rgba(7, 16, 37, .86));
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.month-review-top > button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: #a9c4ff;
+  border: 1px solid rgba(113, 151, 229, .2);
+  border-radius: 15px;
+  background: rgba(16, 31, 65, .72);
+}
+
+.month-review-top > button svg {
+  width: 19px;
+  height: 19px;
+}
+
+.month-review-top > div {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding-bottom: 2px;
+}
+
+.month-review-top small,
+.month-review-section-head small,
+.month-review-hero-copy > small,
+.month-review-period span,
+.month-review-kpis span,
+.month-review-salary-grid span,
+.month-review-actions small {
+  color: #89a6ff;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+.month-review-top h1 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.month-review-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 12px;
+  padding: 12px 14px calc(28px + env(safe-area-inset-bottom, 0px));
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+
+.month-review-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.month-review-period {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 9px;
+  padding: 7px;
+  border: 1px solid rgba(115, 146, 213, .15);
+  border-radius: 19px;
+  background: rgba(9, 18, 42, .72);
+}
+
+.month-review-period > button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: #91adff;
+  border: 1px solid rgba(111, 149, 231, .16);
+  border-radius: 13px;
+  background: rgba(35, 54, 100, .42);
+}
+
+.month-review-period > button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.month-review-period > div {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.month-review-period strong {
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.month-review-hero,
+.month-review-panel,
+.month-review-kpis,
+.month-review-actions {
+  border: 1px solid rgba(112, 146, 218, .18);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(25, 40, 76, .88), rgba(5, 12, 31, .95));
+  box-shadow: 0 16px 36px rgba(0, 4, 18, .2);
+}
+
+.month-review-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 150px;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 14% 32%, rgba(55, 193, 255, .2), transparent 34%),
+    radial-gradient(circle at 88% 8%, rgba(141, 85, 255, .19), transparent 36%),
+    linear-gradient(145deg, rgba(25, 45, 91, .94), rgba(5, 12, 31, .96));
+}
+
+.month-review-hero::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(118deg, rgba(255, 255, 255, .055), transparent 38%);
+}
+
+.month-review-ring {
+  width: 108px;
+  height: 108px;
+}
+
+.month-review-ring::before {
+  inset: 10px;
+}
+
+.month-review-ring > div {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.month-review-ring strong {
+  font-size: 27px;
+  line-height: 1;
+  letter-spacing: -.05em;
+}
+
+.month-review-ring span {
+  color: rgba(189, 204, 237, .62);
+  font-size: 9px;
+}
+
+.month-review-hero-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.month-review-hero-copy h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.08;
+  letter-spacing: -.035em;
+}
+
+.month-review-hero-copy p {
+  margin: 0;
+  color: rgba(191, 204, 236, .62);
+  font-size: 10px;
+}
+
+.month-review-hero.is-ready .month-review-hero-copy > small {
+  color: var(--go-status-ready);
+}
+
+.month-review-hero.is-warning .month-review-hero-copy > small {
+  color: var(--go-status-warning);
+}
+
+.month-review-kpis {
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(62px, auto);
+  min-height: 126px;
+}
+
+.month-review-kpis > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 13px 14px;
+}
+
+.month-review-kpis > div:nth-child(even) {
+  border-left: 1px solid rgba(113, 145, 211, .12);
+}
+
+.month-review-kpis > div:nth-child(n + 3) {
+  border-top: 1px solid rgba(113, 145, 211, .12);
+}
+
+.month-review-kpis strong {
+  overflow: hidden;
+  font-size: 17px;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.month-review-kpis small {
+  color: rgba(172, 188, 225, .52);
+  font-size: 8px;
+}
+
+.month-review-kpis .is-extra strong {
+  color: #ad7bff;
+}
+
+.month-review-kpis .is-covered strong {
+  color: #68c8ff;
+}
+
+.month-review-kpis .is-vacation strong {
+  color: #42d7ad;
+}
+
+.month-review-panel {
+  padding: 15px;
+}
+
+.month-review-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.month-review-section-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.month-review-section-head h2 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.12;
+  letter-spacing: -.025em;
+}
+
+.month-review-section-head > span,
+.month-review-section-head > b,
+.month-review-section-head > button {
+  min-width: 30px;
+  min-height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0 9px;
+  color: #a989ff;
+  font-size: 9px;
+  font-weight: 780;
+  border: 1px solid rgba(144, 99, 255, .2);
+  border-radius: 11px;
+  background: rgba(124, 77, 255, .1);
+}
+
+.month-review-section-head > span svg {
+  width: 17px;
+  height: 17px;
+}
+
+.month-review-checklist > div:last-child {
+  overflow: hidden;
+  border: 1px solid rgba(111, 142, 207, .13);
+  border-radius: 18px;
+  background: rgba(4, 10, 27, .38);
+}
+
+.month-review-check {
+  width: 100%;
+  min-height: 67px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto 14px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  color: var(--go-text);
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+
+.month-review-check + .month-review-check {
+  border-top: 1px solid rgba(111, 142, 207, .11);
+}
+
+.month-review-check-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: #7eb8ff;
+  border-radius: 13px;
+  background: rgba(59, 130, 246, .12);
+}
+
+.month-review-check.is-ready .month-review-check-icon {
+  color: var(--go-status-ready);
+  background: rgba(16, 185, 129, .11);
+}
+
+.month-review-check.is-warning .month-review-check-icon {
+  color: var(--go-status-warning);
+  background: rgba(139, 92, 246, .13);
+}
+
+.month-review-check-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.month-review-check-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.month-review-check-copy strong {
+  font-size: 12px;
+}
+
+.month-review-check-copy small {
+  overflow: hidden;
+  color: rgba(177, 192, 226, .56);
+  font-size: 8.5px;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.month-review-check-status {
+  padding: 5px 7px;
+  color: #7edbbd;
+  font-size: 7px;
+  font-weight: 800;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, .09);
+  white-space: nowrap;
+}
+
+.month-review-check.is-warning .month-review-check-status {
+  color: var(--go-status-warning);
+  background: rgba(139, 92, 246, .1);
+}
+
+.month-review-check.is-neutral .month-review-check-status {
+  color: var(--go-status-neutral);
+  background: rgba(129, 145, 181, .09);
+}
+
+.month-review-check > svg {
+  width: 14px;
+  height: 14px;
+  color: rgba(170, 187, 226, .42);
+}
+
+.month-review-missing > div:last-child {
+  display: grid;
+  gap: 7px;
+}
+
+.month-review-missing > div:last-child > button {
+  min-height: 49px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto 14px;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  color: var(--go-text);
+  text-align: left;
+  border: 1px solid rgba(133, 104, 234, .14);
+  border-radius: 14px;
+  background: rgba(62, 34, 118, .11);
+}
+
+.month-review-missing button > span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: #b386ff;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, .12);
+}
+
+.month-review-missing button > span svg,
+.month-review-missing button > svg {
+  width: 15px;
+  height: 15px;
+}
+
+.month-review-missing button strong {
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.month-review-missing button small,
+.month-review-missing p {
+  color: rgba(176, 190, 224, .54);
+  font-size: 8px;
+}
+
+.month-review-missing p {
+  margin: 3px 2px 0;
+}
+
+.month-review-salary-grid {
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid rgba(113, 145, 211, .13);
+  border-radius: 17px;
+  background: rgba(4, 10, 27, .38);
+}
+
+.month-review-salary-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.month-review-salary-grid > div + div:not(.is-delta) {
+  border-left: 1px solid rgba(113, 145, 211, .11);
+}
+
+.month-review-salary-grid .is-delta {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-top: 1px solid rgba(113, 145, 211, .11);
+}
+
+.month-review-salary-grid strong {
+  overflow: hidden;
+  font-size: 15px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.month-review-salary-grid .is-delta small {
+  grid-column: 1 / -1;
+  color: rgba(176, 191, 225, .55);
+  font-size: 8px;
+}
+
+.month-review-salary.is-higher .is-delta strong {
+  color: var(--go-status-ready);
+}
+
+.month-review-salary.is-lower .is-delta strong {
+  color: var(--go-status-danger);
+}
+
+.month-review-salary > button {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 0 12px;
+  color: #b99aff;
+  font-size: 10px;
+  font-weight: 760;
+  border: 1px solid rgba(142, 93, 255, .16);
+  border-radius: 13px;
+  background: rgba(113, 70, 220, .09);
+}
+
+.month-review-salary > button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.month-review-absence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.month-review-absence-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 11px;
+  border: 1px solid rgba(111, 142, 207, .12);
+  border-radius: 14px;
+  background: rgba(4, 10, 27, .36);
+}
+
+.month-review-absence-grid span {
+  color: rgba(174, 189, 223, .58);
+  font-size: 8px;
+}
+
+.month-review-absence-grid strong {
+  font-size: 13px;
+}
+
+.month-review-absence-grid .is-vacation strong {
+  color: #51cfff;
+}
+
+.month-review-absence-grid .is-sickness strong {
+  color: #ffb05c;
+}
+
+.month-review-absence-grid .is-permission strong {
+  color: #d777ff;
+}
+
+.month-review-absence-grid .is-holiday strong {
+  color: #ff7d98;
+}
+
+.month-review-actions {
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.month-review-actions > button {
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 13px;
+  color: var(--go-text);
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+
+.month-review-actions > button + button {
+  border-top: 1px solid rgba(113, 145, 211, .12);
+}
+
+.month-review-actions > button > span {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: #75bdff;
+  border-radius: 13px;
+  background: rgba(59, 130, 246, .12);
+}
+
+.month-review-actions > button:nth-child(2) > span {
+  color: #ae7cff;
+  background: rgba(139, 92, 246, .12);
+}
+
+.month-review-actions svg {
+  width: 18px;
+  height: 18px;
+}
+
+.month-review-actions > button > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.month-review-actions strong {
+  font-size: 11px;
+}
+
+.month-review-actions > button > svg {
+  width: 15px;
+  height: 15px;
+  color: rgba(174, 190, 226, .44);
+}
+
+.month-review-footnote {
+  margin: 0;
+  padding: 0 12px 2px;
+  color: rgba(164, 180, 217, .42);
+  font-size: 8px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+@keyframes month-review-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes month-review-rise {
+  from { opacity: .55; transform: translateY(10px) scale(.992); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 350px) {
+  .home-month-review {
+    grid-template-columns: 52px minmax(0, 1fr) auto 14px;
+    gap: 8px;
+    min-height: 84px;
+    padding: 11px;
+  }
+
+  .home-month-review-ring {
+    width: 50px;
+    height: 50px;
+  }
+
+  .home-month-review-copy > strong {
+    font-size: 13px;
+  }
+
+  .home-month-review-metrics {
+    min-width: 58px;
+  }
+
+  .home-month-review-metrics b {
+    font-size: 11px;
+  }
+
+  .month-review-scroll {
+    padding-inline: 10px;
+  }
+
+  .month-review-hero {
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 13px;
+    min-height: 132px;
+    padding: 14px;
+  }
+
+  .month-review-ring {
+    width: 88px;
+    height: 88px;
+  }
+
+  .month-review-ring strong {
+    font-size: 22px;
+  }
+
+  .month-review-hero-copy h2 {
+    font-size: 17px;
+  }
+
+  .month-review-check {
+    grid-template-columns: 34px minmax(0, 1fr) 13px;
+    gap: 8px;
+  }
+
+  .month-review-check-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .month-review-check-status {
+    display: none;
+  }
+
+  .month-review-kpis > div {
+    padding: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .month-review-overlay,
+  .month-review-sheet {
+    animation: none;
+  }
+}
