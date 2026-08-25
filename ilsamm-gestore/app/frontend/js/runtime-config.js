@@ -1,1 +1,1 @@
-window.GestOreRuntimeConfig = Object.freeze({ apiBaseUrl: '' });
+window.GestOreRuntimeConfig = Object.freeze({ apiBaseUrl: '', mode: 'web' });

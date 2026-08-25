@@ -9,12 +9,24 @@ const source = path.join(root, 'app', 'frontend');
 const output = path.join(root, 'www');
 const release = process.argv.includes('--release');
 const apiBaseUrl = String(process.env.GESTORE_API_BASE_URL || '').trim().replace(/\/+$/, '');
+const requestedMode = String(process.env.GESTORE_IOS_MODE || '').trim().toLowerCase();
+const runtimeMode = requestedMode || (apiBaseUrl ? 'hosted' : 'local');
+
+if (!['local', 'hosted'].includes(runtimeMode)) {
+  throw new Error('GESTORE_IOS_MODE must be either "local" or "hosted".');
+}
 
 if (apiBaseUrl && !/^https:\/\//i.test(apiBaseUrl) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(apiBaseUrl)) {
   throw new Error('GESTORE_API_BASE_URL must use HTTPS (localhost is allowed only for development).');
 }
-if (release && !/^https:\/\//i.test(apiBaseUrl)) {
-  throw new Error('A release build requires an HTTPS GESTORE_API_BASE_URL.');
+if (runtimeMode === 'local' && apiBaseUrl) {
+  throw new Error('GESTORE_API_BASE_URL must be empty when GESTORE_IOS_MODE=local.');
+}
+if (runtimeMode === 'hosted' && !apiBaseUrl) {
+  throw new Error('GESTORE_IOS_MODE=hosted requires GESTORE_API_BASE_URL.');
+}
+if (release && runtimeMode === 'hosted' && !/^https:\/\//i.test(apiBaseUrl)) {
+  throw new Error('A hosted release build requires an HTTPS GESTORE_API_BASE_URL.');
 }
 
 const resolvedOutput = path.resolve(output);
@@ -28,7 +40,7 @@ await cp(source, resolvedOutput, { recursive: true });
 
 await writeFile(
   path.join(resolvedOutput, 'js', 'runtime-config.js'),
-  `window.GestOreRuntimeConfig = Object.freeze({ apiBaseUrl: ${JSON.stringify(apiBaseUrl)} });\n`,
+  `window.GestOreRuntimeConfig = Object.freeze({ apiBaseUrl: ${JSON.stringify(apiBaseUrl)}, mode: ${JSON.stringify(runtimeMode)} });\n`,
   'utf8'
 );
 
@@ -51,4 +63,5 @@ if (!indexHtml.includes('js/native-runtime.js')) {
 }
 
 console.log(`iOS web bundle ready: ${path.relative(root, resolvedOutput)}`);
-console.log(apiBaseUrl ? `API: ${apiBaseUrl}` : 'API: same origin (development scaffold)');
+console.log(`Runtime mode: ${runtimeMode}`);
+console.log(apiBaseUrl ? `API: ${apiBaseUrl}` : 'API: disabled (device-local data)');

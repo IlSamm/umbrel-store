@@ -30,6 +30,10 @@ var errorBox = document.getElementById('errorBox');
     var runtimeServicesStarted = false;
     var reminderTimer = 0;
     var reminderLastSentKey = '';
+
+    function isLocalOnlyRuntime() {
+      return Boolean(window.GestOreRuntime && window.GestOreRuntime.localOnly === true);
+    }
     var LEGACY_ENTRY_KEYS = [
       'gestore-entries',
       'gestore-iphone-simple-v11',
@@ -84,8 +88,8 @@ var errorBox = document.getElementById('errorBox');
       payrollEstimateByMonth: {},
       defaultPayslipCompany: '',
       weekdayMode: 'monday',
-      version: '1.8.16',
-      build: '20260825g',
+      version: '1.8.17',
+      build: '20260825h',
       appName: 'GestOre'
     };
 
@@ -2024,6 +2028,7 @@ var errorBox = document.getElementById('errorBox');
       serverSyncRetryTimer = 0;
     }
     function scheduleServerSyncRetry() {
+      if (isLocalOnlyRuntime()) return;
       clearServerSyncRetry();
       serverSyncRetryAttempt = Math.min(serverSyncRetryAttempt + 1, 8);
       var delay = Math.min(60000, 900 * Math.pow(2, Math.max(0, serverSyncRetryAttempt - 1)));
@@ -2153,6 +2158,14 @@ var errorBox = document.getElementById('errorBox');
       throw new Error('Impossibile completare la sincronizzazione.');
     }
     async function syncStateToServer() {
+      if (isLocalOnlyRuntime()) {
+        serverSyncReady = true;
+        serverSyncLastError = '';
+        state.syncPending = false;
+        clearPendingSyncRecord();
+        setSyncStatus('Salvato su questo iPhone', Date.now());
+        return true;
+      }
       if (!serverSyncReady || serverSyncInFlight || !window.fetch) return false;
       var pendingRecord = readPendingSyncRecord();
       if (pendingRecord && serverSyncRevision <= serverSyncConfirmedRevision) {
@@ -2197,6 +2210,7 @@ var errorBox = document.getElementById('errorBox');
       return succeeded;
     }
     async function flushServerSyncNow() {
+      if (isLocalOnlyRuntime()) return true;
       if (!window.fetch) return false;
       var readyStartedAt = Date.now();
       while (!serverSyncReady) {
@@ -2233,6 +2247,14 @@ var errorBox = document.getElementById('errorBox');
       return false;
     }
     function queueServerSync() {
+      if (isLocalOnlyRuntime()) {
+        serverSyncReady = true;
+        serverSyncLastError = '';
+        state.syncPending = false;
+        clearPendingSyncRecord();
+        setSyncStatus('Salvato su questo iPhone', Date.now());
+        return;
+      }
       serverSyncRevision += 1;
       persistPendingSyncRecord();
       setSyncStatus('In attesa di sincronizzazione', 0);
@@ -2245,6 +2267,7 @@ var errorBox = document.getElementById('errorBox');
     }
     function persistPendingSnapshotOnPageHide() {
       saveSafetyBundle();
+      if (isLocalOnlyRuntime()) return;
       if (serverSyncRevision !== serverSyncConfirmedRevision) persistPendingSyncRecord();
       if (!serverSyncReady || serverSyncRevision === serverSyncConfirmedRevision) return;
       if (state && state.account && state.account.loaded && !state.account.authenticated) return;
@@ -2304,6 +2327,14 @@ var errorBox = document.getElementById('errorBox');
       };
     }
     async function bootstrapServerState() {
+      if (isLocalOnlyRuntime()) {
+        serverSyncReady = true;
+        serverSyncLastError = '';
+        state.syncPending = false;
+        clearPendingSyncRecord();
+        setSyncStatus('Dati disponibili su questo iPhone', 0);
+        return true;
+      }
       if (!window.fetch) {
         setSyncStatus('Solo sul dispositivo', 0);
         serverSyncReady = true;

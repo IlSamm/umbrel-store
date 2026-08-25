@@ -21,8 +21,8 @@ const [project, info, privacy] = await Promise.all([
 ]);
 
 const requirements = [
-  [project.includes('MARKETING_VERSION = 1.8.16;'), 'Xcode marketing version 1.8.16'],
-  [project.includes('CURRENT_PROJECT_VERSION = 1816;'), 'Xcode build number 1816'],
+  [project.includes('MARKETING_VERSION = 1.8.17;'), 'Xcode marketing version 1.8.17'],
+  [project.includes('CURRENT_PROJECT_VERSION = 1817;'), 'Xcode build number 1817'],
   [project.includes('PrivacyInfo.xcprivacy in Resources'), 'privacy manifest target membership'],
   [info.includes('NSCameraUsageDescription'), 'camera permission text'],
   [info.includes('NSPhotoLibraryUsageDescription'), 'photo library permission text'],

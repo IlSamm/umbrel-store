@@ -144,6 +144,19 @@ function maybeOpenRegistrationOnboarding() {
   return true;
 }
 
+function maybeOpenLocalOnboarding() {
+  if (!(typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime())) return false;
+  if (!state.account || !state.account.dataReady || state.onboardingOpen) return false;
+
+  window.setTimeout(function () {
+    if (state.onboardingOpen || typeof openOnboarding !== 'function') return;
+    if (typeof shouldShowOnboardingInvite === 'function' && shouldShowOnboardingInvite()) {
+      openOnboarding();
+    }
+  }, 0);
+  return true;
+}
+
 function getAccountDeviceCacheKey(userId) {
   return STORAGE_ACCOUNT_CACHE_PREFIX + String(userId || '').trim();
 }
@@ -259,9 +272,6 @@ function resetRuntimeAccountData(options) {
   state.payslipStatsOpen = false;
   state.payslipEstimateOpen = false;
   state.payslipEstimateConfigOpen = false;
-  state.payrollPrivateUnlocked = false;
-  state.payrollSecretTapCount = 0;
-  state.payrollSecretTapStartedAt = 0;
   state.privacyLocked = false;
   state.syncPending = opts.reloadFromDevice && typeof readPendingSyncRecord === 'function' ? Boolean(readPendingSyncRecord()) : false;
   state.syncStatus = opts.reloadFromDevice && state.syncPending ? 'In attesa di sincronizzazione' : 'In attesa di accesso';
@@ -620,6 +630,28 @@ async function loadAccountStorageUsage(force) {
 async function bootstrapAccountSession() {
   state.account.dataReady = false;
   state.account.dataError = '';
+  if (typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) {
+    state.account.loaded = true;
+    state.account.dataReady = true;
+    state.account.dataError = '';
+    state.account.authenticated = false;
+    state.account.setupRequired = false;
+    state.account.hasAccounts = false;
+    state.account.hasLegacyData = false;
+    state.account.user = null;
+    state.account.mode = 'local';
+    state.account.error = '';
+    state.account.notice = 'I dati restano su questo iPhone.';
+    await bootstrapServerState();
+    if (typeof hydrateLocalPayslipAssets === 'function') await hydrateLocalPayslipAssets();
+    if (window.GestOreSplash && typeof window.GestOreSplash.update === 'function') {
+      window.GestOreSplash.update('GestOre e pronta', 1, 'ready');
+    }
+    if (typeof render === 'function') render();
+    window.dispatchEvent(new CustomEvent('gestore:account-ready'));
+    maybeOpenLocalOnboarding();
+    return;
+  }
   try {
     var response = await fetch(ACCOUNT_STATUS_URL, { cache: 'no-store' });
     var payload = await readJsonResponse(response);
@@ -872,11 +904,62 @@ function getDownloadFilename(response, fallback) {
   return match && match[1] ? match[1] : fallback;
 }
 
+async function buildLocalPortableBackup() {
+  var items = Array.isArray(state.payslips) ? state.payslips : [];
+  for (var index = 0; index < items.length; index += 1) {
+    var current = items[index];
+    if (!normalizePayslipPhotos(current).length && getLocalPayslipPhotoRefs(current).length && typeof loadLocalPayslipAssets === 'function') {
+      items[index] = await loadLocalPayslipAssets(current);
+    }
+  }
+  state.payslips = normalizePayslipCollection(items);
+  return {
+    format: 'gestore-local-backup',
+    formatVersion: 1,
+    appVersion: String(state.settings && state.settings.version || ''),
+    exportedAt: Date.now(),
+    snapshot: buildStateSnapshot({ includePayslipPhotos: true })
+  };
+}
+
+async function restoreLocalPortableBackup(file) {
+  var text = await file.text();
+  var payload;
+  try { payload = JSON.parse(text); }
+  catch (err) { throw new Error('Il file scelto non e un backup GestOre valido.'); }
+  if (!payload || payload.format !== 'gestore-local-backup' || !payload.snapshot) {
+    throw new Error('Formato backup non riconosciuto.');
+  }
+  var snapshot = payload.snapshot;
+  if (!snapshot.entries || typeof snapshot.entries !== 'object' || Array.isArray(snapshot.entries) ||
+      !snapshot.settings || typeof snapshot.settings !== 'object' || !Array.isArray(snapshot.payslips)) {
+    throw new Error('Il backup e incompleto o danneggiato.');
+  }
+  applySnapshotLocally(snapshot, { preserveLockState: true });
+  for (var index = 0; index < state.payslips.length; index += 1) {
+    var payslip = state.payslips[index];
+    if (!normalizePayslipPhotos(payslip).length) continue;
+    state.payslips[index] = await persistLocalPayslipAssets(payslip);
+  }
+  persistEntriesLocally();
+  persistSettingsLocally();
+  persistPayslipsLocally();
+  saveSafetyBundle();
+}
+
 async function downloadAccountBackup() {
   if (state.account.busy) return;
   setAccountUiState({ busy: true, error: '', notice: 'Preparazione del database...' });
   var loadingToken = beginAccountTransfer('Preparo il backup', 'Raccolgo e verifico tutti i dati del profilo');
   try {
+    if (typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) {
+      var localBackup = await buildLocalPortableBackup();
+      var localBlob = new Blob([JSON.stringify(localBackup)], { type: 'application/vnd.gestore.backup+json' });
+      var localDate = new Date().toISOString().slice(0, 10);
+      downloadBlobFile('GestOre_Backup_' + localDate + '.gestore.json', localBlob);
+      setAccountUiState({ busy: false, error: '', notice: 'Backup completo pronto per essere salvato.' });
+      return;
+    }
     if (!await flushServerSyncNow()) throw new Error(getServerSyncFailureMessage());
     var response = await fetch(ACCOUNT_BACKUP_URL, { cache: 'no-store' });
     if (!response.ok) await readJsonResponse(response);
@@ -893,10 +976,18 @@ async function downloadAccountBackup() {
 
 async function restoreAccountBackup(file) {
   if (!file || state.account.busy) return;
-  if (!window.confirm('Ripristinare questo backup? I dati attuali dell\'account verranno sostituiti.')) return;
+  var localOnly = typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime();
+  if (!window.confirm(localOnly ? 'Ripristinare questo backup locale? I dati attuali verranno sostituiti.' : 'Ripristinare questo backup? I dati attuali dell\'account verranno sostituiti.')) return;
   setAccountUiState({ busy: true, error: '', notice: 'Controllo e ripristino del database...' });
   var loadingToken = beginAccountTransfer('Ripristino del backup', 'Verifico il file e ricostruisco il database');
   try {
+    if (localOnly) {
+      await restoreLocalPortableBackup(file);
+      state.account.busy = false;
+      state.account.notice = 'Backup ripristinato su questo iPhone.';
+      window.location.reload();
+      return;
+    }
     var response = await fetch(ACCOUNT_RESTORE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/vnd.sqlite3' },
@@ -1172,6 +1263,7 @@ function formatAccountActivity(timestamp) {
 }
 
 function renderAccountGate() {
+  if (typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) return '';
   if (state.account.authenticated && state.account.dataReady) return '';
   if (state.account.authenticated && state.account.dataError) {
     return '<div class="account-gate"><div class="account-gate-panel account-data-loading"><div class="account-brand"><span class="account-brand-icon">' + icons.user + '</span><div><span>DATABASE PERSONALE</span><div>Gest<strong>Ore</strong></div></div></div><div class="account-gate-copy"><span>CONNESSIONE</span><h1>I dati sono al sicuro</h1><p>' + escapeHtml(state.account.dataError) + ' Non mostro una Home vuota: riproviamo ad aprire il database corretto.</p></div><button class="account-primary" type="button" data-retry-account-data="1" ' + (state.account.busy ? 'disabled' : '') + '>' + (state.account.busy ? 'Riprovo...' : 'Riprova ora') + '</button></div></div>';
@@ -1329,6 +1421,25 @@ function renderAdminSessionUi() {
 }
 
 function renderAccountDataSettings() {
+  if (typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) {
+    var localEntries = Object.keys(state.entries || {}).length;
+    var localPayslips = Array.isArray(state.payslips) ? state.payslips.length : 0;
+    var localMessage = state.account.error
+      ? '<div class="account-settings-message is-error">' + escapeHtml(state.account.error) + '</div>'
+      : (state.account.notice ? '<div class="account-settings-message">' + escapeHtml(state.account.notice) + '</div>' : '');
+    return '<div class="settings-v2-section-title account-data-first-title">Archivio locale</div>' +
+      '<section class="account-sync-health account-data-status is-synced">' +
+        '<div class="account-sync-health-head"><span>' + icons.lock + '</span><div><small>SU QUESTO IPHONE</small><strong>Dati disponibili offline</strong><p>Ore, impostazioni e cedolini restano nella memoria privata dell’app.</p></div><b data-state="synced">LOCALE</b></div>' +
+        '<div class="account-sync-health-grid"><div><span>Giornate</span><strong>' + localEntries + '</strong></div><div><span>Cedolini</span><strong>' + localPayslips + '</strong></div><div><span>Server</span><strong>Non richiesto</strong></div></div>' +
+      '</section>' +
+      '<div class="settings-v2-section-title">Copia personale</div>' +
+      '<section class="account-backup-card account-portable-card"><div class="account-backup-copy"><span class="settings-v2-icon is-blue">' + icons.download + '</span><div><strong>Backup completo GestOre</strong><p>Include giornate, preferenze, cedolini e fotografie. Salvalo in File o su un supporto scelto da te.</p></div></div>' +
+        '<div class="account-portable-actions"><button class="account-backup-primary" data-download-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.download + '<span>Esporta backup</span></button>' +
+        '<button class="account-backup-secondary" data-select-account-backup="1" ' + (state.account.busy ? 'disabled' : '') + '>' + icons.arrowUp + '<span>Ripristina</span></button></div>' +
+        '<input id="accountBackupFile" type="file" accept=".json,.gestore.json,application/json,application/vnd.gestore.backup+json" hidden>' +
+      '</section>' + localMessage +
+      '<section class="settings-v2-note"><span>' + icons.lock + '</span><p>GestOre non invia automaticamente questi dati a un server. La condivisione avviene solo quando scegli di esportare un file.</p></section>';
+  }
   var user = state.account.user || {};
   var username = String(user.username || state.settings.userName || 'Utente');
   var storage = state.account.storage || {};

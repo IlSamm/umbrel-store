@@ -1,47 +1,45 @@
 # GestOre App Store release checklist
 
-## Blocking decisions owned by the developer
+## Decisioni bloccanti del proprietario
 
-- [ ] Enroll the legal person or individual in the Apple Developer Program.
-- [ ] Choose and reserve a unique App Store name. `GestOre` is already used on the Italian App Store; suggested working name: `GestOre Lavoro`.
-- [ ] Confirm the final bundle identifier. Current scaffold proposal: `it.ilsamm.gestore`.
-- [ ] Provide a real support email and production HTTPS domain.
-- [ ] Decide where the public API and encrypted backups are hosted, including region and processor contracts.
-- [ ] Confirm legal controller name/address for the final Privacy Policy.
-- [ ] Provide an App Review demo account that contains non-sensitive sample data.
+- [ ] Iscrivere la persona fisica o giuridica all'Apple Developer Program.
+- [ ] Riservare il nome App Store. Nome di lavoro: `GestOre Lavoro`.
+- [ ] Confermare il bundle identifier `it.ilsamm.gestore`.
+- [ ] Inserire nome/indirizzo del titolare e un contatto privacy privato reale.
+- [ ] Pubblicare Privacy e Supporto su URL HTTPS raggiungibili senza login.
+- [ ] Completare stato trader DSA per la distribuzione nell'Unione Europea.
 
-## Code and service
+## Codice App Store
 
-- [x] Separate private self-hosted administration from public user isolation.
-- [x] Add in-app account deletion and test the destructive path.
-- [x] Keep runtime databases and secrets out of future source commits.
-- [x] Add Privacy, Terms and Support pages.
-- [ ] Purge the historical SQLite file from the public Git history after explicit approval.
-- [ ] Deploy the public backend with `GESTORE_DEPLOYMENT_MODE=public` behind HTTPS.
-- [ ] Configure monitoring, encrypted off-site backups, retention and a restore drill.
-- [ ] Add production rate limiting at the reverse proxy and a documented incident process.
+- [x] Build iPhone local-first senza login o API obbligatoria.
+- [x] Salvataggio immediato di giornate, impostazioni e cedolini sul dispositivo.
+- [x] Foto cedolini persistenti nell'archivio privato nativo.
+- [x] Backup completo esportabile e ripristinabile dall'utente.
+- [x] Nessuna funzione segreta o etichetta ambigua non documentata.
+- [x] Privacy manifest senza raccolta o tracking per la build locale.
+- [x] Fotocamera, foto, notifiche, file, condivisione e feedback aptico nativi.
+- [x] Accessibilita base: lingua italiana, focus visibile, Reduce Motion e stato di avvio annunciabile.
+- [x] La distribuzione Docker/Umbrel continua a usare il database self-hosted senza essere alterata dalla modalita iOS.
 
-## Native iOS build
+## Verifica su Mac
 
-- [x] Generate the Capacitor iOS project with native camera, photo picker, notifications, haptics, files and share sheet.
-- [x] Add permission descriptions, privacy manifest, release version and iPhone-only orientation settings.
-- [x] Add a release build guard that rejects a missing or non-HTTPS API URL.
-- [x] Replace Capacitor placeholder icon and launch screen with opaque GestOre assets.
-- [ ] Open the generated iOS project on a Mac with the current Xcode required by Apple.
-- [ ] Select the Apple team and verify signing/capabilities.
-- [ ] Produce all required App Store screenshots from a real iPhone/TestFlight build.
-- [ ] Test camera/photo permission copy, notifications, files, keyboard and safe areas on real iPhones.
-- [ ] Validate VoiceOver, Dynamic Type, Reduce Motion, contrast and touch targets.
-- [ ] Archive, run Xcode validation and upload to TestFlight.
+- [ ] Usare Xcode 26 o successivo e compilare con iOS 26 SDK o successivo.
+- [ ] Selezionare Team, certificati e profilo di firma.
+- [ ] Verificare bundle id, versione e build in Release.
+- [ ] Eseguire `npm ci`, `npm run ios:sync:release`, quindi aprire il progetto Xcode.
+- [ ] Provare il piano in `docs/TESTFLIGHT_TEST_PLAN.md` su almeno un iPhone reale.
+- [ ] Eseguire VoiceOver, Dynamic Type, Reduce Motion, contrasto e target tattili.
+- [ ] Creare screenshot App Store da build reale senza dati personali.
+- [ ] Archiviare, validare e caricare su TestFlight.
 
 ## App Store Connect
 
-- [ ] Add name, subtitle, description, keywords, support URL and privacy URL.
-- [ ] Complete the privacy questionnaire from `docs/APP_PRIVACY_DECLARATION.md`.
-- [ ] Complete age rating and encryption/export-compliance questions.
-- [ ] Add review notes explaining payroll estimates and the account deletion path.
-- [ ] Test with internal TestFlight, then an external beta group before review.
+- [ ] Inserire metadati da `docs/APP_STORE_METADATA_IT.md`.
+- [ ] Compilare App Privacy usando `docs/APP_PRIVACY_DECLARATION.md`.
+- [ ] Compilare classificazione eta, accessibilita, crittografia/export compliance e contenuti.
+- [ ] Inserire le note da `docs/APP_REVIEW_NOTES_IT.md`.
+- [ ] Eseguire beta interna e almeno un ciclo di beta esterna.
 
-## Review risk
+## Rischio review
 
-Apple guideline 4.2 rejects simple website wrappers. The submitted binary must demonstrate app-like utility: offline access, native camera/photo selection, notifications, secure authentication, native file export/share and resilient local state. A remote website shown in a WebView is not enough.
+La guideline 4.2 puo respingere wrapper web troppo semplici. GestOre deve dimostrare l'utilita nativa gia implementata: archivio offline, fotocamera e photo picker, notifiche locali, file e share sheet, feedback aptico, backup e ripristino resilienti.

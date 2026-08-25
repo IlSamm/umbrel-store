@@ -71,9 +71,6 @@ var state = {
       payslipEstimateOpen: false,
       payslipEstimateConfigOpen: false,
       payslipArchiveOpen: false,
-      payrollPrivateUnlocked: false,
-      payrollSecretTapCount: 0,
-      payrollSecretTapStartedAt: 0,
       payslipEstimateYear: new Date().getFullYear(),
       payslipEstimateMonth: new Date().getMonth() + 1,
       payslipEstimateStatus: '',
@@ -152,6 +149,66 @@ var state = {
         notes: String(source.notes || '')
       });
     }
+
+    function isLocalPayslipRuntime() {
+      return typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime();
+    }
+
+    function getLocalPayslipPhotoRefs(payslip) {
+      return Array.isArray(payslip && payslip.localPhotoRefs) ? payslip.localPhotoRefs : [];
+    }
+
+    async function persistLocalPayslipAssets(payslip) {
+      var bridge = window.GestOreNative;
+      if (!bridge || typeof bridge.savePayslipAssets !== 'function') {
+        throw new Error('Archivio foto locale non disponibile in questa build.');
+      }
+      var refs = await bridge.savePayslipAssets(String(payslip.id || ''), normalizePayslipPhotos(payslip));
+      if (!Array.isArray(refs) || refs.length !== normalizePayslipPhotos(payslip).length) {
+        throw new Error('Non tutte le foto sono state salvate sul dispositivo.');
+      }
+      payslip.localPhotoRefs = refs;
+      payslip.photoCount = refs.length;
+      payslip.photosDeferred = false;
+      return payslip;
+    }
+
+    async function loadLocalPayslipAssets(payslip) {
+      var refs = getLocalPayslipPhotoRefs(payslip);
+      var bridge = window.GestOreNative;
+      if (!refs.length || !bridge || typeof bridge.loadPayslipAssets !== 'function') return payslip;
+      var loaded = await bridge.loadPayslipAssets(refs);
+      var photos = (Array.isArray(loaded) ? loaded : []).map(function (photo, index) {
+        var data = String(photo && photo.dataUrl || '');
+        if (!data) return null;
+        return {
+          id: String(photo.id || ('photo-' + payslip.id + '-' + index)),
+          data: data,
+          thumbnail: data,
+          fileName: String(photo.fileName || ('cedolino-' + (index + 1) + '.jpg')),
+          createdAt: Math.max(0, Number(photo.createdAt) || Date.now())
+        };
+      }).filter(Boolean);
+      if (!photos.length) return payslip;
+      return normalizePayslipRecord(Object.assign({}, payslip, {
+        photos: photos,
+        imageData: photos[0].data,
+        fileName: photos[0].fileName,
+        photoCount: photos.length,
+        photosDeferred: false
+      }));
+    }
+
+    async function hydrateLocalPayslipAssets() {
+      if (!isLocalPayslipRuntime()) return false;
+      state.payslips = normalizePayslipCollection(state.payslips || []).map(function (item) {
+        var refs = getLocalPayslipPhotoRefs(item);
+        if (!refs.length || normalizePayslipPhotos(item).length) return item;
+        return Object.assign({}, item, { photoCount: refs.length, photosDeferred: true });
+      });
+      persistPayslipsLocally();
+      return true;
+    }
     function normalizePayslipCollection(items) {
       return sortPayslipsByPeriod((Array.isArray(items) ? items : []).map(normalizePayslipRecord));
     }
@@ -189,6 +246,7 @@ var state = {
     }
 
     async function waitForPayslipServerReady() {
+      if (isLocalPayslipRuntime()) return;
       var startedAt = Date.now();
       while (!serverSyncReady) {
         if (state.account && state.account.loaded && !state.account.authenticated) throw new Error('Accedi al tuo account prima di salvare.');
@@ -260,6 +318,14 @@ var state = {
       state.payslipHydratingId = id;
       var loadingToken = beginPayslipOperation('Carico i documenti', 'Recupero le foto di questo cedolino');
       try {
+        if (isLocalPayslipRuntime()) {
+          var localHydrated = await loadLocalPayslipAssets(current);
+          var localIndex = (state.payslips || []).findIndex(function (item) { return item.id === id; });
+          if (localIndex >= 0) state.payslips[localIndex] = localHydrated;
+          persistPayslipsLocally();
+          if (!normalizePayslipPhotos(localHydrated).length) throw new Error('Le foto locali di questo cedolino non sono disponibili.');
+          return localHydrated;
+        }
         await waitForPayslipServerReady();
         var controller = typeof AbortController === 'function' ? new AbortController() : null;
         var timeout = controller ? window.setTimeout(function () { controller.abort(); }, 15000) : 0;
@@ -1759,7 +1825,12 @@ var state = {
       var loadingToken = beginPayslipOperation('Elimino il cedolino', 'Aggiorno il tuo archivio', { kind: 'delete' });
       render();
       try {
-        await deletePayslipRecordFromServer(payslipId);
+        if (isLocalPayslipRuntime()) {
+          var bridge = window.GestOreNative;
+          if (bridge && typeof bridge.deletePayslipAssets === 'function') await bridge.deletePayslipAssets(payslipId);
+        } else {
+          await deletePayslipRecordFromServer(payslipId);
+        }
       } catch (err) {
         endPayslipOperation(loadingToken);
         state.payslipBusy = false;
@@ -1778,8 +1849,8 @@ var state = {
       state.payslipEditorOpen = false;
       state.payslipDeletePendingId = '';
       state.payslipViewer = null;
-      state.payslipStatus = 'Cedolino eliminato dal database.';
-      if (typeof confirmImportantAction === 'function') confirmImportantAction('Cedolino eliminato dal database', 'heavy');
+      state.payslipStatus = isLocalPayslipRuntime() ? 'Cedolino eliminato da questo iPhone.' : 'Cedolino eliminato dal database.';
+      if (typeof confirmImportantAction === 'function') confirmImportantAction(isLocalPayslipRuntime() ? 'Cedolino eliminato' : 'Cedolino eliminato dal database', 'heavy');
       render();
       return true;
     }
@@ -2024,8 +2095,16 @@ var state = {
       render();
       var confirmed = false;
       try {
-        var confirmation = await persistPayslipRecordToServer(saved);
-        confirmed = Boolean(confirmation && confirmation.ok && confirmation.payslipId === saved.id);
+        if (isLocalPayslipRuntime()) {
+          await persistLocalPayslipAssets(saved);
+          var localSavedIndex = (state.payslips || []).findIndex(function (item) { return item.id === saved.id; });
+          if (localSavedIndex >= 0) state.payslips[localSavedIndex] = saved;
+          persistPayslipsLocally();
+          confirmed = true;
+        } else {
+          var confirmation = await persistPayslipRecordToServer(saved);
+          confirmed = Boolean(confirmation && confirmation.ok && confirmation.payslipId === saved.id);
+        }
       } catch (err) {
         serverSyncLastError = err && err.message ? err.message : serverSyncLastError;
         confirmed = false;
@@ -2052,9 +2131,9 @@ var state = {
       state.payslipDetailId = saved.id;
       state.payslipEditorOpen = false;
       state.payslipDraft = makeEmptyPayslipDraft();
-      state.payslipStatus = 'Cedolino salvato nel database.';
+      state.payslipStatus = isLocalPayslipRuntime() ? 'Cedolino salvato su questo iPhone.' : 'Cedolino salvato nel database.';
       state.activeTab = 'payslips';
-      if (typeof confirmImportantAction === 'function') confirmImportantAction('Cedolino salvato nel database', 'medium');
+      if (typeof confirmImportantAction === 'function') confirmImportantAction(isLocalPayslipRuntime() ? 'Cedolino salvato' : 'Cedolino salvato nel database', 'medium');
       render();
       return true;
     }

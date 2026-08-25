@@ -310,7 +310,8 @@ with tempfile.TemporaryDirectory(prefix="gestore-payroll-calculator-qa-") as tem
                 manualOvertime:!!document.querySelector('[data-payroll-field=overtimeHoursMonthly]'),
                 limit:!!document.querySelector('[data-payroll-overtime-limit-toggle]'),
                 back:!!document.querySelector('[data-close-payroll-config]'),
-                privateHidden:!document.querySelector('[data-payroll-private-section]')
+                advancedVisible:!!document.querySelector('[data-payroll-private-section]'),
+                secretTriggerRemoved:!document.querySelector('[data-payroll-secret-trigger]')
               };
             })()"""
         )
@@ -332,11 +333,9 @@ with tempfile.TemporaryDirectory(prefix="gestore-payroll-calculator-qa-") as tem
 
         private_reconciliation = evaluate(
             """(function(){
-              var trigger=document.querySelector('[data-payroll-secret-trigger]');
-              var titleIsTrigger=trigger && trigger.matches('.payroll-estimate-top h1');
-              for(var i=0;i<3;i+=1) trigger.click();
               var section=document.querySelector('[data-payroll-private-section]');
-              if(!section) return {unlocked:false,titleIsTrigger:titleIsTrigger};
+              var secretTrigger=document.querySelector('[data-payroll-secret-trigger]');
+              if(!section) return {visible:false,secretTriggerRemoved:!secretTrigger};
               section.querySelector('[data-payroll-private-toggle]').click();
               var savedImmediately=!!(
                 state.settings.payrollEstimateByMonth &&
@@ -352,8 +351,8 @@ with tempfile.TemporaryDirectory(prefix="gestore-payroll-calculator-qa-") as tem
               rate.value='15';
               rate.dispatchEvent(new Event('input',{bubbles:true}));
               return {
-                unlocked:true,
-                titleIsTrigger:titleIsTrigger,
+                visible:true,
+                secretTriggerRemoved:!secretTrigger,
                 enabled:section.classList.contains('is-enabled'),
                 savedImmediately:savedImmediately,
                 hours:(document.querySelector('[data-payroll-private-hours]')||{}).textContent||'',
@@ -533,11 +532,12 @@ with tempfile.TemporaryDirectory(prefix="gestore-payroll-calculator-qa-") as tem
             and not config_page["manualOvertime"]
             and config_page["limit"]
             and config_page["back"]
-            and config_page["privateHidden"]
+            and config_page["advancedVisible"]
+            and config_page["secretTriggerRemoved"]
             and invalid["invalid"] == "true"
             and invalid["net"] == "--"
-            and private_reconciliation["unlocked"]
-            and private_reconciliation["titleIsTrigger"]
+            and private_reconciliation["visible"]
+            and private_reconciliation["secretTriggerRemoved"]
             and private_reconciliation["enabled"]
             and private_reconciliation["savedImmediately"]
             and "2 h" in private_reconciliation["hours"]
@@ -558,7 +558,7 @@ with tempfile.TemporaryDirectory(prefix="gestore-payroll-calculator-qa-") as tem
             and municipality_search["width"] > 200
             and municipality_search["overflow"] <= 0
             and private_summary["visible"]
-            and "NERO" in private_summary["text"]
+            and "REGOLARIZZARE" in private_summary["text"].upper()
             and private_after_reopen["visible"]
             and private_after_reopen["enabled"]
             and private_after_reopen["checked"] == "true"

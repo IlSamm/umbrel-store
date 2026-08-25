@@ -166,8 +166,8 @@ test('privacy termini e supporto mantengono contenuti completi senza card introd
   const views = read('app/frontend/js/views.js');
 
   assert.doesNotMatch(views, /'<div class="legal-app-intro"/);
-  assert.match(views, /Dati del tuo account/);
-  assert.match(views, /Chiusura dell&apos;account/);
+  assert.match(views, /Dati nell&apos;app/);
+  assert.match(views, /I tuoi controlli/);
   assert.match(views, /Segnalare un problema/);
   assert.match(views, /data-close-legal/);
 });

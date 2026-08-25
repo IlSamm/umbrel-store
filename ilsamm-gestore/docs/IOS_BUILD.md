@@ -1,28 +1,40 @@
-# iOS build and TestFlight
+# Build iOS e TestFlight
 
-## Requirements
+## Requisiti
 
-- A Mac with the current Xcode version accepted by App Store Connect.
-- Node.js 22 or newer.
-- An Apple Developer team and an App Store Connect record.
-- A production API available over HTTPS and configured in public deployment mode.
+- macOS con Xcode 26 o successivo e iOS 26 SDK o successivo;
+- Node.js 22 o successivo;
+- iscrizione Apple Developer e record App Store Connect;
+- URL pubblici HTTPS per Privacy e Supporto.
 
-## Prepare the native project
+## Build App Store locale
+
+La build di default non usa un server e conserva i dati sul dispositivo:
 
 ```bash
 npm ci
-GESTORE_API_BASE_URL=https://api.example.com npm run ios:sync:release
+npm run ios:sync:release
 npm run ios:open
 ```
 
-The release build intentionally fails if `GESTORE_API_BASE_URL` is missing or does not use HTTPS. `npm run ios:configure` also normalizes Swift Package paths generated on Windows and verifies permissions, privacy manifest, version and build number.
+`tools/build-ios.mjs` scrive `mode: "local"` e nessun URL API. La compilazione fallisce se viene fornito per errore un endpoint insieme alla modalita locale.
+
+## Build hosted opzionale
+
+Questa variante e riservata a sviluppo o distribuzioni private e non e quella prevista per l'App Store:
+
+```bash
+GESTORE_IOS_MODE=hosted GESTORE_API_BASE_URL=https://api.example.com npm run ios:sync:release
+```
+
+Una release hosted richiede sempre HTTPS.
 
 ## Xcode
 
-1. Open `ios/App/App.xcodeproj`.
-2. Select the Apple Developer team and confirm bundle identifier `it.ilsamm.gestore`.
-3. Keep the app on iPhone, portrait orientation, version `1.8.4`, build `184`.
-4. Test account creation/deletion, camera, gallery, photo zoom, keyboard, notifications, exports and offline/error states on a real iPhone.
-5. Use Product > Archive, validate the archive, then upload it to TestFlight.
+1. Aprire `ios/App/App.xcodeproj`.
+2. Selezionare il Team e confermare `it.ilsamm.gestore`.
+3. Confermare versione `1.8.17`, build `1817`, iPhone e orientamento verticale.
+4. Eseguire il piano `docs/TESTFLIGHT_TEST_PLAN.md` su un iPhone reale.
+5. Usare Product > Archive, validare l'archivio e caricarlo su TestFlight.
 
-Do not submit with placeholder legal URLs, a private-mode backend or real personal data in the review account.
+Non inviare ad Apple URL legali provvisori, dati personali negli screenshot o una build hosted non documentata.

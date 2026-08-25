@@ -746,9 +746,6 @@ function bindEvents() {
           state.payslipStatsOpen = false;
           state.payslipEstimateOpen = true;
           state.payslipEstimateConfigOpen = false;
-          state.payrollPrivateUnlocked = false;
-          state.payrollSecretTapCount = 0;
-          state.payrollSecretTapStartedAt = 0;
           state.payslipViewer = null;
           render();
         };
@@ -768,9 +765,6 @@ function bindEvents() {
         btn.onclick = function () {
           state.payslipEstimateOpen = false;
           state.payslipEstimateConfigOpen = false;
-          state.payrollPrivateUnlocked = false;
-          state.payrollSecretTapCount = 0;
-          state.payrollSecretTapStartedAt = 0;
           state.payslipEstimateStatus = '';
           render();
         };
@@ -789,22 +783,6 @@ function bindEvents() {
           render();
         };
       });
-      document.querySelectorAll('[data-payroll-secret-trigger]').forEach(function (trigger) {
-        trigger.onclick = function () {
-          var now = Date.now();
-          if (!state.payrollSecretTapStartedAt || now - state.payrollSecretTapStartedAt > 4500) {
-            state.payrollSecretTapCount = 0;
-            state.payrollSecretTapStartedAt = now;
-          }
-          state.payrollSecretTapCount += 1;
-          if (state.payrollSecretTapCount < 3) return;
-          state.payrollPrivateUnlocked = true;
-          state.payrollSecretTapCount = 0;
-          state.payrollSecretTapStartedAt = 0;
-          state.payslipEstimateStatus = 'Impostazione privata sbloccata.';
-          render();
-        };
-      });
       document.querySelectorAll('[data-payroll-private-toggle]').forEach(function (button) {
         button.onclick = function () {
           var section = button.closest('[data-payroll-private-section]');
@@ -819,10 +797,9 @@ function bindEvents() {
             enabled,
             rateField ? rateField.value : 0
           );
-          state.payrollPrivateUnlocked = true;
           state.payslipEstimateStatus = enabled
-            ? 'Voce Nero attivata e salvata.'
-            : 'Voce Nero disattivata e salvata.';
+            ? 'Ore da regolarizzare attivate e salvate.'
+            : 'Ore da regolarizzare disattivate e salvate.';
           section.classList.toggle('is-enabled', enabled);
           button.setAttribute('aria-checked', enabled ? 'true' : 'false');
           button.setAttribute('aria-pressed', enabled ? 'true' : 'false');

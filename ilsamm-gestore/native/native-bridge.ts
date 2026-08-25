@@ -17,6 +17,33 @@ type NativeNotification = {
   extra?: Record<string, unknown>;
 };
 
+type PayslipPhotoInput = {
+  id?: string;
+  data?: string;
+  dataUrl?: string;
+  fileName?: string;
+  createdAt?: number;
+};
+
+type PayslipPhotoRef = {
+  id: string;
+  path: string;
+  fileName: string;
+  mimeType: string;
+  createdAt: number;
+};
+
+function safePathSegment(value: string, fallback: string): string {
+  const cleaned = String(value || '').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^\.+/, '').slice(0, 96);
+  return cleaned || fallback;
+}
+
+function parseDataUrl(value: string): { mimeType: string; base64: string } {
+  const match = String(value || '').match(/^data:([^;,]+);base64,([\s\S]+)$/);
+  if (!match) throw new Error('Formato immagine non valido');
+  return { mimeType: match[1] || 'image/jpeg', base64: match[2] };
+}
+
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -121,6 +148,71 @@ const bridge = {
       dataUrl: await pathToDataUrl(photo.webPath),
       fileName: `cedolino-${Date.now()}-${index + 1}.${photo.format || 'jpg'}`
     })));
+  },
+
+  async savePayslipAssets(payslipId: string, photos: PayslipPhotoInput[]): Promise<PayslipPhotoRef[]> {
+    if (!isNative) return [];
+    const safePayslipId = safePathSegment(payslipId, `cedolino-${Date.now()}`);
+    const folder = `GestOre/Cedolini/${safePayslipId}`;
+    try {
+      await Filesystem.rmdir({ path: folder, directory: Directory.LibraryNoCloud, recursive: true });
+    } catch (_) {
+      // The folder normally does not exist on the first save.
+    }
+
+    const refs: PayslipPhotoRef[] = [];
+    const sourcePhotos = Array.isArray(photos) ? photos.slice(0, 8) : [];
+    for (let index = 0; index < sourcePhotos.length; index += 1) {
+      const photo = sourcePhotos[index] || {};
+      const parsed = parseDataUrl(String(photo.data || photo.dataUrl || ''));
+      const extension = parsed.mimeType === 'image/png' ? 'png' : parsed.mimeType === 'image/webp' ? 'webp' : 'jpg';
+      const photoId = safePathSegment(String(photo.id || `foto-${index + 1}`), `foto-${index + 1}`);
+      const path = `${folder}/${photoId}.${extension}`;
+      await Filesystem.writeFile({
+        path,
+        data: parsed.base64,
+        directory: Directory.LibraryNoCloud,
+        recursive: true
+      });
+      refs.push({
+        id: photoId,
+        path,
+        fileName: String(photo.fileName || `${photoId}.${extension}`),
+        mimeType: parsed.mimeType,
+        createdAt: Math.max(0, Number(photo.createdAt) || Date.now())
+      });
+    }
+    return refs;
+  },
+
+  async loadPayslipAssets(refs: PayslipPhotoRef[]): Promise<Array<PayslipPhotoRef & { dataUrl: string }>> {
+    if (!isNative) return [];
+    const sourceRefs = Array.isArray(refs) ? refs.slice(0, 8) : [];
+    const loaded: Array<PayslipPhotoRef & { dataUrl: string }> = [];
+    for (const ref of sourceRefs) {
+      try {
+        const result = await Filesystem.readFile({ path: ref.path, directory: Directory.LibraryNoCloud });
+        if (typeof result.data !== 'string' || !result.data) continue;
+        loaded.push({ ...ref, dataUrl: `data:${ref.mimeType || 'image/jpeg'};base64,${result.data}` });
+      } catch (_) {
+        // Keep loading the remaining pages if a single local file is unavailable.
+      }
+    }
+    return loaded;
+  },
+
+  async deletePayslipAssets(payslipId: string): Promise<void> {
+    if (!isNative) return;
+    const safePayslipId = safePathSegment(payslipId, 'cedolino');
+    try {
+      await Filesystem.rmdir({
+        path: `GestOre/Cedolini/${safePayslipId}`,
+        directory: Directory.LibraryNoCloud,
+        recursive: true
+      });
+    } catch (_) {
+      // Deleting an already missing attachment folder is a successful outcome.
+    }
   }
 };
 

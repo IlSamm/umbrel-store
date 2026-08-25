@@ -118,7 +118,7 @@
     validateRange(
       errors,
       'privateReconciliationHourlyRate',
-      'Tariffa della voce Nero',
+      'Tariffa delle ore da regolarizzare',
       input.privateReconciliationHourlyRate,
       0,
       10000
@@ -139,7 +139,7 @@
       ['employmentDays', 'Giorni di lavoro', false],
       ['otherAnnualDeductions', 'Altre trattenute', true],
       ['annualReimbursements', 'Rimborsi', true],
-      ['privateReconciliationHourlyRate', 'Tariffa della voce Nero', true]
+      ['privateReconciliationHourlyRate', 'Tariffa delle ore da regolarizzare', true]
     ].forEach(function (definition) {
       if (isMalformedNumber(source, definition[0], definition[2])) {
         errors[definition[0]] = definition[1] + ': inserisci un numero valido.';

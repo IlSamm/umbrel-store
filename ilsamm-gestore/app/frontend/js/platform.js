@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.16-20260825g';
+var PLATFORM_BUILD = '1.8.17-20260825h';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Il Centro mese ora riempie tutta la superficie senza pareti laterali nere.',
-  'La card nella Home e stata ridisegnata con numeri piu leggibili e percentuale centrata.',
-  'Le frecce cambiano mese senza ricreare la schermata o perdere la posizione.',
-  'La transizione tra mesi e piu breve, stabile e rispettosa del movimento ridotto.'
+  'La futura app iPhone ora salva e riapre i dati anche senza account o server.',
+  'I cedolini locali conservano le fotografie nello spazio privato dell app.',
+  'Il primo avvio apre automaticamente la configurazione guidata sui nuovi archivi.',
+  'Backup, privacy e controlli di rilascio sono stati rinforzati senza modificare i dati esistenti.'
 ];
 
 async function readPlatformJson(response) {
@@ -547,12 +547,17 @@ function renderDataHistorySettings() {
 }
 
 function renderAccountSecuritySettings() {
+  if (typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) {
+    return '<div class="settings-v2-section-title">Protezione locale</div>' +
+      '<section class="platform-security-action"><span>' + icons.lock + '</span><div><strong>Dati nell’area privata dell’app</strong><p>GestOre non crea un account e non invia automaticamente i contenuti fuori da questo iPhone.</p></div></section>';
+  }
   return (typeof renderPasskeySettings === 'function' ? renderPasskeySettings() : '') +
     '<div class="settings-v2-section-title">Recupero account</div>' +
     '<section class="platform-security-action"><span>' + icons.lock + '</span><div><strong>Codice di recupero</strong><p>Genera un codice nuovo e conservalo fuori da GestOre. Quello precedente verra disattivato.</p></div><button data-platform-recovery-code="1">Genera codice</button></section>';
 }
 
 function renderPlatformPushSettings() {
+  if (typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) return '';
   var push = platformState.push;
   var pushEnabled = Boolean(typeof state !== 'undefined' && state.settings && state.settings.pushEnabled && push.subscriptions);
   var pushHelp = push.error
@@ -658,6 +663,7 @@ function bindPlatformEvents() {
   });
 
   if (typeof state !== 'undefined' && state.activeTab === 'settings') {
+    if (typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) return;
     if (state.settingsSection === 'data') {
       loadPlatformHistory(false);
       loadPlatformDiagnostics(false);

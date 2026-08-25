@@ -337,10 +337,10 @@ with tempfile.TemporaryDirectory(prefix="gestore-payslip-storage-qa-") as temp_r
         wait_for("state.account.storage && state.account.storage.loaded", "spazio database")
         storage = evaluate(
             """(function(){
-              var card=document.querySelector('.account-storage-card');
+              var card=document.querySelector('.account-sync-health');
               return {
                 visible:!!card,
-                value:card ? (card.querySelector('strong')||{}).textContent : '',
+                value:card ? (card.querySelector('.account-sync-health-grid strong:last-child')||{}).textContent : '',
                 bytes:state.account.storage.bytes,
                 entries:state.account.storage.entries,
                 payslips:state.account.storage.payslips,
@@ -353,8 +353,8 @@ with tempfile.TemporaryDirectory(prefix="gestore-payslip-storage-qa-") as temp_r
         navigation = evaluate(
             """(function(){
               state.activeTab='profile';state.settingsSection='';render();
-              var heroGear=!!document.querySelector('.profile-v2-identity > button');
-              state.activeTab='settings';state.settingsSection='accounts';render();
+              var heroGear=!!document.querySelector('.profile-v2-identity > button:not(.profile-v2-avatar-button)');
+              state.activeTab='settings';state.settingsSection='data';state.settingsReturnTarget='profile';render();
               var back=document.querySelector('[data-back-settings]');
               if(back) back.click();
               return {heroGear:heroGear,activeTab:state.activeTab,settingsSection:state.settingsSection};

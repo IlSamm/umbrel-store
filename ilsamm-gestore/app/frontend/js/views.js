@@ -1685,7 +1685,6 @@ function getCalendarSelectedDateKey(month) {
       var includedOvertimeMinutes = overtimeMeta.includedMinutes;
       var includedOvertimeHours = overtimeMeta.includedHours;
       var privateEnabled = config.privateReconciliationEnabled === true;
-      var privateUnlocked = Boolean(state.payrollPrivateUnlocked || privateEnabled);
       var privateRemainingHours = overtimeMeta.excludedHours;
       var privateHourlyRate = Math.max(0, Number(config.privateReconciliationHourlyRate) || 0);
       var privateAmount = Math.round(privateRemainingHours * privateHourlyRate * 100) / 100;
@@ -1724,7 +1723,7 @@ function getCalendarSelectedDateKey(month) {
           : 'data-close-payslip-estimate="1" aria-label="Torna a Stipendio"') +
         '>' + icons.left + '</button><div><span>' +
         (configOpen ? 'CALCOLO STIPENDIO' : 'STIPENDIO') +
-        '</span><h1' + (configOpen ? ' data-payroll-secret-trigger="1"' : '') + '>' +
+        '</span><h1>' +
         (configOpen ? 'Dati per la stima' : 'Stima stipendio') +
         '</h1></div><i></i></div>'
       );
@@ -1765,11 +1764,11 @@ function getCalendarSelectedDateKey(month) {
           (state.payslipEstimateStatus ? ' is-visible' : '') +
           '" role="status">' + escapeHtml(state.payslipEstimateStatus || '') + '</div>'
       );
-      if (privateUnlocked && privateEnabled) {
+      if (privateEnabled) {
         html.push(
           '<section class="payroll-estimate-panel payroll-private-summary">' +
             '<span class="payroll-private-summary-icon">' + icons.lock + '</span>' +
-            '<span class="payroll-private-summary-copy"><small>NERO · DA REGOLARIZZARE</small><strong>' +
+            '<span class="payroll-private-summary-copy"><small>ORE DA REGOLARIZZARE</small><strong>' +
               escapeHtml(privateRemainingHours.toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h · ' + money(privateAmount)) +
             '</strong><p>Ore registrate non incluse nel cedolino stimato.</p></span>' +
           '</section>'
@@ -1827,19 +1826,19 @@ function getCalendarSelectedDateKey(month) {
           '</div>' +
         '</details>'
       );
-      if (privateUnlocked) {
+      if (configOpen) {
         html.push(
           '<section class="payroll-estimate-panel payroll-private-config' + (privateEnabled ? ' is-enabled' : '') + '" data-payroll-private-section>' +
             '<input type="hidden" data-payroll-field="privateReconciliationEnabled" value="' + (privateEnabled ? 'true' : 'false') + '">' +
-            '<div class="payroll-private-head"><span class="payroll-private-icon">' + icons.lock + '</span><div><small>VOCE PRIVATA</small><h2>Nero</h2><p>Anticipo da regolarizzare a fine mese.</p></div><button type="button" role="switch" aria-checked="' + (privateEnabled ? 'true' : 'false') + '" aria-pressed="' + (privateEnabled ? 'true' : 'false') + '" data-payroll-private-toggle><i></i></button></div>' +
+            '<div class="payroll-private-head"><span class="payroll-private-icon">' + icons.history + '</span><div><small>IMPOSTAZIONE AVANZATA</small><h2>Ore da regolarizzare</h2><p>Tiene separate le ore non incluse nel cedolino stimato.</p></div><button type="button" role="switch" aria-checked="' + (privateEnabled ? 'true' : 'false') + '" aria-pressed="' + (privateEnabled ? 'true' : 'false') + '" data-payroll-private-toggle><i></i></button></div>' +
             '<div class="payroll-private-content">' +
               '<div class="payroll-private-equation"><span><small>REGISTRATE</small><b>' + escapeHtml(recordedOvertimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>−</i><span><small>IN CEDOLINO</small><b data-payroll-private-included>' + escapeHtml(includedOvertimeHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span><i>=</i><span class="is-result"><small>RESIDUE</small><b data-payroll-private-hours>' + escapeHtml(privateRemainingHours.toLocaleString('it-IT', { maximumFractionDigits: 2 })) + ' h</b></span></div>' +
               '<div class="payroll-private-rate-row"><label class="payroll-calculator-field"><span>QUANTO VENGONO PAGATE</span><div><b>€</b><input data-payroll-field="privateReconciliationHourlyRate" data-payroll-money type="text" inputmode="decimal" autocomplete="off" value="' + escapeHtml(formatEditorDecimal(privateHourlyRate)) + '"><em>/h</em></div></label><span class="payroll-private-total"><small>TOTALE DA REGOLARIZZARE</small><strong data-payroll-private-amount>' + escapeHtml(money(privateAmount)) + '</strong></span></div>' +
-              '<p class="payroll-private-warning">Questa voce non entra nel netto fiscale stimato e deve essere riconciliata con il cedolino definitivo.</p>' +
+              '<p class="payroll-private-warning">Questa voce non entra nel netto fiscale stimato finche non viene inclusa nel cedolino definitivo.</p>' +
             '</div>' +
           '</section>'
         );
-      } else if (configOpen) {
+      } else {
         html.push(
           '<input type="hidden" data-payroll-field="privateReconciliationEnabled" value="' + (privateEnabled ? 'true' : 'false') + '">' +
           '<input type="hidden" data-payroll-field="privateReconciliationHourlyRate" value="' + escapeHtml(formatEditorDecimal(privateHourlyRate)) + '">'
@@ -2210,6 +2209,7 @@ function getCalendarSelectedDateKey(month) {
       var savedCount = (state.payslips || []).length;
       var dailyTarget = Math.max(0, Number(state.settingsDraft.dailyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
       var weeklyTarget = Math.max(0, Number(state.settingsDraft.weeklyTarget) || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }) + 'h';
+      var localOnly = typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime();
       return '<div class="profile-page profile-page-v2">' +
         '<header class="profile-v2-top profile-v2-top-with-back"><button data-close-profile="1" aria-label="Torna alla Home">' + icons.left + '</button><div><div class="profile-v2-wordmark">Profilo</div></div><button class="profile-search-button" data-open-global-search="1" aria-label="Cerca nell&apos;archivio">' + icons.search + '</button></header>' +
         '<section class="profile-v2-hero">' +
@@ -2226,8 +2226,8 @@ function getCalendarSelectedDateKey(month) {
         '</section>' +
         '<div class="profile-section-title">Account, dati e documenti</div>' +
         '<section class="profile-group profile-v2-group">' +
-          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>Account e backup</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
-          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="history"><span class="profile-row-icon is-blue">' + icons.history + '</span><span class="profile-row-copy"><strong>Cronologia dati</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          '<button class="profile-row" data-open-profile-section="settings" data-settings-section="data"><span class="profile-row-icon is-green">' + icons.lock + '</span><span class="profile-row-copy"><strong>' + (localOnly ? 'Dati e backup' : 'Account e backup') + '</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
+          (localOnly ? '' : '<button class="profile-row" data-open-profile-section="settings" data-settings-section="history"><span class="profile-row-icon is-blue">' + icons.history + '</span><span class="profile-row-copy"><strong>Cronologia dati</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>') +
           '<button class="profile-row" data-open-profile-section="exports"><span class="profile-row-icon is-violet">' + icons.download + '</span><span class="profile-row-copy"><strong>Report ed esportazioni</strong></span><span class="profile-row-value">4 PDF</span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
           '<button class="profile-row" data-open-profile-section="settings" data-settings-section="privacy"><span class="profile-row-icon is-blue">' + icons.lock + '</span><span class="profile-row-copy"><strong>Privacy e sicurezza</strong></span><span class="profile-row-chevron">' + icons.right + '</span></button>' +
         '</section>' +
@@ -2486,7 +2486,7 @@ function getCalendarSelectedDateKey(month) {
 
       if (section === 'data') {
         return '<div class="settings-modern-page settings-page-v2 settings-detail-page">' +
-          topBar('Account e backup', true) +
+          topBar((typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime()) ? 'Dati e backup' : 'Account e backup', true) +
           (typeof renderAccountDataSettings === 'function' ? renderAccountDataSettings() : '') +
           '<section class="settings-v2-version"><div><span>VERSIONE INSTALLATA</span><strong>GestOre ' + escapeHtml(state.settings.version) + '</strong></div><span>' + icons.check + '</span></section>' +
         '</div>';
@@ -2528,18 +2528,19 @@ function getCalendarSelectedDateKey(month) {
     function renderLegalOverlay() {
       var page = String(state.legalPage || '');
       if (!page) return '';
+      var localOnly = typeof isLocalOnlyRuntime === 'function' && isLocalOnlyRuntime();
       var pages = {
         privacy: {
           kicker: 'I TUOI DATI',
           title: 'Privacy e dati',
           sections: [
-            ['Dati del tuo account', 'GestOre conserva nome utente, credenziali protette, preferenze e le informazioni tecniche necessarie per mantenere attivo il tuo accesso. Password e codici di recupero non vengono salvati in chiaro.'],
+            ['Dati nell&apos;app', localOnly ? 'La versione iPhone conserva i dati nella memoria privata dell&apos;app e non richiede un account.' : 'La versione con account conserva nome utente, credenziali protette e preferenze nel database personale. Password e codici di recupero non vengono salvati in chiaro.'],
             ['Ore e informazioni lavorative', 'Giornate, orari, ferie, malattie, permessi, note, obiettivi e configurazioni stipendio vengono usati per calendario, statistiche, stime e report.'],
-            ['Cedolini e fotografie', 'Importi, annotazioni e immagini vengono archiviati soltanto quando scegli di caricarli. Restano associati esclusivamente al tuo account.'],
-            ['Sincronizzazione e backup', 'Il database personale viene sincronizzato con il server per permettere recupero e cambio dispositivo. Puoi creare copie protette o scaricare un file personale dal Profilo.'],
+            ['Cedolini e fotografie', 'Importi, annotazioni e immagini vengono archiviati soltanto quando scegli di aggiungerli.'],
+            ['Backup', localOnly ? 'Nessun contenuto viene inviato automaticamente a un server. Da Dati e backup puoi creare un file completo e scegliere personalmente dove salvarlo.' : 'La distribuzione self-hosted puo sincronizzare il database con il server configurato e permette di scaricare una copia personale.'],
             ['Condivisione e pubblicit&agrave;', 'GestOre non vende i dati, non mostra pubblicit&agrave; e non utilizza tracker pubblicitari. I contenuti transitano soltanto sui servizi tecnici necessari al funzionamento.'],
             ['Sicurezza e responsabilit&agrave;', 'Gli account usano archivi separati e sessioni protette. Proteggi password, codice di recupero e file esportati: nessun sistema pu&ograve; garantire sicurezza assoluta.'],
-            ['I tuoi controlli', 'Da Profilo > Account e backup puoi verificare la sincronizzazione, scaricare una copia, ripristinare un salvataggio o eliminare definitivamente account e contenuti.']
+            ['I tuoi controlli', localOnly ? 'Da Profilo > Dati e backup puoi esportare o ripristinare una copia completa. Rimuovendo l&apos;app vengono rimossi i dati locali non esportati.' : 'Da Profilo > Account e backup puoi esportare, ripristinare o eliminare definitivamente account e contenuti.']
           ]
         },
         terms: {
@@ -2548,18 +2549,18 @@ function getCalendarSelectedDateKey(month) {
           sections: [
             ['Uso corretto', 'Sei responsabile della correttezza delle informazioni inserite e dell&apos;uso dei file generati. Non caricare documenti di terzi senza autorizzazione.'],
             ['Stime e calcoli', 'Ore, ferie, imposte e stipendio sono stime informative. Non sostituiscono cedolino, contratto, consulenza fiscale, legale o del lavoro.'],
-            ['Account e accesso', 'Mantieni riservati password e codice di recupero. Le azioni eseguite con il tuo account vengono considerate autorizzate finch&eacute; non segnali un accesso anomalo.'],
+            ['Accesso e dispositivo', localOnly ? 'Proteggi il codice del dispositivo e i file di backup esportati: contengono informazioni personali.' : 'Mantieni riservati password e codice di recupero.'],
             ['Disponibilit&agrave; del servizio', 'Aggiornamenti e manutenzioni possono interrompere temporaneamente alcune funzioni. Prima di operazioni importanti &egrave; consigliata una copia personale.'],
             ['Aggiornamenti', 'Funzioni e condizioni possono cambiare per sicurezza, requisiti tecnici o miglioramenti. Le modifiche importanti vengono comunicate nell&apos;app.'],
-            ['Chiusura dell&apos;account', 'Puoi eliminare account e contenuti da Account e backup. La procedura richiede una conferma esplicita e non pu&ograve; essere annullata.']
+            ['Eliminazione dei dati', localOnly ? 'Puoi eliminare singole giornate e cedolini nell&apos;app. La rimozione dell&apos;app cancella l&apos;archivio locale non esportato.' : 'Puoi eliminare account e contenuti da Account e backup con conferma esplicita.']
           ]
         },
         support: {
           kicker: 'AIUTO GESTORE',
           title: 'Supporto',
           sections: [
-            ['Dati mancanti o caricamento lento', 'Controlla la connessione, poi apri Profilo > Account e backup e attendi che compaia Database aggiornato. Non uscire dall&apos;account durante una sincronizzazione.'],
-            ['Prima di un ripristino', 'Crea un punto di ripristino o scarica una copia personale. Lo storico protetto permette di recuperare versioni precedenti senza confonderle con i report PDF.'],
+            ['Dati mancanti', localOnly ? 'Apri Profilo > Dati e backup e verifica di avere una copia personale recente prima di reinstallare l&apos;app.' : 'Controlla la connessione, poi apri Profilo > Account e backup e verifica lo stato del database.'],
+            ['Prima di un ripristino', 'Esporta sempre una copia dei dati attuali. Un ripristino sostituisce l&apos;archivio presente nell&apos;app.'],
             ['Problemi con i cedolini', 'Verifica che il caricamento sia terminato prima di chiudere la schermata. Nell&apos;archivio puoi aprire e ingrandire ogni fotografia salvata.'],
             ['Notifiche non ricevute', 'Controlla sia le preferenze dentro GestOre sia le autorizzazioni di iPhone. La modalit&agrave; risparmio energetico pu&ograve; ritardare alcuni avvisi.'],
             ['Segnalare un problema', 'Annota versione dell&apos;app, modello del dispositivo, schermata interessata e passaggi che causano l&apos;errore. Non condividere password, codice di recupero o cedolini personali.'],

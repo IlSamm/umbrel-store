@@ -1,36 +1,39 @@
-# App Store metadata - Italian draft
+# App Store metadata - bozza italiana
 
-## Identity
+## Identita
 
-- Name: `GestOre Lavoro`
-- Subtitle: `Ore, ferie e stipendio`
-- Category: Productivity
-- Secondary category: Business
+- Nome: `GestOre Lavoro`
+- Sottotitolo: `Ore, ferie e stipendio`
+- Categoria primaria: Produttivita
+- Categoria secondaria: Economia
 - Bundle identifier: `it.ilsamm.gestore`
-- Version: `1.8.4`
+- Versione: `1.8.17`
 
-## Promotional text
+## Testo promozionale
 
-Ore, turni, ferie, straordinari, stime stipendio e cedolini in un unico archivio personale.
+Ore, turni, ferie, straordinari, stime stipendio e cedolini in un archivio personale che resta sul tuo iPhone.
 
-## Description
+## Descrizione
 
-GestOre Lavoro aiuta a registrare le giornate lavorative e a mantenere ordinato il proprio storico. Puoi controllare ore ordinarie e straordinarie, ferie e permessi, consultare statistiche, conservare fotografie dei cedolini ed esportare report mensili o annuali.
+GestOre Lavoro aiuta a registrare le giornate lavorative e a mantenere ordinato lo storico personale. Puoi controllare ore ordinarie e straordinarie, ferie e permessi, consultare statistiche, conservare fotografie dei cedolini ed esportare report mensili o annuali.
+
+La configurazione guidata prepara target, giorni lavorativi, turno e disponibilita ferie. I dati restano disponibili anche senza connessione e puoi creare un backup completo quando vuoi.
 
 Le stime dello stipendio sono informative: il risultato reale dipende da contratto, contributi, detrazioni, Comune, conguagli e voci presenti nel cedolino.
 
-L'account e i dati sono separati per utente. Dall'app puoi esportare un backup o eliminare definitivamente il profilo.
+GestOre non contiene pubblicita, non usa tracker e non richiede la creazione di un account.
 
-## Keywords
+## Parole chiave
 
 `ore,lavoro,turni,straordinari,ferie,stipendio,cedolino,presenze`
 
-## Review notes
+## Note per la revisione
 
-- Camera and photo library are used only when the reviewer adds payslip images.
-- Local notifications are optional and explainable from Settings.
-- Account deletion is available in Profile > Account and backup > Delete permanently.
-- Payroll calculations are estimates and never provide financial advice or execute payments.
-- Provide a dedicated demo account containing only synthetic data.
+- L'app non richiede login e non usa un account demo.
+- Tutti i dati di prova possono essere inseriti tramite la configurazione iniziale e il calendario.
+- Fotocamera e libreria vengono richieste soltanto scegliendo Aggiungi cedolino > Scatta foto/Galleria.
+- Le notifiche sono promemoria locali opzionali.
+- I PDF e i backup vengono condivisi solo quando il revisore sceglie Esporta.
+- I calcoli stipendio sono stime informative e non eseguono pagamenti o consulenza finanziaria.
 
-Replace the support/privacy placeholders with public HTTPS URLs before submission.
+Prima dell'invio sostituire i riferimenti legali mancanti con URL HTTPS pubblici e verificati.

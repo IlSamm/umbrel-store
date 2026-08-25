@@ -874,11 +874,6 @@
     linear-gradient(150deg, rgba(20, 43, 86, 0.96), rgba(7, 16, 39, 0.98));
 }
 
-[data-payroll-secret-trigger] {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
 .payroll-calculator-config-preview {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

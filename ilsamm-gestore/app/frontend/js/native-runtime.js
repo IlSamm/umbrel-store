@@ -1,6 +1,9 @@
 (function () {
   var config = window.GestOreRuntimeConfig || {};
   var apiBaseUrl = String(config.apiBaseUrl || '').trim().replace(/\/+$/, '');
+  var requestedMode = String(config.mode || '').trim().toLowerCase();
+  var mode = requestedMode || (apiBaseUrl ? 'hosted' : 'web');
+  var localOnly = mode === 'local';
   var originalFetch = window.fetch.bind(window);
 
   function rewriteApiUrl(input) {
@@ -29,6 +32,9 @@
 
   window.GestOreRuntime = Object.freeze({
     apiBaseUrl: apiBaseUrl,
-    usesRemoteApi: Boolean(apiBaseUrl)
+    mode: mode,
+    localOnly: localOnly,
+    usesRemoteApi: mode === 'hosted' && Boolean(apiBaseUrl),
+    usesServer: mode === 'web' || mode === 'hosted'
   });
 })();

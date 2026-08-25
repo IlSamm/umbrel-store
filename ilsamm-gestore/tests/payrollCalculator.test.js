@@ -117,7 +117,7 @@ test('rimborsi aumentano il netto e trattenute lo riducono', () => {
   assert.equal(adjusted.estimatedAnnualNet, base.estimatedAnnualNet + 300);
 });
 
-test('la voce privata da regolarizzare resta fuori dal netto fiscale', () => {
+test('le ore da regolarizzare restano fuori dal netto fiscale', () => {
   const base = calculatePayrollEstimate(input());
   const withPrivateReconciliation = calculatePayrollEstimate(input({
     privateReconciliationEnabled: true,
@@ -130,7 +130,7 @@ test('la voce privata da regolarizzare resta fuori dal netto fiscale', () => {
   assert.equal(withPrivateReconciliation.totalAnnualGross, base.totalAnnualGross);
 });
 
-test('la voce privata attiva richiede una tariffa valida', () => {
+test('le ore da regolarizzare attive richiedono una tariffa valida', () => {
   const checked = validatePayrollInput(input({
     privateReconciliationEnabled: true,
     privateReconciliationHourlyRate: 0
