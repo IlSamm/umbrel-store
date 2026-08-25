@@ -842,6 +842,7 @@ function getCalendarSelectedDateKey(month) {
           normal: breakdown.normal,
           overtime: breakdown.overtime,
           total: breakdown.total,
+          leave: breakdown.leave,
           covered: breakdown.covered
         };
       });
@@ -872,6 +873,11 @@ function getCalendarSelectedDateKey(month) {
       return remaining ? (hours + 'h' + String(remaining).padStart(2, '0')) : (hours + 'h');
     }
 
+    function formatStatsEquivalentDays(minutes) {
+      var dailyTarget = Math.max(1, getDailyTargetMinutes());
+      return formatVacationDayValue(Math.max(0, Number(minutes) || 0) / dailyTarget) + ' gg';
+    }
+
     function buildStatsDailyChart(series) {
       var dailyTarget = getDailyTargetMinutes();
       var maxRecorded = series.reduce(function (max, item) { return Math.max(max, item.total); }, 0);
@@ -888,13 +894,23 @@ function getCalendarSelectedDateKey(month) {
         var date = new Date(item.key + 'T12:00:00');
         var weekday = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(date).replace('.', '').slice(0, 3).toUpperCase();
         var stateDot = '';
+        var stateLabel = '';
+        var leaveBadge = '';
         if (item.entry && item.total === 0) {
           var type = dayTypes[item.entry.type] || { label: 'Segnato', dot: '#71809e' };
+          var stateLabels = { ferie: 'FERIE', malattia: 'MAL.', permesso: 'PERM.', festivita_pagata: 'FEST.', riposo: 'RIPOSO' };
+          stateLabel = stateLabels[item.entry.type] || 'SEGN.';
           stateDot = '<i class="analytics-daily-state" style="background:' + type.dot + '" title="' + escapeHtml(type.label) + '"></i>';
         }
-        return '<button type="button" class="analytics-daily-column" data-open-stats-day="' + item.key + '" aria-label="' + escapeHtml(weekday + ' ' + item.day + ': ' + (item.total ? formatDuration(item.total) : 'nessuna ora') + '. Tocca per il dettaglio') + '">' +
-          '<span class="analytics-daily-value">' + formatStatsCompactDuration(item.total) + '</span>' +
-          '<div class="analytics-daily-bar"><i class="is-normal" style="height:' + normalPercent.toFixed(2) + '%"></i><i class="is-extra" style="height:' + overtimePercent.toFixed(2) + '%"></i>' + stateDot + '</div>' +
+        if (item.entry && item.entry.type === 'lavoro_ferie' && item.leave > 0) {
+          leaveBadge = '<b class="analytics-daily-leave-badge" title="' + escapeHtml(formatDuration(item.leave) + ' di ferie') + '">F</b>';
+        }
+        var valueLabel = item.total ? formatStatsCompactDuration(item.total) : (stateLabel || '--');
+        var ariaValue = item.total ? formatDuration(item.total) + ' lavorate' : (stateLabel || 'nessuna ora');
+        if (item.leave > 0) ariaValue += ', ' + formatDuration(item.leave) + ' di ferie';
+        return '<button type="button" class="analytics-daily-column" data-open-stats-day="' + item.key + '" aria-label="' + escapeHtml(weekday + ' ' + item.day + ': ' + ariaValue + '. Tocca per il dettaglio') + '">' +
+          '<span class="analytics-daily-value' + (stateLabel ? ' is-state' : '') + '">' + valueLabel + '</span>' +
+          '<div class="analytics-daily-bar"><i class="is-normal" style="height:' + normalPercent.toFixed(2) + '%"></i><i class="is-extra" style="height:' + overtimePercent.toFixed(2) + '%"></i>' + stateDot + leaveBadge + '</div>' +
           '<small>' + weekday + '</small><strong>' + item.day + '</strong>' +
         '</button>';
       }).join('');
@@ -952,20 +968,24 @@ function getCalendarSelectedDateKey(month) {
     }
 
     function renderStatsHero(options) {
-      var targetPercent = options.target > 0 ? Math.round((options.total / options.target) * 100) : 0;
+      var progressMinutes = Math.max(0, Number(options.coveredMinutes !== undefined ? options.coveredMinutes : options.total) || 0);
+      var vacationMinutes = Math.max(0, Number(options.vacationMinutes) || 0);
+      var targetPercent = options.target > 0 ? Math.round((progressMinutes / options.target) * 100) : 0;
       var ringPercent = Math.max(0, Math.min(100, targetPercent));
       var trendTone = options.delta > 0 ? ' is-positive' : (options.delta < 0 ? ' is-negative' : '');
       var totalText = options.total ? formatDuration(options.total) : '0h 0m';
       var totalClass = totalText.length > 8 ? ' is-long' : '';
+      var recordedCopy = options.workedDays + (options.workedDays === 1 ? ' giorno lavorato' : ' giorni lavorati');
+      if (vacationMinutes > 0) recordedCopy += ' &middot; ' + formatStatsEquivalentDays(vacationMinutes) + ' ferie';
       return '<section class="analytics-hero">' +
         '<div class="analytics-hero-head"><div><span>' + options.kicker + '</span><h2>' + options.title + '</h2></div><div class="analytics-trend' + trendTone + '">' + icons.arrowUp + '<span><strong>' + formatStatsDelta(options.delta) + '</strong><small>' + options.deltaLabel + '</small></span></div></div>' +
-        '<div class="analytics-hero-main"><div class="analytics-total' + totalClass + '"><span>ORE LAVORATE</span><strong>' + totalText + '</strong><small>' + options.recordedDays + ' giorni registrati</small></div>' +
-          '<div class="analytics-target-ring" style="--analytics-progress:' + ringPercent + '%"><div><strong>' + targetPercent + '%</strong><span>target</span></div></div></div>' +
-        '<div class="analytics-hero-target"><div><span><i></i>Obiettivo stimato</span><strong>' + (options.target ? formatDuration(options.target) : '--') + '</strong></div><div class="analytics-target-track"><span style="width:' + ringPercent + '%"></span></div></div>' +
+        '<div class="analytics-hero-main"><div class="analytics-total' + totalClass + '"><span>ORE LAVORATE</span><strong>' + totalText + '</strong><small>' + recordedCopy + '</small></div>' +
+          '<div class="analytics-target-ring" style="--analytics-progress:' + ringPercent + '%"><div><strong>' + targetPercent + '%</strong><span>coperto</span></div></div></div>' +
+        '<div class="analytics-hero-target"><div><span><i></i>Lavoro + assenze coperte</span><strong>' + (options.target ? formatStatsCompactDuration(progressMinutes) + ' / ' + formatStatsCompactDuration(options.target) : '--') + '</strong></div><div class="analytics-target-track"><span style="width:' + ringPercent + '%"></span></div></div>' +
         '<div class="analytics-hero-metrics">' +
           '<div><span class="is-blue">' + icons.briefcase + '</span><small>Ordinarie</small><strong>' + formatDuration(options.normal) + '</strong></div>' +
           '<div><span class="is-violet">' + icons.star + '</span><small>Straordinarie</small><strong>' + formatDuration(options.overtime) + '</strong></div>' +
-          '<div><span class="is-green">' + icons.calendar + '</span><small>Giorni lavoro</small><strong>' + options.workedDays + '</strong></div>' +
+          '<div><span class="is-cyan">' + icons.umbrella + '</span><small>Ferie</small><strong>' + formatStatsEquivalentDays(vacationMinutes) + '</strong></div>' +
         '</div>' +
       '</section>';
     }
@@ -1011,8 +1031,11 @@ function getCalendarSelectedDateKey(month) {
       '</section>';
     }
 
-    function renderStatsNarrative(totalMinutes, previousMinutes, averageMinutes, overtimeMinutes, periodLabel) {
+    function renderStatsNarrative(totalMinutes, previousMinutes, averageMinutes, overtimeMinutes, periodLabel, leaveMinutes) {
       if (!totalMinutes) {
+        if (leaveMinutes > 0) {
+          return '<section class="analytics-narrative is-positive"><span>' + icons.umbrella + '</span><div><small>LETTURA RAPIDA</small><strong>' + escapeHtml(periodLabel) + ': nessuna ora lavorata</strong><p>Hai registrato ' + formatDuration(leaveMinutes) + ' di ferie o assenze coperte, mostrate separatamente dal lavoro.</p></div></section>';
+        }
         return '<section class="analytics-narrative is-empty"><span>' + icons.activity + '</span><div><small>LETTURA RAPIDA</small><strong>Il periodo e pronto</strong><p>Inserisci le giornate e GestOre trasformera automaticamente i dati in un riepilogo leggibile.</p></div></section>';
       }
       var delta = totalMinutes - previousMinutes;
@@ -1025,6 +1048,27 @@ function getCalendarSelectedDateKey(month) {
         : 'nessuna ora straordinaria';
       return '<section class="analytics-narrative' + (delta > 0 ? ' is-positive' : (delta < 0 ? ' is-negative' : '')) + '">' +
         '<span>' + (delta >= 0 ? icons.arrowUp : icons.activity) + '</span><div><small>LETTURA RAPIDA</small><strong>' + escapeHtml(periodLabel) + ': ' + formatDuration(totalMinutes) + '</strong><p>Media ' + (averageMinutes ? formatDuration(averageMinutes) : '--') + ', ' + deltaCopy + '; ' + overtimeCopy + '.</p></div>' +
+      '</section>';
+    }
+
+    function renderStatsCoverageCard(stats) {
+      var vacationMinutes = Math.max(0, Number(stats.vacationMinutes) || 0);
+      var sicknessMinutes = Math.max(0, Number(stats.sicknessMinutes) || 0);
+      var permissionMinutes = Math.max(0, Number(stats.permissionMinutes) || 0);
+      var paidHolidayMinutes = Math.max(0, Number(stats.paidHolidayMinutes) || 0);
+      var coveredMinutes = Math.max(0, Number(stats.coveredMinutes) || Number(stats.totalMinutes) || 0);
+      return '<section class="analytics-card analytics-coverage-card">' +
+        '<div class="analytics-card-head"><div><span>PRESENZE E COPERTURE</span><h3>Lavoro, ferie e assenze</h3></div><small>' + formatDuration(coveredMinutes) + ' coperti</small></div>' +
+        '<div class="analytics-coverage-primary">' +
+          '<div class="is-work"><span>' + icons.briefcase + '</span><div><small>ORE LAVORATE</small><strong>' + formatDuration(stats.totalMinutes || 0) + '</strong><em>' + (stats.workedDays || 0) + ((stats.workedDays || 0) === 1 ? ' giorno' : ' giorni') + '</em></div></div>' +
+          '<div class="is-vacation"><span>' + icons.umbrella + '</span><div><small>FERIE</small><strong>' + formatStatsEquivalentDays(vacationMinutes) + '</strong><em>' + formatDuration(vacationMinutes) + ' coperte</em></div></div>' +
+        '</div>' +
+        '<div class="analytics-coverage-secondary">' +
+          '<div><span class="is-sickness">' + icons.activity + '</span><small>Malattia</small><strong>' + formatStatsEquivalentDays(sicknessMinutes) + '</strong><em>' + formatDuration(sicknessMinutes) + '</em></div>' +
+          '<div><span class="is-permission">' + icons.calendar + '</span><small>Permessi</small><strong>' + formatStatsEquivalentDays(permissionMinutes) + '</strong><em>' + formatDuration(permissionMinutes) + '</em></div>' +
+          '<div><span class="is-holiday">' + icons.star + '</span><small>Festivit&agrave;</small><strong>' + formatStatsEquivalentDays(paidHolidayMinutes) + '</strong><em>' + formatDuration(paidHolidayMinutes) + '</em></div>' +
+        '</div>' +
+        '<p class="analytics-coverage-note">Le ferie contribuiscono al target come ore coperte, ma restano separate dalle ore effettivamente lavorate.</p>' +
       '</section>';
     }
 
@@ -1062,8 +1106,7 @@ function getCalendarSelectedDateKey(month) {
       }).join('');
       var firstTime = focus.firstStart ? formatClockFromMinutes(focus.firstStart.minutes) : '--:--';
       var lastTime = focus.lastEnd ? formatClockFromMinutes(focus.lastEnd.minutes) : '--:--';
-      var overtimeDays = dailySeries.filter(function (item) { return item.overtime > 0; }).length;
-      var targetRemaining = Math.max(0, targetMinutes - stats.totalMinutes);
+      var targetRemaining = Math.max(0, targetMinutes - stats.coveredMinutes);
       var overtimeShare = stats.totalMinutes ? Math.round((stats.overtimeMinutes / stats.totalMinutes) * 100) : 0;
       var insights = [
         { icon: icons.activity, tone: 'is-blue', label: 'Media lavorata', value: average ? formatDuration(average) : '--', sub: 'per giorno di lavoro' },
@@ -1081,18 +1124,21 @@ function getCalendarSelectedDateKey(month) {
         recordedDays: recordedDays,
         normal: stats.normalMinutes,
         overtime: stats.overtimeMinutes,
-        workedDays: stats.workedDays
+        workedDays: stats.workedDays,
+        vacationMinutes: stats.vacationMinutes,
+        coveredMinutes: stats.coveredMinutes
       }) +
-      renderStatsNarrative(stats.totalMinutes, previousStats.totalMinutes, average, stats.overtimeMinutes, monthNames[date.getMonth()]) +
+      renderStatsNarrative(stats.totalMinutes, previousStats.totalMinutes, average, stats.overtimeMinutes, monthNames[date.getMonth()], stats.leaveMinutes) +
       renderStatsSmartStrip([
         { icon: icons.target, tone: 'is-blue', label: targetRemaining ? 'Al target' : 'Obiettivo', value: targetRemaining ? formatDuration(targetRemaining) : 'Completato' },
         { icon: icons.star, tone: 'is-violet', label: 'Quota extra', value: overtimeShare + '%' },
-        { icon: icons.calendar, tone: 'is-green', label: 'Giorni attivi', value: String(stats.workedDays || 0) }
+        { icon: icons.umbrella, tone: 'is-green', label: 'Ferie', value: formatStatsEquivalentDays(stats.vacationMinutes) }
       ]) +
+      renderStatsCoverageCard(stats) +
       '<section class="analytics-card analytics-chart-card">' +
         '<div class="analytics-card-head"><div><span>ANDAMENTO GIORNALIERO</span><h3>Ore lavorate ogni giorno</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
-        '<div class="analytics-chart-wrap">' + buildStatsDailyChart(dailySeries) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico si riempie quando inserisci le giornate.</span></div>') + '</div>' +
-        '<div class="analytics-chart-summary"><div><span>MEDIA GIORNO</span><strong>' + (average ? formatDuration(average) : '--') + '</strong></div><div><span>GIORNO MIGLIORE</span><strong>' + (focus.longest ? formatDuration(focus.longest.minutes) : '--') + '</strong></div><div><span>GIORNI CON EXTRA</span><strong>' + overtimeDays + '</strong></div></div>' +
+        '<div class="analytics-chart-wrap">' + buildStatsDailyChart(dailySeries) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora lavorata</strong><span>Ferie e assenze restano visibili nel riepilogo sopra.</span></div>') + '</div>' +
+        '<div class="analytics-chart-summary"><div><span>MEDIA GIORNO</span><strong>' + (average ? formatDuration(average) : '--') + '</strong></div><div><span>GIORNO MIGLIORE</span><strong>' + (focus.longest ? formatDuration(focus.longest.minutes) : '--') + '</strong></div><div><span>FERIE</span><strong>' + formatStatsEquivalentDays(stats.vacationMinutes) + '</strong></div></div>' +
       '</section>' +
       renderStatsMore(
         renderStatsHoursComposition(stats.normalMinutes, stats.overtimeMinutes) +
@@ -1112,8 +1158,9 @@ function getCalendarSelectedDateKey(month) {
       var previousStats = getYearStats(new Date(year - 1, 0, 1));
       var summaries = getYearMonthSummaries(date);
       var targetMinutes = getStatsYearTargetMinutes(date);
-      var activeMonths = summaries.filter(function (item) { return item.stats.totalMinutes > 0; });
-      var averageMonth = activeMonths.length ? Math.round(stats.totalMinutes / activeMonths.length) : 0;
+      var workedMonths = summaries.filter(function (item) { return item.stats.totalMinutes > 0; });
+      var activeMonths = summaries.filter(function (item) { return item.recordedDays > 0; });
+      var averageMonth = workedMonths.length ? Math.round(stats.totalMinutes / workedMonths.length) : 0;
       var bestMonth = summaries.reduce(function (best, item) {
         return !best || item.stats.totalMinutes > best.stats.totalMinutes ? item : best;
       }, null);
@@ -1121,23 +1168,24 @@ function getCalendarSelectedDateKey(month) {
         return !best || item.stats.overtimeMinutes > best.stats.overtimeMinutes ? item : best;
       }, null);
       var monthlyRows = summaries.filter(function (item) {
-        return item.stats.totalMinutes > 0;
+        return item.recordedDays > 0;
       }).map(function (item) {
         var total = item.stats.totalMinutes || 0;
         var normal = item.stats.normalMinutes || 0;
         var overtime = item.stats.overtimeMinutes || 0;
+        var vacation = item.stats.vacationMinutes || 0;
         var maxMonth = Math.max(1, summaries.reduce(function (max, summary) { return Math.max(max, summary.stats.totalMinutes || 0); }, 0));
         var monthKey = item.date.getFullYear() + '-' + pad(item.date.getMonth() + 1);
-        return '<button type="button" class="analytics-month-row" data-open-stats-month="' + monthKey + '"><div class="analytics-month-copy"><span>' + monthNames[item.date.getMonth()].slice(0, 3) + '</span><div><strong>' + monthNames[item.date.getMonth()] + '</strong><small>Ord. ' + formatDuration(normal) + ' &middot; Extra ' + formatDuration(overtime) + '</small></div></div><div class="analytics-month-value"><strong>' + formatDuration(total) + '</strong><span><i style="width:' + ((total / maxMonth) * 100).toFixed(2) + '%"></i></span></div></button>';
+        var vacationCopy = vacation ? ' &middot; Ferie ' + formatStatsEquivalentDays(vacation) : '';
+        return '<button type="button" class="analytics-month-row" data-open-stats-month="' + monthKey + '"><div class="analytics-month-copy"><span>' + monthNames[item.date.getMonth()].slice(0, 3) + '</span><div><strong>' + monthNames[item.date.getMonth()] + '</strong><small>Ord. ' + formatDuration(normal) + ' &middot; Extra ' + formatDuration(overtime) + vacationCopy + '</small></div></div><div class="analytics-month-value"><strong>' + formatDuration(total) + '</strong><span><i style="width:' + ((total / maxMonth) * 100).toFixed(2) + '%"></i></span></div></button>';
       }).join('');
       var insights = [
         { icon: icons.star, tone: 'is-violet', label: 'Mese migliore', value: bestMonth && bestMonth.stats.totalMinutes ? monthNames[bestMonth.date.getMonth()] : '--', sub: bestMonth && bestMonth.stats.totalMinutes ? formatDuration(bestMonth.stats.totalMinutes) : 'nessun dato' },
-        { icon: icons.activity, tone: 'is-blue', label: 'Media mensile', value: averageMonth ? formatDuration(averageMonth) : '--', sub: activeMonths.length + ' mesi con ore' },
+        { icon: icons.activity, tone: 'is-blue', label: 'Media mensile', value: averageMonth ? formatDuration(averageMonth) : '--', sub: workedMonths.length + ' mesi con ore' },
         { icon: icons.arrowUp, tone: 'is-orange', label: 'Mese piu extra', value: extraMonth && extraMonth.stats.overtimeMinutes ? monthNames[extraMonth.date.getMonth()] : '--', sub: extraMonth && extraMonth.stats.overtimeMinutes ? formatDuration(extraMonth.stats.overtimeMinutes) : 'nessun extra' },
         { icon: icons.calendar, tone: 'is-green', label: 'Giorni lavorati', value: String(stats.workedDays || 0), sub: stats.recordedDays + ' giornate segnate' }
       ];
-      var yearRemaining = Math.max(0, targetMinutes - stats.totalMinutes);
-      var yearOvertimeShare = stats.totalMinutes ? Math.round((stats.overtimeMinutes / stats.totalMinutes) * 100) : 0;
+      var yearRemaining = Math.max(0, targetMinutes - stats.coveredMinutes);
       return renderStatsHero({
         kicker: 'RIEPILOGO ANNUALE',
         title: String(year),
@@ -1148,17 +1196,20 @@ function getCalendarSelectedDateKey(month) {
         recordedDays: stats.recordedDays,
         normal: stats.normalMinutes,
         overtime: stats.overtimeMinutes,
-        workedDays: stats.workedDays
+        workedDays: stats.workedDays,
+        vacationMinutes: stats.vacationMinutes,
+        coveredMinutes: stats.coveredMinutes
       }) +
-      renderStatsNarrative(stats.totalMinutes, previousStats.totalMinutes, averageMonth, stats.overtimeMinutes, String(year)) +
+      renderStatsNarrative(stats.totalMinutes, previousStats.totalMinutes, averageMonth, stats.overtimeMinutes, String(year), stats.leaveMinutes) +
       renderStatsSmartStrip([
         { icon: icons.target, tone: 'is-blue', label: yearRemaining ? 'Al target' : 'Obiettivo', value: yearRemaining ? formatDuration(yearRemaining) : 'Completato' },
-        { icon: icons.star, tone: 'is-violet', label: 'Quota extra', value: yearOvertimeShare + '%' },
+        { icon: icons.umbrella, tone: 'is-violet', label: 'Ferie', value: formatStatsEquivalentDays(stats.vacationMinutes) },
         { icon: icons.calendar, tone: 'is-green', label: 'Mesi attivi', value: String(activeMonths.length) }
       ]) +
+      renderStatsCoverageCard(stats) +
       '<section class="analytics-card analytics-chart-card">' +
         '<div class="analytics-card-head"><div><span>ANDAMENTO ANNUALE</span><h3>Ore mese per mese</h3></div><div class="analytics-chart-legend"><i class="is-normal"></i>Ord.<i class="is-extra"></i>Extra</div></div>' +
-        '<div class="analytics-chart-wrap">' + buildStatsYearChart(summaries, targetMinutes) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora registrata</strong><span>Il grafico annuale si aggiorna automaticamente.</span></div>') + '</div>' +
+        '<div class="analytics-chart-wrap">' + buildStatsYearChart(summaries, targetMinutes) + (stats.totalMinutes ? '' : '<div class="analytics-chart-empty"><strong>Nessuna ora lavorata</strong><span>Ferie e assenze restano visibili nel riepilogo sopra.</span></div>') + '</div>' +
         (monthlyRows ? '<div class="analytics-month-list">' + monthlyRows + '</div>' : '') +
       '</section>' +
       renderStatsMore(

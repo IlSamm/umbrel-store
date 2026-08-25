@@ -83,8 +83,8 @@ var errorBox = document.getElementById('errorBox');
       payrollEstimateByMonth: {},
       defaultPayslipCompany: '',
       weekdayMode: 'monday',
-      version: '1.8.12',
-      build: '20260825c',
+      version: '1.8.13',
+      build: '20260825d',
       appName: 'GestOre'
     };
 
@@ -770,7 +770,9 @@ var errorBox = document.getElementById('errorBox');
       if (entry.quantityHours !== undefined && entry.quantityHours !== null && String(entry.quantityHours).trim() !== '') {
         return parseDecimalInput(entry.quantityHours, 0);
       }
-      if (entry.type === 'festivita_pagata') return getDefaultPaidDayHours();
+      if (entry.type === 'ferie' || entry.type === 'malattia' || entry.type === 'permesso' || entry.type === 'festivita_pagata') {
+        return getDefaultPaidDayHours();
+      }
       return 0;
     }
     function hasManualOvertime(entry) {
@@ -918,15 +920,22 @@ var errorBox = document.getElementById('errorBox');
       }
       return rows;
     }
-    function getMonthStats(date) {
-      var arr = getMonthEntries(date);
-      var totalMinutes = 0, normalMinutes = 0, overtimeMinutes = 0, workedDays = 0, ferie = 0, malattia = 0, permesso = 0, festivitaPagata = 0, riposo = 0;
+    function calculatePeriodStats(arr) {
+      var totalMinutes = 0, normalMinutes = 0, overtimeMinutes = 0, leaveMinutes = 0, coveredMinutes = 0;
+      var vacationMinutes = 0, sicknessMinutes = 0, permissionMinutes = 0, paidHolidayMinutes = 0;
+      var workedDays = 0, ferie = 0, malattia = 0, permesso = 0, festivitaPagata = 0, riposo = 0;
       arr.forEach(function (pair) {
         var e = pair[1];
         var b = getBreakdown(e);
         totalMinutes += b.total;
         normalMinutes += b.normal;
         overtimeMinutes += b.overtime;
+        leaveMinutes += b.leave;
+        coveredMinutes += b.covered;
+        if (e.type === 'ferie' || e.type === 'lavoro_ferie') vacationMinutes += b.leave;
+        else if (e.type === 'malattia') sicknessMinutes += b.leave;
+        else if (e.type === 'permesso') permissionMinutes += b.leave;
+        else if (e.type === 'festivita_pagata') paidHolidayMinutes += b.leave;
         if (e.type === 'ferie') ferie += 1;
         else if (e.type === 'malattia') malattia += 1;
         else if (e.type === 'permesso') permesso += 1;
@@ -934,7 +943,26 @@ var errorBox = document.getElementById('errorBox');
         else if (e.type === 'riposo') riposo += 1;
         else if (b.total > 0 || e.type === 'lavoro_ferie') workedDays += 1;
       });
-      return { totalMinutes: totalMinutes, normalMinutes: normalMinutes, overtimeMinutes: overtimeMinutes, workedDays: workedDays, ferie: ferie, malattia: malattia, permesso: permesso, festivitaPagata: festivitaPagata, riposo: riposo };
+      return {
+        totalMinutes: totalMinutes,
+        normalMinutes: normalMinutes,
+        overtimeMinutes: overtimeMinutes,
+        leaveMinutes: leaveMinutes,
+        coveredMinutes: coveredMinutes,
+        vacationMinutes: vacationMinutes,
+        sicknessMinutes: sicknessMinutes,
+        permissionMinutes: permissionMinutes,
+        paidHolidayMinutes: paidHolidayMinutes,
+        workedDays: workedDays,
+        ferie: ferie,
+        malattia: malattia,
+        permesso: permesso,
+        festivitaPagata: festivitaPagata,
+        riposo: riposo
+      };
+    }
+    function getMonthStats(date) {
+      return calculatePeriodStats(getMonthEntries(date));
     }
     function getRecordedDaysFromStats(stats) {
       var source = stats || {};
@@ -958,6 +986,12 @@ var errorBox = document.getElementById('errorBox');
         acc.totalMinutes += item.stats.totalMinutes || 0;
         acc.normalMinutes += item.stats.normalMinutes || 0;
         acc.overtimeMinutes += item.stats.overtimeMinutes || 0;
+        acc.leaveMinutes += item.stats.leaveMinutes || 0;
+        acc.coveredMinutes += item.stats.coveredMinutes || 0;
+        acc.vacationMinutes += item.stats.vacationMinutes || 0;
+        acc.sicknessMinutes += item.stats.sicknessMinutes || 0;
+        acc.permissionMinutes += item.stats.permissionMinutes || 0;
+        acc.paidHolidayMinutes += item.stats.paidHolidayMinutes || 0;
         acc.workedDays += item.stats.workedDays || 0;
         acc.ferie += item.stats.ferie || 0;
         acc.malattia += item.stats.malattia || 0;
@@ -971,6 +1005,12 @@ var errorBox = document.getElementById('errorBox');
         totalMinutes: 0,
         normalMinutes: 0,
         overtimeMinutes: 0,
+        leaveMinutes: 0,
+        coveredMinutes: 0,
+        vacationMinutes: 0,
+        sicknessMinutes: 0,
+        permissionMinutes: 0,
+        paidHolidayMinutes: 0,
         workedDays: 0,
         ferie: 0,
         malattia: 0,
@@ -2633,6 +2673,13 @@ var errorBox = document.getElementById('errorBox');
         '2026-07-02': { type:'lavoro_ferie', start:'08:00', end:'12:00', breakHours:0, leaveHours:4 }
       }, { dailyTarget:8, vacationAllowanceByYear:{ '2026':20 } }, 2026);
       add('saldo ferie conta giornate intere e parziali', vacationFixture.usedMinutes === 720 && vacationFixture.remainingMinutes === 8880);
+      add('ferie storiche senza quantita coprono il target giornaliero', getBreakdown({ type:'ferie' }).leave === getDailyTargetMinutes());
+      var statisticsFixture = calculatePeriodStats([
+        ['2026-07-01', { type:'lavoro', start:'08:00', end:'17:00', breakHours:1 }],
+        ['2026-07-02', { type:'ferie' }],
+        ['2026-07-03', { type:'lavoro_ferie', start:'08:00', end:'12:00', breakHours:0, leaveHours:4 }]
+      ]);
+      add('statistiche separano lavoro e ferie ma sommano la copertura', statisticsFixture.totalMinutes === 720 && statisticsFixture.vacationMinutes === 720 && statisticsFixture.coveredMinutes === 1440);
       add('buildMonthGrid restituisce 35 celle', buildMonthGrid(new Date()).length === 35);
       add('migrazione dati attiva', typeof loadWithMigration === 'function');
       return tests;

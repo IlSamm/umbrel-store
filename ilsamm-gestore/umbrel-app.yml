@@ -4,7 +4,7 @@ name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.8.12"
+version: "1.8.13"
 port: 8080
 
 description: >-
@@ -12,10 +12,11 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iPhone.
 
 releaseNotes: >-
-  GestOre 1.8.12 ricalcola automaticamente la stima dello stipendio usando le ore
-  di straordinario realmente registrate nel mese. Nei cedolini puoi ora indicare
-  azienda, lordo e netto, ricordare l'azienda per i mesi successivi e modificarla
-  quando serve. Archivio, PDF e dati esistenti restano compatibili.
+  GestOre 1.8.13 completa le Statistiche con ferie e assenze pagate. Le ore
+  lavorate restano separate, mentre ferie, malattia, permessi e festivita mostrano
+  giorni e ore coperte. Il target usa correttamente lavoro e coperture; grafico
+  giornaliero e riepilogo annuale riconoscono anche i periodi di ferie. Tutti i
+  dati esistenti restano compatibili.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-gestore"

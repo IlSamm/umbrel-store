@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.12-20260825c';
+var PLATFORM_BUILD = '1.8.13-20260825d';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Schermata di avvio ancora piu essenziale con soltanto marchio e nome GestOre.',
-  'Nuovo contorno luminoso, riflesso sul logo e gradiente animato sulla parola Ore.',
-  'Rimossi dalla vista messaggi, tagline e barra per un ingresso piu pulito.',
-  'Account, documenti e dati gia salvati restano invariati.'
+  'Le Statistiche mostrano ora le ore lavorate e le ferie come valori distinti.',
+  'Ferie, malattia, permessi e festivita indicano sia i giorni sia le ore coperte.',
+  'Il progresso del target considera correttamente lavoro e assenze pagate.',
+  'Grafici mensili e riepilogo annuale riconoscono i giorni di ferie gia salvati.'
 ];
 
 async function readPlatformJson(response) {

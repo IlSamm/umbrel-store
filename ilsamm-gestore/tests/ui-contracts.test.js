@@ -231,3 +231,21 @@ test('la stima usa gli straordinari registrati e il cedolino salva azienda e lor
   assert.match(core, /defaultPayslipCompany/);
   assert.match(styles, /payroll-company-amount-panel/);
 });
+
+test('le statistiche separano ore lavorate, ferie e copertura del target', () => {
+  const core = read('app/frontend/js/core.js');
+  const views = read('app/frontend/js/views.js');
+  const styles = read('app/frontend/styles/release-1813.css');
+
+  assert.match(core, /function calculatePeriodStats/);
+  assert.match(core, /vacationMinutes/);
+  assert.match(core, /coveredMinutes/);
+  assert.match(core, /ferie storiche senza quantita coprono il target giornaliero/);
+  assert.match(views, /function renderStatsCoverageCard/);
+  assert.match(views, /PRESENZE E COPERTURE/);
+  assert.match(views, /Le ferie contribuiscono al target come ore coperte/);
+  assert.match(views, /stateLabels = \{ ferie: 'FERIE'/);
+  assert.match(views, /targetMinutes - stats\.coveredMinutes/);
+  assert.match(styles, /analytics-coverage-primary/);
+  assert.match(styles, /analytics-daily-value\.is-state/);
+});
