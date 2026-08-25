@@ -4,7 +4,7 @@ name: GestOre
 tagline: Tieni ore, turni e riposi con una UI elegante
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-gestore/icon.svg
 category: files
-version: "1.8.15"
+version: "1.8.16"
 port: 8080
 
 description: >-
@@ -12,12 +12,11 @@ description: >-
   riposi, note e dati salvati in SQLite su umbrelOS, pensata per iPhone.
 
 releaseNotes: >-
-  GestOre 1.8.15 introduce Centro mese, un riepilogo intelligente che controlla
-  giornate mancanti, cedolino, sincronizzazione e report senza rendere mai
-  obbligatori sabato e domenica. La nuova vista confronta anche la stima dello
-  stipendio con il netto reale e collega direttamente statistiche e PDF mensile.
-  Migliorati inoltre i feedback di salvataggio e le conferme accessibili.
-  Tutti i dati gia salvati restano invariati e compatibili.
+  GestOre 1.8.16 rifinisce completamente il Centro mese. Il fondale ora riempie
+  tutta la superficie dell'iPhone senza pareti nere, la card nella Home e piu
+  ordinata e le percentuali sono centrate con precisione. Il cambio mese non
+  ricrea piu la schermata: contenuti, posizione e comandi restano stabili con una
+  transizione breve e fluida. Tutti i dati gia salvati restano invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-gestore"

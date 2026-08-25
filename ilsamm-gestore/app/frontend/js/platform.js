@@ -1,4 +1,4 @@
-var PLATFORM_BUILD = '1.8.15-20260825f';
+var PLATFORM_BUILD = '1.8.16-20260825g';
 var PLATFORM_HISTORY_URL = '/api/history';
 var PLATFORM_DIAGNOSTICS_URL = '/api/diagnostics';
 var PLATFORM_SESSIONS_URL = '/api/auth/sessions';
@@ -26,10 +26,10 @@ var platformState = {
 };
 
 var PLATFORM_RELEASE_NOTES = [
-  'Nuovo Centro mese con un riepilogo intelligente di giornate, cedolino, sincronizzazione e report.',
-  'Le giornate mancanti non rendono mai obbligatori sabato e domenica.',
-  'Confronta la stima dello stipendio con il cedolino reale e apre subito report e statistiche.',
-  'Feedback di salvataggio e conferme ora sono piu chiari e accessibili.'
+  'Il Centro mese ora riempie tutta la superficie senza pareti laterali nere.',
+  'La card nella Home e stata ridisegnata con numeri piu leggibili e percentuale centrata.',
+  'Le frecce cambiano mese senza ricreare la schermata o perdere la posizione.',
+  'La transizione tra mesi e piu breve, stabile e rispettosa del movimento ridotto.'
 ];
 
 async function readPlatformJson(response) {

@@ -38,10 +38,19 @@
     };
   }
 
+  function shiftMonthDate(value, delta) {
+    var source = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(source.getTime())) source = new Date();
+    var offset = Number.isFinite(Number(delta)) ? Math.trunc(Number(delta)) : 0;
+    return new Date(source.getFullYear(), source.getMonth() + offset, 1, 12, 0, 0, 0);
+  }
+
   function install(global) {
     var api = global.GestOreMonthlyReview;
     var document = global.document;
     if (!document) return;
+    var monthSwitchLocked = false;
+    var monthSwitchTimer = 0;
 
     function appState() {
       return global.state || {};
@@ -281,9 +290,9 @@
         ? (review.completion.pending + (review.completion.pending === 1 ? ' controllo da completare' : ' controlli da completare'))
         : 'Tutto aggiornato per ora';
       return '<button class="home-month-review is-' + review.tone + '" data-open-month-review="1" aria-label="Apri il riepilogo di ' + html(review.label) + '">' +
-        '<span class="home-month-review-ring" style="--month-review-score:' + review.completion.score + '%"><b>' + review.completion.score + '%</b><small>mese</small></span>' +
+        '<span class="home-month-review-ring" style="--month-review-score:' + review.completion.score + '%"><span><b>' + review.completion.score + '%</b><small>pronto</small></span></span>' +
         '<span class="home-month-review-copy"><small>CENTRO MESE</small><strong>' + html(review.label) + '</strong><em>' + html(actionCopy) + '</em></span>' +
-        '<span class="home-month-review-metrics"><b>' + html(global.formatDuration ? global.formatDuration(stats.totalMinutes || 0) : '0h 0m') + '</b><small>' + html(global.formatDuration ? global.formatDuration(stats.overtimeMinutes || 0) : '0h 0m') + ' extra</small></span>' +
+        '<span class="home-month-review-metrics"><small>ORE</small><b>' + html(global.formatDuration ? global.formatDuration(stats.totalMinutes || 0) : '0h 0m') + '</b><em>' + html(global.formatDuration ? global.formatDuration(stats.overtimeMinutes || 0) : '0h 0m') + ' extra</em></span>' +
         '<i>' + (global.icons ? global.icons.right : '') + '</i>' +
       '</button>';
     }
@@ -366,6 +375,10 @@
 
     function closeReview() {
       appState().monthlyReviewOpen = false;
+      document.documentElement.classList.remove('month-review-open');
+      document.body.classList.remove('month-review-open');
+      monthSwitchLocked = false;
+      if (monthSwitchTimer) global.clearTimeout(monthSwitchTimer);
       haptic('light');
       if (typeof global.render === 'function') global.render();
     }
@@ -374,6 +387,8 @@
       var state = appState();
       state.monthlyReviewDate = monthDate(date || new Date());
       state.monthlyReviewOpen = true;
+      document.documentElement.classList.add('month-review-open');
+      document.body.classList.add('month-review-open');
       haptic('light');
       if (typeof global.render === 'function') global.render();
       global.requestAnimationFrame(function () {
@@ -386,6 +401,8 @@
       var state = appState();
       var selected = getSelectedDate();
       state.monthlyReviewOpen = false;
+      document.documentElement.classList.remove('month-review-open');
+      document.body.classList.remove('month-review-open');
       if (target === 'missing' && value && typeof global.openEditor === 'function') {
         global.openEditor(new Date(value + 'T12:00:00'));
         return;
@@ -425,6 +442,50 @@
       if (typeof global.render === 'function') global.render();
     }
 
+    function switchReviewMonth(delta) {
+      var offset = Number(delta) || 0;
+      if (!offset || monthSwitchLocked) return;
+      var state = appState();
+      var currentScroll = document.querySelector('.month-review-scroll');
+      state.monthlyReviewDate = shiftMonthDate(getSelectedDate(), offset);
+      haptic('light');
+
+      if (!currentScroll) {
+        if (typeof global.render === 'function') global.render();
+        return;
+      }
+
+      monthSwitchLocked = true;
+      var previousTop = currentScroll.scrollTop;
+      var template = document.createElement('template');
+      template.innerHTML = renderOverlay().trim();
+      var nextScroll = template.content.querySelector('.month-review-scroll');
+      if (!nextScroll) {
+        monthSwitchLocked = false;
+        return;
+      }
+
+      currentScroll.innerHTML = nextScroll.innerHTML;
+      currentScroll.scrollTop = Math.min(previousTop, Math.max(0, currentScroll.scrollHeight - currentScroll.clientHeight));
+      currentScroll.classList.remove('is-month-back', 'is-month-forward');
+      void currentScroll.offsetWidth;
+      currentScroll.classList.add(offset < 0 ? 'is-month-back' : 'is-month-forward');
+      bindEvents();
+
+      var focusTarget = currentScroll.querySelector('[data-month-review-month="' + (offset < 0 ? '-1' : '1') + '"]');
+      if (focusTarget && typeof focusTarget.focus === 'function') {
+        try { focusTarget.focus({ preventScroll: true }); } catch (error) { focusTarget.focus(); }
+      }
+      announce('Riepilogo di ' + formatMonth(state.monthlyReviewDate));
+
+      if (monthSwitchTimer) global.clearTimeout(monthSwitchTimer);
+      monthSwitchTimer = global.setTimeout(function () {
+        currentScroll.classList.remove('is-month-back', 'is-month-forward');
+        monthSwitchLocked = false;
+        monthSwitchTimer = 0;
+      }, 180);
+    }
+
     function bindEvents() {
       document.querySelectorAll('[data-open-month-review]').forEach(function (button) {
         button.onclick = function () { openReview(new Date()); };
@@ -434,11 +495,7 @@
       });
       document.querySelectorAll('[data-month-review-month]').forEach(function (button) {
         button.onclick = function () {
-          var current = getSelectedDate();
-          current.setMonth(current.getMonth() + (Number(button.dataset.monthReviewMonth) || 0));
-          appState().monthlyReviewDate = monthDate(current);
-          haptic('light');
-          if (typeof global.render === 'function') global.render();
+          switchReviewMonth(Number(button.dataset.monthReviewMonth) || 0);
         };
       });
       document.querySelectorAll('[data-month-review-target]').forEach(function (button) {
@@ -451,6 +508,8 @@
           var state = appState();
           state.currentMonth = monthDate(getSelectedDate());
           state.monthlyReviewOpen = false;
+          document.documentElement.classList.remove('month-review-open');
+          document.body.classList.remove('month-review-open');
           haptic('medium');
           announce('Preparazione del report mensile');
           if (typeof global.openPdfExportDialog === 'function') global.openPdfExportDialog('monthly');
@@ -464,6 +523,7 @@
     api.bindEvents = bindEvents;
     api.open = openReview;
     api.close = closeReview;
+    api.switchMonth = switchReviewMonth;
 
     document.addEventListener('keydown', function (event) {
       if (event.key !== 'Escape' || !appState().monthlyReviewOpen) return;
@@ -475,6 +535,7 @@
   return {
     calculateCompletionScore: calculateCompletionScore,
     calculateSalaryComparison: calculateSalaryComparison,
+    shiftMonthDate: shiftMonthDate,
     install: install
   };
 });
