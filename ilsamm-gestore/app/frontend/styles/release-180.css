@@ -713,49 +713,6 @@ textarea {
   border-radius: 18px !important;
 }
 
-/* Vacation screen: clearer balance and denser actions/history. */
-.vacation-page {
-  gap: 14px !important;
-}
-
-.vacation-page-top {
-  min-height: 62px !important;
-}
-
-.vacation-page-hero {
-  gap: 14px !important;
-  padding: 18px !important;
-  border-radius: 27px !important;
-}
-
-.vacation-page-hero-head h2 {
-  font-size: clamp(46px, 13vw, 57px) !important;
-}
-
-.vacation-page-ring {
-  width: 86px !important;
-  height: 86px !important;
-  flex-basis: 86px !important;
-}
-
-.vacation-page-actions {
-  gap: 9px !important;
-}
-
-.vacation-page-add,
-.vacation-page-edit {
-  min-height: 70px !important;
-  border-radius: 19px !important;
-}
-
-.vacation-page-history {
-  border-radius: 24px !important;
-}
-
-.vacation-page-history-row {
-  min-height: 70px !important;
-}
-
 @media (max-width: 370px) {
   :root {
     --shell-nav-width: calc(100% - 12px);

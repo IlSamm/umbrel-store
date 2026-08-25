@@ -752,28 +752,38 @@ function getCalendarSelectedDateKey(month) {
       }, 0);
       var usedToDateMinutes = Math.max(0, balance.usedMinutes - plannedMinutes);
       var allowanceMinutes = balance.allowanceDays * balance.dailyMinutes;
-      var availableTodayDays = hasAllowance ? ((allowanceMinutes - usedToDateMinutes) / balance.dailyMinutes) : 0;
       var plannedDays = plannedMinutes / balance.dailyMinutes;
       var projectedDays = hasAllowance ? ((allowanceMinutes - balance.usedMinutes) / balance.dailyMinutes) : 0;
+      var remainingPercent = hasAllowance ? Math.max(0, Math.min(100, Math.round((balance.remainingMinutes / allowanceMinutes) * 100))) : 0;
+      var usedPercent = hasAllowance ? Math.max(0, Math.min(100, (usedToDateMinutes / allowanceMinutes) * 100)) : 0;
+      var plannedPercent = hasAllowance ? Math.max(0, Math.min(100 - usedPercent, (plannedMinutes / allowanceMinutes) * 100)) : 0;
       var nextVacation = details.filter(function (item) { return item.key > todayKey; }).sort(function (a, b) { return a.key.localeCompare(b.key); })[0] || null;
-      var remainingValue = hasAllowance ? formatVacationDayValue(availableTodayDays) : '--';
-      var remainingLabel = hasAllowance ? 'giorni disponibili oggi' : 'imposta il saldo annuale';
+      var remainingValue = hasAllowance ? formatVacationDayValue(over ? (balance.overMinutes / balance.dailyMinutes) : balance.remainingDays) : '--';
+      var remainingLabel = over ? 'giorni oltre la disponibilit&agrave;' : (hasAllowance ? 'giorni ancora disponibili' : 'saldo annuale non impostato');
       var projectedCopy = !hasAllowance
-        ? 'Imposta il totale per calcolare il saldo'
+        ? 'Imposta il totale per iniziare a pianificare'
         : (projectedDays < 0
           ? formatVacationDayValue(Math.abs(projectedDays)) + ' gg oltre il saldo al 31 dicembre'
-          : formatVacationDayValue(projectedDays) + ' gg previsti al 31 dicembre');
+          : formatVacationDayValue(projectedDays) + ' gg liberi dopo le ferie pianificate');
       var vacationInsightMarkup = '';
       if (nextVacation) {
         var nextVacationDate = parseLocalDateKey(nextVacation.key);
         var nextVacationLabel = nextVacationDate
           ? new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).format(nextVacationDate)
           : nextVacation.key;
-        vacationInsightMarkup = '<div class="vacation-page-insight"><span>' + icons.calendar + '</span><div><small>PROSSIMA ASSENZA</small><strong>' + escapeHtml(nextVacationLabel) + '</strong><p>' + formatDuration(nextVacation.minutes) + ' di ferie programmate</p></div><b>In programma</b></div>';
+        var nextVacationMonth = nextVacationDate ? new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(nextVacationDate).replace('.', '') : '';
+        var nextVacationDistance = nextVacationDate ? Math.max(1, Math.ceil((nextVacationDate.getTime() - parseLocalDateKey(todayKey).getTime()) / 86400000)) : 0;
+        vacationInsightMarkup = '<div class="vacation-page-insight"><span class="vacation-next-date"><strong>' + (nextVacationDate ? nextVacationDate.getDate() : '--') + '</strong><small>' + escapeHtml(nextVacationMonth) + '</small></span><div><small>PROSSIME FERIE</small><strong>' + escapeHtml(nextVacationLabel) + '</strong><p>' + formatDuration(nextVacation.minutes) + ' &middot; tra ' + nextVacationDistance + (nextVacationDistance === 1 ? ' giorno' : ' giorni') + '</p></div><b>Programmata</b></div>';
       } else {
-        vacationInsightMarkup = '<div class="vacation-page-projection' + (projectedDays < 0 ? ' is-warning' : '') + '"><span>' + icons.activity + '</span><div><small>PROIEZIONE DI FINE ANNO</small><strong>' + escapeHtml(projectedCopy) + '</strong></div></div>';
+        vacationInsightMarkup = '<div class="vacation-page-projection' + (projectedDays < 0 ? ' is-warning' : '') + '"><span>' + icons.calendar + '</span><div><small>PIANIFICAZIONE</small><strong>' + escapeHtml(projectedCopy) + '</strong><p>Nessuna prossima assenza in calendario</p></div></div>';
       }
-      var recentRows = details.slice(0, 4).map(function (item) {
+      var orderedDetails = details.slice().sort(function (a, b) {
+        var aFuture = a.key > todayKey;
+        var bFuture = b.key > todayKey;
+        if (aFuture !== bFuture) return aFuture ? -1 : 1;
+        return aFuture ? a.key.localeCompare(b.key) : b.key.localeCompare(a.key);
+      });
+      var recentRows = orderedDetails.slice(0, 4).map(function (item) {
         var date = parseLocalDateKey(item.key);
         var dayLabel = date ? new Intl.DateTimeFormat('it-IT', { weekday: 'long' }).format(date) : item.key;
         var fullDate = date ? new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' }).format(date) : item.key;
@@ -790,14 +800,16 @@ function getCalendarSelectedDateKey(month) {
       return '<div class="vacation-page">' +
         '<div class="vacation-page-top"><div><span>GESTIONE ANNUALE</span><h1>Ferie</h1></div><div class="vacation-year-switch"><button data-vacation-year-prev="1" aria-label="Anno precedente">' + icons.left + '</button><strong>' + year + '</strong><button data-vacation-year-next="1" aria-label="Anno successivo">' + icons.right + '</button></div></div>' +
         '<section class="vacation-page-hero' + (over ? ' is-over' : '') + '">' +
-          '<div class="vacation-page-hero-head"><div><span class="vacation-page-kicker">SALDO RESIDUO</span><h2>' + remainingValue + '</h2><p>' + remainingLabel + '</p></div>' +
-          '<div class="vacation-page-ring" style="--vacation-progress:' + balance.percent + '%"><div><strong>' + balance.percent + '%</strong><span>impegnato</span></div></div></div>' +
-          '<div class="vacation-page-metrics"><div><span>Totale anno</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div><span>Utilizzate</span><strong>' + formatVacationDayValue(usedToDateMinutes / balance.dailyMinutes) + ' gg</strong></div><div><span>Pianificate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong></div></div>' +
+          '<div class="vacation-page-card-top"><div class="vacation-page-card-title"><span>' + icons.umbrella + '</span><div><small>IL TUO SALDO</small><strong>Disponibilit&agrave; ' + year + '</strong></div></div><button data-open-vacation-allowance="' + year + '">' + icons.settings + '<span>Gestisci</span></button></div>' +
+          '<div class="vacation-page-hero-head"><div class="vacation-page-balance-copy"><span class="vacation-page-kicker">TI RESTANO</span><h2>' + remainingValue + (hasAllowance ? '<small>gg</small>' : '') + '</h2><p>' + remainingLabel + '</p></div>' +
+          '<div class="vacation-page-ring" style="--vacation-progress:' + remainingPercent + '%"><div><strong>' + (hasAllowance ? remainingPercent + '%' : '--') + '</strong><span>residuo</span></div></div></div>' +
+          '<div class="vacation-page-balance-bar" aria-label="Ripartizione ferie"><span class="is-used" style="width:' + usedPercent + '%"></span><span class="is-planned" style="width:' + plannedPercent + '%"></span></div>' +
+          '<div class="vacation-page-metrics"><div class="is-total"><span>Disponibilit&agrave;</span><strong>' + (hasAllowance ? formatVacationDayValue(balance.allowanceDays) + ' gg' : '--') + '</strong></div><div class="is-used"><span>Utilizzate</span><strong>' + formatVacationDayValue(usedToDateMinutes / balance.dailyMinutes) + ' gg</strong></div><div class="is-planned"><span>Pianificate</span><strong>' + formatVacationDayValue(plannedDays) + ' gg</strong></div></div>' +
           vacationInsightMarkup +
-          '<div class="vacation-page-actions"><button class="vacation-page-add" data-open-vacation-range="' + year + '"><span>' + icons.plus + '</span><div><strong>Inserisci ferie</strong><small>Uno o pi&ugrave; giorni</small></div></button><button class="vacation-page-edit" data-open-vacation-allowance="' + year + '"><span>' + icons.settings + '</span><div><strong>Saldo annuale</strong><small>Modifica disponibilit&agrave;</small></div></button></div>' +
+          '<div class="vacation-page-actions"><button class="vacation-page-add" data-open-vacation-range="' + year + '"><span>' + icons.plus + '</span><div><strong>Pianifica ferie</strong><small>Giorno o periodo</small></div>' + icons.right + '</button><button class="vacation-page-edit" data-open-vacation-history="' + year + '"><span>' + icons.calendar + '</span><div><strong>Storico</strong><small>' + details.length + (details.length === 1 ? ' giornata' : ' giornate') + '</small></div></button></div>' +
           status +
         '</section>' +
-        '<div class="vacation-page-section-head"><div><span>STORICO ' + year + '</span><h2>Ferie registrate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Vedi tutte</button>' : '') + '</div>' +
+        '<div class="vacation-page-section-head"><div><span>CALENDARIO FERIE</span><h2>Programmate e utilizzate</h2></div>' + (details.length ? '<button data-open-vacation-history="' + year + '">Tutte <b>' + details.length + '</b></button>' : '') + '</div>' +
         '<section class="vacation-page-history">' + (recentRows || '<div class="vacation-page-empty"><span>' + icons.calendar + '</span><strong>Nessuna ferie registrata</strong><small>Quando inserisci una giornata, la ritroverai qui.</small></div>') + '</section>' +
       '</div>';
     }

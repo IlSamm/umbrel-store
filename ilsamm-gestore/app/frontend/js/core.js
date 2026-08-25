@@ -83,8 +83,8 @@ var errorBox = document.getElementById('errorBox');
       payrollEstimateByMonth: {},
       defaultPayslipCompany: '',
       weekdayMode: 'monday',
-      version: '1.8.13',
-      build: '20260825d',
+      version: '1.8.14',
+      build: '20260825e',
       appName: 'GestOre'
     };
 

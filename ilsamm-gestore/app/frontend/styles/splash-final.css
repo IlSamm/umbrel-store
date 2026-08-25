@@ -214,7 +214,7 @@ body.app-booting {
   justify-content: center;
   max-width: 100%;
   margin-top: clamp(18px, 2.6dvh, 23px);
-  padding: 0 11px 6px;
+  padding: 0 18px 7px;
   overflow: visible;
   color: #fff;
   font-size: clamp(57px, 15vw, 65px);
@@ -227,10 +227,15 @@ body.app-booting {
 }
 
 .go-word-main {
+  display: block;
   color: rgba(255, 255, 255, .98);
 }
 
 .go-word-accent {
+  display: block;
+  /* Safari clips the last glyph when negative tracking shrinks the paint box. */
+  padding-inline-end: .12em;
+  margin-inline-end: -.12em;
   color: transparent;
   background: linear-gradient(115deg, #76ddff 0%, #2f93ff 39%, #777aff 68%, #52bcff 100%);
   background-size: 180% 100%;
