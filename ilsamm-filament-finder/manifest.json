@@ -1,0 +1,9 @@
+{
+  "name": "Filament Finder Pro",
+  "short_name": "FilamentFinder",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#061019",
+  "theme_color": "#061019",
+  "description": "Consigliatore filamenti e compatibilità stampanti 3D"
+}
