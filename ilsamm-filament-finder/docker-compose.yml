@@ -8,18 +8,20 @@ services:
 
   server:
     image: python:3.13-slim
+    init: true
     restart: on-failure
     stop_grace_period: 15s
-    working_dir: /tmp/filament-finder/Filament_Finder_Studio
     command:
       - sh
       - -c
       - >-
-        rm -rf /tmp/filament-finder &&
+        set -eu &&
+        rm -rf /tmp/filament-finder /tmp/filament-finder.zip &&
         mkdir -p /tmp/filament-finder &&
-        python -m zipfile -e /package/app.zip /tmp/filament-finder &&
+        python -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/app.zip','/tmp/filament-finder.zip')" &&
+        python -m zipfile -e /tmp/filament-finder.zip /tmp/filament-finder &&
         cd /tmp/filament-finder/Filament_Finder_Studio &&
-        python server.py
+        exec python server.py
     environment:
       TZ: Europe/Rome
       FILAMENT_FINDER_PORT: 8765
@@ -27,7 +29,6 @@ services:
       FILAMENT_FINDER_CACHE_TTL: 900
       FILAMENT_FINDER_MONITOR_INTERVAL: 900
     volumes:
-      - ./app.zip:/package/app.zip:ro
       - ${APP_DATA_DIR}/data:/data
     security_opt:
       - no-new-privileges:true
