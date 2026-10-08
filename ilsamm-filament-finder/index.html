@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071019">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Filament Finder Studio</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brandmark">F</div>
+      <div>
+        <div class="brandname">Filament Finder <span>STUDIO</span></div>
+        <div class="brandsub">Material intelligence for 3D printing</div>
+      </div>
+    </div>
+    <div class="topactions">
+      <button class="ghost" id="printerBtn">🖨️ <span id="printerShort">Seleziona stampante</span></button>
+      <button class="ghost iconbtn" id="themeBtn" title="Tema">◐</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero panel">
+      <div class="hero-left">
+        <div class="eyebrow"><span class="live-dot"></span> MATERIAL ADVISOR</div>
+        <h1>Trova il materiale giusto.<br><span>Prima di stampare.</span></h1>
+        <p class="hero-copy">Descrivi il progetto: confrontiamo materiale, compatibilità, prestazioni e prezzo reale consegnato. Tutto in un’unica analisi.</p>
+        <div class="hero-metrics"><span>25+ materiali</span><span>40+ stampanti</span><span>8 fonti prezzo</span><span>Tracker live</span></div>
+      </div>
+      <div class="printer-summary" id="printerSummary">
+        <div class="ps-icon">🖨️</div>
+        <div>
+          <div class="ps-label">STAMPANTE ATTIVA</div>
+          <strong id="printerName">Nessuna selezionata</strong>
+          <div class="ps-meta" id="printerMeta">Scegline una per avere consigli corretti.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ask panel">
+      <div class="ask-head">
+        <div>
+          <div class="section-kicker">NUOVA ANALISI</div>
+          <h2>Cosa devi realizzare?</h2>
+        </div>
+        <button class="textbtn" id="clearBtn">Azzera</button>
+      </div>
+      <textarea id="projectInput" placeholder="Esempio: devo stampare una staffa per il telefono da lasciare in macchina d'estate. Deve reggere il caldo, non rompersi con le vibrazioni e preferisco un materiale nero opaco."></textarea>
+
+      <div class="suggestions">
+        <button data-prompt="Statuina anime molto dettagliata, multicolore, da esporre in casa. Voglio una bella finitura e linee di layer poco visibili.">🗿 Statuina</button>
+        <button data-prompt="Supporto per smartphone da lasciare in auto anche d'estate. Deve resistere al caldo, vibrazioni e urti.">🚗 Auto</button>
+        <button data-prompt="Vaso o insegna da lasciare all'esterno tutto l'anno, al sole e alla pioggia.">☀️ Esterno</button>
+        <button data-prompt="Staffa meccanica rigida e resistente, con viti, sottoposta a carico e urti.">⚙️ Staffa</button>
+        <button data-prompt="Piedino antiscivolo morbido e flessibile, che deve assorbire vibrazioni.">🧽 Flessibile</button>
+      </div>
+
+      <div class="controls-grid">
+        <label>Priorità
+          <select id="priority">
+            <option value="auto">Automatica dal testo</option>
+            <option value="detail">Dettaglio / estetica</option>
+            <option value="strength">Resistenza meccanica</option>
+            <option value="heat">Calore / automotive</option>
+            <option value="outdoor">Esterno / UV</option>
+            <option value="flex">Flessibilità</option>
+            <option value="easy">Facilità di stampa</option>
+            <option value="cheap">Costo basso</option>
+          </select>
+        </label>
+        <label>Ugello
+          <select id="nozzleSize">
+            <option value="0.4">0,4 mm</option>
+            <option value="0.2">0,2 mm</option>
+            <option value="0.6">0,6 mm</option>
+            <option value="0.8">0,8 mm</option>
+          </select>
+        </label>
+        <label>Tipo ugello
+          <select id="nozzleMaterial">
+            <option value="auto">Quello della stampante</option>
+            <option value="standard">Ottone / inox</option>
+            <option value="hardened">Acciaio temprato</option>
+            <option value="tungsten">Carburo di tungsteno</option>
+          </select>
+        </label>
+        <label>Multicolore
+          <select id="multicolor">
+            <option value="no">Non necessario</option>
+            <option value="yes">Sì / AMS-MMU</option>
+          </select>
+        </label>
+      </div>
+
+      <button class="primary big" id="recommendBtn">✨ Trova il filamento migliore</button>
+    </section>
+
+    <section id="resultSection" class="hidden">
+      <div class="section-title">
+        <div>
+          <div class="section-kicker">RISULTATO</div>
+          <h2>Le scelte migliori per il tuo progetto</h2>
+        </div>
+        <div class="analysis-chip" id="analysisChip">Analisi pronta</div>
+      </div>
+      <div class="results-grid" id="resultsGrid"></div>
+    </section>
+
+    <section class="tools-grid">
+      <article class="toolcard" id="browseCard">
+        <div class="toolicon">🧵</div>
+        <div><h3>Database filamenti</h3><p>Bambu Lab, SUNLU e materiali generici con caratteristiche complete.</p></div>
+        <button class="mini-primary" data-tab="materials">Apri</button>
+      </article>
+      <article class="toolcard">
+        <div class="toolicon">💶</div>
+        <div><h3>Trova il prezzo migliore</h3><p>Confronta negozi, prezzo/kg, bobina e refill.</p></div>
+        <button class="mini-primary" data-tab="prices">Apri</button>
+      </article>
+      <article class="toolcard">
+        <div class="toolicon">🧮</div>
+        <div><h3>Costo della stampa</h3><p>Calcola materiale, corrente e margine di vendita.</p></div>
+        <button class="mini-primary" data-tab="cost">Apri</button>
+      </article>
+      <article class="toolcard">
+        <div class="toolicon">⚖️</div>
+        <div><h3>Confronta materiali</h3><p>Metti fino a 3 filamenti uno accanto all'altro.</p></div>
+        <button class="mini-primary" data-tab="compare">Apri</button>
+      </article>
+      <article class="toolcard">
+        <div class="toolicon">🔔</div>
+        <div><h3>Alert & storico</h3><p>Prezzi, ribassi, disponibilità e costo finale nel tempo.</p></div>
+        <button class="mini-primary" data-tab="alerts">Apri</button>
+      </article>
+    </section>
+
+    <section class="workspace panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="materials">Materiali</button>
+        <button class="tab" data-tab="prices">Prezzi</button>
+        <button class="tab" data-tab="cost">Costo stampa</button>
+        <button class="tab" data-tab="compare">Confronta</button>
+        <button class="tab" data-tab="printers">Stampanti</button>
+        <button class="tab alert-tab-button" data-tab="alerts">Alert <span id="alertBadge" class="alert-badge hidden">0</span></button>
+      </div>
+
+      <div class="tabpane active" id="tab-materials">
+        <div class="pane-head">
+          <div><h2>Database filamenti</h2><p>Filtra per famiglia o cerca un nome.</p></div>
+          <input id="materialSearch" class="search" placeholder="Cerca PLA, PETG, PA-CF...">
+        </div>
+        <div class="filterrow" id="materialFilters">
+          <button class="filter active" data-filter="all">Tutti</button>
+          <button class="filter" data-filter="easy">Facili</button>
+          <button class="filter" data-filter="outdoor">Outdoor</button>
+          <button class="filter" data-filter="flex">Flessibili</button>
+          <button class="filter" data-filter="engineering">Tecnici</button>
+          <button class="filter" data-filter="abrasive">CF/GF / abrasivi</button>
+          <button class="filter" data-filter="support">Supporti</button>
+        </div>
+        <div class="material-grid" id="materialGrid"></div>
+      </div>
+
+      <div class="tabpane" id="tab-prices">
+        <div class="pane-head">
+          <div><h2>Ricerca prezzi</h2><p>Trova la bobina più conveniente e confronta il costo reale al kg.</p></div>
+        </div>
+        <div class="price-search-row market-row">
+          <select id="priceMaterial"></select>
+          <select id="priceBrand">
+            <option value="all">Tutte le marche</option>
+            <option value="Bambu Lab">Bambu Lab</option>
+            <option value="SUNLU">SUNLU</option>
+            <option value="eSUN">eSUN</option>
+            <option value="Polymaker">Polymaker</option>
+            <option value="Elegoo">Elegoo</option>
+            <option value="Creality">Creality</option>
+            <option value="Prusament">Prusament</option>
+          </select>
+          <label class="qty-control">Quantità
+            <input id="priceQty" type="number" min="1" max="50" value="1">
+          </label>
+          <button class="primary" id="searchPricesBtn">🔎 Aggiorna online</button>
+        </div>
+        <div class="live-toolbar">
+          <label class="checkline"><input type="checkbox" id="availableOnly" checked> Solo disponibili</label>
+          <label class="checkline"><input type="checkbox" id="knownShippingOnly"> Solo totale certo</label>
+          <label>Colore <select id="colorFilter"><option value="all">Tutti i colori</option></select></label>
+          <button class="ghost" id="forceRefreshBtn">↻ Forza aggiornamento</button>
+        </div>
+        <div class="price-note">Fonti: store ufficiali + Amazon Italia, 3DJake Italia, Filament2Print e 3DStoreItalia. Le offerte equivalenti vengono raggruppate per marca/materiale/colore/peso/refill-bobina. Il confronto finale include la spedizione quando il negozio la rende calcolabile senza checkout.</div>
+        <div id="liveStatus" class="live-status"></div>
+        <div id="colorPalette" class="color-palette"></div>
+        <div id="priceResults" class="offer-list"></div>
+      </div>
+
+      <div class="tabpane" id="tab-cost">
+        <div class="pane-head"><div><h2>Calcolatore costo stampa</h2><p>Utile anche se vuoi vendere i pezzi.</p></div></div>
+        <div class="calculator-grid">
+          <label>Filamento<select id="costMaterial"></select></label>
+          <label>Prezzo bobina (€)<input type="number" id="spoolPrice" value="20" min="0" step="0.1"></label>
+          <label>Peso bobina (g)<input type="number" id="spoolWeight" value="1000" min="1"></label>
+          <label>Materiale usato (g)<input type="number" id="partWeight" value="100" min="0" step="1"></label>
+          <label>Tempo stampa (ore)<input type="number" id="printHours" value="5" min="0" step="0.1"></label>
+          <label>Potenza media stampante (W)<input type="number" id="avgPower" value="120" min="0"></label>
+          <label>Costo energia €/kWh<input type="number" id="energyPrice" value="0.30" min="0" step="0.01"></label>
+          <label>Scarto / sicurezza (%)<input type="number" id="wastePct" value="10" min="0" step="1"></label>
+          <label>Margine desiderato (%)<input type="number" id="marginPct" value="60" min="0" step="1"></label>
+        </div>
+        <button class="primary" id="calcBtn">Calcola</button>
+        <div class="cost-results" id="costResults"></div>
+      </div>
+
+      <div class="tabpane" id="tab-compare">
+        <div class="pane-head"><div><h2>Confronto diretto</h2><p>Scegli fino a tre materiali.</p></div></div>
+        <div class="compare-selects">
+          <select class="compareSelect" id="cmp1"></select>
+          <select class="compareSelect" id="cmp2"></select>
+          <select class="compareSelect" id="cmp3"></select>
+        </div>
+        <div id="compareTable" class="compare-wrap"></div>
+      </div>
+
+      <div class="tabpane" id="tab-printers">
+        <div class="pane-head">
+          <div><h2>Database stampanti</h2><p>Tutta la gamma Bambu Lab + profili delle famiglie più comuni + profilo personalizzato.</p></div>
+          <input id="printerSearchInline" class="search" placeholder="Cerca modello o marca...">
+        </div>
+        <div id="printerGrid" class="printer-grid"></div>
+      </div>
+      <div class="tabpane" id="tab-alerts">
+        <div class="pane-head">
+          <div><h2>Alert & storico prezzi</h2><p>Gli alert vengono controllati automaticamente ogni 15 minuti finché il server locale è in esecuzione.</p></div>
+          <div class="alert-actions">
+            <button class="ghost" id="notifyBtn">🔔 Abilita notifiche</button>
+            <button class="primary" id="checkAlertsNowBtn">↻ Controlla ora</button>
+          </div>
+        </div>
+        <div class="tracker-summary" id="trackerSummary"></div>
+        <div class="tracker-columns">
+          <section class="tracker-panel">
+            <div class="tracker-head"><h3>Alert configurati</h3><span id="alertsCount">0</span></div>
+            <div id="alertsList" class="alerts-list"></div>
+          </section>
+          <section class="tracker-panel">
+            <div class="tracker-head"><h3>Eventi recenti</h3><div><button class="textbtn" id="markAllReadBtn">Segna letti</button><button class="textbtn danger-text" id="clearEventsBtn">Svuota</button></div></div>
+            <div id="eventsList" class="events-list"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <strong>Filament Finder Pro</strong> usa dati tecnici e regole di compatibilità come supporto decisionale. Per pezzi critici, strutturali, a contatto alimentare o soggetti a temperature elevate verifica sempre TDS/SDS del produttore e fai test reali.
+    </footer>
+  </main>
+</div>
+
+<div class="modal hidden" id="printerModal">
+  <div class="modalbox wide">
+    <div class="modalhead">
+      <div><div class="section-kicker">CONFIGURAZIONE</div><h2>Scegli la tua stampante</h2></div>
+      <button class="closebtn" data-close="printerModal">×</button>
+    </div>
+    <input id="printerSearch" class="search full" placeholder="Cerca: A1, X2D, Ender 3, MK4S...">
+    <div class="brandfilters" id="brandFilters"></div>
+    <div class="printer-picker" id="printerPicker"></div>
+    <details class="custom-details">
+      <summary>➕ La mia stampante non c'è / è modificata</summary>
+      <div class="custom-grid">
+        <label>Nome<input id="customName" placeholder="La mia stampante"></label>
+        <label>Temperatura max ugello °C<input id="customNozzle" type="number" value="300"></label>
+        <label>Temperatura max piano °C<input id="customBed" type="number" value="100"></label>
+        <label>Camera
+          <select id="customChamber">
+            <option value="open">Aperta</option>
+            <option value="enclosed">Chiusa</option>
+            <option value="heated">Chiusa e riscaldata</option>
+          </select>
+        </label>
+        <label>Ugello
+          <select id="customNozzleMat">
+            <option value="standard">Standard / inox / ottone</option>
+            <option value="hardened">Acciaio temprato</option>
+            <option value="tungsten">Carburo di tungsteno</option>
+          </select>
+        </label>
+        <label>Volume X<input id="customX" type="number" value="220"></label>
+        <label>Volume Y<input id="customY" type="number" value="220"></label>
+        <label>Volume Z<input id="customZ" type="number" value="250"></label>
+      </div>
+      <button class="primary" id="saveCustomPrinter">Usa questo profilo</button>
+    </details>
+  </div>
+</div>
+
+<div class="modal hidden" id="alertModal">
+  <div class="modalbox">
+    <div class="modalhead">
+      <div><div class="section-kicker">PRICE TRACKER</div><h2>Configura alert</h2><p id="alertVariantMeta" class="modal-sub"></p></div>
+      <button class="closebtn" data-close="alertModal">×</button>
+    </div>
+    <div class="alert-form">
+      <label class="alert-rule">
+        <span><input type="checkbox" id="alertMaxEnabled"> Prezzo massimo finale</span>
+        <div><input type="number" id="alertMaxValue" min="0" step="0.01" placeholder="es. 19.99"><em>€ prodotto + spedizione</em></div>
+      </label>
+      <label class="alert-rule">
+        <span><input type="checkbox" id="alertDropEnabled"> Ribasso prezzo prodotto</span>
+        <div><input type="number" id="alertDropPct" min="0.1" step="0.1" value="10"><em>% rispetto al controllo precedente</em></div>
+      </label>
+      <label class="alert-rule compact-rule">
+        <span><input type="checkbox" id="alertStockEnabled" checked> Ritorno disponibile</span>
+        <em>Scatta quando la variante passa da non disponibile a disponibile.</em>
+      </label>
+      <label class="alert-rule">
+        <span><input type="checkbox" id="alertFinalChangeEnabled"> Variazione costo finale</span>
+        <div><input type="number" id="alertFinalChangePct" min="0.1" step="0.1" value="5"><em>% in aumento o diminuzione, spedizione inclusa</em></div>
+      </label>
+    </div>
+    <div class="alert-baseline" id="alertBaseline"></div>
+    <div class="modal-actions">
+      <button class="ghost" id="deleteAlertBtn">Elimina alert</button>
+      <button class="primary" id="saveAlertBtn">Salva alert</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="historyModal">
+  <div class="modalbox wide">
+    <div class="modalhead">
+      <div><div class="section-kicker">STORICO VARIANTE</div><h2 id="historyTitle">Storico</h2><p id="historyMeta" class="modal-sub"></p></div>
+      <button class="closebtn" data-close="historyModal">×</button>
+    </div>
+    <div id="historyStats" class="tracker-summary"></div>
+    <div id="historyChart" class="history-chart"></div>
+    <div id="historyTable" class="history-table-wrap"></div>
+  </div>
+</div>
+
+<div class="modal hidden" id="detailModal">
+  <div class="modalbox">
+    <div class="modalhead">
+      <div><div class="section-kicker">SCHEDA MATERIALE</div><h2 id="detailTitle">Materiale</h2></div>
+      <button class="closebtn" data-close="detailModal">×</button>
+    </div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

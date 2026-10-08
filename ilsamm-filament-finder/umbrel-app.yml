@@ -1,0 +1,30 @@
+manifestVersion: 1
+id: ilsamm-filament-finder
+name: Filament Finder
+tagline: Scegli il filamento giusto e monitora i prezzi live
+icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
+category: developer
+version: "1.0.0"
+port: 8765
+
+description: >-
+  Filament Finder consiglia il materiale migliore per ogni stampa 3D in base
+  alla stampante, all'uso del pezzo e alle caratteristiche richieste. Confronta
+  prezzi live, disponibilita, colori e costo finale per kg, deduplica le varianti
+  tra piu negozi e mantiene storico e alert locali per ribassi e ritorni disponibili.
+
+releaseNotes: >-
+  Prima versione per Umbrel con consigli materiali, database stampanti,
+  confronto live tra store, costo finale con spedizione, alert e storico persistente.
+
+developer: IlSamm
+website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
+dependencies: []
+repo: "https://github.com/IlSamm/umbrel-store"
+support: "https://github.com/IlSamm/umbrel-store/issues"
+
+path: "/"
+defaultUsername: ""
+defaultPassword: ""
+submitter: IlSamm
+submission: ""
