@@ -16,10 +16,11 @@ services:
       - -c
       - >-
         set -eu &&
-        rm -rf /tmp/filament-finder /tmp/filament-finder.zip &&
+        rm -rf /tmp/filament-finder /tmp/ff.zip /tmp/ff.b64 &&
         mkdir -p /tmp/filament-finder &&
-        python -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/app.zip','/tmp/filament-finder.zip')" &&
-        python -m zipfile -e /tmp/filament-finder.zip /tmp/filament-finder &&
+        python -c "import urllib.request; base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/bundle/app.b64.'; open('/tmp/ff.b64','wb').write(b''.join(urllib.request.urlopen(base+f'{i:02d}').read() for i in range(6)))" &&
+        python -c "import base64,hashlib; raw=base64.b64decode(open('/tmp/ff.b64','rb').read()); expected='1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80cb1aa226e68'; actual=hashlib.sha256(raw).hexdigest(); assert actual==expected, f'Bundle SHA256 mismatch: {actual}'; open('/tmp/ff.zip','wb').write(raw)" &&
+        python -m zipfile -e /tmp/ff.zip /tmp/filament-finder &&
         cd /tmp/filament-finder/Filament_Finder_Studio &&
         exec python server.py
     environment:
