@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e monitora i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "1.0.0"
+version: "1.0.1"
 port: 8765
 
 description: >-
@@ -14,8 +14,8 @@ description: >-
   tra piu negozi e mantiene storico e alert locali per ribassi e ritorni disponibili.
 
 releaseNotes: >-
-  Prima versione per Umbrel con consigli materiali, database stampanti,
-  confronto live tra store, costo finale con spedizione, alert e storico persistente.
+  Corretto l'avvio su Umbrel: rimosso il working directory non ancora esistente
+  e reso piu affidabile il caricamento del bundle dell'app dal repository pubblico.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
