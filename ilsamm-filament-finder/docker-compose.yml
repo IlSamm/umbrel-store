@@ -21,6 +21,7 @@ services:
         python -c "import urllib.request; base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/bundle/app.b64.'; open('/tmp/ff.b64','wb').write(b''.join(urllib.request.urlopen(base+f'{i:02d}').read() for i in range(6)))" &&
         python -c "import base64,hashlib; raw=base64.b64decode(open('/tmp/ff.b64','rb').read()); expected='1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80cb1aa226e68'; actual=hashlib.sha256(raw).hexdigest(); assert actual==expected, f'Bundle SHA256 mismatch: {actual}'; open('/tmp/ff.zip','wb').write(raw)" &&
         python -m zipfile -e /tmp/ff.zip /tmp/filament-finder &&
+        python -c "from pathlib import Path; import urllib.request; root=Path('/tmp/filament-finder/Filament_Finder_Studio'); base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/'; urllib.request.urlretrieve(base+'mobile.css',root/'mobile.css'); urllib.request.urlretrieve(base+'mobile.js',root/'mobile.js'); p=root/'index.html'; s=p.read_text(encoding='utf-8'); s=s.replace('</head>','<link rel=\"stylesheet\" href=\"mobile.css?v=110\"></head>').replace('</body>','<script src=\"mobile.js?v=110\"></script></body>'); p.write_text(s,encoding='utf-8')" &&
         cd /tmp/filament-finder/Filament_Finder_Studio &&
         exec python server.py
     environment:
