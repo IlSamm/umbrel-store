@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e monitora i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "1.0.2"
+version: "1.1.0"
 port: 8765
 
 description: >-
@@ -14,9 +14,9 @@ description: >-
   tra piu negozi e mantiene storico e alert locali per ribassi e ritorni disponibili.
 
 releaseNotes: >-
-  Corretto definitivamente il bundle runtime su Umbrel. Il pacchetto binario
-  precedente risultava incompleto; la 1.0.2 ricostruisce il bundle da segmenti
-  testuali verificati con SHA-256 prima dell'avvio del server.
+  Nuova interfaccia mobile-first: navigazione fissa in basso, card prezzi verticali,
+  controlli touch piu grandi, filtri scorrevoli, modali ottimizzate per iPhone,
+  safe-area, alert e storico piu leggibili. La versione desktop resta invariata.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
