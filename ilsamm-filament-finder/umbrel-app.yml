@@ -4,22 +4,23 @@ name: Filament Finder
 tagline: Il centro di controllo completo per ogni filamento 3D
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "8.0.1"
+version: "8.0.2"
 port: 8765
 
 description: >-
-  Filament Finder 8 e un Material OS locale per la stampa 3D: confronta materiali,
+  Filament Finder e il centro di controllo locale per la stampa 3D: confronta materiali,
   prodotti e prezzi live, valuta compatibilita con la stampante, mantiene storico e
-  alert prezzo, gestisce le bobine personali, suggerisce drying e profili di partenza
-  e calcola costi reali e margini. I dati persistono localmente su Umbrel.
+  alert prezzo e calcola costi reali e margini. I dati persistono localmente su Umbrel.
 
 releaseNotes: >-
-  Hotfix 8.0.1: corretto il bootstrap su Umbrel. Bundle e asset dell'interfaccia vengono
-  caricati prima dai file locali gia installati con il Community Store, poi dalla cache
-  persistente e solo come ultima possibilita da GitHub. In questo modo un problema DNS,
-  timeout o rate limit non impedisce piu al server di aprire la porta 8765 al primo avvio.
-  Aggiunti controllo integrita, log di bootstrap e healthcheck locale. Interfaccia Material OS,
-  database materiali, prezzi live, storico, alert, Spool Manager e dati persistenti restano invariati.
+  Recovery 8.0.2: individuato e rimosso il vero blocco di avvio, causato da un archivio
+  compresso dell'interfaccia v8 corrotto. Filament Finder ora viene distribuito come
+  immagine Docker self-contained gia assemblata e verificata, senza download o
+  decompressione degli asset all'avvio. Ripristinata temporaneamente l'ultima interfaccia
+  professionale v7 verificata, con hook di compatibilita corretto. La build multi-arch
+  amd64/arm64, il pull anonimo e l'avvio del container con risposta HTTP su /api/sources
+  sono stati testati automaticamente prima della pubblicazione. Prezzi live, storico,
+  alert, database materiali, stampanti e dati persistenti restano disponibili.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
