@@ -42,26 +42,109 @@ jobs:
           tags: ghcr.io/ilsamm/filament-finder:9.1.0-dev
           provenance: false
 
-      - name: Runtime audit
+      - name: Smoke and iPhone layout test
         shell: bash
         run: |
           set -euo pipefail
           docker pull ghcr.io/ilsamm/filament-finder:9.1.0-dev
-          docker run -d --name filament-finder-audit -p 18765:8765 ghcr.io/ilsamm/filament-finder:9.1.0-dev
-          trap 'docker logs filament-finder-audit || true' EXIT
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:9.1.0-dev
+          trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
             if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then break; fi
             sleep 1
           done
-          echo '===== INDEX.HTML ====='
-          docker exec filament-finder-audit cat /app/index.html
-          echo '===== CSS SELECTOR AUDIT ====='
-          docker exec filament-finder-audit sh -c "grep -nE 'bottom|nav|price|market|material|advisor|sheet|modal|chip|card|toolbar|header' /app/v9.css | head -n 500"
-          echo '===== APP.JS UI AUDIT ====='
-          docker exec filament-finder-audit sh -c "grep -nE 'render|searchPricesBtn|price|market|material|advisor|sheet|modal|chip|source' /app/app.js | head -n 700"
-          echo '===== V7.JS UI AUDIT ====='
-          docker exec filament-finder-audit sh -c "grep -nE 'render|price|market|material|advisor|sheet|modal|chip|bottom' /app/v7.js | head -n 500"
-          echo '===== V9.JS UI AUDIT ====='
-          docker exec filament-finder-audit cat /app/v9.js
+
+          python - <<'PY'
+          import json, time, urllib.request
+          BASE='http://127.0.0.1:18765'
+          def get(path, timeout=10):
+              with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
+                  assert r.status == 200, r.status
+                  return json.load(r)
+          health=get('/api/health')
+          assert health['ok'] is True
+          assert health['version']=='9.1.0', health
+          assert health['materials']==67, health
+          assert health['brands']==18, health
+          assert health['sources']>=11, health
+          started=time.time()
+          live=get('/api/catalog?material=PLA&brand=all&qty=1&refresh=1', timeout=30)
+          elapsed=time.time()-started
+          assert len(live['offers'])>0, live
+          assert any(s['ok'] for s in live['sources']), live['sources']
+          assert elapsed<25, elapsed
+          print('API_OK', {'health':health['version'],'offers':len(live['offers']),'elapsed_s':round(elapsed,2)})
+          PY
+
+          command -v google-chrome >/dev/null
+          python -m pip install --quiet websocket-client
+          google-chrome --headless=new --no-sandbox --disable-gpu \
+            --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
+            --user-data-dir=/tmp/ff-chrome --window-size=390,844 \
+            http://127.0.0.1:18765 >/tmp/ff-chrome.log 2>&1 &
+          CHROME_PID=$!
+          trap 'kill $CHROME_PID 2>/dev/null || true; docker logs filament-finder-test || true' EXIT
+
+          python - <<'PY'
+          import json, time, urllib.request
+          from websocket import create_connection
+
+          deadline=time.time()+15
+          targets=[]
+          while time.time()<deadline:
+              try:
+                  targets=json.load(urllib.request.urlopen('http://127.0.0.1:9222/json',timeout=2))
+                  targets=[t for t in targets if t.get('type')=='page']
+                  if targets: break
+              except Exception:
+                  pass
+              time.sleep(.25)
+          assert targets, 'Chrome DevTools page target not found'
+          ws=create_connection(targets[0]['webSocketDebuggerUrl'],timeout=10)
+          counter=0
+          def evaluate(expr):
+              global counter
+              counter+=1
+              ws.send(json.dumps({'id':counter,'method':'Runtime.evaluate','params':{'expression':expr,'returnByValue':True,'awaitPromise':True}}))
+              while True:
+                  msg=json.loads(ws.recv())
+                  if msg.get('id')==counter:
+                      if 'exceptionDetails' in msg.get('result',{}):
+                          raise AssertionError(msg['result']['exceptionDetails'])
+                      return msg['result']['result'].get('value')
+
+          deadline=time.time()+10
+          while time.time()<deadline and not evaluate("document.readyState==='complete' && !!document.querySelector('#materialFilters button')"):
+              time.sleep(.2)
+
+          checks={
+            'viewport_width': "innerWidth===390",
+            'no_page_horizontal_overflow': "document.documentElement.scrollWidth<=innerWidth+2",
+            'material_filter_class_fixed': "document.querySelector('#materialFilters button').classList.contains('filter')",
+            'material_filter_not_white': "getComputedStyle(document.querySelector('#materialFilters button')).backgroundColor!=='rgb(255, 255, 255)'",
+            'advisor_helper_is_block': "getComputedStyle(document.querySelector('.field-title-row small')).display==='block'",
+            'refresh_button_short_copy': "document.querySelector('#forceRefreshBtn').textContent.includes('Aggiorna') && !document.querySelector('#forceRefreshBtn').textContent.includes('Forza')",
+            'printer_icon_svg': "!!document.querySelector('#mobilePrinterBtn svg')",
+            'more_menu_icons_svg': "document.querySelectorAll('.mobile-menu-grid button svg').length===5",
+            'close_buttons_svg': "document.querySelectorAll('.closebtn svg').length>=4",
+            'bottom_nav_compact': "document.querySelector('.bottom-nav').getBoundingClientRect().height<=70",
+            'workspace_bottom_clearance': "parseFloat(getComputedStyle(document.querySelector('.workspace')).paddingBottom)>=120",
+            'mobile_coverage_duplicate_hidden': "getComputedStyle(document.querySelector('.v9-coverage')).display==='none'",
+          }
+          for name,expr in checks.items():
+              ok=evaluate(expr)
+              print(name, ok)
+              assert ok, name
+
+          evaluate("document.querySelector('#colorPalette').innerHTML='<button class=\"color-chip\">3D Print General Flat Dark Earth</button><button class=\"color-chip\">Amarena Red</button>'")
+          chip_height=evaluate("Math.max(...[...document.querySelectorAll('#colorPalette .color-chip')].map(x=>x.getBoundingClientRect().height))")
+          print('color_chip_height',chip_height)
+          assert chip_height<=40, chip_height
+
+          ws.close()
+          print('IPHONE_LAYOUT_OK')
+          PY
+
+          kill $CHROME_PID || true
           trap - EXIT
-          docker logs filament-finder-audit
+          docker logs filament-finder-test
