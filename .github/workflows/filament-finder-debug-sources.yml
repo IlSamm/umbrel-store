@@ -17,38 +17,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe Bambu localized catalogue and products
+      - name: Probe Bambu EU Shopify backend
         shell: bash
         run: |
           set -euo pipefail
           python ilsamm-filament-finder/runtime/build_runtime.py . /tmp/ff-runtime
           python - <<'PY'
-          import importlib.util, re, urllib.request
+          import importlib.util, json, re, urllib.request
+          from urllib.parse import quote
           spec=importlib.util.spec_from_file_location('ffserver','/tmp/ff-runtime/server.py')
           mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
-          headers={'User-Agent':mod.UA,'Accept-Language':'it-IT,it;q=0.9,en;q=0.7','Accept':'text/html,*/*'}
+          headers={'User-Agent':mod.UA,'Accept-Language':'it-IT,it;q=0.9,en;q=0.7','Accept':'application/json,text/html,*/*'}
           urls=[
-            'https://eu.store.bambulab.com/it/collections/bambu-lab-3d-printer-filament',
-            'https://eu.store.bambulab.com/en/collections/bambu-lab-3d-printer-filament',
-            'https://eu.store.bambulab.com/en-ro/collections/bambu-lab-3d-printer-filament',
-            'https://eu.store.bambulab.com/it/products/pla-basic-filament',
-            'https://eu.store.bambulab.com/en/products/pla-basic-filament',
-            'https://eu.store.bambulab.com/en-ro/products/pla-basic-filament',
+            'https://bambulab-eu.myshopify.com/it/search?q='+quote('PLA')+'&type=product',
+            'https://bambulab-eu.myshopify.com/it/products/pla-basic-filament.js',
+            'https://bambulab-eu.myshopify.com/products/pla-basic-filament.js',
+            'https://bambulab-eu.myshopify.com/it/products/pla-basic-filament.json',
+            'https://bambulab-eu.myshopify.com/products/pla-basic-filament.json',
+            'https://bambulab-eu.myshopify.com/it/collections/bambu-lab-3d-printer-filament/products.json?limit=50',
+            'https://bambulab-eu.myshopify.com/collections/bambu-lab-3d-printer-filament/products.json?limit=50',
           ]
           for url in urls:
             try:
               req=urllib.request.Request(url,headers=headers)
               with urllib.request.urlopen(req,timeout=15) as r:
-                body=r.read(4_500_000); text=body.decode(r.headers.get_content_charset() or 'utf-8','ignore'); low=text.lower()
+                body=r.read(4_500_000); text=body.decode(r.headers.get_content_charset() or 'utf-8','ignore')
                 print('\nURL',url)
-                print('STATUS',r.status,'FINAL',r.geturl(),'LEN',len(body),'EUR',text.count('€'),'PLA_BASIC',low.count('pla basic'))
-                for pat in [r'href=["\']([^"\']*pla-basic[^"\']*)',r'"price"\s*:\s*"?([0-9][0-9.,]*)',r'€\s*([0-9]+(?:[.,][0-9]{2})?)',r'([0-9]+(?:[.,][0-9]{2})?)\s*EUR']:
-                  vals=[]
-                  for x in re.findall(pat,text,re.I):
-                    if x not in vals: vals.append(x)
-                  print('PAT',pat,'=>',vals[:20])
-                idx=low.find('pla basic')
-                if idx>=0: print('CTX',text[max(0,idx-700):idx+3500].replace('\n',' ')[:4200])
+                print('STATUS',r.status,'FINAL',r.geturl(),'CTYPE',r.headers.get('Content-Type'),'LEN',len(body))
+                print('SAMPLE',text[:1500].replace('\n',' '))
+                try:
+                  data=json.loads(text)
+                  if isinstance(data,dict):
+                    print('JSON_KEYS',list(data)[:20])
+                    products=data.get('products') or []
+                    if products: print('PRODUCT_COUNT',len(products),'FIRST',json.dumps(products[0],ensure_ascii=False)[:2500])
+                    if data.get('variants'): print('VARIANTS',len(data['variants']),'FIRST',json.dumps(data['variants'][0],ensure_ascii=False)[:1800])
+                except Exception: pass
             except Exception as e:
               print('\nURL',url,'ERROR',type(e).__name__,str(e)[:600])
           PY
