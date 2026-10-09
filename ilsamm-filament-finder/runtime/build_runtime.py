@@ -56,34 +56,45 @@ def main() -> None:
             shutil.rmtree(out)
         shutil.copytree(source, out)
 
+    # Recovery 8.0.2 deliberately uses the last verified professional UI (v7).
+    # The v8 HTML archive in the store is corrupt and previously crashed startup.
     overlays = {
         "materials-v5-data.js": app_root / "ui-v5" / "materials-v5-data.js.b64gz",
         "techsheet-v51-data.js": app_root / "ui-v51" / "techsheet-v51-data.js.b64gz",
-        "index.html": app_root / "ui-v8" / "index.html.b64gz",
-        "v8.css": app_root / "ui-v8" / "v8.css.b64gz",
-        "v8.js": app_root / "ui-v8" / "v8.js.b64gz",
+        "index.html": app_root / "ui-v7" / "index.html.b64gz",
+        "v7.css": app_root / "ui-v7" / "v7.css.b64gz",
+        "v7.js": app_root / "ui-v7" / "v7.js.b64gz",
     }
 
     for destination, source in overlays.items():
         (out / destination).write_bytes(decode_b64gz(source))
 
-    materials_v8 = app_root / "ui-v8" / "materials-v8-data.js"
-    if materials_v8.stat().st_size < 32:
-        raise RuntimeError("materials-v8-data.js is empty")
-    shutil.copy2(materials_v8, out / "materials-v8-data.js")
+    # app.js from the stable backend expects #printerBtn. v7 originally omitted it,
+    # so keep a hidden compatibility element without changing the visible design.
+    index_path = out / "index.html"
+    index = index_path.read_text(encoding="utf-8")
+    if 'id="printerBtn"' not in index:
+        marker = '<div class="app-shell" id="app">'
+        hook = '<button id="printerBtn" type="button" hidden aria-hidden="true" tabindex="-1"></button>'
+        if marker not in index:
+            raise RuntimeError("Cannot insert printerBtn compatibility hook")
+        index = index.replace(marker, marker + hook, 1)
+        index_path.write_text(index, encoding="utf-8")
+        print("Inserted printerBtn compatibility hook", flush=True)
 
     server = (out / "server.py").read_text(encoding="utf-8")
     if "ThreadingHTTPServer(('0.0.0.0',PORT),Handler).serve_forever()" not in server:
         raise RuntimeError("server.py is not configured to listen on 0.0.0.0")
 
-    index = (out / "index.html").read_text(encoding="utf-8")
-    required = ["v8.css", "materials-v8-data.js", "v8.js"]
+    index = index_path.read_text(encoding="utf-8")
+    required = ["v7.css", "materials-v5-data.js", "techsheet-v51-data.js", "app.js", "v7.js", 'id="printerBtn"']
     missing = [name for name in required if name not in index]
     if missing:
-        raise RuntimeError("index.html missing runtime assets: " + ", ".join(missing))
+        raise RuntimeError("Recovery index missing runtime assets/hooks: " + ", ".join(missing))
 
     print(f"Runtime assembled at {out}")
     print(f"Bundle SHA256: {actual}")
+    print("UI recovery source: v7 + compatibility hook", flush=True)
 
 
 if __name__ == "__main__":
