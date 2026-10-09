@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "10.0.0"
+version: "10.1.0"
 port: 8765
 
 description: >-
@@ -14,13 +14,13 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Redesign completo dell'interfaccia. La vecchia dashboard non viene piu mostrata: la
-  10.0 introduce un frontend mobile-first indipendente con nuova Home, Material Advisor,
-  marketplace prezzi, catalogo materiali, schede tecniche, confronto, calcolatore costi,
-  alert, stampanti e impostazioni. Ridotti drasticamente bordi, box ripetitivi e uso del
-  verde; migliorate gerarchie, tipografia, spaziatura e navigazione su iPhone. Il runtime
-  9.x resta nascosto come motore di compatibilita, mentre backend prezzi, 67 materiali,
-  43 stampanti, 11 fonti, alert, storico e persistenza /data rimangono invariati.
+  Nuova scheda materiale a due livelli. La vista iniziale mostra solo le informazioni
+  essenziali: profilo, compatibilita, facilita, resistenza, calore, finitura, temperature,
+  velocita e usi ideali. Un nuovo pulsante Scheda tecnica completa apre i dettagli avanzati
+  con setup di stampa, enclosure, ventola, asciugatura, umidita, ugello, densita, proprieta,
+  casi d'uso, limiti e problemi comuni. I valori non presenti nel dataset vengono marcati
+  chiaramente come indicativi. Backend prezzi, 67 materiali, 43 stampanti, 11 fonti, alert,
+  storico e persistenza /data restano invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
