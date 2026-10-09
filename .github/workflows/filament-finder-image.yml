@@ -80,7 +80,7 @@ jobs:
           python -m pip install --quiet websocket-client
           google-chrome --headless=new --no-sandbox --disable-gpu \
             --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --remote-allow-origins=* \
-            --user-data-dir=/tmp/ff-chrome --window-size=390,844 \
+            --user-data-dir=/tmp/ff-chrome \
             http://127.0.0.1:18765 >/tmp/ff-chrome.log 2>&1 &
           CHROME_PID=$!
           trap 'kill $CHROME_PID 2>/dev/null || true; docker logs filament-finder-test || true' EXIT
@@ -102,6 +102,18 @@ jobs:
           assert targets, 'Chrome DevTools page target not found'
           ws=create_connection(targets[0]['webSocketDebuggerUrl'],timeout=10)
           counter=0
+
+          def command(method, params=None):
+              global counter
+              counter+=1
+              ws.send(json.dumps({'id':counter,'method':method,'params':params or {}}))
+              while True:
+                  msg=json.loads(ws.recv())
+                  if msg.get('id')==counter:
+                      if 'error' in msg:
+                          raise AssertionError(msg['error'])
+                      return msg.get('result',{})
+
           def evaluate(expr):
               global counter
               counter+=1
@@ -112,6 +124,13 @@ jobs:
                       if 'exceptionDetails' in msg.get('result',{}):
                           raise AssertionError(msg['result']['exceptionDetails'])
                       return msg['result']['result'].get('value')
+
+          command('Emulation.setDeviceMetricsOverride',{
+              'width':390,'height':844,'deviceScaleFactor':3,'mobile':True,
+              'screenWidth':390,'screenHeight':844
+          })
+          command('Emulation.setTouchEmulationEnabled',{'enabled':True,'maxTouchPoints':5})
+          command('Page.reload',{'ignoreCache':True})
 
           deadline=time.time()+10
           while time.time()<deadline and not evaluate("document.readyState==='complete' && !!document.querySelector('#materialFilters button')"):
