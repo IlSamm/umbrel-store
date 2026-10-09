@@ -25,85 +25,124 @@ services:
         import time
         import urllib.request
         import zipfile
-        
+
         BASE = "https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/"
+        BOOT = Path("/bootstrap")
         CACHE = Path("/data/boot-cache")
         ROOT = Path("/tmp/filament-finder/Filament_Finder_Studio")
         EXPECTED = "1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80cb1aa226e68"
         CACHE.mkdir(parents=True, exist_ok=True)
-        
-        def get_cached(name, url, validate=None):
-            destination = CACHE / name
-            for attempt in range(3):
+
+        def atomic_cache(path, data):
+            tmp = path.with_suffix(path.suffix + ".tmp")
+            tmp.write_bytes(data)
+            tmp.replace(path)
+
+        def load_asset(cache_name, relative_path, validate):
+            local = BOOT / relative_path
+            cached = CACHE / cache_name
+
+            if local.is_file():
                 try:
-                    request = urllib.request.Request(url, headers={"User-Agent": "FilamentFinder/8.0"})
-                    with urllib.request.urlopen(request, timeout=20) as response:
-                        data = response.read()
-                    if validate:
-                        validate(data)
-                    temporary = destination.with_suffix(destination.suffix + ".tmp")
-                    temporary.write_bytes(data)
-                    temporary.replace(destination)
-                    print("Downloaded:", name, flush=True)
+                    data = local.read_bytes()
+                    validate(data)
+                    atomic_cache(cached, data)
+                    print("Using local Umbrel asset:", relative_path, flush=True)
                     return data
                 except Exception as exc:
-                    print("Download failed:", name, attempt + 1, str(exc), flush=True)
-                    time.sleep(attempt + 1)
-            if destination.is_file():
-                data = destination.read_bytes()
-                if validate:
+                    print("Local asset invalid:", relative_path, str(exc), flush=True)
+
+            if cached.is_file():
+                try:
+                    data = cached.read_bytes()
                     validate(data)
-                print("Using cached:", name, flush=True)
-                return data
-            raise RuntimeError("Missing startup asset: " + name)
-        
-        def check_bundle(data):
-            raw = base64.b64decode(data, validate=True)
-            if hashlib.sha256(raw).hexdigest() != EXPECTED:
-                raise ValueError("Bundle SHA256 mismatch")
-        
-        def unpack_asset(filename, remote, compressed=True):
-            def verify(data):
-                if compressed:
-                    gzip.decompress(base64.b64decode(data))
-                elif not data:
-                    raise ValueError("Empty asset")
-            data = get_cached(filename.replace("/", "_"), BASE + remote, verify)
-            output = gzip.decompress(base64.b64decode(data)) if compressed else data
-            (ROOT / filename).write_bytes(output)
-        
+                    print("Using verified cached asset:", cache_name, flush=True)
+                    return data
+                except Exception as exc:
+                    print("Cached asset invalid:", cache_name, str(exc), flush=True)
+
+            url = BASE + relative_path
+            last_error = None
+            for attempt in range(3):
+                try:
+                    request = urllib.request.Request(url, headers={"User-Agent": "FilamentFinder/8.0.1"})
+                    with urllib.request.urlopen(request, timeout=15) as response:
+                        data = response.read()
+                    validate(data)
+                    atomic_cache(cached, data)
+                    print("Downloaded fallback asset:", relative_path, flush=True)
+                    return data
+                except Exception as exc:
+                    last_error = exc
+                    print("Fallback download failed:", relative_path, attempt + 1, str(exc), flush=True)
+                    time.sleep(attempt + 1)
+            raise RuntimeError("Missing startup asset %s: %s" % (relative_path, last_error))
+
+        def validate_part(data):
+            if not data or len(data) < 16:
+                raise ValueError("Invalid bundle part")
+
+        def validate_b64gz(data):
+            decoded = base64.b64decode(data, validate=True)
+            output = gzip.decompress(decoded)
+            if not output:
+                raise ValueError("Empty decoded asset")
+
+        def validate_plain(data):
+            if not data or len(data) < 32:
+                raise ValueError("Empty asset")
+
+        def check_bundle(encoded):
+            raw = base64.b64decode(encoded, validate=True)
+            actual = hashlib.sha256(raw).hexdigest()
+            if actual != EXPECTED:
+                raise ValueError("Bundle SHA256 mismatch: " + actual)
+            return raw
+
+        def unpack_overlay(filename, relative_path, compressed=True):
+            validator = validate_b64gz if compressed else validate_plain
+            data = load_asset(filename.replace("/", "_"), relative_path, validator)
+            output = gzip.decompress(base64.b64decode(data, validate=True)) if compressed else data
+            destination = ROOT / filename
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(output)
+
         def start():
-            # Download each part separately; once a complete bundle is verified, persist it.
-            def validate_part(data):
-                if not data or len(data) < 16:
-                    raise ValueError("Invalid bundle part")
-            parts = [get_cached("app.b64.%02d" % i, BASE + "bundle/app.b64.%02d" % i, validate_part) for i in range(6)]
+            parts = [
+                load_asset("app.b64.%02d" % i, "bundle/app.b64.%02d" % i, validate_part)
+                for i in range(6)
+            ]
             encoded = b"".join(parts)
             try:
-                check_bundle(encoded)
-            except Exception:
+                raw_zip = check_bundle(encoded)
+                atomic_cache(CACHE / "verified-bundle.b64", encoded)
+            except Exception as exc:
                 backup = CACHE / "verified-bundle.b64"
                 if not backup.is_file():
                     raise
                 encoded = backup.read_bytes()
-                check_bundle(encoded)
-                print("Using last verified bundle", flush=True)
-            (CACHE / "verified-bundle.b64").write_bytes(encoded)
+                raw_zip = check_bundle(encoded)
+                print("Using last verified complete bundle after:", str(exc), flush=True)
+
             archive = CACHE / "verified-bundle.zip"
-            archive.write_bytes(base64.b64decode(encoded))
+            archive.write_bytes(raw_zip)
             with zipfile.ZipFile(archive) as z:
                 z.extractall("/tmp/filament-finder")
+
             if not (ROOT / "server.py").is_file():
-                raise RuntimeError("server.py not found in bundle")
-            unpack_asset("materials-v5-data.js", "ui-v5/materials-v5-data.js.b64gz")
-            unpack_asset("techsheet-v51-data.js", "ui-v51/techsheet-v51-data.js.b64gz")
-            unpack_asset("materials-v8-data.js", "ui-v8/materials-v8-data.js", False)
-            for name in ("index.html", "v8.css", "v8.js"):
-                unpack_asset(name, "ui-v8/" + name + ".b64gz")
+                raise RuntimeError("server.py not found after bundle extraction")
+
+            unpack_overlay("materials-v5-data.js", "ui-v5/materials-v5-data.js.b64gz")
+            unpack_overlay("techsheet-v51-data.js", "ui-v51/techsheet-v51-data.js.b64gz")
+            unpack_overlay("materials-v8-data.js", "ui-v8/materials-v8-data.js", False)
+            unpack_overlay("index.html", "ui-v8/index.html.b64gz")
+            unpack_overlay("v8.css", "ui-v8/v8.css.b64gz")
+            unpack_overlay("v8.js", "ui-v8/v8.js.b64gz")
+
             os.chdir(ROOT)
-            print("Starting Filament Finder server on port 8765", flush=True)
+            print("Bootstrap complete. Starting Filament Finder on 0.0.0.0:8765", flush=True)
             os.execv(sys.executable, [sys.executable, "-u", "server.py"])
-        
+
         start()
     environment:
       TZ: Europe/Rome
@@ -113,5 +152,19 @@ services:
       FILAMENT_FINDER_MONITOR_INTERVAL: 900
     volumes:
       - ${APP_DATA_DIR}/data:/data
+      - ./bundle:/bootstrap/bundle:ro
+      - ./ui-v5:/bootstrap/ui-v5:ro
+      - ./ui-v51:/bootstrap/ui-v51:ro
+      - ./ui-v8:/bootstrap/ui-v8:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/sources', timeout=3).read()"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     security_opt:
       - no-new-privileges:true
