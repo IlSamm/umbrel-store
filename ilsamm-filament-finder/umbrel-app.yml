@@ -1,26 +1,30 @@
 manifestVersion: 1
 id: ilsamm-filament-finder
 name: Filament Finder
-tagline: Il centro di controllo completo per ogni filamento 3D
+tagline: Materiali, compatibilita e prezzi live per la stampa 3D
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "8.0.2"
+version: "9.0.0"
 port: 8765
 
 description: >-
-  Filament Finder e il centro di controllo locale per la stampa 3D: confronta materiali,
-  prodotti e prezzi live, valuta compatibilita con la stampante, mantiene storico e
-  alert prezzo e calcola costi reali e margini. I dati persistono localmente su Umbrel.
+  Filament Finder e un workspace locale per scegliere e confrontare filamenti 3D,
+  verificare compatibilita con la stampante, consultare schede tecniche, confrontare
+  prezzi live e disponibilita, creare alert e mantenere storico e calcoli di costo.
+  I dati personali persistono localmente su Umbrel.
 
 releaseNotes: >-
-  Recovery 8.0.2: individuato e rimosso il vero blocco di avvio, causato da un archivio
-  compresso dell'interfaccia v8 corrotto. Filament Finder ora viene distribuito come
-  immagine Docker self-contained gia assemblata e verificata, senza download o
-  decompressione degli asset all'avvio. Ripristinata temporaneamente l'ultima interfaccia
-  professionale v7 verificata, con hook di compatibilita corretto. La build multi-arch
-  amd64/arm64, il pull anonimo e l'avvio del container con risposta HTTP su /api/sources
-  sono stati testati automaticamente prima della pubblicazione. Prezzi live, storico,
-  alert, database materiali, stampanti e dati persistenti restano disponibili.
+  Filament Finder 9 amplia in modo sostanziale dati e motore prezzi: 67 famiglie di
+  materiali, 18 marchi indicizzati, 43 stampanti e 11 fonti prezzo configurate. Nuove
+  famiglie includono materiali engineering, compositi, flessibili, supporti, ESD,
+  lightweight e polimeri ad alta temperatura. Le schede materiali mostrano piu dati
+  tecnici indicativi, compatibilita, drying, abrasivita, velocita, densita e utilizzi.
+  Aggiunti AzureFilm, FormFutura e 3D Prima alle fonti, diagnostica per sorgente,
+  filtro sorgente e motore prezzi migliorato per offerte/sconti. Aggiunto /api/health
+  e una dashboard dati piu completa. La release e distribuita come immagine Docker
+  self-contained. Prima della pubblicazione sono stati verificati build amd64/arm64,
+  pull anonimo, avvio container, endpoint health/sources e una ricerca live PLA su
+  3DJake che ha restituito 22 offerte. Persistenza /data, alert e storico restano invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"

@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - filament-finder-v8.0.2-image
+      - filament-finder-v9
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -42,25 +42,74 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:8.0.2
+            ghcr.io/ilsamm/filament-finder:9.0.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke-test anonymous amd64 pull
+      - name: Smoke-test anonymous v9 image
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:8.0.2
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:8.0.2
+          docker pull ghcr.io/ilsamm/filament-finder:9.0.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:9.0.0
           trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
-            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/sources', timeout=2).read()"; then
-              docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
-              trap - EXIT
-              docker logs filament-finder-test
-              exit 0
+            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then
+              break
             fi
             sleep 2
           done
-          exit 1
+          python - <<'PY'
+          import json, time, urllib.request
+          BASE='http://127.0.0.1:18765'
+          def get_json(path, timeout=10):
+              with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
+                  assert r.status == 200, r.status
+                  return json.load(r)
+          def get_text(path, timeout=10):
+              with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
+                  assert r.status == 200, r.status
+                  return r.read().decode('utf-8','replace')
+
+          health=get_json('/api/health')
+          assert health['ok'] is True
+          assert health['version']=='9.0.0', health
+          assert health['materials']==67, health
+          assert health['brands']==18, health
+          assert health['sources']>=11, health
+
+          sources=get_json('/api/sources')['sources']
+          ids={s['id'] for s in sources}
+          assert {'azurefilm','formfutura','3dprima','3djake'} <= ids, ids
+
+          html=get_text('/')
+          appjs=get_text('/app.js')
+          assert 'id="searchPricesBtn">Cerca prezzi</button>' in html
+          assert 'Ricerca parallela sulle fonti' in appjs
+          assert 'Cerco prezzi…' in appjs
+
+          # This is the exact all-source request used by the Cerca prezzi button.
+          started=time.time()
+          live=get_json('/api/catalog?material=PLA&brand=all&qty=1&refresh=1', timeout=30)
+          elapsed=time.time()-started
+          assert live['version']=='9.0.0', live
+          assert live['source_filter'] is None, live
+          assert len(live['sources']) >= 8, live['sources']
+          assert any(s['ok'] for s in live['sources']), live['sources']
+          assert len(live['offers']) > 0, live
+          assert elapsed < 25, elapsed
+
+          print('HEALTH', health)
+          print('FULL_PRICE_SEARCH', {
+              'elapsed_s':round(elapsed,2),
+              'raw_offer_count':live['raw_offer_count'],
+              'offers':len(live['offers']),
+              'sources_ok':sum(1 for s in live['sources'] if s['ok']),
+              'sources_total':len(live['sources']),
+              'partial':live.get('partial')
+          })
+          PY
+          docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
+          trap - EXIT
+          docker logs filament-finder-test
