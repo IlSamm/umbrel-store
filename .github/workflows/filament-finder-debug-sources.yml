@@ -17,42 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe Bambu EU Shopify backend
+      - name: Inspect runtime price parser anchors
         shell: bash
         run: |
           set -euo pipefail
           python ilsamm-filament-finder/runtime/build_runtime.py . /tmp/ff-runtime
           python - <<'PY'
-          import importlib.util, json, re, urllib.request
-          from urllib.parse import quote
-          spec=importlib.util.spec_from_file_location('ffserver','/tmp/ff-runtime/server.py')
-          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
-          headers={'User-Agent':mod.UA,'Accept-Language':'it-IT,it;q=0.9,en;q=0.7','Accept':'application/json,text/html,*/*'}
-          urls=[
-            'https://bambulab-eu.myshopify.com/it/search?q='+quote('PLA')+'&type=product',
-            'https://bambulab-eu.myshopify.com/it/products/pla-basic-filament.js',
-            'https://bambulab-eu.myshopify.com/products/pla-basic-filament.js',
-            'https://bambulab-eu.myshopify.com/it/products/pla-basic-filament.json',
-            'https://bambulab-eu.myshopify.com/products/pla-basic-filament.json',
-            'https://bambulab-eu.myshopify.com/it/collections/bambu-lab-3d-printer-filament/products.json?limit=50',
-            'https://bambulab-eu.myshopify.com/collections/bambu-lab-3d-printer-filament/products.json?limit=50',
-          ]
-          for url in urls:
-            try:
-              req=urllib.request.Request(url,headers=headers)
-              with urllib.request.urlopen(req,timeout=15) as r:
-                body=r.read(4_500_000); text=body.decode(r.headers.get_content_charset() or 'utf-8','ignore')
-                print('\nURL',url)
-                print('STATUS',r.status,'FINAL',r.geturl(),'CTYPE',r.headers.get('Content-Type'),'LEN',len(body))
-                print('SAMPLE',text[:1500].replace('\n',' '))
-                try:
-                  data=json.loads(text)
-                  if isinstance(data,dict):
-                    print('JSON_KEYS',list(data)[:20])
-                    products=data.get('products') or []
-                    if products: print('PRODUCT_COUNT',len(products),'FIRST',json.dumps(products[0],ensure_ascii=False)[:2500])
-                    if data.get('variants'): print('VARIANTS',len(data['variants']),'FIRST',json.dumps(data['variants'][0],ensure_ascii=False)[:1800])
-                except Exception: pass
-            except Exception as e:
-              print('\nURL',url,'ERROR',type(e).__name__,str(e)[:600])
+          from pathlib import Path
+          lines=Path('/tmp/ff-runtime/server.py').read_text(encoding='utf-8').splitlines()
+          for needle in ('def shopify_product_variants','def scrape_shopify','def _collect_source','def product_matches_material','def variant_material','def parse_weight'):
+              for i,line in enumerate(lines):
+                  if needle in line:
+                      print('\n###',needle,'line',i+1)
+                      for j in range(max(0,i-3),min(len(lines),i+95)):
+                          print(f'{j+1:04d}: {lines[j]}')
+                      break
           PY
