@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - filament-finder-v8.0.2-image
+      - filament-finder-v9
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -42,25 +42,47 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:8.0.2
+            ghcr.io/ilsamm/filament-finder:9.0.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke-test anonymous amd64 pull
+      - name: Smoke-test anonymous v9 image
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:8.0.2
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:8.0.2
+          docker pull ghcr.io/ilsamm/filament-finder:9.0.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:9.0.0
           trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
-            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/sources', timeout=2).read()"; then
-              docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
-              trap - EXIT
-              docker logs filament-finder-test
-              exit 0
+            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then
+              break
             fi
             sleep 2
           done
-          exit 1
+          python - <<'PY'
+          import json, urllib.request
+          def get(path, timeout=10):
+              with urllib.request.urlopen('http://127.0.0.1:18765'+path, timeout=timeout) as r:
+                  assert r.status == 200, r.status
+                  return json.load(r)
+          health=get('/api/health')
+          assert health['ok'] is True
+          assert health['version']=='9.0.0', health
+          assert health['materials']==67, health
+          assert health['brands']==18, health
+          assert health['sources']>=11, health
+          sources=get('/api/sources')['sources']
+          ids={s['id'] for s in sources}
+          assert {'azurefilm','formfutura','3dprima','3djake'} <= ids, ids
+          live=get('/api/catalog?material=PLA&brand=all&source=3djake&refresh=1', timeout=35)
+          assert live['version']=='9.0.0', live
+          assert live['source_filter']=='3djake', live
+          assert len(live['sources'])==1, live['sources']
+          assert live['sources'][0]['ok'] is True, live['sources'][0]
+          print('HEALTH', health)
+          print('LIVE_3DJAKE', {'raw_offer_count':live['raw_offer_count'],'offers':len(live['offers']),'source':live['sources'][0]})
+          PY
+          docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
+          trap - EXIT
+          docker logs filament-finder-test
