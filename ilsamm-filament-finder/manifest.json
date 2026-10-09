@@ -1,9 +1,9 @@
 {
-  "name": "Filament Finder Pro",
+  "name": "Filament Finder 8",
   "short_name": "FilamentFinder",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#061019",
-  "theme_color": "#061019",
-  "description": "Consigliatore filamenti e compatibilità stampanti 3D"
+  "background_color": "#0b0e0c",
+  "theme_color": "#101311",
+  "description": "Material OS per filamenti, prezzi live, bobine, drying, profili e costi di stampa 3D"
 }
