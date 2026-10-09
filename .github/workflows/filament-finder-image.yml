@@ -3,6 +3,7 @@ name: Filament Finder image
 on:
   push:
     branches:
+      - master
       - filament-finder-v8.0.2-image
     paths:
       - 'ilsamm-filament-finder/**'
