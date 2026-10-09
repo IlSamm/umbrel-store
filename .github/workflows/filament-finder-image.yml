@@ -46,17 +46,18 @@ jobs:
           provenance: false
 
       - name: Smoke-test amd64 image
+        shell: bash
         run: |
+          set -euo pipefail
           docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:8.0.2
+          trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
-            if python - <<'PY'
-import urllib.request
-urllib.request.urlopen('http://127.0.0.1:18765/api/sources', timeout=2).read()
-PY
-            then
+            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/sources', timeout=2).read()"; then
+              docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
+              trap - EXIT
+              docker logs filament-finder-test
               exit 0
             fi
             sleep 2
           done
-          docker logs filament-finder-test
           exit 1
