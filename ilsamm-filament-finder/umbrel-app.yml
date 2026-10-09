@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Materiali, compatibilita e prezzi live per la stampa 3D
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "9.0.0"
+version: "9.1.0"
 port: 8765
 
 description: >-
@@ -14,17 +14,14 @@ description: >-
   I dati personali persistono localmente su Umbrel.
 
 releaseNotes: >-
-  Filament Finder 9 amplia in modo sostanziale dati e motore prezzi: 67 famiglie di
-  materiali, 18 marchi indicizzati, 43 stampanti e 11 fonti prezzo configurate. Nuove
-  famiglie includono materiali engineering, compositi, flessibili, supporti, ESD,
-  lightweight e polimeri ad alta temperatura. Le schede materiali mostrano piu dati
-  tecnici indicativi, compatibilita, drying, abrasivita, velocita, densita e utilizzi.
-  Aggiunti AzureFilm, FormFutura e 3D Prima alle fonti, diagnostica per sorgente,
-  filtro sorgente e motore prezzi migliorato per offerte/sconti. Aggiunto /api/health
-  e una dashboard dati piu completa. La release e distribuita come immagine Docker
-  self-contained. Prima della pubblicazione sono stati verificati build amd64/arm64,
-  pull anonimo, avvio container, endpoint health/sources e una ricerca live PLA su
-  3DJake che ha restituito 22 offerte. Persistenza /data, alert e storico restano invariati.
+  Release di riparazione mobile concentrata sui problemi reali della 9.0.0. Sistemati
+  i filtri Materiali che perdevano lo stile, la palette colori che poteva trasformarsi
+  in colonne giganti, il layout del Material Advisor, il pulsante di aggiornamento dei
+  prezzi, le card del marketplace, gli spazi sotto la barra di navigazione e il menu
+  Altro. Uniformate le icone con SVG monocromatici e corretti testi/versione nelle
+  impostazioni. Il motore prezzi parallelo, le 11 fonti, i 67 materiali, gli alert,
+  lo storico e la persistenza /data restano invariati. La UI mobile viene verificata
+  automaticamente a viewport iPhone oltre ai test API e del motore prezzi live.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
