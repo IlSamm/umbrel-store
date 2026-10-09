@@ -85,7 +85,7 @@ def main() -> None:
     (out / "v10.css").write_bytes(v10_css)
     (out / "v10.js").write_bytes(v10_js)
 
-    # 10.1 adds progressive material details as a focused module on top of v10.
+    # 10.1 progressive material detail base.
     v101_css_source = app_root / "ui-v101" / "material-details.css"
     v101_js_source = app_root / "ui-v101" / "material-details.js"
     if not v101_css_source.is_file() or not v101_js_source.is_file():
@@ -95,22 +95,45 @@ def main() -> None:
     (out / "v101.css").write_bytes(v101_css)
     (out / "v101.js").write_bytes(v101_js)
 
+    # 10.2 reorganizes the technical sheet and makes price-source status explicit.
+    v102_material_css_source = app_root / "ui-v102" / "material-accordions.css"
+    v102_material_js_source = app_root / "ui-v102" / "material-accordions.js"
+    v102_price_css_source = app_root / "ui-v102" / "price-sources.css"
+    v102_price_js_source = app_root / "ui-v102" / "price-sources.js"
+    for required_source in (v102_material_css_source, v102_material_js_source, v102_price_css_source, v102_price_js_source):
+        if not required_source.is_file():
+            raise RuntimeError(f"Filament Finder 10.2 asset missing: {required_source.name}")
+    v102_material_css = v102_material_css_source.read_bytes()
+    v102_material_js = v102_material_js_source.read_bytes()
+    v102_price_css = v102_price_css_source.read_bytes()
+    v102_price_js = v102_price_js_source.read_bytes()
+    (out / "v102-material.css").write_bytes(v102_material_css)
+    (out / "v102-material.js").write_bytes(v102_material_js)
+    (out / "v102-prices.css").write_bytes(v102_price_css)
+    (out / "v102-prices.js").write_bytes(v102_price_js)
+
     # Apply the verified backend/data expansion from v9.
     with tempfile.TemporaryDirectory(prefix="ff-v9-patch-") as patch_dir:
         patcher = Path(patch_dir) / "patch_runtime_v9.py"
         patcher.write_bytes(decode_b64gz(app_root / "runtime" / "patch_runtime_v9.py.b64gz"))
         subprocess.run([sys.executable, str(patcher), str(out)], check=True)
 
-    # Keep one backend code path and only bump the reported app version.
+    # 10.2 backend patch: dedicated Bambu Lab EU connector over the official
+    # localized Shopify product payloads. No search-page scraping is required.
+    v102_backend_patcher = app_root / "runtime" / "patch_runtime_v102.py"
+    if not v102_backend_patcher.is_file():
+        raise RuntimeError("Filament Finder 10.2 backend patch is missing")
+    subprocess.run([sys.executable, str(v102_backend_patcher), str(out)], check=True)
+
+    # Keep one backend code path and bump the reported app version.
     server_path = out / "server.py"
     server_text = server_path.read_text(encoding="utf-8")
     if "APP_VERSION = '9.0.0'" not in server_text:
         raise RuntimeError("Cannot bump backend version: v9 APP_VERSION marker missing")
-    server_text = server_text.replace("APP_VERSION = '9.0.0'", "APP_VERSION = '10.1.0'", 1)
+    server_text = server_text.replace("APP_VERSION = '9.0.0'", "APP_VERSION = '10.2.0'", 1)
     server_path.write_text(server_text, encoding="utf-8")
 
-    # Keep the old compatibility scripts first, then mount the rebuilt UI and its
-    # progressive material-detail module last.
+    # Compatibility scripts first, rebuilt UI after them, then focused 10.1/10.2 layers.
     index_path = out / "index.html"
     index = index_path.read_text(encoding="utf-8")
     if 'src="v9-data.js' not in index:
@@ -151,21 +174,35 @@ def main() -> None:
             raise RuntimeError("v10.js script marker missing")
         index = index.replace(marker, marker + '\n<script src="v101.js?v=1010"></script>', 1)
 
+    if 'href="v102-material.css' not in index:
+        marker = '<link rel="stylesheet" href="v101.css?v=1010">'
+        if marker not in index:
+            raise RuntimeError("v101.css link marker missing")
+        index = index.replace(marker, marker + '\n  <link rel="stylesheet" href="v102-material.css?v=1020">\n  <link rel="stylesheet" href="v102-prices.css?v=1020">', 1)
+
+    if 'src="v102-material.js' not in index:
+        marker = '<script src="v101.js?v=1010"></script>'
+        if marker not in index:
+            raise RuntimeError("v101.js script marker missing")
+        index = index.replace(marker, marker + '\n<script src="v102-material.js?v=1020"></script>\n<script src="v102-prices.js?v=1020"></script>', 1)
+
     index_path.write_text(index, encoding="utf-8")
 
-    # Fail image builds instead of shipping a half-mounted UI.
+    # Fail image builds instead of shipping a half-mounted UI/backend.
     server_text = server_path.read_text(encoding="utf-8")
     compile(server_text, "server.py", "exec")
-    if "APP_VERSION = '10.1.0'" not in server_text or "STATIC_MATERIAL_COUNT = 67" not in server_text:
-        raise RuntimeError("10.1 backend/version patch missing")
+    if "APP_VERSION = '10.2.0'" not in server_text or "STATIC_MATERIAL_COUNT = 67" not in server_text:
+        raise RuntimeError("10.2 backend/version patch missing")
+    if "def scrape_bambu_eu(source, query):" not in server_text or "BAMBU_EU_BACKEND" not in server_text:
+        raise RuntimeError("10.2 Bambu connector patch missing")
     if "ThreadingHTTPServer(('0.0.0.0',PORT),Handler).serve_forever()" not in server_text:
         raise RuntimeError("server.py is not configured to listen on 0.0.0.0")
 
     index = index_path.read_text(encoding="utf-8")
-    required = ["v9.css", "v91.css", "v10.css", "v101.css", "v9-data.js", "app.js", "v7.js", "v9.js", "v91.js", "v10.js", "v101.js", 'id="printerBtn"']
+    required = ["v9.css", "v91.css", "v10.css", "v101.css", "v102-material.css", "v102-prices.css", "v9-data.js", "app.js", "v7.js", "v9.js", "v91.js", "v10.js", "v101.js", "v102-material.js", "v102-prices.js", 'id="printerBtn"']
     missing = [name for name in required if name not in index]
     if missing:
-        raise RuntimeError("10.1 index missing runtime assets/hooks: " + ", ".join(missing))
+        raise RuntimeError("10.2 index missing runtime assets/hooks: " + ", ".join(missing))
     if b"FF9_DATA_VERSION" not in v9_data or b"FILAMENT_BRANDS" not in v9_data:
         raise RuntimeError("v9 material/brand dataset validation failed")
     if b"FILAMENT_FINDER_VERSION" not in v9_js:
@@ -180,10 +217,18 @@ def main() -> None:
         raise RuntimeError("v10.1 material detail JS validation failed")
     if b".ff101-material-sheet" not in v101_css or b".ff101-technical-button" not in v101_css:
         raise RuntimeError("v10.1 material detail CSS validation failed")
+    if b"const VERSION='10.2.0'" not in v102_material_js or b"ff102-accordion" not in v102_material_js:
+        raise RuntimeError("v10.2 material accordion JS validation failed")
+    if b".ff102-accordion" not in v102_material_css:
+        raise RuntimeError("v10.2 material accordion CSS validation failed")
+    if b"renderTransparentMarket" not in v102_price_js or b"ff102-price-sources" not in v102_price_js:
+        raise RuntimeError("v10.2 price-source JS validation failed")
+    if b".ff102-price-sources" not in v102_price_css or b".ff102-store-group" not in v102_price_css:
+        raise RuntimeError("v10.2 price-source CSS validation failed")
 
     print(f"Runtime assembled at {out}")
     print(f"Bundle SHA256: {actual}")
-    print("Filament Finder 10.1 build-time validation: OK", flush=True)
+    print("Filament Finder 10.2 build-time validation: OK", flush=True)
 
 
 if __name__ == "__main__":
