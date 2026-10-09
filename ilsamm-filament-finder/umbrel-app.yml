@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Il centro di controllo completo per ogni filamento 3D
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "8.0.0"
+version: "8.0.1"
 port: 8765
 
 description: >-
@@ -14,14 +14,12 @@ description: >-
   e calcola costi reali e margini. I dati persistono localmente su Umbrel.
 
 releaseNotes: >-
-  Filament Finder 8.0 introduce una nuova interfaccia Material OS desktop e mobile,
-  un database tecnico esteso con oltre 40 famiglie e varianti di materiali, ricerca
-  e schede complete, confronto fino a quattro materiali, Smart Material Advisor,
-  Spool Manager con residuo e stato di essiccazione, Drying Lab, generatore di profili
-  di partenza e calcolo costi con energia, scarto e usura macchina. Il market tracker
-  continua a usare il backend locale con prezzi live, storico, disponibilita e alert
-  persistenti. Aggiunto catalogo marche esteso e nuova esperienza responsive stile
-  workstation per la stampa 3D.
+  Hotfix 8.0.1: corretto il bootstrap su Umbrel. Bundle e asset dell'interfaccia vengono
+  caricati prima dai file locali gia installati con il Community Store, poi dalla cache
+  persistente e solo come ultima possibilita da GitHub. In questo modo un problema DNS,
+  timeout o rate limit non impedisce piu al server di aprire la porta 8765 al primo avvio.
+  Aggiunti controllo integrita, log di bootstrap e healthcheck locale. Interfaccia Material OS,
+  database materiali, prezzi live, storico, alert, Spool Manager e dati persistenti restano invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
