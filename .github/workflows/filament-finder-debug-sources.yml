@@ -17,20 +17,51 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Assemble runtime and inspect price connectors
+      - name: Assemble runtime and probe Bambu
         shell: bash
         run: |
           set -euo pipefail
           python ilsamm-filament-finder/runtime/build_runtime.py . /tmp/ff-runtime
           python - <<'PY'
-          from pathlib import Path
-          p=Path('/tmp/ff-runtime/server.py')
-          lines=p.read_text(encoding='utf-8').splitlines()
-          needles=('bambu','sunlu','3djake','source','catalog','scrape','fetch')
-          for i,line in enumerate(lines,1):
-              low=line.lower()
-              if any(n in low for n in needles):
-                  start=max(1,i-2); end=min(len(lines),i+6)
-                  print(f'--- {start}:{end} ---')
-                  for j in range(start,end+1): print(f'{j:04d}: {lines[j-1]}')
+          import importlib.util, json, urllib.request
+          from urllib.parse import quote
+
+          spec=importlib.util.spec_from_file_location('ffserver','/tmp/ff-runtime/server.py')
+          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+
+          print('=== SOURCE TESTS ===')
+          for src in ('bambu','sunlu','3djake'):
+              data=mod.live_catalog('PLA','all',True,1,src)
+              print(src, json.dumps({
+                  'offers':len(data.get('offers',[])),
+                  'sources':data.get('sources',[]),
+                  'sample':(data.get('offers') or [])[:2],
+              }, ensure_ascii=False)[:4000])
+
+          print('=== BAMBU ENDPOINT PROBES ===')
+          base='https://eu.store.bambulab.com'
+          urls=[
+              base+'/search?q='+quote('PLA')+'&type=product',
+              base+'/search/suggest.json?q='+quote('PLA')+'&resources[type]=product&resources[limit]=10',
+              base+'/search.json?q='+quote('PLA')+'&type=product',
+              base+'/collections/filament',
+              base+'/collections/bambu-lab-filament',
+          ]
+          headers={
+              'User-Agent':mod.UA,
+              'Accept-Language':'it-IT,it;q=0.9,en;q=0.7',
+              'Accept':'text/html,application/json;q=0.9,*/*;q=0.8',
+          }
+          for url in urls:
+              try:
+                  req=urllib.request.Request(url,headers=headers)
+                  with urllib.request.urlopen(req,timeout=12) as r:
+                      body=r.read(12000)
+                      text=body.decode(r.headers.get_content_charset() or 'utf-8','ignore')
+                      print('URL',url)
+                      print('STATUS',r.status,'FINAL',r.geturl(),'CTYPE',r.headers.get('Content-Type'),'LEN',len(body))
+                      print('PRODUCT_LINKS',text.lower().count('/products/'),'HAS_PLA','pla' in text.lower())
+                      print('SAMPLE',text[:1200].replace('\n',' ')[:1200])
+              except Exception as e:
+                  print('URL',url,'ERROR',type(e).__name__,str(e)[:500])
           PY
