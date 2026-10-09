@@ -61,27 +61,54 @@ jobs:
             sleep 2
           done
           python - <<'PY'
-          import json, urllib.request
-          def get(path, timeout=10):
-              with urllib.request.urlopen('http://127.0.0.1:18765'+path, timeout=timeout) as r:
+          import json, time, urllib.request
+          BASE='http://127.0.0.1:18765'
+          def get_json(path, timeout=10):
+              with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
                   assert r.status == 200, r.status
                   return json.load(r)
-          health=get('/api/health')
+          def get_text(path, timeout=10):
+              with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
+                  assert r.status == 200, r.status
+                  return r.read().decode('utf-8','replace')
+
+          health=get_json('/api/health')
           assert health['ok'] is True
           assert health['version']=='9.0.0', health
           assert health['materials']==67, health
           assert health['brands']==18, health
           assert health['sources']>=11, health
-          sources=get('/api/sources')['sources']
+
+          sources=get_json('/api/sources')['sources']
           ids={s['id'] for s in sources}
           assert {'azurefilm','formfutura','3dprima','3djake'} <= ids, ids
-          live=get('/api/catalog?material=PLA&brand=all&source=3djake&refresh=1', timeout=35)
+
+          html=get_text('/')
+          appjs=get_text('/app.js')
+          assert 'id="searchPricesBtn">Cerca prezzi</button>' in html
+          assert 'Ricerca parallela sulle fonti' in appjs
+          assert 'Cerco prezzi…' in appjs
+
+          # This is the exact all-source request used by the Cerca prezzi button.
+          started=time.time()
+          live=get_json('/api/catalog?material=PLA&brand=all&qty=1&refresh=1', timeout=30)
+          elapsed=time.time()-started
           assert live['version']=='9.0.0', live
-          assert live['source_filter']=='3djake', live
-          assert len(live['sources'])==1, live['sources']
-          assert live['sources'][0]['ok'] is True, live['sources'][0]
+          assert live['source_filter'] is None, live
+          assert len(live['sources']) >= 8, live['sources']
+          assert any(s['ok'] for s in live['sources']), live['sources']
+          assert len(live['offers']) > 0, live
+          assert elapsed < 25, elapsed
+
           print('HEALTH', health)
-          print('LIVE_3DJAKE', {'raw_offer_count':live['raw_offer_count'],'offers':len(live['offers']),'source':live['sources'][0]})
+          print('FULL_PRICE_SEARCH', {
+              'elapsed_s':round(elapsed,2),
+              'raw_offer_count':live['raw_offer_count'],
+              'offers':len(live['offers']),
+              'sources_ok':sum(1 for s in live['sources'] if s['ok']),
+              'sources_total':len(live['sources']),
+              'partial':live.get('partial')
+          })
           PY
           docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
           trap - EXIT
