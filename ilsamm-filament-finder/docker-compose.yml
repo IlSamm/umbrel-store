@@ -12,19 +12,99 @@ services:
     restart: unless-stopped
     stop_grace_period: 15s
     command:
-      - sh
+      - python
+      - -u
       - -c
-      - >-
-        set -eu &&
-        rm -rf /tmp/filament-finder /tmp/ff.zip /tmp/ff.b64 &&
-        mkdir -p /data/boot-cache &&
-        mkdir -p /tmp/filament-finder &&
-        python -c "import urllib.request; base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/bundle/app.b64.'; open('/tmp/ff.b64','wb').write(b''.join(urllib.request.urlopen(base+f'{i:02d}',timeout=30).read() for i in range(6)))" &&
-        python -c "import base64,hashlib; raw=base64.b64decode(open('/tmp/ff.b64','rb').read()); expected='1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80cb1aa226e68'; actual=hashlib.sha256(raw).hexdigest(); assert actual==expected, f'Bundle SHA256 mismatch: {actual}'; open('/tmp/ff.zip','wb').write(raw)" &&
-        python -m zipfile -e /tmp/ff.zip /tmp/filament-finder &&
-        python -c "import urllib.request,base64,gzip; from pathlib import Path; root=Path('/tmp/filament-finder/Filament_Finder_Studio'); dec=lambda u:gzip.decompress(base64.b64decode(urllib.request.urlopen(u,timeout=30).read())); base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/'; root.joinpath('materials-v5-data.js').write_bytes(dec(base+'ui-v5/materials-v5-data.js.b64gz')); root.joinpath('techsheet-v51-data.js').write_bytes(dec(base+'ui-v51/techsheet-v51-data.js.b64gz')); root.joinpath('materials-v8-data.js').write_bytes(urllib.request.urlopen(base+'ui-v8/materials-v8-data.js',timeout=30).read()); root.joinpath('index.html').write_bytes(dec(base+'ui-v8/index.html.b64gz')); root.joinpath('v8.css').write_bytes(dec(base+'ui-v8/v8.css.b64gz')); root.joinpath('v8.js').write_bytes(dec(base+'ui-v8/v8.js.b64gz'))" &&
-        cd /tmp/filament-finder/Filament_Finder_Studio &&
-        exec python server.py
+      - |
+        import base64
+        import gzip
+        import hashlib
+        import os
+        from pathlib import Path
+        import sys
+        import time
+        import urllib.request
+        import zipfile
+        
+        BASE = "https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/"
+        CACHE = Path("/data/boot-cache")
+        ROOT = Path("/tmp/filament-finder/Filament_Finder_Studio")
+        EXPECTED = "1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80cb1aa226e68"
+        CACHE.mkdir(parents=True, exist_ok=True)
+        
+        def get_cached(name, url, validate=None):
+            destination = CACHE / name
+            for attempt in range(3):
+                try:
+                    request = urllib.request.Request(url, headers={"User-Agent": "FilamentFinder/8.0"})
+                    with urllib.request.urlopen(request, timeout=20) as response:
+                        data = response.read()
+                    if validate:
+                        validate(data)
+                    temporary = destination.with_suffix(destination.suffix + ".tmp")
+                    temporary.write_bytes(data)
+                    temporary.replace(destination)
+                    print("Downloaded:", name, flush=True)
+                    return data
+                except Exception as exc:
+                    print("Download failed:", name, attempt + 1, str(exc), flush=True)
+                    time.sleep(attempt + 1)
+            if destination.is_file():
+                data = destination.read_bytes()
+                if validate:
+                    validate(data)
+                print("Using cached:", name, flush=True)
+                return data
+            raise RuntimeError("Missing startup asset: " + name)
+        
+        def check_bundle(data):
+            raw = base64.b64decode(data, validate=True)
+            if hashlib.sha256(raw).hexdigest() != EXPECTED:
+                raise ValueError("Bundle SHA256 mismatch")
+        
+        def unpack_asset(filename, remote, compressed=True):
+            def verify(data):
+                if compressed:
+                    gzip.decompress(base64.b64decode(data))
+                elif not data:
+                    raise ValueError("Empty asset")
+            data = get_cached(filename.replace("/", "_"), BASE + remote, verify)
+            output = gzip.decompress(base64.b64decode(data)) if compressed else data
+            (ROOT / filename).write_bytes(output)
+        
+        def start():
+            # Download each part separately; once a complete bundle is verified, persist it.
+            def validate_part(data):
+                if not data or len(data) < 16:
+                    raise ValueError("Invalid bundle part")
+            parts = [get_cached("app.b64.%02d" % i, BASE + "bundle/app.b64.%02d" % i, validate_part) for i in range(6)]
+            encoded = b"".join(parts)
+            try:
+                check_bundle(encoded)
+            except Exception:
+                backup = CACHE / "verified-bundle.b64"
+                if not backup.is_file():
+                    raise
+                encoded = backup.read_bytes()
+                check_bundle(encoded)
+                print("Using last verified bundle", flush=True)
+            (CACHE / "verified-bundle.b64").write_bytes(encoded)
+            archive = CACHE / "verified-bundle.zip"
+            archive.write_bytes(base64.b64decode(encoded))
+            with zipfile.ZipFile(archive) as z:
+                z.extractall("/tmp/filament-finder")
+            if not (ROOT / "server.py").is_file():
+                raise RuntimeError("server.py not found in bundle")
+            unpack_asset("materials-v5-data.js", "ui-v5/materials-v5-data.js.b64gz")
+            unpack_asset("techsheet-v51-data.js", "ui-v51/techsheet-v51-data.js.b64gz")
+            unpack_asset("materials-v8-data.js", "ui-v8/materials-v8-data.js", False)
+            for name in ("index.html", "v8.css", "v8.js"):
+                unpack_asset(name, "ui-v8/" + name + ".b64gz")
+            os.chdir(ROOT)
+            print("Starting Filament Finder server on port 8765", flush=True)
+            os.execv(sys.executable, [sys.executable, "-u", "server.py"])
+        
+        start()
     environment:
       TZ: Europe/Rome
       FILAMENT_FINDER_PORT: 8765
