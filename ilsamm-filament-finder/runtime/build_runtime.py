@@ -15,8 +15,10 @@ EXPECTED_BUNDLE_SHA256 = "1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80c
 def decode_b64gz(source: Path) -> bytes:
     print(f"Decoding asset: {source}", flush=True)
     try:
-        encoded = source.read_bytes()
-        raw = base64.b64decode(encoded, validate=True)
+        encoded = b"".join(source.read_bytes().split())
+        # Some legacy UI assets were written with redundant '=' padding. Python's
+        # normal base64 decoder accepts it; gzip integrity still verifies the payload.
+        raw = base64.b64decode(encoded, validate=False)
         output = gzip.decompress(raw)
     except Exception as exc:
         raise RuntimeError(f"Failed to decode {source}: {exc}") from exc
