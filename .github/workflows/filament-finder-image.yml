@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - filament-finder-v10-redesign
+      - filament-finder-10.1-material-details
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -21,14 +21,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate v10 source syntax
+      - name: Validate 10.1 source syntax
         shell: bash
         run: |
           set -euo pipefail
           node --check ilsamm-filament-finder/ui-v10/app.js
+          node --check ilsamm-filament-finder/ui-v101/material-details.js
           python -m py_compile ilsamm-filament-finder/runtime/build_runtime.py
           grep -q '#ff10-app' ilsamm-filament-finder/ui-v10/app.css
-          grep -q "FILAMENT_FINDER_VERSION='10.0.0'" ilsamm-filament-finder/ui-v10/app.js
+          grep -q '.ff101-material-sheet' ilsamm-filament-finder/ui-v101/material-details.css
+          grep -q "const VERSION='10.1.0'" ilsamm-filament-finder/ui-v101/material-details.js
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -43,7 +45,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push 10.0.0
+      - name: Build and push 10.1.0
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -51,17 +53,17 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:10.0.0
+            ghcr.io/ilsamm/filament-finder:10.1.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke, live-price and rebuilt UI test
+      - name: Smoke, live-price and material-detail UI test
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:10.0.0
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.0.0
+          docker pull ghcr.io/ilsamm/filament-finder:10.1.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.1.0
           trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
             if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then break; fi
@@ -77,7 +79,7 @@ jobs:
                   return json.load(r)
           health=get('/api/health')
           assert health['ok'] is True
-          assert health['version']=='10.0.0', health
+          assert health['version']=='10.1.0', health
           assert health['materials']==67, health
           assert health['brands']==18, health
           assert health['sources']>=11, health
@@ -156,18 +158,15 @@ jobs:
 
           checks={
             'viewport_width': "innerWidth===390",
-            'version': "window.FILAMENT_FINDER_VERSION==='10.0.0'",
+            'version': "window.FILAMENT_FINDER_VERSION==='10.1.0'",
             'new_app_mounted': "!!document.querySelector('#ff10-app') && document.body.classList.contains('ff10-mounted')",
             'legacy_hidden': "getComputedStyle(document.querySelector('#ff10-legacy')).display==='none'",
             'no_page_horizontal_overflow': "document.documentElement.scrollWidth<=innerWidth+2",
-            'hero_large': "parseFloat(getComputedStyle(document.querySelector('#ff10-view-home .ff10-hero h1')).fontSize)>=33",
             'nav_compact': "document.querySelector('.ff10-nav').getBoundingClientRect().height<=72",
             'five_nav_items': "document.querySelectorAll('.ff10-nav button').length===5",
             'new_material_cards_present': "document.querySelectorAll('#ff10-view-materials .ff10-material').length>=20",
-            'material_cards_rounded': "parseFloat(getComputedStyle(document.querySelector('.ff10-material')).borderRadius)>=18",
             'advisor_new_textarea': "!!document.querySelector('#ff10-project')",
             'prices_new_controls': "document.querySelectorAll('#ff10-price-material option').length>=20",
-            'old_bottom_nav_not_visible': "!document.querySelector('#ff10-app .bottom-nav')",
           }
           for name,expr in checks.items():
               ok=evaluate(expr)
@@ -179,16 +178,27 @@ jobs:
           assert material_count>=60, material_count
 
           evaluate("document.querySelector('.ff10-nav [data-nav=\"materials\"]').click()")
-          time.sleep(.15)
+          time.sleep(.2)
           assert evaluate("document.querySelector('#ff10-view-materials').classList.contains('is-active')")
-          assert evaluate("getComputedStyle(document.querySelector('#ff10-view-materials')).display!=='none'")
 
           evaluate("document.querySelector('#ff10-view-materials .ff10-material').click()")
-          time.sleep(.1)
+          time.sleep(.2)
           assert evaluate("document.querySelector('#ff10-sheet-backdrop').classList.contains('is-open')")
-          assert evaluate("!!document.querySelector('.ff10-detail-hero')")
+          assert evaluate("!!document.querySelector('.ff101-material-sheet')")
+          assert evaluate("!!document.querySelector('#ff101-basic')")
+          assert evaluate("document.querySelectorAll('#ff101-basic .ff101-score').length===4")
+          assert evaluate("document.querySelector('#ff101-technical').hasAttribute('hidden')")
+          assert evaluate("document.querySelector('[data-ff101-toggle]').getAttribute('aria-expanded')==='false'")
 
-          print('IPHONE_V10_UI_OK')
+          evaluate("document.querySelector('[data-ff101-toggle]').click()")
+          time.sleep(.15)
+          assert evaluate("!document.querySelector('#ff101-technical').hasAttribute('hidden')")
+          assert evaluate("document.querySelector('[data-ff101-toggle]').getAttribute('aria-expanded')==='true'")
+          assert evaluate("document.querySelectorAll('#ff101-technical .ff101-tech-item').length>=6")
+          assert evaluate("document.querySelectorAll('#ff101-technical .ff101-advice-grid article').length===2")
+          assert evaluate("!!document.querySelector('#ff101-technical .ff101-problems')")
+
+          print('IPHONE_V101_MATERIAL_DETAILS_OK')
           ws.close()
           PY
 

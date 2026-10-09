@@ -75,7 +75,7 @@ def main() -> None:
     (out / "v91.css").write_bytes(v91_css)
     (out / "v91.js").write_bytes(v91_js)
 
-    # v10 is a new visible frontend, stored as normal readable sources.
+    # v10 is the rebuilt visible frontend.
     v10_css_source = app_root / "ui-v10" / "app.css"
     v10_js_source = app_root / "ui-v10" / "app.js"
     if not v10_css_source.is_file() or not v10_js_source.is_file():
@@ -84,6 +84,16 @@ def main() -> None:
     v10_js = v10_js_source.read_bytes()
     (out / "v10.css").write_bytes(v10_css)
     (out / "v10.js").write_bytes(v10_js)
+
+    # 10.1 adds progressive material details as a focused module on top of v10.
+    v101_css_source = app_root / "ui-v101" / "material-details.css"
+    v101_js_source = app_root / "ui-v101" / "material-details.js"
+    if not v101_css_source.is_file() or not v101_js_source.is_file():
+        raise RuntimeError("Filament Finder 10.1 material-detail assets are missing")
+    v101_css = v101_css_source.read_bytes()
+    v101_js = v101_js_source.read_bytes()
+    (out / "v101.css").write_bytes(v101_css)
+    (out / "v101.js").write_bytes(v101_js)
 
     # Apply the verified backend/data expansion from v9.
     with tempfile.TemporaryDirectory(prefix="ff-v9-patch-") as patch_dir:
@@ -96,11 +106,11 @@ def main() -> None:
     server_text = server_path.read_text(encoding="utf-8")
     if "APP_VERSION = '9.0.0'" not in server_text:
         raise RuntimeError("Cannot bump backend version: v9 APP_VERSION marker missing")
-    server_text = server_text.replace("APP_VERSION = '9.0.0'", "APP_VERSION = '10.0.0'", 1)
+    server_text = server_text.replace("APP_VERSION = '9.0.0'", "APP_VERSION = '10.1.0'", 1)
     server_path.write_text(server_text, encoding="utf-8")
 
-    # Build script order deliberately leaves every legacy script intact first. v10.js
-    # then moves the old DOM into a hidden compatibility root and mounts its own UI.
+    # Keep the old compatibility scripts first, then mount the rebuilt UI and its
+    # progressive material-detail module last.
     index_path = out / "index.html"
     index = index_path.read_text(encoding="utf-8")
     if 'src="v9-data.js' not in index:
@@ -129,21 +139,33 @@ def main() -> None:
         marker = '<script src="v91.js?v=910"></script>'
         index = index.replace(marker, marker + '\n<script src="v10.js?v=1000"></script>', 1)
 
+    if 'href="v101.css' not in index:
+        marker = '<link rel="stylesheet" href="v10.css?v=1000">'
+        if marker not in index:
+            raise RuntimeError("v10.css link marker missing")
+        index = index.replace(marker, marker + '\n  <link rel="stylesheet" href="v101.css?v=1010">', 1)
+
+    if 'src="v101.js' not in index:
+        marker = '<script src="v10.js?v=1000"></script>'
+        if marker not in index:
+            raise RuntimeError("v10.js script marker missing")
+        index = index.replace(marker, marker + '\n<script src="v101.js?v=1010"></script>', 1)
+
     index_path.write_text(index, encoding="utf-8")
 
     # Fail image builds instead of shipping a half-mounted UI.
     server_text = server_path.read_text(encoding="utf-8")
     compile(server_text, "server.py", "exec")
-    if "APP_VERSION = '10.0.0'" not in server_text or "STATIC_MATERIAL_COUNT = 67" not in server_text:
-        raise RuntimeError("10.0 backend/version patch missing")
+    if "APP_VERSION = '10.1.0'" not in server_text or "STATIC_MATERIAL_COUNT = 67" not in server_text:
+        raise RuntimeError("10.1 backend/version patch missing")
     if "ThreadingHTTPServer(('0.0.0.0',PORT),Handler).serve_forever()" not in server_text:
         raise RuntimeError("server.py is not configured to listen on 0.0.0.0")
 
     index = index_path.read_text(encoding="utf-8")
-    required = ["v9.css", "v91.css", "v10.css", "v9-data.js", "app.js", "v7.js", "v9.js", "v91.js", "v10.js", 'id="printerBtn"']
+    required = ["v9.css", "v91.css", "v10.css", "v101.css", "v9-data.js", "app.js", "v7.js", "v9.js", "v91.js", "v10.js", "v101.js", 'id="printerBtn"']
     missing = [name for name in required if name not in index]
     if missing:
-        raise RuntimeError("10.0 index missing runtime assets/hooks: " + ", ".join(missing))
+        raise RuntimeError("10.1 index missing runtime assets/hooks: " + ", ".join(missing))
     if b"FF9_DATA_VERSION" not in v9_data or b"FILAMENT_BRANDS" not in v9_data:
         raise RuntimeError("v9 material/brand dataset validation failed")
     if b"FILAMENT_FINDER_VERSION" not in v9_js:
@@ -154,10 +176,14 @@ def main() -> None:
         raise RuntimeError("v10 frontend JS validation failed")
     if b"#ff10-app" not in v10_css or b".ff10-material" not in v10_css:
         raise RuntimeError("v10 frontend CSS validation failed")
+    if b"const VERSION='10.1.0'" not in v101_js or b"ff101-technical" not in v101_js:
+        raise RuntimeError("v10.1 material detail JS validation failed")
+    if b".ff101-material-sheet" not in v101_css or b".ff101-technical-button" not in v101_css:
+        raise RuntimeError("v10.1 material detail CSS validation failed")
 
     print(f"Runtime assembled at {out}")
     print(f"Bundle SHA256: {actual}")
-    print("Filament Finder 10.0 build-time validation: OK", flush=True)
+    print("Filament Finder 10.1 build-time validation: OK", flush=True)
 
 
 if __name__ == "__main__":
