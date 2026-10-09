@@ -9,7 +9,7 @@ services:
   server:
     image: python:3.13-slim
     init: true
-    restart: on-failure
+    restart: unless-stopped
     stop_grace_period: 15s
     command:
       - sh
@@ -17,11 +17,12 @@ services:
       - >-
         set -eu &&
         rm -rf /tmp/filament-finder /tmp/ff.zip /tmp/ff.b64 &&
+        mkdir -p /data/boot-cache &&
         mkdir -p /tmp/filament-finder &&
-        python -c "import urllib.request; base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/bundle/app.b64.'; open('/tmp/ff.b64','wb').write(b''.join(urllib.request.urlopen(base+f'{i:02d}').read() for i in range(6)))" &&
+        python -c "import urllib.request; base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/bundle/app.b64.'; open('/tmp/ff.b64','wb').write(b''.join(urllib.request.urlopen(base+f'{i:02d}',timeout=30).read() for i in range(6)))" &&
         python -c "import base64,hashlib; raw=base64.b64decode(open('/tmp/ff.b64','rb').read()); expected='1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80cb1aa226e68'; actual=hashlib.sha256(raw).hexdigest(); assert actual==expected, f'Bundle SHA256 mismatch: {actual}'; open('/tmp/ff.zip','wb').write(raw)" &&
         python -m zipfile -e /tmp/ff.zip /tmp/filament-finder &&
-        python -c "import urllib.request,base64,gzip; from pathlib import Path; root=Path('/tmp/filament-finder/Filament_Finder_Studio'); dec=lambda u:gzip.decompress(base64.b64decode(urllib.request.urlopen(u).read())); base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/'; root.joinpath('materials-v5-data.js').write_bytes(dec(base+'ui-v5/materials-v5-data.js.b64gz')); root.joinpath('techsheet-v51-data.js').write_bytes(dec(base+'ui-v51/techsheet-v51-data.js.b64gz')); urllib.request.urlretrieve(base+'ui-v8/materials-v8-data.js',root/'materials-v8-data.js'); root.joinpath('index.html').write_bytes(dec(base+'ui-v8/index.html.b64gz')); root.joinpath('v8.css').write_bytes(dec(base+'ui-v8/v8.css.b64gz')); root.joinpath('v8.js').write_bytes(dec(base+'ui-v8/v8.js.b64gz'))" &&
+        python -c "import urllib.request,base64,gzip; from pathlib import Path; root=Path('/tmp/filament-finder/Filament_Finder_Studio'); dec=lambda u:gzip.decompress(base64.b64decode(urllib.request.urlopen(u,timeout=30).read())); base='https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/'; root.joinpath('materials-v5-data.js').write_bytes(dec(base+'ui-v5/materials-v5-data.js.b64gz')); root.joinpath('techsheet-v51-data.js').write_bytes(dec(base+'ui-v51/techsheet-v51-data.js.b64gz')); root.joinpath('materials-v8-data.js').write_bytes(urllib.request.urlopen(base+'ui-v8/materials-v8-data.js',timeout=30).read()); root.joinpath('index.html').write_bytes(dec(base+'ui-v8/index.html.b64gz')); root.joinpath('v8.css').write_bytes(dec(base+'ui-v8/v8.css.b64gz')); root.joinpath('v8.js').write_bytes(dec(base+'ui-v8/v8.js.b64gz'))" &&
         cd /tmp/filament-finder/Filament_Finder_Studio &&
         exec python server.py
     environment:
