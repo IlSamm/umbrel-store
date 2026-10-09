@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - filament-finder-mobile-rebuild
+      - filament-finder-v10-redesign
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -21,6 +21,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate v10 source syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check ilsamm-filament-finder/ui-v10/app.js
+          python -m py_compile ilsamm-filament-finder/runtime/build_runtime.py
+          grep -q '#ff10-app' ilsamm-filament-finder/ui-v10/app.css
+          grep -q "FILAMENT_FINDER_VERSION='10.0.0'" ilsamm-filament-finder/ui-v10/app.js
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -34,7 +43,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push 9.1.0
+      - name: Build and push 10.0.0
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -42,17 +51,17 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:9.1.0
+            ghcr.io/ilsamm/filament-finder:10.0.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke, live-price and iPhone layout test
+      - name: Smoke, live-price and rebuilt UI test
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:9.1.0
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:9.1.0
+          docker pull ghcr.io/ilsamm/filament-finder:10.0.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.0.0
           trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
             if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then break; fi
@@ -68,7 +77,7 @@ jobs:
                   return json.load(r)
           health=get('/api/health')
           assert health['ok'] is True
-          assert health['version']=='9.1.0', health
+          assert health['version']=='10.0.0', health
           assert health['materials']==67, health
           assert health['brands']==18, health
           assert health['sources']>=11, health
@@ -121,8 +130,7 @@ jobs:
               while True:
                   msg=json.loads(ws.recv())
                   if msg.get('id')==counter:
-                      if 'error' in msg:
-                          raise AssertionError(msg['error'])
+                      if 'error' in msg: raise AssertionError(msg['error'])
                       return msg.get('result',{})
 
           def evaluate(expr):
@@ -132,8 +140,7 @@ jobs:
               while True:
                   msg=json.loads(ws.recv())
                   if msg.get('id')==counter:
-                      if 'exceptionDetails' in msg.get('result',{}):
-                          raise AssertionError(msg['result']['exceptionDetails'])
+                      if 'exceptionDetails' in msg.get('result',{}): raise AssertionError(msg['result']['exceptionDetails'])
                       return msg['result']['result'].get('value')
 
           command('Emulation.setDeviceMetricsOverride',{
@@ -143,36 +150,46 @@ jobs:
           command('Emulation.setTouchEmulationEnabled',{'enabled':True,'maxTouchPoints':5})
           command('Page.reload',{'ignoreCache':True})
 
-          deadline=time.time()+10
-          while time.time()<deadline and not evaluate("document.readyState==='complete' && !!document.querySelector('#materialFilters button')"):
+          deadline=time.time()+12
+          while time.time()<deadline and not evaluate("document.readyState==='complete' && !!document.querySelector('#ff10-app .ff10-nav')"):
               time.sleep(.2)
 
           checks={
             'viewport_width': "innerWidth===390",
+            'version': "window.FILAMENT_FINDER_VERSION==='10.0.0'",
+            'new_app_mounted': "!!document.querySelector('#ff10-app') && document.body.classList.contains('ff10-mounted')",
+            'legacy_hidden': "getComputedStyle(document.querySelector('#ff10-legacy')).display==='none'",
             'no_page_horizontal_overflow': "document.documentElement.scrollWidth<=innerWidth+2",
-            'material_filter_class_fixed': "document.querySelector('#materialFilters button').classList.contains('filter')",
-            'material_filter_not_white': "getComputedStyle(document.querySelector('#materialFilters button')).backgroundColor!=='rgb(255, 255, 255)'",
-            'advisor_helper_is_block': "getComputedStyle(document.querySelector('.field-title-row small')).display==='block'",
-            'refresh_button_short_copy': "document.querySelector('#forceRefreshBtn').textContent.includes('Aggiorna') && !document.querySelector('#forceRefreshBtn').textContent.includes('Forza')",
-            'printer_icon_svg': "!!document.querySelector('#mobilePrinterBtn svg')",
-            'more_menu_icons_svg': "document.querySelectorAll('.mobile-menu-grid button svg').length===5",
-            'close_buttons_svg': "document.querySelectorAll('.closebtn svg').length>=4",
-            'bottom_nav_compact': "document.querySelector('.bottom-nav').getBoundingClientRect().height<=70",
-            'workspace_bottom_clearance': "parseFloat(getComputedStyle(document.querySelector('.workspace')).paddingBottom)>=120",
-            'mobile_coverage_duplicate_hidden': "getComputedStyle(document.querySelector('.v9-coverage')).display==='none'",
+            'hero_large': "parseFloat(getComputedStyle(document.querySelector('#ff10-view-home .ff10-hero h1')).fontSize)>=33",
+            'nav_compact': "document.querySelector('.ff10-nav').getBoundingClientRect().height<=72",
+            'five_nav_items': "document.querySelectorAll('.ff10-nav button').length===5",
+            'new_material_cards_present': "document.querySelectorAll('#ff10-view-materials .ff10-material').length>=20",
+            'material_cards_rounded': "parseFloat(getComputedStyle(document.querySelector('.ff10-material')).borderRadius)>=18",
+            'advisor_new_textarea': "!!document.querySelector('#ff10-project')",
+            'prices_new_controls': "document.querySelectorAll('#ff10-price-material option').length>=20",
+            'old_bottom_nav_not_visible': "!document.querySelector('#ff10-app .bottom-nav')",
           }
           for name,expr in checks.items():
               ok=evaluate(expr)
-              print(name, ok)
-              assert ok, name
+              print(name,ok)
+              assert ok,name
 
-          evaluate("document.querySelector('#colorPalette').innerHTML='<button class=\"color-chip\">3D Print General Flat Dark Earth</button><button class=\"color-chip\">Amarena Red</button>'")
-          chip_height=evaluate("Math.max(...[...document.querySelectorAll('#colorPalette .color-chip')].map(x=>x.getBoundingClientRect().height))")
-          print('color_chip_height',chip_height)
-          assert chip_height<=40, chip_height
+          material_count=evaluate("document.querySelectorAll('#ff10-view-materials .ff10-material').length")
+          print('material_cards',material_count)
+          assert material_count>=60, material_count
 
+          evaluate("document.querySelector('.ff10-nav [data-nav=\"materials\"]').click()")
+          time.sleep(.15)
+          assert evaluate("document.querySelector('#ff10-view-materials').classList.contains('is-active')")
+          assert evaluate("getComputedStyle(document.querySelector('#ff10-view-materials')).display!=='none'")
+
+          evaluate("document.querySelector('#ff10-view-materials .ff10-material').click()")
+          time.sleep(.1)
+          assert evaluate("document.querySelector('#ff10-sheet-backdrop').classList.contains('is-open')")
+          assert evaluate("!!document.querySelector('.ff10-detail-hero')")
+
+          print('IPHONE_V10_UI_OK')
           ws.close()
-          print('IPHONE_LAYOUT_OK')
           PY
 
           kill $CHROME_PID || true
