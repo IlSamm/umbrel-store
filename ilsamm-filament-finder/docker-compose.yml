@@ -7,7 +7,7 @@ services:
       APP_PORT: 8765
 
   server:
-    image: ghcr.io/ilsamm/filament-finder:8.0.2
+    image: ghcr.io/ilsamm/filament-finder:9.0.0
     init: true
     restart: unless-stopped
     stop_grace_period: 15s
