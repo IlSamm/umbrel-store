@@ -1,27 +1,26 @@
 manifestVersion: 1
 id: ilsamm-filament-finder
 name: Filament Finder
-tagline: Materiali, compatibilita e prezzi live per la stampa 3D
+tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "9.1.0"
+version: "10.0.0"
 port: 8765
 
 description: >-
-  Filament Finder e un workspace locale per scegliere e confrontare filamenti 3D,
-  verificare compatibilita con la stampante, consultare schede tecniche, confrontare
-  prezzi live e disponibilita, creare alert e mantenere storico e calcoli di costo.
-  I dati personali persistono localmente su Umbrel.
+  Filament Finder aiuta a scegliere, confrontare e acquistare filamenti per stampa 3D.
+  Include un catalogo tecnico, un advisor per il progetto, compatibilita con le stampanti,
+  prezzi live, confronto materiali, calcolo costi e alert locali. I dati personali e lo
+  storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Release di riparazione mobile concentrata sui problemi reali della 9.0.0. Sistemati
-  i filtri Materiali che perdevano lo stile, la palette colori che poteva trasformarsi
-  in colonne giganti, il layout del Material Advisor, il pulsante di aggiornamento dei
-  prezzi, le card del marketplace, gli spazi sotto la barra di navigazione e il menu
-  Altro. Uniformate le icone con SVG monocromatici e corretti testi/versione nelle
-  impostazioni. Il motore prezzi parallelo, le 11 fonti, i 67 materiali, gli alert,
-  lo storico e la persistenza /data restano invariati. La UI mobile viene verificata
-  automaticamente a viewport iPhone oltre ai test API e del motore prezzi live.
+  Redesign completo dell'interfaccia. La vecchia dashboard non viene piu mostrata: la
+  10.0 introduce un frontend mobile-first indipendente con nuova Home, Material Advisor,
+  marketplace prezzi, catalogo materiali, schede tecniche, confronto, calcolatore costi,
+  alert, stampanti e impostazioni. Ridotti drasticamente bordi, box ripetitivi e uso del
+  verde; migliorate gerarchie, tipografia, spaziatura e navigazione su iPhone. Il runtime
+  9.x resta nascosto come motore di compatibilita, mentre backend prezzi, 67 materiali,
+  43 stampanti, 11 fonti, alert, storico e persistenza /data rimangono invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
