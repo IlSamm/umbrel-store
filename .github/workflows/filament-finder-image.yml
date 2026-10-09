@@ -46,10 +46,12 @@ jobs:
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke-test amd64 image
+      - name: Smoke-test anonymous amd64 pull
         shell: bash
         run: |
           set -euo pipefail
+          docker logout ghcr.io || true
+          docker pull ghcr.io/ilsamm/filament-finder:8.0.2
           docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:8.0.2
           trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
