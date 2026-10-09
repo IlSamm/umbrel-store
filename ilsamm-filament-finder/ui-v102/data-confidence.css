@@ -1,0 +1,52 @@
+/* Filament Finder 10.2 — material data confidence */
+.ff102-data-legend{display:grid;grid-template-columns:1fr;gap:7px;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.055)}
+.ff102-data-legend>div{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:7px}
+.ff102-data-legend small{font-size:8px;line-height:1.35;color:var(--ff10-text-3)}
+.ff102-tds-note{margin-top:10px!important;padding:9px 10px;border-radius:11px;background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.04);font-size:8px!important;line-height:1.45!important;color:#77827a!important}
+
+.ff102-confidence{display:inline-flex!important;align-items:center;gap:5px;width:max-content;max-width:100%;padding:3px 6px!important;border-radius:999px!important;font-size:6px!important;line-height:1!important;font-weight:900!important;letter-spacing:.055em!important;text-transform:uppercase;white-space:nowrap;border:1px solid transparent}
+.ff102-confidence i{width:5px;height:5px;border-radius:50%;flex:0 0 5px;background:currentColor}
+.ff102-exact{color:#76e48c!important;background:rgba(118,228,140,.07)!important;border-color:rgba(118,228,140,.15)!important}
+.ff102-estimated{color:#f2bb63!important;background:rgba(242,187,99,.07)!important;border-color:rgba(242,187,99,.16)!important}
+.ff102-unavailable{color:#818a83!important;background:rgba(255,255,255,.035)!important;border-color:rgba(255,255,255,.07)!important}
+
+.ff101-tech-item{transition:border-color .18s ease,background .18s ease}
+.ff101-tech-item.ff102-card-exact{border-color:rgba(118,228,140,.09);background:linear-gradient(150deg,rgba(118,228,140,.027),rgba(255,255,255,.018))}
+.ff101-tech-item.ff102-card-estimated{border-color:rgba(242,187,99,.10);background:linear-gradient(150deg,rgba(242,187,99,.025),rgba(255,255,255,.018))}
+.ff101-tech-item.ff102-card-unavailable{opacity:.72}
+.ff101-tech-item>span{align-items:flex-start!important}
+.ff101-tech-item>span>.ff102-confidence{margin-left:auto;flex:0 0 auto}
+.ff101-tech-item strong{font-size:12px!important}
+.ff102-explain{margin:7px 0 0;color:#6f7a72;font-size:7.5px;line-height:1.45}
+
+.ff102-metric-meta{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.035)}
+.ff102-metric-meta p{margin:0;color:#6f7a72;font-size:7.5px;line-height:1.42}
+.ff101-advanced-metrics .ff101-score.ff102-card-exact{border-color:rgba(118,228,140,.08)}
+.ff101-advanced-metrics .ff101-score.ff102-card-estimated{border-color:rgba(242,187,99,.09)}
+
+.ff102-basic-meta{display:none;margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.035)}
+.ff102-basic-meta p{margin:7px 0 0;color:#6f7a72;font-size:7px;line-height:1.4}
+.ff101-technical:not([hidden])~* .ff102-basic-meta{display:none}
+
+/* Keep the essential view clean: source badges for nozzle/bed/speed appear only
+   when the technical section is open, via the expanded sheet state. */
+.ff101-material-sheet:has(.ff101-technical:not([hidden])) .ff102-basic-meta{display:block}
+.ff101-material-sheet:has(.ff101-technical:not([hidden])) .ff101-print-strip>div{border-color:rgba(255,255,255,.055)}
+
+@media(min-width:600px){
+  .ff102-data-legend{grid-template-columns:repeat(3,1fr)}
+  .ff102-data-legend>div{grid-template-columns:1fr;align-content:start}
+  .ff102-metric-meta{grid-template-columns:120px minmax(0,1fr)}
+}
+
+@media(max-width:520px){
+  .ff102-data-legend{gap:8px}
+  .ff102-data-legend>div{grid-template-columns:110px minmax(0,1fr)}
+  .ff102-data-legend small{font-size:7.5px}
+  .ff102-explain,.ff102-metric-meta p{font-size:7.4px}
+}
+
+@media(max-width:360px){
+  .ff102-data-legend>div{grid-template-columns:1fr}
+  .ff102-metric-meta{grid-template-columns:1fr}
+}
