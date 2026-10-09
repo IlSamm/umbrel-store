@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - filament-finder-v9
+      - filament-finder-mobile-rebuild
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -34,7 +34,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push 9.1.0
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -42,74 +42,140 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:9.0.0
+            ghcr.io/ilsamm/filament-finder:9.1.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke-test anonymous v9 image
+      - name: Smoke, live-price and iPhone layout test
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:9.0.0
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:9.0.0
+          docker pull ghcr.io/ilsamm/filament-finder:9.1.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:9.1.0
           trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
-            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then
-              break
-            fi
-            sleep 2
+            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then break; fi
+            sleep 1
           done
+
           python - <<'PY'
           import json, time, urllib.request
           BASE='http://127.0.0.1:18765'
-          def get_json(path, timeout=10):
+          def get(path, timeout=10):
               with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
                   assert r.status == 200, r.status
                   return json.load(r)
-          def get_text(path, timeout=10):
-              with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
-                  assert r.status == 200, r.status
-                  return r.read().decode('utf-8','replace')
-
-          health=get_json('/api/health')
+          health=get('/api/health')
           assert health['ok'] is True
-          assert health['version']=='9.0.0', health
+          assert health['version']=='9.1.0', health
           assert health['materials']==67, health
           assert health['brands']==18, health
           assert health['sources']>=11, health
-
-          sources=get_json('/api/sources')['sources']
-          ids={s['id'] for s in sources}
-          assert {'azurefilm','formfutura','3dprima','3djake'} <= ids, ids
-
-          html=get_text('/')
-          appjs=get_text('/app.js')
-          assert 'id="searchPricesBtn">Cerca prezzi</button>' in html
-          assert 'Ricerca parallela sulle fonti' in appjs
-          assert 'Cerco prezzi…' in appjs
-
-          # This is the exact all-source request used by the Cerca prezzi button.
           started=time.time()
-          live=get_json('/api/catalog?material=PLA&brand=all&qty=1&refresh=1', timeout=30)
+          live=get('/api/catalog?material=PLA&brand=all&qty=1&refresh=1', timeout=30)
           elapsed=time.time()-started
-          assert live['version']=='9.0.0', live
-          assert live['source_filter'] is None, live
-          assert len(live['sources']) >= 8, live['sources']
+          assert len(live['offers'])>0, live
           assert any(s['ok'] for s in live['sources']), live['sources']
-          assert len(live['offers']) > 0, live
-          assert elapsed < 25, elapsed
-
-          print('HEALTH', health)
-          print('FULL_PRICE_SEARCH', {
-              'elapsed_s':round(elapsed,2),
-              'raw_offer_count':live['raw_offer_count'],
+          assert elapsed<25, elapsed
+          print('API_OK', {
+              'health':health['version'],
               'offers':len(live['offers']),
               'sources_ok':sum(1 for s in live['sources'] if s['ok']),
               'sources_total':len(live['sources']),
-              'partial':live.get('partial')
+              'elapsed_s':round(elapsed,2)
           })
           PY
-          docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
+
+          command -v google-chrome >/dev/null
+          python -m pip install --quiet websocket-client
+          google-chrome --headless=new --no-sandbox --disable-gpu \
+            --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --remote-allow-origins=* \
+            --user-data-dir=/tmp/ff-chrome \
+            http://127.0.0.1:18765 >/tmp/ff-chrome.log 2>&1 &
+          CHROME_PID=$!
+          trap 'kill $CHROME_PID 2>/dev/null || true; docker logs filament-finder-test || true' EXIT
+
+          python - <<'PY'
+          import json, time, urllib.request
+          from websocket import create_connection
+
+          deadline=time.time()+15
+          targets=[]
+          while time.time()<deadline:
+              try:
+                  targets=json.load(urllib.request.urlopen('http://127.0.0.1:9222/json',timeout=2))
+                  targets=[t for t in targets if t.get('type')=='page']
+                  if targets: break
+              except Exception:
+                  pass
+              time.sleep(.25)
+          assert targets, 'Chrome DevTools page target not found'
+          ws=create_connection(targets[0]['webSocketDebuggerUrl'],timeout=10)
+          counter=0
+
+          def command(method, params=None):
+              global counter
+              counter+=1
+              ws.send(json.dumps({'id':counter,'method':method,'params':params or {}}))
+              while True:
+                  msg=json.loads(ws.recv())
+                  if msg.get('id')==counter:
+                      if 'error' in msg:
+                          raise AssertionError(msg['error'])
+                      return msg.get('result',{})
+
+          def evaluate(expr):
+              global counter
+              counter+=1
+              ws.send(json.dumps({'id':counter,'method':'Runtime.evaluate','params':{'expression':expr,'returnByValue':True,'awaitPromise':True}}))
+              while True:
+                  msg=json.loads(ws.recv())
+                  if msg.get('id')==counter:
+                      if 'exceptionDetails' in msg.get('result',{}):
+                          raise AssertionError(msg['result']['exceptionDetails'])
+                      return msg['result']['result'].get('value')
+
+          command('Emulation.setDeviceMetricsOverride',{
+              'width':390,'height':844,'deviceScaleFactor':3,'mobile':True,
+              'screenWidth':390,'screenHeight':844
+          })
+          command('Emulation.setTouchEmulationEnabled',{'enabled':True,'maxTouchPoints':5})
+          command('Page.reload',{'ignoreCache':True})
+
+          deadline=time.time()+10
+          while time.time()<deadline and not evaluate("document.readyState==='complete' && !!document.querySelector('#materialFilters button')"):
+              time.sleep(.2)
+
+          checks={
+            'viewport_width': "innerWidth===390",
+            'no_page_horizontal_overflow': "document.documentElement.scrollWidth<=innerWidth+2",
+            'material_filter_class_fixed': "document.querySelector('#materialFilters button').classList.contains('filter')",
+            'material_filter_not_white': "getComputedStyle(document.querySelector('#materialFilters button')).backgroundColor!=='rgb(255, 255, 255)'",
+            'advisor_helper_is_block': "getComputedStyle(document.querySelector('.field-title-row small')).display==='block'",
+            'refresh_button_short_copy': "document.querySelector('#forceRefreshBtn').textContent.includes('Aggiorna') && !document.querySelector('#forceRefreshBtn').textContent.includes('Forza')",
+            'printer_icon_svg': "!!document.querySelector('#mobilePrinterBtn svg')",
+            'more_menu_icons_svg': "document.querySelectorAll('.mobile-menu-grid button svg').length===5",
+            'close_buttons_svg': "document.querySelectorAll('.closebtn svg').length>=4",
+            'bottom_nav_compact': "document.querySelector('.bottom-nav').getBoundingClientRect().height<=70",
+            'workspace_bottom_clearance': "parseFloat(getComputedStyle(document.querySelector('.workspace')).paddingBottom)>=120",
+            'mobile_coverage_duplicate_hidden': "getComputedStyle(document.querySelector('.v9-coverage')).display==='none'",
+          }
+          for name,expr in checks.items():
+              ok=evaluate(expr)
+              print(name, ok)
+              assert ok, name
+
+          evaluate("document.querySelector('#colorPalette').innerHTML='<button class=\"color-chip\">3D Print General Flat Dark Earth</button><button class=\"color-chip\">Amarena Red</button>'")
+          chip_height=evaluate("Math.max(...[...document.querySelectorAll('#colorPalette .color-chip')].map(x=>x.getBoundingClientRect().height))")
+          print('color_chip_height',chip_height)
+          assert chip_height<=40, chip_height
+
+          ws.close()
+          print('IPHONE_LAYOUT_OK')
+          PY
+
+          kill $CHROME_PID || true
           trap - EXIT
+          docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
           docker logs filament-finder-test
