@@ -8,7 +8,7 @@ FROM public.ecr.aws/docker/library/python:3.13-slim
 
 LABEL org.opencontainers.image.source="https://github.com/IlSamm/umbrel-store"
 LABEL org.opencontainers.image.title="Filament Finder"
-LABEL org.opencontainers.image.description="Filament Finder 10.1 for Umbrel"
+LABEL org.opencontainers.image.description="Filament Finder 10.2 for Umbrel"
 
 WORKDIR /app
 COPY --from=builder /opt/filament-finder /app
