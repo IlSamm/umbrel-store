@@ -17,57 +17,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Assemble runtime and inspect Bambu Next.js
+      - name: Probe Bambu localized catalogue and products
         shell: bash
         run: |
           set -euo pipefail
           python ilsamm-filament-finder/runtime/build_runtime.py . /tmp/ff-runtime
           python - <<'PY'
-          import importlib.util, json, re, urllib.request
-          from urllib.parse import quote
-
+          import importlib.util, re, urllib.request
           spec=importlib.util.spec_from_file_location('ffserver','/tmp/ff-runtime/server.py')
           mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
-
-          print('=== SOURCE TESTS ===')
-          for src in ('bambu','sunlu','3djake'):
-              data=mod.live_catalog('PLA','all',True,1,src)
-              print(src, json.dumps({
-                  'offers':len(data.get('offers',[])),
-                  'sources':data.get('sources',[]),
-                  'sample':(data.get('offers') or [])[:2],
-              }, ensure_ascii=False)[:5000])
-
-          print('=== BAMBU FULL HTML SCAN ===')
-          urls=[
-              'https://eu.store.bambulab.com/search?q='+quote('PLA')+'&type=product',
-              'https://us.store.bambulab.com/search?q='+quote('PLA')+'&type=product',
-              'https://eu.store.bambulab.com/collections/filament',
-              'https://us.store.bambulab.com/collections/filament',
-          ]
           headers={'User-Agent':mod.UA,'Accept-Language':'it-IT,it;q=0.9,en;q=0.7','Accept':'text/html,*/*'}
+          urls=[
+            'https://eu.store.bambulab.com/it/collections/bambu-lab-3d-printer-filament',
+            'https://eu.store.bambulab.com/en/collections/bambu-lab-3d-printer-filament',
+            'https://eu.store.bambulab.com/en-ro/collections/bambu-lab-3d-printer-filament',
+            'https://eu.store.bambulab.com/it/products/pla-basic-filament',
+            'https://eu.store.bambulab.com/en/products/pla-basic-filament',
+            'https://eu.store.bambulab.com/en-ro/products/pla-basic-filament',
+          ]
           for url in urls:
-              try:
-                  req=urllib.request.Request(url,headers=headers)
-                  with urllib.request.urlopen(req,timeout=15) as r:
-                      body=r.read(4_500_000)
-                      text=body.decode(r.headers.get_content_charset() or 'utf-8','ignore')
-                      low=text.lower()
-                      print('\nURL',url)
-                      print('STATUS',r.status,'FINAL',r.geturl(),'LEN',len(body),'PLA_COUNT',low.count('pla'),'FILAMENT_COUNT',low.count('filament'))
-                      scripts=re.findall(r'<script[^>]+src=["\']([^"\']+)',text,re.I)
-                      print('SCRIPTS',scripts[:30])
-                      hrefs=re.findall(r'href=["\']([^"\']+)',text,re.I)
-                      interesting=[]
-                      for h in hrefs:
-                          hl=h.lower()
-                          if any(k in hl for k in ('pla','filament','product')) and h not in interesting:
-                              interesting.append(h)
-                      print('INTERESTING_HREFS',interesting[:80])
-                      for needle in ('PLA Basic','pla-basic','filament','searchParams','productList','products','api/'):
-                          idx=low.find(needle.lower())
-                          if idx>=0:
-                              print('CTX',needle, text[max(0,idx-500):idx+1800].replace('\n',' ')[:2300])
-              except Exception as e:
-                  print('URL',url,'ERROR',type(e).__name__,str(e)[:500])
+            try:
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=15) as r:
+                body=r.read(4_500_000); text=body.decode(r.headers.get_content_charset() or 'utf-8','ignore'); low=text.lower()
+                print('\nURL',url)
+                print('STATUS',r.status,'FINAL',r.geturl(),'LEN',len(body),'EUR',text.count('€'),'PLA_BASIC',low.count('pla basic'))
+                for pat in [r'href=["\']([^"\']*pla-basic[^"\']*)',r'"price"\s*:\s*"?([0-9][0-9.,]*)',r'€\s*([0-9]+(?:[.,][0-9]{2})?)',r'([0-9]+(?:[.,][0-9]{2})?)\s*EUR']:
+                  vals=[]
+                  for x in re.findall(pat,text,re.I):
+                    if x not in vals: vals.append(x)
+                  print('PAT',pat,'=>',vals[:20])
+                idx=low.find('pla basic')
+                if idx>=0: print('CTX',text[max(0,idx-700):idx+3500].replace('\n',' ')[:4200])
+            except Exception as e:
+              print('\nURL',url,'ERROR',type(e).__name__,str(e)[:600])
           PY
