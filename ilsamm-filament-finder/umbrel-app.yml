@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e monitora i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "5.1.0"
+version: "5.2.0"
 port: 8765
 
 description: >-
@@ -14,12 +14,12 @@ description: >-
   tra piu negozi e mantiene storico e alert locali per ribassi e ritorni disponibili.
 
 releaseNotes: >-
-  Technical Sheet 5.1: scheda tecnica materiali completamente ridisegnata con
-  navigazione dedicata Panoramica/Stampa/Meccanica/Ambiente/Problemi, layout premium
-  desktop e mobile, dati tecnici completi per tutte le 25 famiglie, range fisici e
-  meccanici tipici, hardware, drying, storage, sicurezza e troubleshooting. Disabilitati
-  pinch zoom, doppio tap zoom e zoom automatico degli input su iPhone. Backend, prezzi,
-  alert, storico e dati persistenti restano invariati.
+  Material Sheet 5.2: scheda materiale riprogettata dopo il feedback mobile. Hero piu
+  compatto, miglior prezzo live visibile direttamente nella scheda, CTA Prezzi/Confronta/Alert,
+  metriche in card, tab Panoramica/Stampa/Proprieta/Uso/Problemi, layout mobile fullscreen
+  con barra azioni fissa e meno spazio vuoto. Restano attivi il blocco zoom iPhone e tutti
+  i dati tecnici delle 25 famiglie introdotti nelle versioni precedenti. Backend, alert,
+  storico e dati persistenti restano invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
