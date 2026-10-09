@@ -1,0 +1,36 @@
+name: Filament Finder source diagnostics
+
+on:
+  push:
+    branches:
+      - filament-finder-10.2-material-accordions
+    paths:
+      - 'ilsamm-filament-finder/**'
+      - '.github/workflows/filament-finder-debug-sources.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble runtime and inspect price connectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python ilsamm-filament-finder/runtime/build_runtime.py . /tmp/ff-runtime
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/ff-runtime/server.py')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          needles=('bambu','sunlu','3djake','source','catalog','scrape','fetch')
+          for i,line in enumerate(lines,1):
+              low=line.lower()
+              if any(n in low for n in needles):
+                  start=max(1,i-2); end=min(len(lines),i+6)
+                  print(f'--- {start}:{end} ---')
+                  for j in range(start,end+1): print(f'{j:04d}: {lines[j-1]}')
+          PY
