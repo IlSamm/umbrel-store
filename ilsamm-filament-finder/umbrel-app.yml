@@ -1,26 +1,27 @@
 manifestVersion: 1
 id: ilsamm-filament-finder
 name: Filament Finder
-tagline: Scegli il filamento giusto e monitora i prezzi live
+tagline: Il centro di controllo completo per ogni filamento 3D
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "7.0.0"
+version: "8.0.0"
 port: 8765
 
 description: >-
-  Filament Finder consiglia il materiale migliore per ogni stampa 3D in base
-  alla stampante, all'uso del pezzo e alle caratteristiche richieste. Confronta
-  prezzi live, disponibilita, colori e costo finale per kg, deduplica le varianti
-  tra piu negozi e mantiene storico e alert locali per ribassi e ritorni disponibili.
+  Filament Finder 8 e un Material OS locale per la stampa 3D: confronta materiali,
+  prodotti e prezzi live, valuta compatibilita con la stampante, mantiene storico e
+  alert prezzo, gestisce le bobine personali, suggerisce drying e profili di partenza
+  e calcola costi reali e margini. I dati persistono localmente su Umbrel.
 
 releaseNotes: >-
-  Clean UI 7.0: frontend ricostruito da zero. Rimossi i vecchi layer grafici v2-v6
-  dal runtime e introdotta una sola interfaccia coerente per Home, Consigliatore,
-  Materiali, Prodotti & Prezzi, Confronta, Costi, Alert, Stampanti e Impostazioni.
-  Nuova gerarchia visiva mobile-first, catalogo materiali riprogettato, scheda materiale
-  più chiara e mercato con miglior affare, prodotti raggruppati, disponibilita, prezzo,
-  spedizione, totale e €/kg leggibili. Mantiene backend, tracker, storico, dati tecnici,
-  blocco zoom su iPhone e dati persistenti.
+  Filament Finder 8.0 introduce una nuova interfaccia Material OS desktop e mobile,
+  un database tecnico esteso con oltre 40 famiglie e varianti di materiali, ricerca
+  e schede complete, confronto fino a quattro materiali, Smart Material Advisor,
+  Spool Manager con residuo e stato di essiccazione, Drying Lab, generatore di profili
+  di partenza e calcolo costi con energia, scarto e usura macchina. Il market tracker
+  continua a usare il backend locale con prezzi live, storico, disponibilita e alert
+  persistenti. Aggiunto catalogo marche esteso e nuova esperienza responsive stile
+  workstation per la stampa 3D.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
