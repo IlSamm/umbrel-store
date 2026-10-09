@@ -79,7 +79,7 @@ jobs:
           command -v google-chrome >/dev/null
           python -m pip install --quiet websocket-client
           google-chrome --headless=new --no-sandbox --disable-gpu \
-            --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
+            --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --remote-allow-origins=* \
             --user-data-dir=/tmp/ff-chrome --window-size=390,844 \
             http://127.0.0.1:18765 >/tmp/ff-chrome.log 2>&1 &
           CHROME_PID=$!
