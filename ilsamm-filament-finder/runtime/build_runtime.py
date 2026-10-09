@@ -13,11 +13,16 @@ EXPECTED_BUNDLE_SHA256 = "1764fe238c7197691d59a8bb728fce3bcc1961c9f4827f4317b80c
 
 
 def decode_b64gz(source: Path) -> bytes:
-    encoded = source.read_bytes()
-    raw = base64.b64decode(encoded, validate=True)
-    output = gzip.decompress(raw)
+    print(f"Decoding asset: {source}", flush=True)
+    try:
+        encoded = source.read_bytes()
+        raw = base64.b64decode(encoded, validate=True)
+        output = gzip.decompress(raw)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to decode {source}: {exc}") from exc
     if not output:
         raise RuntimeError(f"Decoded asset is empty: {source}")
+    print(f"Decoded OK: {source} -> {len(output)} bytes", flush=True)
     return output
 
 
