@@ -54,7 +54,7 @@ def main() -> None:
             shutil.rmtree(out)
         shutil.copytree(source, out)
 
-    # Start from the last verified professional UI, then add v9 assets at BUILD time.
+    # Keep the verified 9.x runtime as the compatibility/data engine.
     (out / "index.html").write_bytes(decode_b64gz(app_root / "ui-v7" / "index.html.b64gz"))
     v7_css = decode_b64gz(app_root / "ui-v7" / "v7.css.b64gz")
     (out / "v7.js").write_bytes(decode_b64gz(app_root / "ui-v7" / "v7.js.b64gz"))
@@ -66,34 +66,41 @@ def main() -> None:
     (out / "v9.js").write_bytes(v9_js)
     (out / "v9.css").write_bytes(v7_css + b"\n\n/* Filament Finder 9 */\n" + v9_css_extra)
 
-    # 9.1 keeps the data/backend work from v9 and applies a small, readable mobile
-    # repair layer as normal source files instead of another opaque base64 bundle.
     v91_css_source = app_root / "ui-v91" / "mobile-fixes.css"
     v91_js_source = app_root / "ui-v91" / "mobile-fixes.js"
     if not v91_css_source.is_file() or not v91_js_source.is_file():
-        raise RuntimeError("Filament Finder 9.1 mobile repair assets are missing")
+        raise RuntimeError("Filament Finder 9.1 compatibility assets are missing")
     v91_css = v91_css_source.read_bytes()
     v91_js = v91_js_source.read_bytes()
     (out / "v91.css").write_bytes(v91_css)
     (out / "v91.js").write_bytes(v91_js)
 
-    # The v9 backend patch is still the verified base. Umbrel never reconstructs
-    # runtime assets; everything is assembled while building the image.
+    # v10 is a new visible frontend, stored as normal readable sources.
+    v10_css_source = app_root / "ui-v10" / "app.css"
+    v10_js_source = app_root / "ui-v10" / "app.js"
+    if not v10_css_source.is_file() or not v10_js_source.is_file():
+        raise RuntimeError("Filament Finder 10 frontend assets are missing")
+    v10_css = v10_css_source.read_bytes()
+    v10_js = v10_js_source.read_bytes()
+    (out / "v10.css").write_bytes(v10_css)
+    (out / "v10.js").write_bytes(v10_js)
+
+    # Apply the verified backend/data expansion from v9.
     with tempfile.TemporaryDirectory(prefix="ff-v9-patch-") as patch_dir:
         patcher = Path(patch_dir) / "patch_runtime_v9.py"
         patcher.write_bytes(decode_b64gz(app_root / "runtime" / "patch_runtime_v9.py.b64gz"))
         subprocess.run([sys.executable, str(patcher), str(out)], check=True)
 
-    # UI-only 9.1 release: bump health/version after applying the verified v9 patch.
+    # Keep one backend code path and only bump the reported app version.
     server_path = out / "server.py"
     server_text = server_path.read_text(encoding="utf-8")
     if "APP_VERSION = '9.0.0'" not in server_text:
         raise RuntimeError("Cannot bump backend version: v9 APP_VERSION marker missing")
-    server_text = server_text.replace("APP_VERSION = '9.0.0'", "APP_VERSION = '9.1.0'", 1)
+    server_text = server_text.replace("APP_VERSION = '9.0.0'", "APP_VERSION = '10.0.0'", 1)
     server_path.write_text(server_text, encoding="utf-8")
 
-    # Stable data.js contains the original families. v9-data extends it to 67.
-    # Inject v9.1 CSS after v9.css and v9.1 JS after v9.js so repairs win cleanly.
+    # Build script order deliberately leaves every legacy script intact first. v10.js
+    # then moves the old DOM into a hidden compatibility root and mounts its own UI.
     index_path = out / "index.html"
     index = index_path.read_text(encoding="utf-8")
     if 'src="v9-data.js' not in index:
@@ -114,33 +121,43 @@ def main() -> None:
             raise RuntimeError("v9.js script marker missing")
         index = index.replace(marker, marker + '\n<script src="v91.js?v=910"></script>', 1)
 
+    if 'href="v10.css' not in index:
+        marker = '<link rel="stylesheet" href="v91.css?v=910">'
+        index = index.replace(marker, marker + '\n  <link rel="stylesheet" href="v10.css?v=1000">', 1)
+
+    if 'src="v10.js' not in index:
+        marker = '<script src="v91.js?v=910"></script>'
+        index = index.replace(marker, marker + '\n<script src="v10.js?v=1000"></script>', 1)
+
     index_path.write_text(index, encoding="utf-8")
 
-    # Fail the image build instead of shipping a broken runtime.
+    # Fail image builds instead of shipping a half-mounted UI.
     server_text = server_path.read_text(encoding="utf-8")
     compile(server_text, "server.py", "exec")
-    if "APP_VERSION = '9.1.0'" not in server_text or "STATIC_MATERIAL_COUNT = 67" not in server_text:
-        raise RuntimeError("9.1 backend/version patch missing")
+    if "APP_VERSION = '10.0.0'" not in server_text or "STATIC_MATERIAL_COUNT = 67" not in server_text:
+        raise RuntimeError("10.0 backend/version patch missing")
     if "ThreadingHTTPServer(('0.0.0.0',PORT),Handler).serve_forever()" not in server_text:
         raise RuntimeError("server.py is not configured to listen on 0.0.0.0")
 
     index = index_path.read_text(encoding="utf-8")
-    required = ["v9.css", "v91.css", "v9-data.js", "app.js", "v7.js", "v9.js", "v91.js", 'id="printerBtn"']
+    required = ["v9.css", "v91.css", "v10.css", "v9-data.js", "app.js", "v7.js", "v9.js", "v91.js", "v10.js", 'id="printerBtn"']
     missing = [name for name in required if name not in index]
     if missing:
-        raise RuntimeError("9.1 index missing runtime assets/hooks: " + ", ".join(missing))
+        raise RuntimeError("10.0 index missing runtime assets/hooks: " + ", ".join(missing))
     if b"FF9_DATA_VERSION" not in v9_data or b"FILAMENT_BRANDS" not in v9_data:
         raise RuntimeError("v9 material/brand dataset validation failed")
     if b"FILAMENT_FINDER_VERSION" not in v9_js:
-        raise RuntimeError("v9 UI validation failed")
-    if b"FILAMENT_FINDER_VERSION='9.1.0'" not in v91_js or b"fixMaterialFilters" not in v91_js:
-        raise RuntimeError("v9.1 mobile repair JS validation failed")
-    if b"#materialFilters button" not in v91_css or b".color-palette" not in v91_css:
-        raise RuntimeError("v9.1 mobile repair CSS validation failed")
+        raise RuntimeError("v9 UI compatibility validation failed")
+    if b"FILAMENT_FINDER_VERSION='9.1.0'" not in v91_js:
+        raise RuntimeError("v9.1 compatibility validation failed")
+    if b"FILAMENT_FINDER_VERSION='10.0.0'" not in v10_js or b"ff10-mounted" not in v10_js:
+        raise RuntimeError("v10 frontend JS validation failed")
+    if b"#ff10-app" not in v10_css or b".ff10-material" not in v10_css:
+        raise RuntimeError("v10 frontend CSS validation failed")
 
     print(f"Runtime assembled at {out}")
     print(f"Bundle SHA256: {actual}")
-    print("Filament Finder 9.1 build-time validation: OK", flush=True)
+    print("Filament Finder 10.0 build-time validation: OK", flush=True)
 
 
 if __name__ == "__main__":
