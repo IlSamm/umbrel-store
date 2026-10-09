@@ -66,8 +66,23 @@ def main() -> None:
     (out / "v9.js").write_bytes(v9_js)
     (out / "v9.css").write_bytes(v7_css + b"\n\n/* Filament Finder 9 */\n" + v9_css_extra)
 
-    patcher = app_root / "runtime" / "patch_runtime_v9.py"
-    subprocess.run([sys.executable, str(patcher), str(out)], check=True)
+    # The patch payload itself is gzip+base64 and is decoded/verified only while
+    # building the image. Umbrel never has to reconstruct or download UI assets.
+    with tempfile.TemporaryDirectory(prefix="ff-v9-patch-") as patch_dir:
+        patcher = Path(patch_dir) / "patch_runtime_v9.py"
+        patcher.write_bytes(decode_b64gz(app_root / "runtime" / "patch_runtime_v9.py.b64gz"))
+        subprocess.run([sys.executable, str(patcher), str(out)], check=True)
+
+    # Stable data.js contains the original families. v9-data extends it to 67,
+    # so load the expansion immediately before app.js.
+    index_path = out / "index.html"
+    index = index_path.read_text(encoding="utf-8")
+    if 'src="v9-data.js' not in index:
+        marker = '<script src="data.js"></script>'
+        if marker not in index:
+            raise RuntimeError("data.js script marker missing")
+        index = index.replace(marker, marker + '\n<script src="v9-data.js?v=900"></script>', 1)
+        index_path.write_text(index, encoding="utf-8")
 
     # Fail the image build instead of shipping a broken runtime.
     server_text = (out / "server.py").read_text(encoding="utf-8")
@@ -77,7 +92,7 @@ def main() -> None:
     if "ThreadingHTTPServer(('0.0.0.0',PORT),Handler).serve_forever()" not in server_text:
         raise RuntimeError("server.py is not configured to listen on 0.0.0.0")
 
-    index = (out / "index.html").read_text(encoding="utf-8")
+    index = index_path.read_text(encoding="utf-8")
     required = ["v9.css", "v9-data.js", "app.js", "v7.js", "v9.js", 'id="printerBtn"']
     missing = [name for name in required if name not in index]
     if missing:
