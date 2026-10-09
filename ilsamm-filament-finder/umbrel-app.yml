@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e monitora i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "6.0.0"
+version: "7.0.0"
 port: 8765
 
 description: >-
@@ -14,13 +14,13 @@ description: >-
   tra piu negozi e mantiene storico e alert locali per ribassi e ritorni disponibili.
 
 releaseNotes: >-
-  Redesign completo dell'interfaccia. Nuovo linguaggio visivo unico per Home,
-  Consigliatore, Materiali, Prodotti & Prezzi, Alert, Stampanti e Impostazioni.
-  La sezione mercato e stata ricostruita con miglior affare in evidenza, riepilogo
-  chiaro, gruppi prodotto, disponibilita, prezzo prodotto, spedizione, totale e €/kg
-  leggibili anche su iPhone. Migliorati sidebar, card, modali, filtri, responsive e
-  gerarchia visiva generale. Restano attivi blocco zoom, schede tecniche complete,
-  backend, storico, alert e dati persistenti.
+  Clean UI 7.0: frontend ricostruito da zero. Rimossi i vecchi layer grafici v2-v6
+  dal runtime e introdotta una sola interfaccia coerente per Home, Consigliatore,
+  Materiali, Prodotti & Prezzi, Confronta, Costi, Alert, Stampanti e Impostazioni.
+  Nuova gerarchia visiva mobile-first, catalogo materiali riprogettato, scheda materiale
+  più chiara e mercato con miglior affare, prodotti raggruppati, disponibilita, prezzo,
+  spedizione, totale e €/kg leggibili. Mantiene backend, tracker, storico, dati tecnici,
+  blocco zoom su iPhone e dati persistenti.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
