@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - filament-finder-10.7-source-diagnostics
+      - filament-finder-10.7-bambu-required-tests
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -70,7 +71,7 @@ jobs:
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke diagnostics and retry test
+      - name: Smoke diagnostics, Bambu gate and retry test
         shell: bash
         run: |
           set -euo pipefail
@@ -85,27 +86,90 @@ jobs:
           done
 
           python - <<'PY'
-          import json, urllib.request
+          import json, re, urllib.parse, urllib.request
           BASE='http://127.0.0.1:18765'
           def get(path, timeout=35):
               with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
                   assert r.status==200, r.status
                   return json.load(r)
+
           health=get('/api/health',10)
           assert health['version']=='10.7.0', health
+
           live=get('/api/catalog?material=PLA&brand=all&qty=10&refresh=1')
           assert len(live.get('sources',[]))>=11, live
           assert len(live.get('offers',[]))>=20, len(live.get('offers',[]))
-          # Successful sources must expose at least request URL or telemetry trace.
           active=[s for s in live['sources'] if int(s.get('results') or 0)>0]
           assert active, live['sources']
           assert any(s.get('request_url') or s.get('request_trace') for s in active), active[:3]
-          # Single-source endpoint used by the Retry button must really isolate one source.
           sid=str(active[0].get('id'))
           one=get('/api/catalog?material=PLA&brand=all&qty=10&refresh=1&source='+sid)
           ids={str(s.get('id')) for s in one.get('sources',[])}
           assert sid in ids, (sid,ids)
           print('BACKEND_107_DIAGNOSTICS_OK', {'source':sid,'sources':len(live['sources'])})
+
+          # Mandatory live Bambu Lab gate. This is intentionally strict: if Bambu
+          # changes its storefront/backend and any core family stops exposing real
+          # purchasable variants, the build must fail instead of shipping silently.
+          cases=[
+              ('PLA Basic','PLA BASIC'),
+              ('PLA Matte','PLA MATTE'),
+              ('PETG HF','PETG HF'),
+          ]
+          refill_rx=re.compile(r'\b(refill|ricarica|without\s+spool|senza\s+bobina)\b',re.I)
+          spool_rx=re.compile(r'\b(with\s+spool|spool|bobina)\b',re.I)
+
+          def offer_text(o):
+              return ' '.join(str(o.get(k) or '') for k in ('product','title','name','variant','format','size','note'))
+
+          for material,label in cases:
+              path='/api/catalog?'+urllib.parse.urlencode({
+                  'material':material,
+                  'brand':'all',
+                  'qty':'1',
+                  'refresh':'1',
+                  'source':'bambu',
+              })
+              data=get(path, timeout=35)
+              sources=[s for s in data.get('sources',[]) if str(s.get('id'))=='bambu']
+              assert len(sources)==1, f'{label}: expected isolated Bambu source, got {data.get("sources")}'
+              source=sources[0]
+              assert source.get('ok') is True, f'{label}: Bambu source failed: {source}'
+              assert int(source.get('results') or 0)>0, f'{label}: Bambu returned zero results: {source}'
+
+              offers=[o for o in data.get('offers',[]) if str(o.get('source_id'))=='bambu']
+              assert offers, f'{label}: no Bambu offers returned'
+              assert len(offers)==int(source.get('results') or len(offers)), (
+                  f'{label}: source result count mismatch: source={source.get("results")} offers={len(offers)}'
+              )
+
+              bad_price=[o for o in offers if not isinstance(o.get('price'),(int,float)) or isinstance(o.get('price'),bool) or float(o.get('price') or 0)<=0]
+              assert not bad_price, f'{label}: invalid/missing prices: {bad_price[:3]}'
+
+              missing_availability=[o for o in offers if 'available' not in o or not isinstance(o.get('available'),bool)]
+              assert not missing_availability, f'{label}: availability must be explicit boolean: {missing_availability[:3]}'
+              assert any(o.get('available') is True for o in offers), f'{label}: no purchasable Bambu variant is available'
+
+              texts=[offer_text(o) for o in offers]
+              refill=[o for o,t in zip(offers,texts) if refill_rx.search(t)]
+              spool=[o for o,t in zip(offers,texts) if spool_rx.search(t) and not refill_rx.search(t)]
+              assert refill, f'{label}: no Refill variant found; variants={[o.get("variant") for o in offers[:12]]}'
+              assert spool, f'{label}: no With Spool/bobina variant found; variants={[o.get("variant") for o in offers[:12]]}'
+              assert any(o.get('available') is True and float(o.get('price') or 0)>0 for o in refill), f'{label}: no available priced Refill variant'
+              assert any(o.get('available') is True and float(o.get('price') or 0)>0 for o in spool), f'{label}: no available priced spool variant'
+
+              print('BAMBU_REQUIRED_FAMILY_OK', {
+                  'family':label,
+                  'offers':len(offers),
+                  'refill':len(refill),
+                  'spool':len(spool),
+                  'available':sum(o.get('available') is True for o in offers),
+                  'price_min':min(float(o['price']) for o in offers),
+                  'http_status':source.get('http_status'),
+                  'ms':source.get('ms'),
+              })
+
+          print('BAMBU_REQUIRED_LIVE_GATE_OK', [label for _,label in cases])
           PY
 
           command -v google-chrome >/dev/null
@@ -156,7 +220,6 @@ jobs:
           assert ev("document.querySelector('.ff107-diagnostics-panel').textContent.includes('HTTP')")
           assert ev("document.querySelector('.ff107-diagnostics-panel').textContent.includes('Tempo fonte')")
           assert ev("document.documentElement.scrollWidth<=innerWidth+2")
-          # Deterministic retry-button rendering for an error source.
           ev("window.FF106_LAST_DATA={sources:[{id:'broken',name:'Broken',ok:false,results:0,error_message:'HTTP 500'}],offers:[]};window.FF105_LAST_DATA=window.FF106_LAST_DATA")
           ev("document.body.appendChild(document.createElement('i'))")
           deadline=time.time()+2
