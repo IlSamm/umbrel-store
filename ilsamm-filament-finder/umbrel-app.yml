@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "10.2.0"
+version: "10.3.0"
 port: 8765
 
 description: >-
@@ -14,14 +14,15 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Scheda tecnica 10.2 riorganizzata: i dati chiave restano subito visibili e la parte
-  avanzata e divisa in cinque sezioni richiudibili — Stampa, Asciugatura, Compatibilita,
-  Proprieta e Problemi comuni. Rifatta anche la parte prezzi: nuovo connettore dedicato
-  Bambu Lab EU che legge le varianti europee strutturate dal catalogo ufficiale, stato e
-  numero offerte mostrati per ogni fonte, miglior offerta per negozio e risultati completi
-  raggruppati per store. Una fonte lenta o senza risultati non viene piu nascosta dietro le
-  offerte di un singolo negozio. Backend, 67 materiali, 43 stampanti, alert, storico e
-  persistenza /data restano invariati.
+  Marketplace prezzi completamente ridisegnato. La ricerca ora presenta un riepilogo con
+  miglior totale, miglior prezzo al kg e migliore offerta Bambu ufficiale; mostra subito
+  quante offerte arrivano da ogni negozio e permette di filtrare localmente per store,
+  marca, colore, testo e disponibilita del totale/spedizione. Aggiunti ordinamento per
+  prezzo finale, euro/kg, prezzo prodotto, negozio e marca, risultati progressivi e stato
+  delle fonti raccolto in una sezione tecnica richiudibile. Le offerte mostrano in modo
+  separato disponibilita, prezzo prodotto, spedizione, totale e costo al kg. Il connettore
+  Bambu Lab EU dedicato resta attivo. Schede tecniche, 67 materiali, 43 stampanti, alert,
+  storico e persistenza /data restano invariati.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
