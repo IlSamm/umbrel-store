@@ -1,8 +1,9 @@
 # Filament Finder 11 — Umbrel
 
 Un laboratorio locale per scegliere filamenti, confrontare materiali e prezzi,
-calcolare costi e seguire varianti con alert. Interfaccia in italiano, utilizzabile
-da desktop, telefono e tastiera, senza CDN, font esterni o dipendenze frontend a runtime.
+calcolare costi e seguire varianti con alert. Interfaccia scura in italiano,
+utilizzabile da desktop, telefono e tastiera, senza CDN, font esterni o dipendenze
+frontend a runtime. La grafica della bobina è un asset SVG locale.
 
 ## Sorgenti e avvio locale
 

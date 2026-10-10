@@ -203,7 +203,7 @@ function render() {
 }
 
 function spoolArt() {
-  return `<div class="hero-art" aria-hidden="true"><svg viewBox="0 0 370 290"><defs><linearGradient id="flange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#718646"/><stop offset="1" stop-color="#293e29"/></linearGradient><linearGradient id="filament" x1="0" x2="1"><stop stop-color="#b8cf70"/><stop offset=".6" stop-color="#d4e29e"/><stop offset="1" stop-color="#92ad58"/></linearGradient></defs><g transform="translate(40 6) rotate(-15 150 145)"><ellipse cx="216" cy="127" rx="71" ry="96" fill="url(#flange)"/><path d="M84 46h111c38 0 68 37 68 85s-30 85-68 85H84Z" fill="url(#filament)"/><g stroke="#748f4f" opacity=".35" fill="none">${Array.from({ length: 22 }, (_, i) => `<path d="M${97 + i * 5} 48c42 11 44 153 0 166"/>`).join("")}</g><ellipse cx="91" cy="131" rx="75" ry="99" fill="url(#flange)"/><ellipse cx="91" cy="131" rx="57" ry="78" fill="#354d2c" stroke="#8d9f5c" stroke-width="2"/><ellipse cx="91" cy="131" rx="24" ry="35" fill="#1f3628" stroke="#71884b" stroke-width="9"/><g fill="#afbc72" opacity=".8"><path d="m75 66 17-10 16 12-7 20-17 3Z"/><path d="m44 120 4-23 18 2 6 19-9 18Z"/><path d="m43 161 17-9 17 14-4 24-20-10Z"/><path d="m94 178 22-9 13 17-15 20-19-4Z"/><path d="m127 112 12-11 7 18-1 32-16 3-7-15Z"/></g></g><path d="M221 240c50 2 82 40 105 12s-4-48-20-26" fill="none" stroke="#99b264" stroke-width="3"/></svg><span class="art-caption">DAL MATERIALE ALL’IDEA.</span></div>`;
+  return `<div class="hero-art" aria-hidden="true"><img src="/spool.svg" width="370" height="320" alt=""><span class="art-caption">DAL MATERIALE ALL'IDEA.</span></div>`;
 }
 function homeView() {
   const featured = ["pla", "petg", "asa"].map(materialById).filter(Boolean);

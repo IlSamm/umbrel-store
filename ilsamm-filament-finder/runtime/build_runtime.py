@@ -17,7 +17,7 @@ def build(root, output):
     catalog = json.loads((source / 'web/catalog.json').read_text(encoding='utf-8'))
     if not catalog.get('materials') or not catalog.get('printers'):
         raise ValueError('Catalog is incomplete')
-    for filename in ('index.html', 'app.mjs', 'domain.mjs', 'app.css', 'icon.svg'):
+    for filename in ('index.html', 'app.mjs', 'domain.mjs', 'app.css', 'icon.svg', 'spool.svg'):
         if not (source / 'web' / filename).is_file():
             raise ValueError(f'Missing asset: {filename}')
     shutil.copytree(source, output, dirs_exist_ok=True, ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'data'))
