@@ -25,6 +25,19 @@ def main() -> None:
     target = out / ASSET_NAME
     shutil.copyfile(source, target)
 
+    # Keep the quantity relabeler idempotent. The source layer observes DOM
+    # mutations; assigning the same text on every observer callback would create
+    # an endless mutation loop and starve the browser main thread.
+    quality = target.read_text(encoding="utf-8")
+    old_label = "if(label)label.textContent='Quantità di materiale';"
+    new_label = "if(label&&label.textContent!=='Quantità di materiale')label.textContent='Quantità di materiale';"
+    old_option = "const n=num(option.value);if(n!==null)option.textContent=`${String(n).replace('.',',')} kg`;"
+    new_option = "const n=num(option.value);if(n!==null){const wanted=`${String(n).replace('.',',')} kg`;if(option.textContent!==wanted)option.textContent=wanted;}"
+    if old_label not in quality or old_option not in quality:
+        raise RuntimeError("10.4 quantity relabel markers missing")
+    quality = quality.replace(old_label, new_label, 1).replace(old_option, new_option, 1)
+    target.write_text(quality, encoding="utf-8")
+
     index_path = out / "index.html"
     index = index_path.read_text(encoding="utf-8")
     marker = '<script src="v102-prices.js?v=1030"></script>'
@@ -51,6 +64,8 @@ def main() -> None:
     quality = target.read_text(encoding="utf-8")
     if "FF104_PRICE_QUALITY_VERSION" not in quality or "FF104_CLEAN_CATALOG" not in quality:
         raise RuntimeError("10.4 price quality validation failed")
+    if new_label not in quality or new_option not in quality:
+        raise RuntimeError("10.4 idempotent quantity relabel patch missing")
     index = index_path.read_text(encoding="utf-8")
     if quality_tag not in index or index.index(quality_tag) > index.index(marker):
         raise RuntimeError("10.4 quality layer is not loaded before marketplace renderer")
