@@ -69,6 +69,10 @@ class ParserTests(unittest.TestCase):
         snap=server.group_snapshot({'offers':[{'price':5,'available':False},{'price':20,'available':True}]})
         self.assertEqual(snap['best_product_price'],20)
 
+    def test_unknown_availability_is_not_out_of_stock(self):
+        self.assertIsNone(server.group_snapshot({'offers':[{'price':20,'available':None}]})['available_any'])
+        self.assertFalse(server.group_snapshot({'offers':[{'price':20,'available':False}]})['available_any'])
+
 
 class HttpTests(unittest.TestCase):
     @classmethod

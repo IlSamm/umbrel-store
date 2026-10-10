@@ -219,7 +219,7 @@ def iso_now():
 
 def group_snapshot(group, material=None, brand='all', qty=1, ts=None):
     offers=group.get('offers') or []
-    available_any=any(o.get('available') is True for o in offers)
+    available_any=True if any(o.get('available') is True for o in offers) else False if offers and all(o.get('available') is False for o in offers) else None
     known=[o for o in offers if o.get('available') is True and o.get('final_total') is not None]
     best_final=min(known,key=lambda o:o.get('final_total',1e18)) if known else None
     product_known=[o for o in offers if o.get('available') is True and o.get('price') is not None]
