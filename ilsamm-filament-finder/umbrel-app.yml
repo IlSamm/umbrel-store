@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "10.3.0"
+version: "10.4.0"
 port: 8765
 
 description: >-
@@ -14,15 +14,15 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Marketplace prezzi completamente ridisegnato. La ricerca ora presenta un riepilogo con
-  miglior totale, miglior prezzo al kg e migliore offerta Bambu ufficiale; mostra subito
-  quante offerte arrivano da ogni negozio e permette di filtrare localmente per store,
-  marca, colore, testo e disponibilita del totale/spedizione. Aggiunti ordinamento per
-  prezzo finale, euro/kg, prezzo prodotto, negozio e marca, risultati progressivi e stato
-  delle fonti raccolto in una sezione tecnica richiudibile. Le offerte mostrano in modo
-  separato disponibilita, prezzo prodotto, spedizione, totale e costo al kg. Il connettore
-  Bambu Lab EU dedicato resta attivo. Schede tecniche, 67 materiali, 43 stampanti, alert,
-  storico e persistenza /data restano invariati.
+  Ricerca prezzi 10.4 resa realmente confrontabile. La quantita viene ora interpretata come
+  kg di materiale invece che come semplice numero di bobine: il marketplace legge il peso
+  delle confezioni, calcola quante confezioni servono, ricalcola totale e costo al kg e segnala
+  eventuale materiale acquistato in eccesso. Aggiunti filtro automatico di accessori, campioni,
+  materiali e varianti non pertinenti, controllo dei prezzi sospetti, riconoscimento dei pack,
+  refill e formati 250 g/500 g/750 g/1 kg/2 kg, deduplicazione piu robusta e ranking di
+  pertinenza. I risultati senza peso verificabile restano disponibili come fallback ma con
+  confidenza inferiore. La ricerca continua a interrogare le fonti in parallelo e mantiene
+  il connettore Bambu Lab EU, i filtri marketplace, le schede tecniche, gli alert e lo storico.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
