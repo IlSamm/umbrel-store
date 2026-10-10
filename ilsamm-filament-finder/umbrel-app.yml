@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "11.1.0"
+version: "11.1.1"
 port: 8765
 
 description: >-
@@ -14,12 +14,12 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Nuovo calcolatore del costo prodotto: peso netto della confezione, supporti e spurghi,
-  durata in ore e minuti, energia, ammortamento e manutenzione della stampante, ristampe,
-  preparazione e finitura, imballaggio e costi aggiuntivi. Riepilogo aggiornato mentre scrivi,
-  costo per pezzo e per lotto, prezzo di vendita facoltativo con margine, commissioni e IVA
-  configurabili. Salvataggio dell'ultimo calcolo nel browser ed esportazione del riepilogo.
-  Mantenuti tema scuro, dati persistenti e tutte le funzionalita della versione 11.
+  Corretto il download del riepilogo costi al primo clic dopo una modifica. Risolti gli
+  errori di navigazione durante il caricamento del catalogo e con il collegamento da
+  tastiera. Gli alert della stessa variante per quantita e filtri diversi non si
+  sovrascrivono piu e confrontano solo osservazioni coerenti. Le risposte lente non
+  ripristinano elenchi vecchi e non chiudono nuove finestre; le cancellazioni fallite
+  possono essere ritentate. Mantenuti tema scuro, calcolatore completo e dati persistenti.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"

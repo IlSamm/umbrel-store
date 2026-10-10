@@ -74,6 +74,8 @@ const storage = {
 };
 const state = {
   catalog: { materials: [], printers: [], brands: [] },
+  catalogReady: false,
+  catalogError: "",
   health: null,
   sources: [],
   printer: null,
@@ -101,6 +103,7 @@ const state = {
   retrying: new Set(),
 };
 let searchController, toastTimer;
+let alertsRevision = 0;
 const materialById = (id) => state.catalog.materials.find((m) => m.id === id);
 const badge = (text, level = "") =>
   `<span class="badge ${esc(level)}">${esc(text)}</span>`;
@@ -200,6 +203,16 @@ function navigate() {
   $("#main").focus({ preventScroll: true });
 }
 function render() {
+  if (!state.catalogReady) {
+    $("#main").innerHTML = state.catalogError
+      ? empty(
+          "Il catalogo non è disponibile.",
+          esc(state.catalogError),
+          button("Ricarica app", "reload-app", "primary"),
+        )
+      : '<div class="loading" role="status">Caricamento del laboratorio…</div>';
+    return;
+  }
   $("#main").innerHTML = {
     home: homeView,
     materials: materialsView,
@@ -648,14 +661,24 @@ function downloadText(filename, contents) {
 }
 
 async function loadAlerts() {
+  const revision = ++alertsRevision;
   try {
     const data = await api("/api/alerts");
+    if (revision !== alertsRevision) return;
     state.alerts = data.alerts;
     state.events = data.events;
     state.alertsError = "";
   } catch (error) {
-    state.alertsError = error.message;
+    if (revision === alertsRevision) state.alertsError = error.message;
   }
+}
+function acceptAlertUpdate(data) {
+  // An older list request must not undo a write that has just completed.
+  alertsRevision++;
+  state.alerts = data.alerts;
+  state.events = data.events;
+  state.alertsError = "";
+  if (state.route === "alerts") render();
 }
 function alertsView() {
   return `${header("TIENI D’OCCHIO LE TUE BOBINE", "I prezzi cambiano. Tu resti aggiornato.", "Alert locali su ribassi e ritorni in stock. Il controllo automatico continua mentre Umbrel è acceso.", button("Aggiorna elenco", "reload-alerts"))}
@@ -709,9 +732,8 @@ async function saveAlert(form) {
     const data = await api("/api/alerts", {
       body: { action: "upsert", alert: payload },
     });
-    state.alerts = data.alerts;
-    state.events = data.events;
-    closeDialog();
+    acceptAlertUpdate(data);
+    if (form.isConnected) closeDialog();
     toast("Alert salvato. Lo trovi in Alert prezzi.");
   } catch (error) {
     if (form.isConnected) $("#alert-error", form).textContent = error.message;
@@ -722,11 +744,11 @@ async function saveAlert(form) {
 async function alertAction(body) {
   try {
     const data = await api("/api/alerts", { body });
-    state.alerts = data.alerts;
-    state.events = data.events;
-    if (state.route === "alerts") render();
+    acceptAlertUpdate(data);
+    return true;
   } catch (error) {
     toast(error.message);
+    return false;
   }
 }
 async function showHistory(index) {
@@ -864,11 +886,18 @@ document.addEventListener("click", async (event) => {
   }
   if (target.dataset.confirmDelete) {
     target.disabled = true;
-    await alertAction({ action: "delete", id: target.dataset.confirmDelete });
-    closeDialog();
+    const deleted = await alertAction({
+      action: "delete",
+      id: target.dataset.confirmDelete,
+    });
+    if (deleted && target.isConnected) closeDialog();
+    target.disabled = false;
     return;
   }
   switch (target.dataset.action) {
+    case "reload-app":
+      location.reload();
+      return;
     case "show-cost-summary":
       return showCostSummary();
     case "reset-cost":
@@ -990,11 +1019,11 @@ document.addEventListener("change", (event) => {
     state.compatibleOnly = el.checked;
     $("#catalog-results").innerHTML = catalogResults();
   }
-  if (el.id.startsWith("calc-")) {
-    if (el.id === "calc-sell") {
-      state.calc.sell = el.checked;
-      $("#cost-sales-fields").disabled = !el.checked;
-    }
+  // Number/text fields already update on input. Replacing the output on blur
+  // removes its buttons between pointerdown and click, losing the first click.
+  if (el.id === "calc-sell") {
+    state.calc.sell = el.checked;
+    $("#cost-sales-fields").disabled = !el.checked;
     updateCost({ save: true });
   }
   const key = {
@@ -1040,6 +1069,10 @@ document.addEventListener("submit", async (event) => {
   }
   if (form.id === "alert-form") return saveAlert(form);
 });
+$(".skip-link").addEventListener("click", (event) => {
+  event.preventDefault();
+  $("#main").focus();
+});
 $("#printer-button").addEventListener("click", showPrinters);
 $("#close-dialog").addEventListener("click", closeDialog);
 $("#detail-dialog").addEventListener("close", () => {
@@ -1048,6 +1081,7 @@ $("#detail-dialog").addEventListener("close", () => {
 window.addEventListener("hashchange", navigate);
 
 async function init() {
+  $("#printer-button").disabled = true;
   const restoredCost = restoreCost(storage.get("ff11_cost"));
   state.calc = restoredCost.values;
   state.calcName = restoredCost.name;
@@ -1059,7 +1093,19 @@ async function init() {
     )
     .join("");
   try {
-    state.catalog = await api("/catalog.json");
+    const catalog = await api("/catalog.json");
+    if (
+      !Array.isArray(catalog?.materials) ||
+      !Array.isArray(catalog.printers) ||
+      !Array.isArray(catalog.brands) ||
+      !["pla", "petg"].every((id) =>
+        catalog.materials.some((m) => m?.id === id),
+      )
+    )
+      throw new Error("Il catalogo ricevuto è incompleto. Ricarica l’app.");
+    state.catalog = catalog;
+    state.catalogReady = true;
+    $("#printer-button").disabled = false;
     const saved = storage.get("ff11_printer");
     let legacy = null;
     try {
@@ -1087,12 +1133,10 @@ async function init() {
     ]);
     if (["home", "settings", "alerts"].includes(state.route)) render();
   } catch (error) {
-    $("#main").innerHTML = empty(
-      "Il catalogo non è disponibile.",
-      esc(error.message),
-      '<button class="button primary" id="reload-app">Ricarica app</button>',
-    );
-    $("#reload-app").addEventListener("click", () => location.reload());
+    state.catalogReady = false;
+    state.catalogError = error.message;
+    $("#printer-button").disabled = true;
+    render();
   }
 }
 init();

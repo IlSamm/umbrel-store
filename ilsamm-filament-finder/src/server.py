@@ -6,7 +6,7 @@ import json, re, time, os, html as htmlmod, threading, uuid, tempfile, math
 from catalog_tools import price_number, weight_kg, material_matches, structured_offers
 from concurrent.futures import ThreadPoolExecutor, wait
 
-APP_VERSION = '11.1.0'
+APP_VERSION = '11.1.1'
 STATIC_MATERIAL_COUNT = 67
 STATIC_BRAND_COUNT = 18
 PORT = int(os.getenv('FILAMENT_FINDER_PORT', '8765'))
@@ -228,6 +228,7 @@ def group_snapshot(group, material=None, brand='all', qty=1, ts=None):
         'ts':ts or iso_now(),
         'signature':group.get('signature'),
         'material':material or group.get('material'),
+        'search_brand':brand or 'all',
         'brand':group.get('brand') or brand,
         'color':group.get('color'),
         'format':group.get('format'),
@@ -373,7 +374,10 @@ def record_groups_and_evaluate(groups, material, brand, qty, ts=None):
             if not sig: continue
             snap=group_snapshot(group,material,brand,qty,ts)
             entries=history.setdefault(sig,[])
-            previous=next((entry for entry in reversed(entries) if entry.get('quantity',1)==qty),None)
+            previous=next((entry for entry in reversed(entries)
+                           if entry.get('quantity',1)==qty
+                           and entry.get('material')==material
+                           and entry.get('search_brand','all')==(brand or 'all')),None)
 
             # Keep every observed snapshot, but avoid exact duplicate writes inside the same minute.
             should_append=True
@@ -393,7 +397,7 @@ def record_groups_and_evaluate(groups, material, brand, qty, ts=None):
                 changed=True
 
             for alert in alert_map.get(sig,[]):
-                if int(alert.get('quantity',1)) != qty:
+                if alert_context(alert) != (sig, material, brand or 'all', qty):
                     continue
                 if evaluate_alert(alert,previous,snap,events):
                     changed=True
@@ -424,6 +428,11 @@ def get_alert_payload():
     }
 
 
+def alert_context(alert):
+    return (alert.get('signature'), alert.get('material'),
+            alert.get('brand') or 'all', alert.get('quantity', 1))
+
+
 def upsert_alert(payload):
     validate_alert(payload)
     with DATA_LOCK:
@@ -434,8 +443,8 @@ def upsert_alert(payload):
         found=None
         if alert_id:
             found=next((a for a in alerts if a.get('id')==alert_id),None)
-        if found is None and signature:
-            found=next((a for a in alerts if a.get('signature')==signature),None)
+        if found is None and not alert_id and signature:
+            found=next((a for a in alerts if alert_context(a)==alert_context(payload)),None)
 
         now=iso_now()
         if found is None:
@@ -447,6 +456,8 @@ def upsert_alert(payload):
             }
             alerts.append(found)
 
+        if alert_context(found) != alert_context({**found, **payload}):
+            found['state']={}
         for key in ('signature','material','brand','quantity','label','enabled','config'):
             if key in payload:
                 found[key]=payload[key]
