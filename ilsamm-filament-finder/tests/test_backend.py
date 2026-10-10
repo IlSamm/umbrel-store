@@ -142,6 +142,45 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(self.request('/api/alerts',{'alert':payload})[0],400)
         self.assertFalse(server.load_alerts())
 
+    def test_alerts_for_different_quantities_persist_independently(self):
+        payload={'signature':'test|pla','label':'Test PLA','material':'PLA','quantity':1,'config':{'drop_enabled':True,'drop_pct':5}}
+        _,body,_=self.request('/api/alerts',{'alert':payload})
+        first=json.loads(body)['alert']
+        _,body,_=self.request('/api/alerts',{'alert':{**payload,'quantity':2}})
+        second=json.loads(body)['alert']
+        self.assertNotEqual(first['id'],second['id'])
+        self.assertEqual([a['quantity'] for a in server.load_alerts()],[1,2])
+        _,body,_=self.request('/api/alerts',{'alert':{**payload,'quantity':2,'label':'Updated'}})
+        self.assertEqual(json.loads(body)['alert']['id'],second['id'])
+        self.assertEqual(len(server.load_alerts()),2)
+
+    def test_changing_alert_context_resets_price_baseline(self):
+        payload={'signature':'test|pla','label':'Test PLA','material':'PLA','quantity':1,'config':{}}
+        first=server.upsert_alert({**payload,'current':{'available_any':True,'best_product_price':20,'best_final_total':25}})
+        self.assertEqual(first['state']['last_final_total'],25)
+        updated=server.upsert_alert({**payload,'id':first['id'],'quantity':2})
+        self.assertEqual(updated['state'],{})
+        self.assertEqual(len(server.load_alerts()),1)
+
+    def test_alert_context_keeps_brand_searches_and_history_separate(self):
+        payload={'signature':'test|pla','label':'Test PLA','material':'PLA','quantity':1,'config':{'drop_enabled':True,'drop_pct':5}}
+        first=server.upsert_alert(payload)
+        second=server.upsert_alert({**payload,'brand':'Bambu Lab'})
+        self.assertNotEqual(first['id'],second['id'])
+        group={'signature':'test|pla','brand':'Bambu Lab','offers':[{'price':20,'available':True}]}
+        server.record_groups_and_evaluate([group],'PLA','all',1)
+        group['offers'][0]['price']=10
+        server.record_groups_and_evaluate([group],'PLA','Bambu Lab',1)
+        self.assertEqual(server.load_events(),[])
+        alerts=server.load_alerts()
+        self.assertEqual(alerts[0]['state']['last_product_price'],20)
+        self.assertEqual(alerts[1]['state']['last_product_price'],10)
+        group['offers'][0]['price']=15
+        server.record_groups_and_evaluate([group],'PLA','all',1)
+        events=server.load_events()
+        self.assertEqual(len(events),1)
+        self.assertEqual(events[0]['alert_id'],first['id'])
+
     def test_corrupt_persistence_is_not_silently_overwritten(self):
         Path(server.ALERTS_FILE).write_text('{broken',encoding='utf-8')
         with self.assertRaises(json.JSONDecodeError): server.load_alerts()

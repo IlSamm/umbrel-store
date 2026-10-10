@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 
 const fixture = {
-  version: "11.1.0",
+  version: "11.1.1",
   updated_at: "2026-10-10T10:00:00Z",
   quantity: 2,
   material: "PLA",
@@ -103,6 +103,141 @@ const navigate = async (page, route) => {
   await page.goto("/#" + route);
   await expect(page.locator("#page-name")).not.toHaveText("Panoramica");
 };
+
+test("cost export works on the first click immediately after editing", async ({
+  page,
+}) => {
+  await navigate(page, "cost");
+  await page.getByLabel("Peso dei pezzi (g)", { exact: true }).fill("200");
+  const download = page.waitForEvent("download", { timeout: 5000 });
+  await page
+    .getByRole("button", { name: "Scarica riepilogo", exact: true })
+    .click();
+  expect(await readFile(await (await download).path(), "utf8")).toContain(
+    "Costo lotto: 4,18",
+  );
+});
+
+test("skip link focuses the current page without changing route or calculator data", async ({
+  page,
+}) => {
+  await navigate(page, "cost");
+  await page.getByLabel("Peso dei pezzi (g)", { exact: true }).fill("200");
+  await page.locator(".skip-link").focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#cost$/);
+  await expect(page.locator("#main")).toBeFocused();
+  await expect(
+    page.getByLabel("Peso dei pezzi (g)", { exact: true }),
+  ).toHaveValue("200");
+});
+
+test("navigation during slow startup waits for the catalog without crashing", async ({
+  page,
+  isMobile,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  let release;
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/catalog.json", async (route) => {
+    await pending;
+    await route.continue();
+  });
+  await page.goto("/");
+  if (isMobile) await page.goto("/#compare");
+  else await page.getByRole("link", { name: "Confronta", exact: true }).click();
+  await expect(page.locator("#main")).toContainText(
+    "Caricamento del laboratorio",
+  );
+  release();
+  await expect(page.locator("#main select")).toHaveCount(2);
+  await expect(page).toHaveURL(/#compare$/);
+  expect(errors).toEqual([]);
+});
+
+test("catalog failure stays recoverable after navigation", async ({
+  page,
+  isMobile,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/catalog.json", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { error: "Catalogo temporaneamente offline" },
+    }),
+  );
+  await page.goto("/");
+  await expect(page.locator("#main")).toContainText(
+    "Catalogo temporaneamente offline",
+  );
+  if (isMobile) await page.goto("/#compare");
+  else await page.getByRole("link", { name: "Confronta", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Ricarica app" }),
+  ).toBeVisible();
+  await page.unroute("**/catalog.json");
+  await page.getByRole("button", { name: "Ricarica app" }).click();
+  await expect(page.locator("#main select")).toHaveCount(2);
+  expect(errors).toEqual([]);
+});
+
+test("slow alert saves preserve a newly opened dialog and ignore older list responses", async ({
+  page,
+}) => {
+  let releaseList, releaseSave;
+  const pendingList = new Promise((resolve) => {
+    releaseList = resolve;
+  });
+  const pendingSave = new Promise((resolve) => {
+    releaseSave = resolve;
+  });
+  const alert = {
+    id: "delayed-alert",
+    signature: "bambu|pla|black",
+    label: "PLA salvato",
+    material: "PLA",
+    quantity: 2,
+    enabled: true,
+    config: {},
+  };
+  await page.route("**/api/alerts", async (route) => {
+    if (route.request().method() === "POST") {
+      await pendingSave;
+      return route.fulfill({ json: { alerts: [alert], events: [] } });
+    }
+    await pendingList;
+    return route.fulfill({ json: { alerts: [], events: [] } });
+  });
+  await navigate(page, "alerts");
+  await page.getByRole("button", { name: "Aggiorna elenco" }).click();
+  await search(page);
+  await page.getByRole("button", { name: "Crea alert" }).first().click();
+  await page.getByRole("button", { name: "Salva alert" }).click();
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Scegli stampante", exact: true })
+    .click();
+  releaseSave();
+  await expect(page.locator("#toast")).toContainText("Alert salvato");
+  await expect(
+    page.getByRole("searchbox", { name: "Cerca stampante" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await navigate(page, "alerts");
+  await expect(page.locator(".alert-card")).toContainText("PLA salvato");
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith("/api/alerts") && r.request().method() === "GET",
+  );
+  releaseList();
+  await response;
+  await navigate(page, "cost");
+  await navigate(page, "alerts");
+  await expect(page.locator(".alert-card")).toContainText("PLA salvato");
+});
 async function search(page) {
   await navigate(page, "prices");
   await page.getByLabel("Confezioni", { exact: true }).fill("2");
@@ -208,6 +343,47 @@ test("advisor honors selected printer and cost calculator works", async ({
   await expect(page.locator("#cost-output")).toContainText(
     "Peso dei pezzi (g): inserisci",
   );
+});
+
+test("failed alert deletion keeps the confirmation available for retry", async ({
+  page,
+}) => {
+  const alert = {
+    id: "retry-delete",
+    label: "Alert da eliminare",
+    material: "PLA",
+    enabled: true,
+    config: {},
+  };
+  let attempts = 0;
+  await page.route("**/api/alerts", (route) => {
+    if (route.request().method() === "GET")
+      return route.fulfill({ json: { alerts: [alert], events: [] } });
+    attempts++;
+    return attempts === 1
+      ? route.fulfill({
+          status: 503,
+          json: { error: "Salvataggio non riuscito" },
+        })
+      : route.fulfill({ json: { alerts: [], events: [] } });
+  });
+  await navigate(page, "alerts");
+  await page.getByRole("button", { name: "Aggiorna elenco" }).click();
+  await page.getByRole("button", { name: "Elimina", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Elimina alert", exact: true })
+    .click();
+  await expect(page.locator("#toast")).toContainText(
+    "Salvataggio non riuscito",
+  );
+  await expect(
+    page.getByRole("button", { name: "Elimina alert", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Elimina alert", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.locator(".alert-card")).toHaveCount(0);
 });
 test("product cost calculates a complete batch, saves it and exports a readable quote", async ({
   page,

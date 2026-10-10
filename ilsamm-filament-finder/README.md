@@ -85,6 +85,16 @@ zero sono esplicitamente esclusi; i valori iniziali sono un esempio modificabile
 
 ## Dati persistenti e aggiornamenti
 
+### Correzioni 11.1.1
+
+- Il riepilogo costi si scarica al primo clic anche subito dopo la modifica di un campo.
+- La navigazione durante un caricamento lento o fallito mantiene uno stato recuperabile;
+  il collegamento da tastiera “Vai al contenuto” conserva la pagina corrente.
+- Alert della stessa variante con quantita o filtri diversi rimangono separati, anche
+  nello storico usato per rilevare variazioni. Cambiare il contesto azzera la vecchia base.
+- Le risposte lente non ripristinano un elenco precedente al salvataggio e non chiudono
+  una nuova finestra. Una cancellazione fallita lascia disponibile il pulsante per riprovare.
+
 Il mount Umbrel resta `${APP_DATA_DIR}/data:/data`; `alerts.json`, `history.json`
 e `alert_events.json` restano compatibili con la versione 10.7. Non vengono
 cancellati o migrati distruttivamente. I file JSON danneggiati producono un errore
@@ -99,8 +109,8 @@ potrebbero non corrispondere alle nuove offerte verificate: controllali e ricrea
 dal prodotto corretto, conservando il vecchio storico.
 
 Prima dell'aggiornamento crea un backup del volume dati. Dopo la pubblicazione
-dell'immagine 11.1.0, aggiorna il community store e l'app da Umbrel. Per tornare
-alla 11.0 usa l'immagine `ghcr.io/ilsamm/filament-finder:11.0.0` e lo stesso mount;
+dell'immagine 11.1.1, aggiorna il community store e l'app da Umbrel. Per tornare
+alla 11.1.0 usa l'immagine `ghcr.io/ilsamm/filament-finder:11.1.0` e lo stesso mount;
 conserva il backup prima di qualsiasi ripristino.
 
 ## Verifiche
