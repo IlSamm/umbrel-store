@@ -3,13 +3,17 @@ FROM public.ecr.aws/docker/library/python:3.13-slim AS builder
 WORKDIR /src
 COPY . /src
 RUN python /src/ilsamm-filament-finder/runtime/build_runtime.py /src /opt/filament-finder \
-    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v104.py /src /opt/filament-finder
+    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v104.py /src /opt/filament-finder \
+    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v105.py /src /opt/filament-finder \
+    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v105_embedded_promos.py /opt/filament-finder \
+    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v105_official_promos.py /opt/filament-finder \
+    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v105_sunlu_campaigns.py /opt/filament-finder
 
 FROM public.ecr.aws/docker/library/python:3.13-slim
 
 LABEL org.opencontainers.image.source="https://github.com/IlSamm/umbrel-store"
 LABEL org.opencontainers.image.title="Filament Finder"
-LABEL org.opencontainers.image.description="Filament Finder 10.4 for Umbrel"
+LABEL org.opencontainers.image.description="Filament Finder 10.5 for Umbrel"
 
 WORKDIR /app
 COPY --from=builder /opt/filament-finder /app

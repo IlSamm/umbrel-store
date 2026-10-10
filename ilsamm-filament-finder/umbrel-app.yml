@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "10.4.0"
+version: "10.5.0"
 port: 8765
 
 description: >-
@@ -14,15 +14,17 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Ricerca prezzi 10.4 resa realmente confrontabile. La quantita viene ora interpretata come
-  kg di materiale invece che come semplice numero di bobine: il marketplace legge il peso
-  delle confezioni, calcola quante confezioni servono, ricalcola totale e costo al kg e segnala
-  eventuale materiale acquistato in eccesso. Aggiunti filtro automatico di accessori, campioni,
-  materiali e varianti non pertinenti, controllo dei prezzi sospetti, riconoscimento dei pack,
-  refill e formati 250 g/500 g/750 g/1 kg/2 kg, deduplicazione piu robusta e ranking di
-  pertinenza. I risultati senza peso verificabile restano disponibili come fallback ma con
-  confidenza inferiore. La ricerca continua a interrogare le fonti in parallelo e mantiene
-  il connettore Bambu Lab EU, i filtri marketplace, le schede tecniche, gli alert e lo storico.
+  Marketplace 10.5 con motore Smart Deals. La ricerca non confronta piu soltanto il prezzo
+  della singola bobina: rileva e valuta promozioni quantita esplicite, multipack, refill,
+  prezzi barrati Shopify, regole X al prezzo di Y, codici promo mostrati in pagina e soglie
+  di spedizione gratuita. Per richieste da 3, 4, 6, 10 kg e oltre calcola quante confezioni
+  e bobine servono, applica solo sconti verificabili sulla pagina del prodotto e ricalcola
+  totale effettivo, costo al kg e risparmio rispetto al prezzo normale. Le offerte con prezzo
+  promozionale possono quindi salire realmente nel ranking Miglior totale. Aggiunto un pannello
+  Acquisto intelligente con le migliori combinazioni per la quantita scelta, badge promo e
+  risparmio, oltre a nuove quantita fino a 50 kg. I codici coupon vengono segnalati ma non sono
+  sommati automaticamente ad altri sconti quando la cumulabilita non e verificabile. Restano
+  invariati catalogo tecnico, Bambu Lab EU, ricerca parallela multi-store, alert e storico.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
