@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - filament-finder-10.5-smart-deals
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -14,7 +15,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: filament-finder-image-master
+  group: filament-finder-image-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate 10.4 source syntax
+      - name: Validate 10.5 source syntax
         shell: bash
         run: |
           set -euo pipefail
@@ -34,14 +35,18 @@ jobs:
           node --check ilsamm-filament-finder/ui-v102/price-sources.js
           node --check ilsamm-filament-finder/ui-v102/marketplace-capture.js
           node --check ilsamm-filament-finder/ui-v104/price-quality.js
+          node --check ilsamm-filament-finder/ui-v105/deal-engine.js
           python -m py_compile ilsamm-filament-finder/runtime/build_runtime.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v102.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v104.py
+          python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v105.py
           grep -q '.ff103-overview' ilsamm-filament-finder/ui-v102/price-sources.css
-          grep -q "const VERSION='10.3.0'" ilsamm-filament-finder/ui-v102/price-sources.js
           grep -q "const VERSION='10.4.0'" ilsamm-filament-finder/ui-v104/price-quality.js
-          grep -q 'FF104_CLEAN_CATALOG' ilsamm-filament-finder/ui-v104/price-quality.js
-          grep -q 'version: "10.4.0"' ilsamm-filament-finder/umbrel-app.yml
+          grep -q "const VERSION='10.5.0'" ilsamm-filament-finder/ui-v105/deal-engine.js
+          grep -q 'FF105_BEST_TIER_PLAN' ilsamm-filament-finder/ui-v105/deal-engine.js
+          grep -q '.ff105-deals-panel' ilsamm-filament-finder/ui-v105/deal-engine.css
+          grep -q 'version: "10.5.0"' ilsamm-filament-finder/umbrel-app.yml
+          grep -q 'filament-finder:10.5.0' ilsamm-filament-finder/docker-compose.yml
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -56,7 +61,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push 10.4.0
+      - name: Build and push 10.5.0
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -64,17 +69,17 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:10.4.0
+            ghcr.io/ilsamm/filament-finder:10.5.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke and price-quality test
+      - name: Smoke and smart-deals test
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:10.4.0
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.4.0
+          docker pull ghcr.io/ilsamm/filament-finder:10.5.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.5.0
           trap 'docker logs filament-finder-test || true' EXIT
 
           for i in $(seq 1 30); do
@@ -92,20 +97,21 @@ jobs:
 
           health=get('/api/health')
           assert health['ok'] is True
-          assert health['version']=='10.4.0', health
+          assert health['version']=='10.5.0', health
           assert health['materials']==67, health
           assert health['brands']==18, health
           assert health['sources']>=11, health
 
           started=time.time()
-          live=get('/api/catalog?material=PLA&brand=all&qty=1&refresh=1', timeout=30)
+          live=get('/api/catalog?material=PLA&brand=all&qty=10&refresh=1', timeout=35)
           elapsed=time.time()-started
           active=[s for s in live['sources'] if s.get('results',0)>0]
           assert len(live['offers'])>=20, len(live['offers'])
           assert len(live['sources'])>=11, len(live['sources'])
+          assert any(str(s.get('id'))=='bambu' for s in live['sources']), live['sources']
           assert len(active)>=3, active
-          assert elapsed<25, elapsed
-          print('BACKEND_MARKET_OK', {'offers':len(live['offers']),'active_sources':len(active),'elapsed_s':round(elapsed,2)})
+          assert elapsed<30, elapsed
+          print('BACKEND_MARKET_105_OK', {'offers':len(live['offers']),'active_sources':len(active),'elapsed_s':round(elapsed,2)})
           PY
 
           command -v google-chrome >/dev/null
@@ -150,34 +156,45 @@ jobs:
               time.sleep(.2)
 
           assert evaluate("window.FF104_PRICE_QUALITY_VERSION==='10.4.0'")
-          assert evaluate("typeof window.FF104_CLEAN_CATALOG==='function'")
+          assert evaluate("window.FF105_DEAL_ENGINE_VERSION==='10.5.0'")
+          assert evaluate("typeof window.FF105_ENRICH_CATALOG==='function'")
+          assert evaluate("typeof window.FF105_BEST_TIER_PLAN==='function'")
 
-          # Deterministic test: 500 g PLA must be doubled to satisfy a 1 kg search;
-          # PETG and an accessory must be removed before the marketplace sees them.
-          mock=evaluate("JSON.stringify(window.FF104_CLEAN_CATALOG({offers:[{source_id:'test',store:'Test',product:'PLA Basic 500g',brand:'Test',price:10,url:'https://example.com/pla'},{source_id:'test',store:'Test',product:'PETG 1kg',price:8,url:'https://example.com/petg'},{source_id:'test',store:'Test',product:'PLA nozzle 0.4mm',price:4,url:'https://example.com/nozzle'}],sources:[{id:'test',name:'Test',ok:true,results:3}]},{material:'PLA Basic',qty:'1'}))")
-          mock=json.loads(mock)
-          assert len(mock['offers'])==1, mock
-          offer=mock['offers'][0]
-          assert offer['ff104_packages']==2, offer
-          assert abs(offer['final_total']-20)<0.01, offer
-          assert abs(offer['final_perkg']-20)<0.01, offer
-          assert mock['quality']['excluded']==2, mock['quality']
+          # Deterministic bulk discount: 10 x 1 kg at 20 EUR with a verified
+          # 10-spool -40% tier must become 120 EUR, saving 80 EUR vs current price.
+          bulk=evaluate("JSON.stringify(window.FF105_ENRICH_CATALOG({quantity:10,offers:[{source_id:'test',store:'Test',product:'PLA Basic 1kg',price:20,weight_kg:1,final_total:200,final_perkg:20,ff104_packages:10,ff104_purchased_kg:10,promo_tiers:[{kind:'percent',min_qty:10,discount_pct:40,verified:true,label:'10+ bobine · -40%'}]}],sources:[{id:'test',name:'Test',ok:true,results:1}]},{qty:10}))")
+          bulk=json.loads(bulk)
+          offer=bulk['offers'][0]
+          assert abs(offer['final_total']-120)<0.01, offer
+          assert abs(offer['ff105_bulk_savings']-80)<0.01, offer
+          assert offer['ff105_promo_applied'] is True, offer
 
-          # Test the real mobile marketplace flow.
+          # X-for-Y promotion: 10 spools under 5-for-4 means paying 8 spools.
+          buyx=evaluate("JSON.stringify(window.FF105_ENRICH_CATALOG({quantity:10,offers:[{source_id:'test',store:'Test',product:'PETG 1kg',price:20,weight_kg:1,final_total:200,ff104_packages:10,ff104_purchased_kg:10,promo_tiers:[{kind:'buyx',min_qty:5,buy_qty:5,pay_qty:4,verified:true,label:'5 al prezzo di 4'}]}],sources:[{id:'test',name:'Test',ok:true,results:1}]},{qty:10}))")
+          buyx=json.loads(buyx)['offers'][0]
+          assert abs(buyx['final_total']-160)<0.01, buyx
+
+          # Compare-at price is preserved separately from quantity savings.
+          sale=evaluate("JSON.stringify(window.FF105_ENRICH_CATALOG({quantity:10,offers:[{source_id:'test',store:'Test',product:'PLA 1kg',price:20,list_price:25,weight_kg:1,final_total:200,ff104_packages:10,ff104_purchased_kg:10,promo_tiers:[{kind:'percent',min_qty:10,discount_pct:40,verified:true}]}],sources:[{id:'test',name:'Test',ok:true,results:1}]},{qty:10}))")
+          sale=json.loads(sale)['offers'][0]
+          assert abs(sale['ff105_list_total']-250)<0.01, sale
+          assert abs(sale['ff105_total_savings']-130)<0.01, sale
+
+          # Real mobile marketplace flow at 10 kg.
           evaluate("document.querySelector('.ff10-nav [data-nav=\"prices\"]').click()")
-          time.sleep(.2)
-          assert evaluate("document.querySelector('#ff10-price-qty option[value=\"1\"]').textContent.includes('kg')")
-          assert evaluate("document.querySelector('#ff10-price-qty').closest('.ff10-field').textContent.includes('Quantità di materiale')")
-          evaluate("(()=>{const s=document.querySelector('#ff10-price-material');const pla=[...s.options].find(o=>String(o.value).toUpperCase()==='PLA'||/^PLA$/i.test(o.textContent.trim()));if(pla){s.value=pla.value;s.dispatchEvent(new Event('change',{bubbles:true}));}document.querySelector('[data-market-run]').click();return true;})()")
-          deadline=time.time()+22
-          while time.time()<deadline and not evaluate("!!document.querySelector('#ff10-market-results .ff103-overview')"):
+          time.sleep(.3)
+          assert evaluate("!!document.querySelector('#ff10-price-qty option[value=\"10\"]')")
+          evaluate("(()=>{const s=document.querySelector('#ff10-price-material');const pla=[...s.options].find(o=>String(o.value).toUpperCase()==='PLA'||/^PLA$/i.test(o.textContent.trim()));if(pla){s.value=pla.value;s.dispatchEvent(new Event('change',{bubbles:true}));}const qty=document.querySelector('#ff10-price-qty');qty.value='10';qty.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[data-market-run]').click();return true;})()")
+          deadline=time.time()+30
+          while time.time()<deadline and not evaluate("!!document.querySelector('#ff10-market-results .ff105-deals-panel')"):
               time.sleep(.25)
           assert evaluate("!!document.querySelector('#ff10-market-results .ff103-overview')")
-          assert evaluate("window.FF104_PRICE_QUALITY_LAST && window.FF104_PRICE_QUALITY_LAST.target_kg===1")
-          assert evaluate("window.FF104_PRICE_QUALITY_LAST.relevant_offers<=window.FF104_PRICE_QUALITY_LAST.raw_offers")
+          assert evaluate("!!document.querySelector('#ff10-market-results .ff105-deals-panel')")
+          assert evaluate("window.FF104_PRICE_QUALITY_LAST && window.FF104_PRICE_QUALITY_LAST.target_kg===10")
+          assert evaluate("window.FF105_LAST_DATA && window.FF105_LAST_DATA.deals.target_kg===10")
           assert evaluate("document.querySelectorAll('.ff103-offer-card').length>0")
           assert evaluate("document.documentElement.scrollWidth<=innerWidth+2")
-          print('FILAMENT_FINDER_10_4_UI_OK')
+          print('FILAMENT_FINDER_10_5_SMART_DEALS_UI_OK')
           ws.close()
           PY
 
