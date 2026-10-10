@@ -6,14 +6,15 @@ from pathlib import Path
 
 OFFICIAL_PROMO_CODE = r'''
 def _ff105_enrich_official_promotions(source, offers):
-    """Enrich official-store offers regardless of their scraper engine.
+    """Enrich direct-brand store offers regardless of their scraper engine.
 
-    Some official shops (notably SUNLU) are currently handled by the generic
+    Some brand stores (notably SUNLU) are currently handled by the generic
     connector even though their product pages expose structured quantity deals.
     Fetch a bounded set of product pages concurrently so those discounts can be
     compared without serially stalling the whole marketplace.
     """
-    if not offers or source.get('kind') != 'official':
+    direct_brand = source.get('kind') == 'official' or source.get('id') == 'sunlu'
+    if not offers or not direct_brand:
         return offers
 
     # Prefer cheaper offers because they are the most likely candidates for the
@@ -95,9 +96,9 @@ def main() -> None:
         else: offers=generic_scrape(source,q)
 
         # Quantity deals are a property of the product page, not of the scraper
-        # implementation. This also covers official stores routed through the
-        # generic engine (for example SUNLU on the current runtime).
-        if source.get('kind')=='official':
+        # implementation. SUNLU is explicitly included because its current
+        # source is not tagged as official in every runtime configuration.
+        if source.get('kind')=='official' or source.get('id')=='sunlu':
             offers=_ff105_enrich_official_promotions(source,offers)
 
         if source['kind'] in ('reseller','marketplace') and brand and brand.lower() not in ('all','tutte le marche'):
@@ -108,13 +109,13 @@ def main() -> None:
         server = server.replace(dispatch_old, dispatch_new, 1)
 
     compile(server, "server.py", "exec")
-    if "_ff105_enrich_official_promotions(source,offers)" not in server:
-        raise RuntimeError("10.5 official promotion dispatch missing")
+    if "source.get('id')=='sunlu'" not in server or "_ff105_enrich_official_promotions(source,offers)" not in server:
+        raise RuntimeError("10.5 SUNLU promotion dispatch missing")
     if "thread_name_prefix='promo-page'" not in server:
         raise RuntimeError("10.5 concurrent promotion reader missing")
 
     server_path.write_text(server, encoding="utf-8")
-    print("Filament Finder 10.5 official-store promotion patch: OK", flush=True)
+    print("Filament Finder 10.5 direct-brand promotion patch: OK", flush=True)
 
 
 if __name__ == "__main__":
