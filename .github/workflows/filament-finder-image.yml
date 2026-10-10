@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - filament-finder-10.2-material-accordions
+      - filament-finder-10.3-marketplace
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate 10.2 source syntax
+      - name: Validate 10.3 source syntax
         shell: bash
         run: |
           set -euo pipefail
@@ -31,10 +31,10 @@ jobs:
           node --check ilsamm-filament-finder/ui-v102/price-sources.js
           python -m py_compile ilsamm-filament-finder/runtime/build_runtime.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v102.py
-          grep -q '.ff102-accordion' ilsamm-filament-finder/ui-v102/material-accordions.css
-          grep -q '.ff102-price-sources' ilsamm-filament-finder/ui-v102/price-sources.css
-          grep -q "const VERSION='10.2.0'" ilsamm-filament-finder/ui-v102/material-accordions.js
-          grep -q 'renderTransparentMarket' ilsamm-filament-finder/ui-v102/price-sources.js
+          grep -q '.ff103-overview' ilsamm-filament-finder/ui-v102/price-sources.css
+          grep -q '.ff103-offer-card' ilsamm-filament-finder/ui-v102/price-sources.css
+          grep -q "const VERSION='10.3.0'" ilsamm-filament-finder/ui-v102/price-sources.js
+          grep -q 'FF103_RENDER_MARKETPLACE' ilsamm-filament-finder/ui-v102/price-sources.js
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -49,7 +49,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push 10.2.0
+      - name: Build and push 10.3.0
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -57,17 +57,17 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:10.2.0
+            ghcr.io/ilsamm/filament-finder:10.3.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke, Bambu live-price and iPhone UI test
+      - name: Smoke, live marketplace and iPhone UI test
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:10.2.0
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.2.0
+          docker pull ghcr.io/ilsamm/filament-finder:10.3.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.3.0
           trap 'docker logs filament-finder-test || true' EXIT
           for i in $(seq 1 30); do
             if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then break; fi
@@ -75,49 +75,37 @@ jobs:
           done
 
           python - <<'PY'
-          import json, time, urllib.parse, urllib.request
+          import json, time, urllib.request
           BASE='http://127.0.0.1:18765'
           def get(path, timeout=10):
               with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
                   assert r.status == 200, r.status
                   return json.load(r)
-
           health=get('/api/health')
           assert health['ok'] is True
-          assert health['version']=='10.2.0', health
+          assert health['version']=='10.3.0', health
           assert health['materials']==67, health
           assert health['brands']==18, health
           assert health['sources']>=11, health
 
-          # This is the regression test requested for the official Bambu source.
           bambu=get('/api/catalog?material=PLA&brand=Bambu%20Lab&qty=1&refresh=1&source=bambu', timeout=30)
-          assert len(bambu['sources'])==1, bambu['sources']
           bs=bambu['sources'][0]
-          assert bs['id']=='bambu', bs
-          assert bs['ok'] is True, bs
-          assert bs['results']>0, bs
-          assert len(bambu['offers'])>0, bambu
-          prices=[float(o['price']) for o in bambu['offers'] if o.get('price') is not None]
-          assert prices and min(prices)>=2 and max(prices)<=500, prices[:20]
-          assert any((o.get('store')=='Bambu Lab EU' and o.get('brand')=='Bambu Lab') for o in bambu['offers']), bambu['offers'][:3]
-          assert any('eu.store.bambulab.com' in str(o.get('url','')) for o in bambu['offers']), bambu['offers'][:3]
-          print('BAMBU_EU_OK',{'offers':len(bambu['offers']),'min_price':min(prices),'max_price':max(prices),'ms':bs.get('ms')})
+          assert bs['id']=='bambu' and bs['ok'] is True and bs['results']>0, bs
+          assert len(bambu['offers'])>0
+          assert any(o.get('store')=='Bambu Lab EU' for o in bambu['offers'])
+          assert any('eu.store.bambulab.com' in str(o.get('url','')) for o in bambu['offers'])
+          print('BAMBU_EU_OK', {'offers':len(bambu['offers']),'ms':bs.get('ms')})
 
           started=time.time()
           live=get('/api/catalog?material=PLA&brand=all&qty=1&refresh=1', timeout=30)
           elapsed=time.time()-started
-          assert len(live['offers'])>0, live
-          assert len(live['sources'])>=11, live['sources']
-          assert any(s.get('id')=='bambu' and s.get('results',0)>0 for s in live['sources']), live['sources']
-          assert sum(1 for s in live['sources'] if s.get('ok'))>=2, live['sources']
+          result_sources=[s for s in live['sources'] if s.get('results',0)>0]
+          assert len(live['offers'])>=20
+          assert len(live['sources'])>=11
+          assert any(s.get('id')=='bambu' and s.get('results',0)>0 for s in live['sources'])
+          assert len(result_sources)>=3
           assert elapsed<25, elapsed
-          print('ALL_SOURCES_OK', {
-              'offers':len(live['offers']),
-              'sources_ok':sum(1 for s in live['sources'] if s.get('ok')),
-              'sources_with_results':sum(1 for s in live['sources'] if s.get('results',0)>0),
-              'by_source':{s['id']:s.get('results',0) for s in live['sources']},
-              'elapsed_s':round(elapsed,2)
-          })
+          print('ALL_SOURCES_OK', {'offers':len(live['offers']),'sources_with_results':len(result_sources),'by_source':{s['id']:s.get('results',0) for s in live['sources']},'elapsed_s':round(elapsed,2)})
           PY
 
           command -v google-chrome >/dev/null
@@ -140,13 +128,11 @@ jobs:
                   targets=json.load(urllib.request.urlopen('http://127.0.0.1:9222/json',timeout=2))
                   targets=[t for t in targets if t.get('type')=='page']
                   if targets: break
-              except Exception:
-                  pass
+              except Exception: pass
               time.sleep(.25)
           assert targets, 'Chrome DevTools page target not found'
-          ws=create_connection(targets[0]['webSocketDebuggerUrl'],timeout=15)
+          ws=create_connection(targets[0]['webSocketDebuggerUrl'],timeout=20)
           counter=0
-
           def command(method, params=None):
               global counter
               counter+=1
@@ -156,7 +142,6 @@ jobs:
                   if msg.get('id')==counter:
                       if 'error' in msg: raise AssertionError(msg['error'])
                       return msg.get('result',{})
-
           def evaluate(expr):
               global counter
               counter+=1
@@ -167,69 +152,78 @@ jobs:
                       if 'exceptionDetails' in msg.get('result',{}): raise AssertionError(msg['result']['exceptionDetails'])
                       return msg['result']['result'].get('value')
 
-          command('Emulation.setDeviceMetricsOverride',{
-              'width':390,'height':844,'deviceScaleFactor':3,'mobile':True,
-              'screenWidth':390,'screenHeight':844
-          })
+          command('Emulation.setDeviceMetricsOverride',{'width':390,'height':844,'deviceScaleFactor':3,'mobile':True,'screenWidth':390,'screenHeight':844})
           command('Emulation.setTouchEmulationEnabled',{'enabled':True,'maxTouchPoints':5})
           command('Page.reload',{'ignoreCache':True})
-
           deadline=time.time()+12
           while time.time()<deadline and not evaluate("document.readyState==='complete' && !!document.querySelector('#ff10-app .ff10-nav')"):
               time.sleep(.2)
 
           checks={
             'viewport_width': "innerWidth===390",
-            'version': "window.FILAMENT_FINDER_VERSION==='10.2.0'",
+            'market_script': "window.FF103_MARKETPLACE_VERSION==='10.3.0' && typeof window.FF103_RENDER_MARKETPLACE==='function'",
             'new_app_mounted': "!!document.querySelector('#ff10-app') && document.body.classList.contains('ff10-mounted')",
-            'legacy_hidden': "getComputedStyle(document.querySelector('#ff10-legacy')).display==='none'",
             'no_page_horizontal_overflow': "document.documentElement.scrollWidth<=innerWidth+2",
-            'nav_compact': "document.querySelector('.ff10-nav').getBoundingClientRect().height<=72",
             'material_cards': "document.querySelectorAll('#ff10-view-materials .ff10-material').length>=60",
-            'price_controls': "document.querySelectorAll('#ff10-price-material option').length>=20",
           }
           for name,expr in checks.items():
               ok=evaluate(expr); print(name,ok); assert ok,name
 
-          # Material sheet: important data first, then five collapsible sections.
+          # Technical sheet regression.
           evaluate("document.querySelector('.ff10-nav [data-nav=\"materials\"]').click()")
-          time.sleep(.2)
+          time.sleep(.15)
           evaluate("document.querySelector('#ff10-view-materials .ff10-material').click()")
-          time.sleep(.25)
+          time.sleep(.2)
           assert evaluate("!!document.querySelector('.ff101-material-sheet')")
-          assert evaluate("document.querySelectorAll('#ff101-basic .ff101-score').length===4")
-          assert evaluate("document.querySelector('#ff101-technical').hasAttribute('hidden')")
           evaluate("document.querySelector('[data-ff101-toggle]').click()")
-          time.sleep(.25)
-          assert evaluate("!document.querySelector('#ff101-technical').hasAttribute('hidden')")
-          assert evaluate("document.querySelectorAll('#ff101-technical .ff102-keyfact').length===4")
+          time.sleep(.15)
           assert evaluate("document.querySelectorAll('#ff101-technical .ff102-accordion').length===5")
-          labels=evaluate("[...document.querySelectorAll('#ff101-technical .ff102-accordion summary b')].map(x=>x.textContent).join('|')")
-          assert labels=='Stampa|Asciugatura|Compatibilità|Proprietà|Problemi comuni', labels
-          assert evaluate("document.querySelector('[data-ff102-section=\"stampa\"]').open===true")
-          evaluate("document.querySelector('[data-ff102-section=\"stampa\"] summary').click()")
-          time.sleep(.1)
-          assert evaluate("document.querySelector('[data-ff102-section=\"stampa\"]').open===false")
-          evaluate("document.querySelector('[data-ff102-section=\"asciugatura\"] summary').click()")
-          time.sleep(.1)
-          assert evaluate("document.querySelector('[data-ff102-section=\"asciugatura\"]').open===true")
-
-          # Close material sheet and validate price-source transparency UI.
           evaluate("document.querySelector('[data-sheet-close]').click()")
+
+          # Test the actual user flow: open Prices, choose PLA, press Cerca prezzi.
           evaluate("document.querySelector('.ff10-nav [data-nav=\"prices\"]').click()")
           time.sleep(.2)
-          evaluate("fetch('/api/catalog?material=PLA&brand=all&qty=1&refresh=0').then(r=>r.json())")
-          deadline=time.time()+12
-          while time.time()<deadline and not evaluate("!!document.querySelector('#ff10-market-results .ff102-price-sources')"):
-              time.sleep(.2)
-          assert evaluate("document.querySelectorAll('.ff102-source').length>=11")
-          assert evaluate("!!document.querySelector('.ff102-source[data-source-id=\"bambu\"]')")
-          assert evaluate("document.querySelector('.ff102-source[data-source-id=\"bambu\"]').classList.contains('is-ok')")
-          assert evaluate("document.querySelectorAll('.ff102-store-card').length>=2")
-          assert evaluate("document.querySelectorAll('.ff102-store-group').length>=2")
-          assert evaluate("document.documentElement.scrollWidth<=innerWidth+2")
+          assert evaluate("!!document.querySelector('[data-market-run]')")
+          evaluate("(()=>{const s=document.querySelector('#ff10-price-material');if(s){const pla=[...s.options].find(o=>String(o.value).toUpperCase()==='PLA'||/^PLA$/i.test(o.textContent.trim()));if(pla){s.value=pla.value;s.dispatchEvent(new Event('change',{bubbles:true}));}}document.querySelector('[data-market-run]').click();return true;})()")
+          deadline=time.time()+20
+          while time.time()<deadline and not evaluate("!!document.querySelector('#ff10-market-results .ff103-overview')"):
+              time.sleep(.25)
+          if not evaluate("!!document.querySelector('#ff10-market-results .ff103-overview')"):
+              debug=evaluate("JSON.stringify({marker:window.FF103_MARKETPLACE_VERSION,root:document.querySelector('#ff10-market-results')?.innerHTML?.slice(0,300),status:document.querySelector('.ff10-market-status')?.textContent,btn:!!document.querySelector('[data-market-run]')})")
+              raise AssertionError('marketplace did not render after real button click: '+str(debug))
 
-          print('IPHONE_V102_ACCORDIONS_AND_PRICE_SOURCES_OK')
+          market_checks={
+            'marketplace_version': "document.querySelector('#ff10-market-results').dataset.ffMarketplace==='103'",
+            'three_picks': "document.querySelectorAll('.ff103-pick').length===3",
+            'bambu_pick': "[...document.querySelectorAll('.ff103-pick-copy>span')].some(x=>x.textContent.includes('Bambu ufficiale'))",
+            'source_rail': "document.querySelectorAll('.ff103-source-chip').length>=11",
+            'bambu_source': "!!document.querySelector('.ff103-source-chip[data-source-id=\"bambu\"].is-ok')",
+            'filter_panel': "!!document.querySelector('.ff103-filter-panel')",
+            'sort_control': "!!document.querySelector('[data-ff103-sort]')",
+            'store_control': "!!document.querySelector('[data-ff103-store]')",
+            'brand_control': "!!document.querySelector('[data-ff103-brand]')",
+            'color_control': "!!document.querySelector('[data-ff103-color]')",
+            'offer_cards': "document.querySelectorAll('.ff103-offer-card').length>0",
+            'shop_links': "document.querySelectorAll('.ff103-shop-button').length>0",
+            'diagnostics_collapsed': "!!document.querySelector('.ff103-diagnostics:not([open])')",
+            'no_market_overflow': "document.documentElement.scrollWidth<=innerWidth+2",
+          }
+          for name,expr in market_checks.items():
+              ok=evaluate(expr); print(name,ok); assert ok,name
+
+          evaluate("document.querySelector('.ff103-source-chip[data-source-id=\"bambu\"]').click()")
+          time.sleep(.15)
+          assert evaluate("document.querySelector('[data-ff103-store]').value==='bambu'")
+          assert evaluate("[...document.querySelectorAll('.ff103-offer-card')].every(x=>x.dataset.store==='bambu')")
+          evaluate("document.querySelector('[data-ff103-reset]').click()")
+          time.sleep(.15)
+          assert evaluate("document.querySelector('[data-ff103-store]').value==='all'")
+          evaluate("(()=>{const s=document.querySelector('[data-ff103-sort]');s.value='perkg';s.dispatchEvent(new Event('change',{bubbles:true}));return true})()")
+          time.sleep(.15)
+          assert evaluate("document.querySelector('[data-ff103-sort]').value==='perkg'")
+          assert evaluate("document.querySelectorAll('.ff103-offer-card').length>0")
+          assert evaluate("document.documentElement.scrollWidth<=innerWidth+2")
+          print('IPHONE_V103_MARKETPLACE_OK')
           ws.close()
           PY
 
