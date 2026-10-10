@@ -67,7 +67,6 @@ def main() -> None:
             shutil.rmtree(out)
         shutil.copytree(source, out)
 
-    # Stable compatibility/data engine.
     (out / "index.html").write_bytes(decode_b64gz(app_root / "ui-v7" / "index.html.b64gz"))
     v7_css = decode_b64gz(app_root / "ui-v7" / "v7.css.b64gz")
     (out / "v7.js").write_bytes(decode_b64gz(app_root / "ui-v7" / "v7.js.b64gz"))
@@ -79,19 +78,16 @@ def main() -> None:
     (out / "v9.js").write_bytes(v9_js)
     (out / "v9.css").write_bytes(v7_css + b"\n\n/* Filament Finder 9 */\n" + v9_css_extra)
 
-    # Mobile compatibility layer kept because the rebuilt UI still uses a few legacy hooks.
     v91_css = require_file(app_root / "ui-v91" / "mobile-fixes.css", "v9.1 CSS").read_bytes()
     v91_js = require_file(app_root / "ui-v91" / "mobile-fixes.js", "v9.1 JS").read_bytes()
     (out / "v91.css").write_bytes(v91_css)
     (out / "v91.js").write_bytes(v91_js)
 
-    # Rebuilt v10 frontend.
     v10_css = require_file(app_root / "ui-v10" / "app.css", "v10 CSS").read_bytes()
     v10_js = require_file(app_root / "ui-v10" / "app.js", "v10 JS").read_bytes()
     (out / "v10.css").write_bytes(v10_css)
     (out / "v10.js").write_bytes(v10_js)
 
-    # Progressive material sheet and 10.2 technical accordions.
     v101_css = require_file(app_root / "ui-v101" / "material-details.css", "v10.1 material CSS").read_bytes()
     v101_js = require_file(app_root / "ui-v101" / "material-details.js", "v10.1 material JS").read_bytes()
     v102_material_css = require_file(app_root / "ui-v102" / "material-accordions.css", "v10.2 accordion CSS").read_bytes()
@@ -101,19 +97,20 @@ def main() -> None:
     (out / "v102-material.css").write_bytes(v102_material_css)
     (out / "v102-material.js").write_bytes(v102_material_js)
 
-    # 10.3 replaces the old source-debug-heavy price view with the marketplace UI.
+    # 10.3 marketplace and its capture-phase controller. The controller owns the
+    # actual Search/Refresh click before the v10 legacy price renderer can run.
     v103_price_css = require_file(app_root / "ui-v102" / "price-sources.css", "v10.3 marketplace CSS").read_bytes()
     v103_price_js = require_file(app_root / "ui-v102" / "price-sources.js", "v10.3 marketplace JS").read_bytes()
+    v103_capture_js = require_file(app_root / "ui-v102" / "marketplace-capture.js", "v10.3 capture controller").read_bytes()
     (out / "v102-prices.css").write_bytes(v103_price_css)
     (out / "v102-prices.js").write_bytes(v103_price_js)
+    (out / "v103-capture.js").write_bytes(v103_capture_js)
 
-    # Apply backend/data expansion from v9.
     with tempfile.TemporaryDirectory(prefix="ff-v9-patch-") as patch_dir:
         patcher = Path(patch_dir) / "patch_runtime_v9.py"
         patcher.write_bytes(decode_b64gz(app_root / "runtime" / "patch_runtime_v9.py.b64gz"))
         subprocess.run([sys.executable, str(patcher), str(out)], check=True)
 
-    # Dedicated Bambu Lab EU connector introduced in 10.2 remains part of 10.3.
     v102_backend_patcher = require_file(app_root / "runtime" / "patch_runtime_v102.py", "Bambu backend patch")
     subprocess.run([sys.executable, str(v102_backend_patcher), str(out)], check=True)
 
@@ -134,10 +131,9 @@ def main() -> None:
     index = inject_once(index, '<link rel="stylesheet" href="v10.css?v=1000">', '\n  <link rel="stylesheet" href="v101.css?v=1010">', "v10.1 CSS")
     index = inject_once(index, '<script src="v10.js?v=1000"></script>', '\n<script src="v101.js?v=1010"></script>', "v10.1 JS")
     index = inject_once(index, '<link rel="stylesheet" href="v101.css?v=1010">', '\n  <link rel="stylesheet" href="v102-material.css?v=1020">\n  <link rel="stylesheet" href="v102-prices.css?v=1030">', "v10.2/10.3 CSS")
-    index = inject_once(index, '<script src="v101.js?v=1010"></script>', '\n<script src="v102-material.js?v=1020"></script>\n<script src="v102-prices.js?v=1030"></script>', "v10.2/10.3 JS")
+    index = inject_once(index, '<script src="v101.js?v=1010"></script>', '\n<script src="v102-material.js?v=1020"></script>\n<script src="v102-prices.js?v=1030"></script>\n<script src="v103-capture.js?v=1031"></script>', "v10.2/10.3 JS")
     index_path.write_text(index, encoding="utf-8")
 
-    # Build-time validation: fail before publishing an incomplete image.
     server_text = server_path.read_text(encoding="utf-8")
     compile(server_text, "server.py", "exec")
     if f"APP_VERSION = '{APP_VERSION}'" not in server_text or "STATIC_MATERIAL_COUNT = 67" not in server_text:
@@ -151,12 +147,12 @@ def main() -> None:
     required = [
         "v9.css", "v91.css", "v10.css", "v101.css", "v102-material.css", "v102-prices.css",
         "v9-data.js", "app.js", "v7.js", "v9.js", "v91.js", "v10.js", "v101.js",
-        "v102-material.js", "v102-prices.js", 'id="printerBtn"'
+        "v102-material.js", "v102-prices.js", "v103-capture.js", 'id="printerBtn"'
     ]
     missing = [name for name in required if name not in index]
     if missing:
         raise RuntimeError("10.3 index missing runtime assets/hooks: " + ", ".join(missing))
-    if "v102-prices.css?v=1030" not in index or "v102-prices.js?v=1030" not in index:
+    if "v102-prices.css?v=1030" not in index or "v102-prices.js?v=1030" not in index or "v103-capture.js?v=1031" not in index:
         raise RuntimeError("10.3 marketplace cache-busting markers missing")
     if b"FF9_DATA_VERSION" not in v9_data or b"FILAMENT_BRANDS" not in v9_data:
         raise RuntimeError("v9 material/brand dataset validation failed")
@@ -168,6 +164,8 @@ def main() -> None:
         raise RuntimeError("v10.2 material accordion validation failed")
     if b"const VERSION='10.3.0'" not in v103_price_js or b"renderMarketplace" not in v103_price_js or b"ff103-filter-panel" not in v103_price_js:
         raise RuntimeError("v10.3 marketplace JS validation failed")
+    if b"FF103_RUN_MARKET_SEARCH" not in v103_capture_js or b"stopImmediatePropagation" not in v103_capture_js:
+        raise RuntimeError("v10.3 capture controller validation failed")
     if b".ff103-overview" not in v103_price_css or b".ff103-offer-card" not in v103_price_css or b".ff103-diagnostics" not in v103_price_css:
         raise RuntimeError("v10.3 marketplace CSS validation failed")
 
