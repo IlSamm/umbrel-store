@@ -53,6 +53,36 @@ temperature minime, camera e resistenza all'abrasione dell'ugello per escludere
 profili incompatibili. Sono indicazioni del catalogo, non misure o certificazioni:
 controlla la scheda tecnica del filamento e gli upgrade della tua macchina.
 
+## Calcolo del costo prodotto (11.1)
+
+Pesi e durata dello slicer descrivono **l'intero lotto**. Il numero di pezzi divide
+il costo finale; non moltiplica nuovamente filamento e ore. Il prezzo della
+confezione e il suo peso netto permettono di usare anche bobine da 750 g e multipack.
+Supporti e spurghi si aggiungono solo se non sono già compresi nel peso inserito.
+
+- Materiale = (grammi pezzi + scarti) × prezzo confezione / grammi confezione.
+- Energia = ore del lotto × watt medi / 1000 × tariffa kWh.
+- Macchina = ore × (costo stampante / vita utile in ore + manutenzione oraria).
+- Con probabilità di ristampa `p`, il costo di stampa atteso è diviso per `1 − p`.
+  È una stima prudente: ogni fallimento consuma un tentativo completo. Si ripetono
+  materiale, energia e macchina; lavoro e imballaggio non vengono duplicati.
+- Lavoro = (minuti preparazione lotto + minuti finitura × pezzi) / 60 × tariffa.
+  Imballaggio è per pezzo; altri costi, come inserti o spedizione, sono per lotto.
+
+Il prezzo di vendita è opzionale. Gli importi di costo vanno inseriti al netto IVA.
+Un lotto equivale a un ordine e la commissione percentuale si applica al totale
+cliente, inclusa l'IVA configurata. Con costo `C`, commissione fissa `F`, margine
+`m`, commissione percentuale `f` e aliquota `v`, il prezzo netto del lotto prima
+dell'arrotondamento è `(C + F) / (1 − m − f × (1 + v))`. Le percentuali nella
+formula sono frazioni. Un denominatore non positivo viene rifiutato. Il prezzo
+netto unitario è arrotondato in eccesso al centesimo per conservare il margine.
+È una simulazione dei valori inseriti, non una raccomandazione di prezzo o aliquota.
+
+I risultati si aggiornano durante la modifica; dati non validi nascondono i totali
+precedenti. L'ultimo calcolo valido si salva nel browser (`ff11_cost`), non sul volume
+Umbrel. Il riepilogo TXT include dati, ripartizione dei costi e ipotesi. I valori a
+zero sono esplicitamente esclusi; i valori iniziali sono un esempio modificabile.
+
 ## Dati persistenti e aggiornamenti
 
 Il mount Umbrel resta `${APP_DATA_DIR}/data:/data`; `alerts.json`, `history.json`
@@ -69,8 +99,8 @@ potrebbero non corrispondere alle nuove offerte verificate: controllali e ricrea
 dal prodotto corretto, conservando il vecchio storico.
 
 Prima dell'aggiornamento crea un backup del volume dati. Dopo la pubblicazione
-dell'immagine 11.0.0, aggiorna il community store e l'app da Umbrel. Per tornare
-alla 10.7 usa l'immagine `ghcr.io/ilsamm/filament-finder:10.7.0` e lo stesso mount;
+dell'immagine 11.1.0, aggiorna il community store e l'app da Umbrel. Per tornare
+alla 11.0 usa l'immagine `ghcr.io/ilsamm/filament-finder:11.0.0` e lo stesso mount;
 conserva il backup prima di qualsiasi ripristino.
 
 ## Verifiche

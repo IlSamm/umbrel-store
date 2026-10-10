@@ -181,11 +181,3 @@ export function mergeSource(current, next, sourceId) {
     ),
   };
 }
-export function costEstimate({ grams, price, hours, watts, energy }) {
-  const values = [grams, price, hours, watts, energy];
-  if (values.some((v) => number(v) === null || Number(v) < 0))
-    throw new Error("Inserisci valori numerici non negativi.");
-  const material = (grams / 1000) * price,
-    electricity = ((hours * watts) / 1000) * energy;
-  return { material, electricity, total: material + electricity };
-}

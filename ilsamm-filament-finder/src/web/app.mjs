@@ -6,8 +6,14 @@ import {
   recommend,
   filterOffers,
   mergeSource,
-  costEstimate,
 } from "./domain.mjs";
+import {
+  COST_FIELDS,
+  COST_DEFAULTS,
+  costEstimate,
+  restoreCost,
+  costReport,
+} from "./cost.mjs";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const esc = (value) =>
@@ -56,11 +62,13 @@ const storage = {
       return fallback;
     }
   },
-  set(key, value) {
+  set(key, value, { quiet = false } = {}) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      return true;
     } catch {
-      toast("Preferenze disponibili solo per questa sessione.");
+      if (!quiet) toast("Preferenze disponibili solo per questa sessione.");
+      return false;
     }
   },
 };
@@ -86,7 +94,9 @@ const state = {
   project: "",
   recommendations: [],
   compare: ["pla", "petg"],
-  calc: { grams: 120, price: 20, hours: 5, watts: 120, energy: 0.3 },
+  calc: { ...COST_DEFAULTS },
+  calcName: "",
+  calcSaved: false,
   epoch: 0,
   retrying: new Set(),
 };
@@ -211,7 +221,7 @@ function homeView() {
     <section class="hero"><div class="hero-copy"><div class="eyebrow">MENO TENTATIVI. PIÙ IDEE.</div><h1>Il materiale giusto.<br><em>Per la tua prossima idea.</em></h1><p>Confronta le caratteristiche, verifica la tua stampante e trova il prezzo che cerchi.</p><div class="hero-actions">${link("advisor", `${icon("advisor")} Trova il mio materiale`, "button primary")}${link("prices", "Esplora i prezzi " + icon("arrow"), "button ghost")}</div></div>${spoolArt()}</section>
     <div class="stats"><div class="stat"><div class="stat-icon">${icon("materials")}</div><div><strong>${state.catalog.materials.length}</strong><span>Materiali da esplorare</span></div></div><div class="stat"><div class="stat-icon">${icon("prices")}</div><div><strong>${state.sources.length || "—"}</strong><span>Negozi configurati</span></div></div><div class="stat"><div class="stat-icon">${icon("printer")}</div><div><strong>${state.catalog.printers.length}</strong><span>Profili stampante</span></div></div></div>
     <div class="section-heading"><div><h2>Da dove vuoi iniziare?</h2><p>Tre materiali, tre modi diversi di dare forma alle idee.</p></div>${link("materials", "Tutti i materiali " + icon("arrow"))}</div><div class="materials-grid featured">${featured.map(materialCard).join("")}</div>
-    <div class="bottom-grid"><section class="panel setup"><div class="setup-icon">${icon("printer")}</div><div><div class="eyebrow">IL TUO SETUP</div><h3>${esc(printerName(state.printer))}</h3><p>${state.printer ? `${state.printer.nozzleMax} °C ugello · ${state.printer.bedMax} °C piano` : "Attiva i consigli sulla compatibilità."}</p></div><button class="text-link" data-action="printers">${state.printer ? "Cambia" : "Seleziona"} ${icon("arrow")}</button></section><section class="panel"><div class="eyebrow">UN OCCHIO AL BUDGET</div><h3>Quanto costa la tua prossima stampa?</h3><p>Filamento ed energia, con i tuoi consumi reali.</p>${link("cost", "Apri il calcolatore " + icon("arrow"))}</section></div>`;
+    <div class="bottom-grid"><section class="panel setup"><div class="setup-icon">${icon("printer")}</div><div><div class="eyebrow">IL TUO SETUP</div><h3>${esc(printerName(state.printer))}</h3><p>${state.printer ? `${state.printer.nozzleMax} °C ugello · ${state.printer.bedMax} °C piano` : "Attiva i consigli sulla compatibilità."}</p></div><button class="text-link" data-action="printers">${state.printer ? "Cambia" : "Seleziona"} ${icon("arrow")}</button></section><section class="panel"><div class="eyebrow">UN OCCHIO AL BUDGET</div><h3>Quanto costa la tua prossima stampa?</h3><p>Materiale, macchina, lavoro e margine. Un costo chiaro per ogni pezzo.</p>${link("cost", "Apri il calcolatore " + icon("arrow"))}</section></div>`;
 }
 function materialCard(m) {
   const c = compatibility(m, state.printer);
@@ -541,30 +551,100 @@ function compareView() {
       "",
     )}</div><div class="comparison-wrap"><table><thead><tr><th scope="col">Caratteristica</th><th scope="col">${esc(a.name)}</th><th scope="col">${esc(b.name)}</th></tr></thead><tbody>${rows.map(([label, get]) => `<tr><th scope="row">${label}</th><td>${esc(get(a))}</td><td>${esc(get(b))}</td></tr>`).join("")}</tbody></table></div>`;
 }
-function costView() {
-  return `${header("IL COSTO DELLE IDEE", "Quanto costa stamparlo?", "Una stima trasparente di materiale ed energia. Inserisci i dati dello slicer e la tua tariffa elettrica.")}<div class="compare-grid"><form id="cost-form" class="panel"><div class="form-grid">${[
-    ["grams", "Filamento utilizzato (g)", 1],
-    ["price", "Prezzo filamento (€/kg)", 0.01],
-    ["hours", "Durata (ore)", 0.1],
-    ["watts", "Consumo medio (W)", 1],
-    ["energy", "Tariffa energia (€/kWh)", 0.01],
-  ]
-    .map(
-      ([key, label, step]) =>
-        `<div class="field"><label for="calc-${key}">${label}</label><input id="calc-${key}" name="${key}" type="number" min="0" step="${step}" max="1000000" required value="${state.calc[key]}"></div>`,
-    )
-    .join(
-      "",
-    )}</div><button class="button primary spaced" type="submit">Calcola costo</button><p class="form-error" id="cost-error" role="alert"></p></form><div id="cost-output">${costOutput()}</div></div>`;
+function costFields(keys) {
+  return keys
+    .map((key) => {
+      const f = COST_FIELDS[key];
+      return `<div class="field"><label for="calc-${key}">${f.label}</label><input id="calc-${key}" name="${key}" type="number" inputmode="${f.integer ? "numeric" : "decimal"}" min="${f.min ?? 0}" max="${f.max}" step="${f.integer ? 1 : "any"}" required value="${esc(state.calc[key])}" ${f.hint ? `aria-describedby="hint-${key}"` : ""}>${f.hint ? `<small id="hint-${key}">${f.hint}</small>` : ""}</div>`;
+    })
+    .join("");
 }
+function costView() {
+  return `${header("DALLO SLICER AL PRODOTTO", "Ogni pezzo ha il suo costo.", "Calcola l’intero lotto, scopri quanto costa un singolo pezzo e costruisci il tuo prezzo di vendita.", button("Vedi riepilogo", "show-cost-summary"))}
+  <div class="cost-layout"><form id="cost-form" class="cost-form" novalidate>
+    <section class="panel cost-section"><div class="cost-section-heading"><span class="step-number">01</span><div><h2>Il tuo lotto di stampa</h2><p>Pesi e durata sono totali del lotto, come nello slicer.</p></div></div>
+      <div class="cost-fields"><div class="field"><label for="calc-name">Nome del prodotto</label><input id="calc-name" name="productName" maxlength="80" type="text" placeholder="Es. supporto sensore" value="${esc(state.calcName)}"></div>${costFields(["units"])}</div>
+      <div class="cost-divider"></div><div class="cost-fields">${costFields(["grams", "wasteGrams", "spoolPrice", "spoolGrams", "hours", "minutes", "watts", "energy"])}</div>
+      <p class="cost-hint">Inserisci i costi al netto dell’IVA. I valori iniziali sono un esempio: sostituiscili con i tuoi dati.</p>
+    </section>
+    <details class="panel cost-section" id="cost-machine"><summary><span class="step-number">02</span><span>Macchina e ristampe<small>Ammortamento, ricambi e tentativi falliti</small></span></summary><div class="cost-fields">${costFields(["machinePrice", "machineLife", "maintenance", "failure"])}</div><p class="cost-hint">La quota ristampe ripete filamento, energia e costo macchina. Non aggiunge automaticamente altro lavoro manuale.</p></details>
+    <details class="panel cost-section" id="cost-labor"><summary><span class="step-number">03</span><span>Lavoro e costi aggiuntivi<small>Preparazione, finitura e imballaggio</small></span></summary><div class="cost-fields">${costFields(["setupMinutes", "finishMinutes", "labor", "packaging", "extras"])}</div></details>
+    <details class="panel cost-section" id="cost-sales" ${state.calc.sell ? "open" : ""}><summary><span class="step-number">04</span><span>Prezzo di vendita<small>Margine, commissioni e IVA opzionale</small></span></summary><label class="check-label" for="calc-sell"><input type="checkbox" id="calc-sell" name="sell" ${state.calc.sell ? "checked" : ""}> Calcola anche il prezzo di vendita</label><fieldset id="cost-sales-fields" ${state.calc.sell ? "" : "disabled"}><legend class="sr-only">Parametri del prezzo di vendita</legend><div class="cost-fields">${costFields(["margin", "feePercent", "feeFixed", "vat"])}</div></fieldset><p class="cost-hint">Il margine è calcolato sul ricavo netto dopo i costi e le commissioni. Il lotto viene venduto come un unico ordine.</p></details>
+    <div class="cost-form-actions"><button type="submit" class="button primary">Calcola costo</button><button type="button" class="button secondary" data-action="reset-cost">Ripristina esempio</button></div>
+    <p id="cost-error" class="form-error" role="alert"></p><p id="cost-storage" class="cost-hint">${state.calcSaved ? "Ultimo calcolo salvato in questo browser." : "Il calcolo valido viene salvato in questo browser; aggiornamento automatico mentre scrivi."}</p>
+  </form><aside id="cost-summary" class="cost-summary" tabindex="-1" aria-label="Riepilogo del costo"><div id="cost-output">${costOutput()}</div></aside></div>`;
+}
+const decimal = (value) =>
+  new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 }).format(value);
 function costOutput() {
   let r;
   try {
     r = costEstimate(state.calc);
   } catch (error) {
-    return `<p class="note warning">${esc(error.message)}</p>`;
+    return `<section class="panel"><h2>Completa i dati del lotto</h2><p class="note warning">${esc(error.message)}</p><p>I totali ricompariranno quando i valori saranno validi.</p></section>`;
   }
-  return `<section class="cost-result"><div class="eyebrow">COSTO STIMATO</div><strong>${money(r.total)}</strong><p>Per una stampa da ${state.calc.grams} g in ${state.calc.hours} ore.</p><dl><dt>Materiale</dt><dd>${money(r.material)}</dd></dl><dl><dt>Energia</dt><dd>${money(r.electricity)}</dd></dl><p class="spaced">Sono esclusi ammortamento, manutenzione, scarti e tempo di lavoro.</p></section>`;
+  const zeroCosts = r.breakdown
+    .filter((row) => row.value === 0)
+    .map((row) => row.label.toLowerCase());
+  return `<section class="cost-result"><div class="eyebrow">COSTO PER PEZZO</div><h2 class="cost-product">${esc(state.calcName || "Il tuo prodotto")}</h2><strong data-cost="unit">${money(r.unit)}</strong><p>${r.values.units} ${r.values.units === 1 ? "pezzo" : "pezzi"} nel lotto · ${decimal(r.hours)} ore di stampa</p><dl class="cost-batch-total"><dt>Costo dell’intero lotto</dt><dd data-cost="total">${money(r.total)}</dd></dl></section>
+    <section class="panel cost-breakdown"><h2>Da dove arriva il costo</h2><p>Ripartizione dell’intero lotto</p><dl>${r.breakdown.map((row) => `<div><dt>${row.label}</dt><dd data-cost="${row.key}">${money(row.value)}</dd></div>`).join("")}</dl><p class="cost-hint">Consumo previsto: ${decimal(r.expectedKwh)} kWh · Tempo macchina previsto: ${decimal(r.expectedHours)} h${r.values.failure ? ", incluse le ristampe" : ""}.</p>${zeroCosts.length ? `<details class="cost-assumptions"><summary>Voci escluse perché a zero</summary><p>${esc(zeroCosts.join(", "))}. Inserisci un valore per includerle.</p></details>` : ""}</section>
+    ${r.sale ? `<section class="panel cost-sale"><div class="eyebrow">IL TUO PREZZO DI VENDITA</div><h2><span data-sale="net-unit">${money(r.sale.netUnit)}</span><small> / pezzo, IVA esclusa</small></h2><p>Obiettivo margine ${decimal(r.values.margin)}% · Prezzo netto unitario arrotondato in eccesso al centesimo.</p><dl><div><dt>Ricavo netto del lotto</dt><dd data-sale="net">${money(r.sale.net)}</dd></div><div><dt>IVA (${decimal(r.values.vat)}%)</dt><dd data-sale="tax">${money(r.sale.tax)}</dd></div><div class="sale-total"><dt>Totale cliente per il lotto</dt><dd data-sale="gross">${money(r.sale.gross)}</dd></div><div><dt>Commissioni del lotto</dt><dd data-sale="fees">${money(r.sale.fees)}</dd></div><div><dt>Utile stimato del lotto</dt><dd data-sale="profit">${money(r.sale.profit)}</dd></div><div><dt>Utile per pezzo</dt><dd>${money(r.sale.profitUnit)}</dd></div><div><dt>Margine effettivo</dt><dd>${decimal(r.sale.actualMargin)}%</dd></div></dl><p class="cost-hint">L’IVA non è utile. Il prezzo deriva dai tuoi costi e dal margine scelto; gli importi mostrati sono arrotondati.</p></section>` : ""}
+    <button type="button" class="button secondary cost-export" data-action="export-cost">Scarica riepilogo</button>`;
+}
+function updateCost({ save = false, focus = false } = {}) {
+  const output = $("#cost-output");
+  if (!output) return;
+  document
+    .querySelectorAll("#cost-form [aria-invalid]")
+    .forEach((el) => el.removeAttribute("aria-invalid"));
+  let valid = false;
+  try {
+    const result = costEstimate(state.calc);
+    valid = true;
+    $("#cost-error").textContent = "";
+    if (save) {
+      const saved = storage.set(
+        "ff11_cost",
+        {
+          version: 1,
+          name: state.calcName,
+          values: result.values,
+        },
+        { quiet: true },
+      );
+      state.calcSaved = saved;
+      $("#cost-storage").textContent = saved
+        ? "Ultimo calcolo salvato in questo browser."
+        : "Calcolo disponibile solo in questa sessione: salvataggio del browser non disponibile.";
+    }
+  } catch (error) {
+    $("#cost-error").textContent = error.message;
+    const field = $(`#calc-${error.field}`);
+    if (field) {
+      field.setAttribute("aria-invalid", "true");
+      if (focus) {
+        const details = field.closest("details");
+        if (details) details.open = true;
+        field.focus();
+      }
+    }
+  }
+  output.innerHTML = costOutput();
+  if (focus && valid) showCostSummary();
+}
+function showCostSummary() {
+  $("#cost-summary").scrollIntoView({ block: "start" });
+  $("#cost-summary").focus({ preventScroll: true });
+}
+function downloadText(filename, contents) {
+  const url = URL.createObjectURL(
+    new Blob([contents], { type: "text/plain;charset=utf-8" }),
+  );
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function loadAlerts() {
@@ -789,6 +869,33 @@ document.addEventListener("click", async (event) => {
     return;
   }
   switch (target.dataset.action) {
+    case "show-cost-summary":
+      return showCostSummary();
+    case "reset-cost":
+      openDialog(
+        "Ripristinare i dati di esempio?",
+        '<p>Il calcolo corrente verrà sostituito. Scarica prima il riepilogo se vuoi conservarlo.</p><button class="button danger" data-action="confirm-reset-cost">Ripristina dati</button>',
+      );
+      return;
+    case "confirm-reset-cost":
+      state.calc = { ...COST_DEFAULTS };
+      state.calcName = "";
+      state.calcSaved = false;
+      closeDialog();
+      render();
+      updateCost({ save: true });
+      $("#calc-name").focus();
+      return;
+    case "export-cost":
+      try {
+        downloadText(
+          "filament-finder-costo-prodotto.txt",
+          costReport(state.calcName, state.calc),
+        );
+      } catch {
+        updateCost({ focus: true });
+      }
+      return;
     case "printers":
       return showPrinters();
     case "reset-materials":
@@ -869,13 +976,26 @@ document.addEventListener("input", (event) => {
   }
   if (el.id === "project") state.project = el.value;
   if (el.id === "search-qty") readSearch();
-  if (el.id.startsWith("calc-")) state.calc[el.name] = el.value;
+  if (el.id === "calc-name") {
+    state.calcName = el.value.slice(0, 80);
+    updateCost({ save: true });
+  } else if (el.id.startsWith("calc-") && el.id !== "calc-sell") {
+    state.calc[el.name] = el.value;
+    updateCost({ save: true });
+  }
 });
 document.addEventListener("change", (event) => {
   const el = event.target;
   if (el.id === "compatible-only") {
     state.compatibleOnly = el.checked;
     $("#catalog-results").innerHTML = catalogResults();
+  }
+  if (el.id.startsWith("calc-")) {
+    if (el.id === "calc-sell") {
+      state.calc.sell = el.checked;
+      $("#cost-sales-fields").disabled = !el.checked;
+    }
+    updateCost({ save: true });
   }
   const key = {
     "offer-store": "store",
@@ -897,6 +1017,10 @@ document.addEventListener("change", (event) => {
 document.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.target;
+  if (form.id === "cost-form") {
+    updateCost({ save: true, focus: true });
+    return;
+  }
   if (!form.reportValidity()) return;
   if (form.id === "search-form") return searchMarket();
   if (form.id === "advisor-form") {
@@ -914,18 +1038,6 @@ document.addEventListener("submit", async (event) => {
       );
     return;
   }
-  if (form.id === "cost-form") {
-    try {
-      state.calc = Object.fromEntries(
-        [...new FormData(form)].map(([k, v]) => [k, Number(v)]),
-      );
-      $("#cost-output").innerHTML = costOutput();
-      $("#cost-error").textContent = "";
-    } catch (error) {
-      $("#cost-error").textContent = error.message;
-    }
-    return;
-  }
   if (form.id === "alert-form") return saveAlert(form);
 });
 $("#printer-button").addEventListener("click", showPrinters);
@@ -936,6 +1048,10 @@ $("#detail-dialog").addEventListener("close", () => {
 window.addEventListener("hashchange", navigate);
 
 async function init() {
+  const restoredCost = restoreCost(storage.get("ff11_cost"));
+  state.calc = restoredCost.values;
+  state.calcName = restoredCost.name;
+  state.calcSaved = restoredCost.saved;
   $("#navigation").innerHTML = Object.entries(routes)
     .map(
       ([key, label], i) =>

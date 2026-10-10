@@ -8,7 +8,6 @@ import {
   offerView,
   filterOffers,
   mergeSource,
-  costEstimate,
   safeUrl,
 } from "../src/web/domain.mjs";
 const catalog = JSON.parse(
@@ -107,18 +106,6 @@ test("flexible projects return flexible materials", () => {
     printer("bambu-a1"),
   );
   assert.ok(rows[0].material.flex >= 4);
-});
-test("cost calculator includes material and kWh conversion", () => {
-  assert.deepEqual(
-    costEstimate({ grams: 120, price: 20, hours: 5, watts: 120, energy: 0.3 }),
-    { material: 2.4, electricity: 0.18, total: 2.58 },
-  );
-});
-test("calculator rejects missing, negative and nonfinite values", () => {
-  for (const grams of [-1, NaN, Infinity, ""])
-    assert.throws(() =>
-      costEstimate({ grams, price: 20, hours: 5, watts: 120, energy: 0.3 }),
-    );
 });
 test("links reject executable and relative URLs", () => {
   assert.equal(safeUrl("javascript:alert(1)"), "");
