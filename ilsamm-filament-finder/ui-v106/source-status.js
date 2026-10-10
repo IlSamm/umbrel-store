@@ -7,6 +7,9 @@ window.FF106_SOURCE_STATUS_VERSION=VERSION;
 const upstreamFetch=window.fetch.bind(window);
 const q=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let renderQueued=false;
+let renderBusy=false;
+let lastSignature='';
 
 function statusOf(source){
   const results=Math.max(0,Number(source?.results)||0);
@@ -39,7 +42,10 @@ window.FF106_STATUS_OF=statusOf;
 window.fetch=async function(input,init){
   const raw=typeof input==='string'?input:String(input?.url||'');
   let isMarket=false;
-  try{isMarket=/\/api\/(?:catalog|prices)(?:\?|$)/.test(new URL(raw,location.href).pathname+new URL(raw,location.href).search);}catch{}
+  try{
+    const u=new URL(raw,location.href);
+    isMarket=/\/api\/(?:catalog|prices)$/.test(u.pathname);
+  }catch{}
   const response=await upstreamFetch(input,init);
   if(!isMarket||!response.ok)return response;
   try{
@@ -78,50 +84,74 @@ function summaryCard(code,label,count){
   return `<div class="ff106-summary-card is-${code}"><span>${esc(label)}</span><strong>${Number(count)||0}</strong></div>`;
 }
 
+function signatureOf(data){
+  return (data.sources||[]).map(s=>{
+    const st=statusOf(s);
+    return [s?.id||s?.name||'',st.code,Number(s?.results)||0,Math.round(Number(s?.ms)||0),st.detail].join(':');
+  }).join('|');
+}
+
 function render(data){
   const root=q('#ff10-market-results');
-  if(!root||!data||!Array.isArray(data.sources))return;
-  const old=q('.ff106-source-status-panel',root);
-  if(old)old.remove();
+  if(!root||!data||!Array.isArray(data.sources)||renderBusy)return;
+  const signature=signatureOf(data);
+  const existing=q('.ff106-source-status-panel',root);
+  if(existing&&signature===lastSignature)return;
 
-  const normalized=enrichSources(data);
-  const s=normalized.source_status_summary||{total:0,ok:0,empty:0,error:0,timeout:0};
-  const panel=document.createElement('section');
-  panel.className='ff106-source-status-panel';
-  panel.innerHTML=`
-    <div class="ff106-head">
-      <div><span class="ff106-eyebrow">Stato fonti</span><h2>Tutte le fonti della ricerca</h2><p>Ogni sito mostra sempre l'esito reale dell'ultimo tentativo.</p></div>
-      <div class="ff106-total"><strong>${s.total}</strong><span>fonti interrogate</span></div>
-    </div>
-    <div class="ff106-summary">
-      ${summaryCard('ok','OK',s.ok)}
-      ${summaryCard('empty','Nessun risultato',s.empty)}
-      ${summaryCard('error','Errore',s.error)}
-      ${summaryCard('timeout','Timeout',s.timeout)}
-    </div>
-    <div class="ff106-source-grid">${normalized.sources.map(sourceCard).join('')}</div>`;
+  renderBusy=true;
+  try{
+    if(existing)existing.remove();
+    const normalized=enrichSources(data);
+    const s=normalized.source_status_summary||{total:0,ok:0,empty:0,error:0,timeout:0};
+    const panel=document.createElement('section');
+    panel.className='ff106-source-status-panel';
+    panel.dataset.signature=signature;
+    panel.innerHTML=`
+      <div class="ff106-head">
+        <div><span class="ff106-eyebrow">Stato fonti</span><h2>Tutte le fonti della ricerca</h2><p>Ogni sito mostra sempre l'esito reale dell'ultimo tentativo.</p></div>
+        <div class="ff106-total"><strong>${s.total}</strong><span>fonti interrogate</span></div>
+      </div>
+      <div class="ff106-summary">
+        ${summaryCard('ok','OK',s.ok)}
+        ${summaryCard('empty','Nessun risultato',s.empty)}
+        ${summaryCard('error','Errore',s.error)}
+        ${summaryCard('timeout','Timeout',s.timeout)}
+      </div>
+      <div class="ff106-source-grid">${normalized.sources.map(sourceCard).join('')}</div>`;
 
-  const anchor=q('.ff103-source-rail',root)||q('.ff103-filter-panel',root)||root.firstElementChild;
-  if(anchor)anchor.insertAdjacentElement('beforebegin',panel); else root.prepend(panel);
+    const anchor=q('.ff103-source-rail',root)||q('.ff103-filter-panel',root)||root.firstElementChild;
+    if(anchor)anchor.insertAdjacentElement('beforebegin',panel); else root.prepend(panel);
 
-  for(const chip of root.querySelectorAll('.ff103-source-chip')){
-    const id=chip.getAttribute('data-source-id')||'';
-    const source=normalized.sources.find(x=>String(x?.id||'')===id);
-    if(!source)continue;
-    const status=statusOf(source);
-    chip.classList.remove('is-ok','is-empty','is-error','is-timeout');
-    chip.classList.add(`is-${status.code}`);
-    chip.setAttribute('title',`${source.name||source.id}: ${status.label} — ${status.detail}`);
-    chip.setAttribute('aria-label',`${source.name||source.id}: ${status.label}`);
+    for(const chip of root.querySelectorAll('.ff103-source-chip')){
+      const id=chip.getAttribute('data-source-id')||'';
+      const source=normalized.sources.find(x=>String(x?.id||'')===id);
+      if(!source)continue;
+      const status=statusOf(source);
+      chip.classList.remove('is-ok','is-empty','is-error','is-timeout');
+      chip.classList.add(`is-${status.code}`);
+      chip.setAttribute('title',`${source.name||source.id}: ${status.label} — ${status.detail}`);
+      chip.setAttribute('aria-label',`${source.name||source.id}: ${status.label}`);
+    }
+    lastSignature=signature;
+  }finally{
+    renderBusy=false;
   }
 }
 
 function scheduleRender(){
-  const data=window.FF106_LAST_DATA||window.FF105_LAST_DATA;
-  if(data&&Array.isArray(data.sources))requestAnimationFrame(()=>render(data));
+  if(renderQueued||renderBusy)return;
+  renderQueued=true;
+  requestAnimationFrame(()=>{
+    renderQueued=false;
+    const data=window.FF106_LAST_DATA||window.FF105_LAST_DATA;
+    if(data&&Array.isArray(data.sources))render(data);
+  });
 }
 
-const observer=new MutationObserver(()=>scheduleRender());
+const observer=new MutationObserver(mutations=>{
+  if(renderBusy)return;
+  if(mutations.some(m=>[...m.addedNodes].some(n=>n?.nodeType===1&&!n.classList?.contains('ff106-source-status-panel'))||[...m.removedNodes].some(n=>n?.nodeType===1&&!n.classList?.contains('ff106-source-status-panel'))))scheduleRender();
+});
 function boot(){
   const root=q('#ff10-market-results');
   if(root)observer.observe(root,{childList:true,subtree:true});
