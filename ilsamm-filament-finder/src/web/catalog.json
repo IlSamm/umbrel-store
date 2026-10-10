@@ -1,0 +1,4449 @@
+{
+  "materials": [
+    {
+      "id": "pla",
+      "name": "PLA",
+      "family": "PLA",
+      "group": [
+        "easy"
+      ],
+      "t": [
+        190,
+        230
+      ],
+      "bed": [
+        45,
+        65
+      ],
+      "detail": 5,
+      "strength": 3,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 5,
+      "moisture": 2,
+      "cost": 1,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": true,
+      "short": "Facile, preciso, economico e ottimo esteticamente.",
+      "uses": "Statuine, prototipi, gadget, organizer, decorazioni.",
+      "avoid": "Auto al sole, calore elevato, parti che devono flettersi.",
+      "dry": "45–55 °C se ha assorbito umidità.",
+      "vent": "Normale ventilazione ambiente.",
+      "bambu": [
+        "PLA Basic",
+        "PLA Matte",
+        "PLA Silk+"
+      ],
+      "sunlu": [
+        "PLA",
+        "PLA+",
+        "High Speed PLA",
+        "PLA Matte"
+      ],
+      "density": "1,24 g/cm³",
+      "hdt": "~50–60 °C",
+      "speed": "Alta",
+      "shrink": "Molto basso",
+      "finish": "Liscia",
+      "brands": [
+        "Bambu Lab PLA Basic",
+        "SUNLU PLA",
+        "eSUN PLA+",
+        "Prusament PLA",
+        "Polymaker Panchroma PLA"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pla-plus",
+      "name": "PLA+ / Tough PLA",
+      "family": "PLA",
+      "group": [
+        "easy"
+      ],
+      "t": [
+        205,
+        235
+      ],
+      "bed": [
+        50,
+        65
+      ],
+      "detail": 5,
+      "strength": 4,
+      "impact": 3,
+      "heat": 2,
+      "uv": 2,
+      "flex": 2,
+      "chemical": 2,
+      "ease": 5,
+      "moisture": 2,
+      "cost": 2,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 205,
+      "minBed": 50,
+      "ams": true,
+      "short": "PLA modificato: più tenace e meno fragile del PLA standard.",
+      "uses": "Statuine robuste, prototipi funzionali, accessori domestici.",
+      "avoid": "Calore alto e outdoor permanente.",
+      "dry": "45–55 °C se umido.",
+      "vent": "Normale ventilazione ambiente.",
+      "bambu": [
+        "PLA Tough+ / PLA Basic come alternativa"
+      ],
+      "sunlu": [
+        "PLA+",
+        "PLA+ 2.0",
+        "High Speed PLA+"
+      ],
+      "density": "1,23–1,25 g/cm³",
+      "hdt": "~55–65 °C",
+      "speed": "Alta",
+      "shrink": "Molto basso",
+      "finish": "Liscia",
+      "brands": [
+        "SUNLU PLA+ 2.0",
+        "eSUN PLA+",
+        "Polymaker PolyMax PLA",
+        "Elegoo PLA+"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pla-matte",
+      "name": "PLA Matte",
+      "family": "PLA",
+      "group": [
+        "easy"
+      ],
+      "t": [
+        190,
+        230
+      ],
+      "bed": [
+        45,
+        65
+      ],
+      "detail": 5,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 5,
+      "moisture": 2,
+      "cost": 2,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": true,
+      "short": "Finitura opaca che maschera bene le linee di layer.",
+      "uses": "Busti, statuine, oggetti premium e decorativi.",
+      "avoid": "Componenti strutturali o sottoposti a urti.",
+      "dry": "45–55 °C se necessario.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "PLA Matte"
+      ],
+      "sunlu": [
+        "PLA Matte"
+      ],
+      "density": "~1,25 g/cm³",
+      "hdt": "~50–60 °C",
+      "speed": "Alta",
+      "shrink": "Molto basso",
+      "finish": "Opaca",
+      "brands": [
+        "Bambu Lab PLA Matte",
+        "SUNLU PLA Matte",
+        "Polymaker Panchroma Matte"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pla-silk",
+      "name": "PLA Silk",
+      "family": "PLA",
+      "group": [
+        "easy"
+      ],
+      "t": [
+        205,
+        240
+      ],
+      "bed": [
+        50,
+        65
+      ],
+      "detail": 4,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 4,
+      "moisture": 2,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 205,
+      "minBed": 50,
+      "ams": true,
+      "short": "Lucido e scenografico; più estetico che meccanico.",
+      "uses": "Vasi, draghi, trofei, scritte, statuine.",
+      "avoid": "Incastri duri e parti caricate.",
+      "dry": "45–55 °C se umido.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "PLA Silk+"
+      ],
+      "sunlu": [
+        "Silk PLA",
+        "Silk Rainbow"
+      ],
+      "density": "~1,20–1,25 g/cm³",
+      "hdt": "~50–60 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Setosa/lucida",
+      "brands": [
+        "Bambu Lab PLA Silk+",
+        "SUNLU Silk PLA",
+        "eSUN Silk PLA"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pla-wood",
+      "name": "PLA Wood",
+      "family": "PLA composito",
+      "group": [
+        "easy",
+        "abrasive"
+      ],
+      "t": [
+        190,
+        230
+      ],
+      "bed": [
+        45,
+        60
+      ],
+      "detail": 4,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 3,
+      "moisture": 3,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": false,
+      "short": "PLA con carica legno: look naturale, può essere levigato e trattato.",
+      "uses": "Decorazioni, insegne, oggetti effetto legno.",
+      "avoid": "Ugelli piccoli e componenti strutturali.",
+      "dry": "50–55 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "PLA Wood / filamenti effect equivalenti se disponibili"
+      ],
+      "sunlu": [
+        "Wood PLA"
+      ],
+      "density": "Variabile",
+      "hdt": "~45–60 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Molto basso",
+      "finish": "Effetto legno",
+      "brands": [
+        "SUNLU Wood PLA",
+        "FormFutura EasyWood",
+        "Fiberlogy FiberWood"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pla-cf",
+      "name": "PLA-CF",
+      "family": "Composito",
+      "group": [
+        "abrasive",
+        "engineering"
+      ],
+      "t": [
+        210,
+        240
+      ],
+      "bed": [
+        45,
+        65
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 2,
+      "heat": 2,
+      "uv": 3,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 3,
+      "moisture": 3,
+      "cost": 4,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 210,
+      "minBed": 45,
+      "ams": true,
+      "short": "Rigido, opaco e dimensionalmente stabile; abrasivo.",
+      "uses": "Dime, supporti rigidi, droni, look tecnico.",
+      "avoid": "Urti forti, ugello standard, 0,2 mm.",
+      "dry": "50–60 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "PLA-CF"
+      ],
+      "sunlu": [
+        "PLA-CF"
+      ],
+      "density": "~1,20–1,30 g/cm³",
+      "hdt": "~55–70 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Bambu Lab PLA-CF",
+        "SUNLU PLA-CF",
+        "Polymaker Fiberon PLA-CF"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "petg",
+      "name": "PETG",
+      "family": "PETG",
+      "group": [
+        "easy",
+        "outdoor"
+      ],
+      "t": [
+        230,
+        265
+      ],
+      "bed": [
+        65,
+        85
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 4,
+      "heat": 3,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 4,
+      "moisture": 3,
+      "cost": 2,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 230,
+      "minBed": 65,
+      "ams": true,
+      "short": "Tenace, resistente all'acqua e ottimo per parti funzionali.",
+      "uses": "Supporti, contenitori, accessori, parti meccaniche.",
+      "avoid": "Miniature se vuoi la massima pulizia; può fare stringing.",
+      "dry": "55–65 °C per 6–8 h quando serve.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "PETG HF",
+        "PETG Translucent"
+      ],
+      "sunlu": [
+        "PETG",
+        "Elite PETG"
+      ],
+      "density": "~1,27 g/cm³",
+      "hdt": "~65–80 °C",
+      "speed": "Alta",
+      "shrink": "Basso",
+      "finish": "Lucida",
+      "brands": [
+        "Bambu Lab PETG HF",
+        "SUNLU PETG",
+        "eSUN PETG",
+        "Prusament PETG",
+        "Polymaker PETG"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pctg",
+      "name": "PCTG",
+      "family": "Copoliestere",
+      "group": [
+        "outdoor",
+        "engineering"
+      ],
+      "t": [
+        240,
+        275
+      ],
+      "bed": [
+        70,
+        90
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 5,
+      "heat": 4,
+      "uv": 4,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 3,
+      "moisture": 3,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 240,
+      "minBed": 70,
+      "ams": true,
+      "short": "Copoliestere molto tenace, spesso più resistente agli urti del PETG.",
+      "uses": "Parti funzionali, trasparenti, contenitori robusti.",
+      "avoid": "Se vuoi profili pronti senza calibrazione.",
+      "dry": "60–65 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "Generic PCTG"
+      ],
+      "sunlu": [
+        "PCTG (se disponibile)"
+      ],
+      "density": "~1,23–1,27 g/cm³",
+      "hdt": "~75–90 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Lucida",
+      "brands": [
+        "Fiberlogy PCTG",
+        "FormFutura AthenaX PCTG"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "petg-cf",
+      "name": "PETG-CF",
+      "family": "Composito",
+      "group": [
+        "abrasive",
+        "engineering",
+        "outdoor"
+      ],
+      "t": [
+        240,
+        280
+      ],
+      "bed": [
+        70,
+        90
+      ],
+      "detail": 4,
+      "strength": 5,
+      "impact": 4,
+      "heat": 4,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 4,
+      "cost": 4,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 240,
+      "minBed": 70,
+      "ams": true,
+      "short": "PETG rinforzato: rigido, tecnico, opaco e abrasivo.",
+      "uses": "Staffe, attrezzature, supporti rigidi, parti tecniche.",
+      "avoid": "Ugello standard e filamento umido.",
+      "dry": "65–75 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "PETG-CF"
+      ],
+      "sunlu": [
+        "PETG-CF"
+      ],
+      "density": "~1,25–1,35 g/cm³",
+      "hdt": "~75–90 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Bambu Lab PETG-CF",
+        "SUNLU PETG-CF",
+        "Polymaker Fiberon PETG-CF"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "tpu95",
+      "name": "TPU 95A",
+      "family": "Flessibile",
+      "group": [
+        "flex"
+      ],
+      "t": [
+        210,
+        240
+      ],
+      "bed": [
+        30,
+        60
+      ],
+      "detail": 3,
+      "strength": 4,
+      "impact": 5,
+      "heat": 3,
+      "uv": 3,
+      "flex": 5,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 4,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 210,
+      "minBed": 30,
+      "ams": false,
+      "short": "Flessibile, antiurto e resistente all'abrasione.",
+      "uses": "Cover, guarnizioni, piedini, protezioni, ammortizzatori.",
+      "avoid": "Parti rigide o bowden difficili.",
+      "dry": "55–70 °C secondo produttore.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "TPU 95A HF",
+        "TPU for AMS (variante dedicata)"
+      ],
+      "sunlu": [
+        "TPU 95A",
+        "TPU 90A"
+      ],
+      "density": "~1,20–1,23 g/cm³",
+      "hdt": "~50–80 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Molto basso",
+      "finish": "Gommosa",
+      "brands": [
+        "Bambu Lab TPU 95A HF",
+        "SUNLU TPU 95A",
+        "eSUN eTPU-95A",
+        "Fiberlogy FiberFlex 40D"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "tpu85",
+      "name": "TPU 85A / TPE",
+      "family": "Flessibile",
+      "group": [
+        "flex"
+      ],
+      "t": [
+        210,
+        245
+      ],
+      "bed": [
+        30,
+        60
+      ],
+      "detail": 2,
+      "strength": 3,
+      "impact": 5,
+      "heat": 3,
+      "uv": 3,
+      "flex": 5,
+      "chemical": 4,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 4,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 210,
+      "minBed": 30,
+      "ams": false,
+      "short": "Ancora più morbido del TPU 95A; richiede estrusione ben controllata.",
+      "uses": "Grip, guarnizioni molto morbide, ammortizzatori.",
+      "avoid": "Bowden lunghi, AMS/MMU non specifici.",
+      "dry": "55–70 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "TPU 85A"
+      ],
+      "sunlu": [
+        "TPE/TPU morbidi"
+      ],
+      "density": "~1,15–1,22 g/cm³",
+      "hdt": "~45–70 °C",
+      "speed": "Bassa",
+      "shrink": "Molto basso",
+      "finish": "Molto morbida",
+      "brands": [
+        "Bambu Lab TPU 85A",
+        "Fiberlogy FiberFlex 30D"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "abs",
+      "name": "ABS",
+      "family": "Engineering",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        240,
+        270
+      ],
+      "bed": [
+        90,
+        110
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 4,
+      "heat": 4,
+      "uv": 2,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 2,
+      "cost": 2,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 240,
+      "minBed": 90,
+      "ams": true,
+      "short": "Resistente al calore e lavorabile, ma tende a deformarsi.",
+      "uses": "Gusci, automotive interno, parti tecniche.",
+      "avoid": "Stampante aperta per pezzi grandi.",
+      "dry": "70–80 °C se umido.",
+      "vent": "Ventilare: emette VOC durante la stampa.",
+      "bambu": [
+        "ABS"
+      ],
+      "sunlu": [
+        "ABS",
+        "Easy ABS"
+      ],
+      "density": "~1,04 g/cm³",
+      "hdt": "~85–100 °C",
+      "speed": "Media",
+      "shrink": "Alto",
+      "finish": "Satinata",
+      "brands": [
+        "Bambu Lab ABS",
+        "SUNLU ABS",
+        "eSUN ABS+",
+        "Polymaker PolyLite ABS"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "asa",
+      "name": "ASA",
+      "family": "Engineering",
+      "group": [
+        "engineering",
+        "outdoor"
+      ],
+      "t": [
+        245,
+        280
+      ],
+      "bed": [
+        90,
+        110
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 4,
+      "heat": 4,
+      "uv": 5,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 2,
+      "cost": 3,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 245,
+      "minBed": 90,
+      "ams": true,
+      "short": "Come ABS ma con eccellente resistenza UV e meteo.",
+      "uses": "Parti esterne, automotive, targhette, sensori e supporti outdoor.",
+      "avoid": "Pezzi grandi su stampanti aperte.",
+      "dry": "70–80 °C se umido.",
+      "vent": "Ventilare bene durante la stampa.",
+      "bambu": [
+        "ASA"
+      ],
+      "sunlu": [
+        "ASA"
+      ],
+      "density": "~1,07 g/cm³",
+      "hdt": "~90–105 °C",
+      "speed": "Media",
+      "shrink": "Medio/Alto",
+      "finish": "Satinata",
+      "brands": [
+        "Bambu Lab ASA",
+        "SUNLU ASA",
+        "Prusament ASA",
+        "Polymaker ASA"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pc",
+      "name": "PC / Policarbonato",
+      "family": "Engineering",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        260,
+        310
+      ],
+      "bed": [
+        90,
+        120
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 3,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 260,
+      "minBed": 90,
+      "ams": true,
+      "short": "Molto forte, tenace e resistente al calore; stampa impegnativa.",
+      "uses": "Protezioni, staffe, parti tecniche ad alta temperatura.",
+      "avoid": "Stampanti con hotend/piano insufficienti o senza enclosure.",
+      "dry": "80–100 °C secondo TDS.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [
+        "PC",
+        "PC FR"
+      ],
+      "sunlu": [
+        "PC (se disponibile)"
+      ],
+      "density": "~1,18–1,22 g/cm³",
+      "hdt": "~110–135 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Alto",
+      "finish": "Liscia",
+      "brands": [
+        "Bambu Lab PC",
+        "Prusament PC Blend",
+        "Polymaker PolyMax PC"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pa",
+      "name": "PA / Nylon",
+      "family": "Engineering",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        250,
+        300
+      ],
+      "bed": [
+        70,
+        110
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 3,
+      "flex": 3,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 250,
+      "minBed": 70,
+      "ams": true,
+      "short": "Tenace, resistente all'usura e perfetto per parti meccaniche.",
+      "uses": "Ingranaggi, cerniere, boccole, componenti funzionali.",
+      "avoid": "Filamento umido e stampanti non stabili termicamente.",
+      "dry": "Essiccazione quasi sempre necessaria.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [
+        "PA family / Generic PA"
+      ],
+      "sunlu": [
+        "PA/Nylon"
+      ],
+      "density": "~1,01–1,15 g/cm³",
+      "hdt": "~90–140 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Medio/Alto",
+      "finish": "Tecnica",
+      "brands": [
+        "Polymaker CoPA",
+        "Fiberlogy Nylon",
+        "eSUN ePA"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pa-cf",
+      "name": "PA6-CF / PAHT-CF",
+      "family": "Composito",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        260,
+        300
+      ],
+      "bed": [
+        80,
+        110
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 4,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 260,
+      "minBed": 80,
+      "ams": false,
+      "short": "Nylon rinforzato carbonio: prestazioni molto alte, asciugatura obbligatoria.",
+      "uses": "Parti strutturali, attrezzature, meccanica, robotica.",
+      "avoid": "Ugello standard, 0,2 mm, filamento umido.",
+      "dry": "Obbligatoria + dry-box durante la stampa.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [
+        "PA6-CF",
+        "PAHT-CF",
+        "PPA-CF"
+      ],
+      "sunlu": [
+        "PA-CF"
+      ],
+      "density": "~1,10–1,25 g/cm³",
+      "hdt": "~120–180 °C",
+      "speed": "Media",
+      "shrink": "Basso/Medio",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Bambu Lab PA6-CF",
+        "Bambu Lab PAHT-CF",
+        "eSUN ePA-CF",
+        "Polymaker Fiberon PA6-CF"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pet-cf",
+      "name": "PET-CF",
+      "family": "Composito",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        260,
+        300
+      ],
+      "bed": [
+        80,
+        110
+      ],
+      "detail": 4,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 260,
+      "minBed": 80,
+      "ams": false,
+      "short": "Composito rigido e termicamente stabile con basso creep.",
+      "uses": "Dime, parti dimensionali, meccanica, componenti caldi.",
+      "avoid": "Stampanti entry-level e ugello standard.",
+      "dry": "Essiccazione richiesta.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [
+        "PET-CF"
+      ],
+      "sunlu": [
+        "PET-CF / equivalenti"
+      ],
+      "density": "~1,30–1,40 g/cm³",
+      "hdt": "~90–120 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Bambu Lab PET-CF",
+        "AzureFilm PET CF"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "ppa-cf",
+      "name": "PPA-CF",
+      "family": "High engineering",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        280,
+        320
+      ],
+      "bed": [
+        100,
+        120
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": true,
+      "minNozzle": 280,
+      "minBed": 100,
+      "ams": false,
+      "short": "Tecnopolimero ad alte prestazioni rinforzato fibra di carbonio.",
+      "uses": "Parti professionali, strutturali e ad alta temperatura.",
+      "avoid": "Stampanti senza camera calda e hotend adeguato.",
+      "dry": "Essiccazione obbligatoria.",
+      "vent": "Ventilazione/filtrazione consigliata.",
+      "bambu": [
+        "PPA-CF"
+      ],
+      "sunlu": [
+        "Equivalenti PPA-CF se disponibili"
+      ],
+      "density": "~1,20–1,35 g/cm³",
+      "hdt": "~160–220 °C",
+      "speed": "Bassa",
+      "shrink": "Basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Bambu Lab PPA-CF",
+        "Polymaker Fiberon PPA-CF"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pps-cf",
+      "name": "PPS-CF",
+      "family": "High engineering",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        310,
+        340
+      ],
+      "bed": [
+        100,
+        120
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 3,
+      "heat": 5,
+      "uv": 5,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 1,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": true,
+      "minNozzle": 310,
+      "minBed": 100,
+      "ams": false,
+      "short": "Materiale specialistico con enorme resistenza termica e chimica.",
+      "uses": "Industria, parti ad alta temperatura, ambienti chimici.",
+      "avoid": "Quasi tutte le stampanti consumer senza 350 °C e camera attiva.",
+      "dry": "Essiccazione richiesta prima dell'uso.",
+      "vent": "Filtrazione/ventilazione fortemente consigliata.",
+      "bambu": [
+        "PPS-CF"
+      ],
+      "sunlu": [
+        "—"
+      ],
+      "density": "~1,30–1,50 g/cm³",
+      "hdt": ">200 °C",
+      "speed": "Bassa",
+      "shrink": "Basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Bambu Lab PPS-CF",
+        "Polymaker Fiberon PPS-CF"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pp",
+      "name": "PP / Polipropilene",
+      "family": "Engineering",
+      "group": [
+        "engineering",
+        "flex"
+      ],
+      "t": [
+        220,
+        260
+      ],
+      "bed": [
+        70,
+        100
+      ],
+      "detail": 3,
+      "strength": 3,
+      "impact": 5,
+      "heat": 4,
+      "uv": 3,
+      "flex": 4,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 1,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 220,
+      "minBed": 70,
+      "ams": true,
+      "short": "Leggero, tenace, resistente chimicamente e ottimo per cerniere vive.",
+      "uses": "Contenitori, cerniere integrate, componenti chimicamente resistenti.",
+      "avoid": "Piani non adatti: l'adesione è difficile.",
+      "dry": "Bassa sensibilità all'umidità.",
+      "vent": "Ventilazione normale/consigliata.",
+      "bambu": [
+        "Generic PP"
+      ],
+      "sunlu": [
+        "PP (se disponibile)"
+      ],
+      "density": "~0,90 g/cm³",
+      "hdt": "~90–110 °C",
+      "speed": "Media",
+      "shrink": "Alto",
+      "finish": "Cerosa",
+      "brands": [
+        "Fiberlogy PP",
+        "FormFutura Centaur PP"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "pva",
+      "name": "PVA",
+      "family": "Supporto",
+      "group": [
+        "support"
+      ],
+      "t": [
+        190,
+        220
+      ],
+      "bed": [
+        45,
+        60
+      ],
+      "detail": 2,
+      "strength": 1,
+      "impact": 1,
+      "heat": 1,
+      "uv": 1,
+      "flex": 2,
+      "chemical": 1,
+      "ease": 2,
+      "moisture": 5,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": true,
+      "short": "Supporto solubile in acqua per geometrie molto complesse.",
+      "uses": "Supporti interni, cavità, canali e superfici difficili.",
+      "avoid": "Come materiale strutturale.",
+      "dry": "Tenere sempre molto asciutto.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "PVA"
+      ],
+      "sunlu": [
+        "PVA"
+      ],
+      "density": "~1,20 g/cm³",
+      "hdt": "Bassa",
+      "speed": "Bassa",
+      "shrink": "Basso",
+      "finish": "Supporto solubile",
+      "brands": [
+        "eSUN PVA",
+        "Polymaker PolyDissolve S1"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "hips",
+      "name": "HIPS",
+      "family": "Supporto / Engineering",
+      "group": [
+        "support",
+        "engineering"
+      ],
+      "t": [
+        225,
+        250
+      ],
+      "bed": [
+        90,
+        110
+      ],
+      "detail": 3,
+      "strength": 3,
+      "impact": 3,
+      "heat": 3,
+      "uv": 2,
+      "flex": 2,
+      "chemical": 3,
+      "ease": 2,
+      "moisture": 2,
+      "cost": 3,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 225,
+      "minBed": 90,
+      "ams": true,
+      "short": "Può essere usato come materiale o supporto dissolvibile per ABS con solventi adatti.",
+      "uses": "Supporti per ABS, prototipi, gusci.",
+      "avoid": "Uso senza adeguate precauzioni per solventi.",
+      "dry": "60–70 °C se umido.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [
+        "Generic HIPS"
+      ],
+      "sunlu": [
+        "HIPS"
+      ],
+      "density": "~1,04 g/cm³",
+      "hdt": "~80–95 °C",
+      "speed": "Media",
+      "shrink": "Alto",
+      "finish": "Satinata",
+      "brands": [
+        "Fiberlogy HIPS",
+        "eSUN HIPS"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "support-pla",
+      "name": "Support for PLA/PETG",
+      "family": "Supporto",
+      "group": [
+        "support"
+      ],
+      "t": [
+        190,
+        240
+      ],
+      "bed": [
+        45,
+        80
+      ],
+      "detail": 2,
+      "strength": 1,
+      "impact": 1,
+      "heat": 2,
+      "uv": 1,
+      "flex": 1,
+      "chemical": 1,
+      "ease": 4,
+      "moisture": 3,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": true,
+      "short": "Materiale interfaccia per staccare supporti più facilmente.",
+      "uses": "Interfaccia supporti su PLA/PETG e geometrie complesse.",
+      "avoid": "Come materiale principale.",
+      "dry": "Conservare asciutto.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "Support for PLA/PETG"
+      ],
+      "sunlu": [
+        "Support materials equivalenti"
+      ],
+      "density": "Variabile",
+      "hdt": "Bassa",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Supporto",
+      "brands": [
+        "Bambu Lab Support for PLA/PETG",
+        "Polymaker PolySupport"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "metal-filled",
+      "name": "PLA Metal-filled",
+      "family": "Composito estetico",
+      "group": [
+        "abrasive"
+      ],
+      "t": [
+        190,
+        230
+      ],
+      "bed": [
+        45,
+        60
+      ],
+      "detail": 4,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 2,
+      "moisture": 3,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": false,
+      "short": "Effetto metallico/pesante; molto abrasivo e soprattutto estetico.",
+      "uses": "Prop, statue, medaglie, oggetti premium.",
+      "avoid": "Ugelli standard e pezzi strutturali.",
+      "dry": "Seguire TDS del produttore.",
+      "vent": "Ventilazione normale.",
+      "bambu": [
+        "Generic Metal PLA"
+      ],
+      "sunlu": [
+        "Metal PLA / filamenti effetto metallo"
+      ],
+      "density": "~1,5–3,5 g/cm³",
+      "hdt": "~50–65 °C",
+      "speed": "Bassa",
+      "shrink": "Basso",
+      "finish": "Metallica",
+      "brands": [
+        "ColorFabb metalFill",
+        "FormFutura MetalFil"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "glow",
+      "name": "Glow in the Dark",
+      "family": "Composito estetico",
+      "group": [
+        "abrasive"
+      ],
+      "t": [
+        190,
+        230
+      ],
+      "bed": [
+        45,
+        65
+      ],
+      "detail": 4,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 3,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 3,
+      "moisture": 2,
+      "cost": 4,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": false,
+      "short": "PLA/PETG con pigmenti fosforescenti: molto abrasivi.",
+      "uses": "Segnaletica, decorazioni, gadget luminosi.",
+      "avoid": "Ugelli morbidi nel lungo periodo.",
+      "dry": "Come il polimero base.",
+      "vent": "Normale ventilazione.",
+      "bambu": [
+        "Glow / effect equivalenti"
+      ],
+      "sunlu": [
+        "Glow in the Dark PLA"
+      ],
+      "density": "~1,25–1,40 g/cm³",
+      "hdt": "~50–65 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Luminescente",
+      "brands": [
+        "SUNLU Glow PLA",
+        "eSUN eStars/Glow"
+      ],
+      "notes": "I valori sono indicativi: usare sempre TDS e profilo del produttore per la bobina specifica.",
+      "layer": "Buona"
+    },
+    {
+      "id": "rpla",
+      "name": "rPLA / PLA riciclato",
+      "family": "PLA riciclato",
+      "group": [
+        "easy",
+        "eco"
+      ],
+      "t": [
+        190,
+        230
+      ],
+      "bed": [
+        45,
+        65
+      ],
+      "detail": 4,
+      "strength": 3,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 5,
+      "moisture": 2,
+      "cost": 1,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": true,
+      "short": "PLA riciclato con comportamento simile al PLA standard, ma proprietà dipendenti dal produttore.",
+      "uses": "Prototipi, organizer, oggetti decorativi, produzione a basso impatto.",
+      "avoid": "Parti critiche se non hai una TDS della formulazione.",
+      "dry": "45–55 °C se necessario.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,24 g/cm³",
+      "hdt": "~50–60 °C",
+      "speed": "Alta",
+      "shrink": "Molto basso",
+      "finish": "Variabile",
+      "brands": [
+        "Spectrum rPLA",
+        "FormFutura ReForm rPLA"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "htpla",
+      "name": "HTPLA / PLA annealable",
+      "family": "PLA tecnico",
+      "group": [
+        "easy",
+        "engineering"
+      ],
+      "t": [
+        200,
+        240
+      ],
+      "bed": [
+        50,
+        70
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 3,
+      "heat": 4,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 3,
+      "moisture": 2,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 200,
+      "minBed": 50,
+      "ams": true,
+      "short": "PLA formulato per aumentare la resistenza termica dopo ricottura.",
+      "uses": "Dime, parti funzionali e componenti che richiedono più stabilità termica del PLA.",
+      "avoid": "Dimensioni molto precise senza compensare il ritiro da annealing.",
+      "dry": "50–60 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,24 g/cm³",
+      "hdt": "~80–120 °C dopo annealing",
+      "speed": "Media/Alta",
+      "shrink": "Basso; cambia con ricottura",
+      "finish": "Liscia",
+      "brands": [
+        "Proto-pasta HTPLA",
+        "FormFutura Volcano PLA"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "lw-pla",
+      "name": "LW-PLA / PLA espandente",
+      "family": "PLA espanso",
+      "group": [
+        "easy",
+        "lightweight"
+      ],
+      "t": [
+        210,
+        250
+      ],
+      "bed": [
+        45,
+        60
+      ],
+      "detail": 3,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 2,
+      "moisture": 2,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 210,
+      "minBed": 45,
+      "ams": false,
+      "short": "PLA che schiuma in stampa per ridurre peso e consumo di materiale.",
+      "uses": "Aeromodelli, cosplay, parti leggere e grandi volumi.",
+      "avoid": "Parti strutturali dense o quote dimensionali critiche senza calibrazione flow.",
+      "dry": "45–55 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "Variabile con espansione",
+      "hdt": "~50–60 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Molto basso",
+      "finish": "Microporosa",
+      "brands": [
+        "colorFabb LW-PLA",
+        "eSUN ePLA-LW"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pla-marble",
+      "name": "PLA Marble / Stone",
+      "family": "PLA effect",
+      "group": [
+        "easy",
+        "abrasive"
+      ],
+      "t": [
+        195,
+        230
+      ],
+      "bed": [
+        45,
+        65
+      ],
+      "detail": 5,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 4,
+      "moisture": 2,
+      "cost": 2,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 195,
+      "minBed": 45,
+      "ams": true,
+      "short": "PLA con particelle decorative per effetto pietra o marmo.",
+      "uses": "Statue, busti, vasi, decorazioni premium.",
+      "avoid": "Ugelli molto piccoli e parti ad alta resistenza.",
+      "dry": "45–55 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,25 g/cm³",
+      "hdt": "~50–60 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Pietra/marmo",
+      "brands": [
+        "Bambu Lab PLA Marble",
+        "SUNLU Marble PLA",
+        "FormFutura StoneFil"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pla-glitter",
+      "name": "PLA Glitter / Sparkle",
+      "family": "PLA effect",
+      "group": [
+        "easy",
+        "abrasive"
+      ],
+      "t": [
+        195,
+        235
+      ],
+      "bed": [
+        45,
+        65
+      ],
+      "detail": 5,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 4,
+      "moisture": 2,
+      "cost": 2,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 195,
+      "minBed": 45,
+      "ams": true,
+      "short": "PLA con particelle brillanti; ottimo per nascondere le linee di layer.",
+      "uses": "Decorazioni, accessori, oggetti estetici.",
+      "avoid": "Ugelli morbidi se la carica è abrasiva.",
+      "dry": "45–55 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,24 g/cm³",
+      "hdt": "~50–60 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Glitter",
+      "brands": [
+        "Prusament Galaxy PLA",
+        "Bambu Lab PLA Sparkle",
+        "Fiberlogy Vertigo"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pla-gf",
+      "name": "PLA-GF",
+      "family": "PLA composito",
+      "group": [
+        "abrasive",
+        "engineering"
+      ],
+      "t": [
+        210,
+        245
+      ],
+      "bed": [
+        50,
+        70
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 3,
+      "heat": 3,
+      "uv": 3,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 3,
+      "moisture": 3,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 210,
+      "minBed": 50,
+      "ams": true,
+      "short": "PLA rinforzato fibra vetro: rigido e stabile, ma abrasivo.",
+      "uses": "Dime, staffe leggere, parti rigide e dimensionalmente stabili.",
+      "avoid": "Ugelli standard e parti che richiedono alta tenacità.",
+      "dry": "50–60 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,30–1,45 g/cm³",
+      "hdt": "~60–80 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Polymaker Fiberon PLA-GF",
+        "eSUN PLA-GF"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pla-conductive",
+      "name": "PLA conduttivo",
+      "family": "PLA speciale",
+      "group": [
+        "special"
+      ],
+      "t": [
+        200,
+        230
+      ],
+      "bed": [
+        45,
+        60
+      ],
+      "detail": 3,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 2,
+      "moisture": 3,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 200,
+      "minBed": 45,
+      "ams": false,
+      "short": "PLA con carica conduttiva; resistenza elettrica molto superiore ai metalli.",
+      "uses": "Sensori capacitivi, prototipi, percorsi a bassa corrente.",
+      "avoid": "Alimentazione di potenza, piste equivalenti al rame, ugelli morbidi.",
+      "dry": "50–55 °C.",
+      "vent": "Ventilazione normale; evitare polveri da carteggiatura.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "Variabile",
+      "hdt": "~50–60 °C",
+      "speed": "Bassa",
+      "shrink": "Molto basso",
+      "finish": "Nera tecnica",
+      "brands": [
+        "Proto-pasta Conductive PLA"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pla-esd",
+      "name": "PLA ESD",
+      "family": "PLA speciale",
+      "group": [
+        "special",
+        "abrasive"
+      ],
+      "t": [
+        210,
+        240
+      ],
+      "bed": [
+        50,
+        65
+      ],
+      "detail": 3,
+      "strength": 3,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 3,
+      "ease": 3,
+      "moisture": 3,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 210,
+      "minBed": 50,
+      "ams": false,
+      "short": "PLA formulato per dissipare cariche elettrostatiche.",
+      "uses": "Supporti elettronica, fixture ESD, contenitori tecnici.",
+      "avoid": "Applicazioni ESD certificate senza verificare resistività del lotto.",
+      "dry": "50–60 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "Variabile",
+      "hdt": "~55–65 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Nera tecnica",
+      "brands": [
+        "3DXTech 3DXSTAT ESD PLA"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "petg-hf",
+      "name": "PETG High Flow / High Speed",
+      "family": "PETG",
+      "group": [
+        "easy",
+        "outdoor"
+      ],
+      "t": [
+        230,
+        270
+      ],
+      "bed": [
+        65,
+        85
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 4,
+      "heat": 3,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 4,
+      "moisture": 3,
+      "cost": 2,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 230,
+      "minBed": 65,
+      "ams": true,
+      "short": "PETG ottimizzato per portate elevate e stampa rapida.",
+      "uses": "Parti funzionali, accessori, grandi serie e profili high-speed.",
+      "avoid": "Miniature ultra-fini se il profilo è ottimizzato solo per velocità.",
+      "dry": "55–65 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,27 g/cm³",
+      "hdt": "~65–80 °C",
+      "speed": "Molto alta",
+      "shrink": "Basso",
+      "finish": "Lucida",
+      "brands": [
+        "Bambu Lab PETG HF",
+        "AzureFilm PETG Hyper Speed",
+        "SUNLU Elite PETG"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "petg-translucent",
+      "name": "PETG traslucido / clear",
+      "family": "PETG",
+      "group": [
+        "easy",
+        "outdoor"
+      ],
+      "t": [
+        235,
+        270
+      ],
+      "bed": [
+        65,
+        85
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 4,
+      "heat": 3,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 3,
+      "moisture": 3,
+      "cost": 2,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 235,
+      "minBed": 65,
+      "ams": true,
+      "short": "PETG formulato per trasparenza o traslucenza.",
+      "uses": "Diffusori luce, contenitori, elementi estetici trasparenti.",
+      "avoid": "Ottica realmente trasparente senza post-processing.",
+      "dry": "55–65 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,27 g/cm³",
+      "hdt": "~65–80 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Traslucida",
+      "brands": [
+        "Bambu Lab PETG Translucent",
+        "FormFutura HDglass"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "petg-gf",
+      "name": "PETG-GF",
+      "family": "PETG composito",
+      "group": [
+        "abrasive",
+        "engineering",
+        "outdoor"
+      ],
+      "t": [
+        240,
+        280
+      ],
+      "bed": [
+        70,
+        90
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 4,
+      "heat": 4,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 4,
+      "cost": 4,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 240,
+      "minBed": 70,
+      "ams": true,
+      "short": "PETG rinforzato fibra vetro: rigido, stabile e abrasivo.",
+      "uses": "Staffe, attrezzature, parti tecniche e outdoor.",
+      "avoid": "Ugello standard, dettagli fini o pezzi che devono flettersi.",
+      "dry": "65–75 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,35–1,50 g/cm³",
+      "hdt": "~80–100 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Polymaker Fiberon PETG-GF",
+        "FormFutura AthenaX GF10"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "petg-esd",
+      "name": "PETG ESD",
+      "family": "PETG speciale",
+      "group": [
+        "special",
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        240,
+        270
+      ],
+      "bed": [
+        70,
+        85
+      ],
+      "detail": 3,
+      "strength": 4,
+      "impact": 3,
+      "heat": 3,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": true,
+      "minNozzle": 240,
+      "minBed": 70,
+      "ams": false,
+      "short": "PETG dissipativo per applicazioni elettroniche.",
+      "uses": "Jig ESD, contenitori elettronica, fixture tecniche.",
+      "avoid": "Conformità ESD senza misurazione e certificazione.",
+      "dry": "65–75 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "Variabile",
+      "hdt": "~70–85 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Nera tecnica",
+      "brands": [
+        "Polymaker Fiberon PETG-ESD"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pet",
+      "name": "PET",
+      "family": "Poliestere",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        250,
+        290
+      ],
+      "bed": [
+        70,
+        100
+      ],
+      "detail": 3,
+      "strength": 4,
+      "impact": 4,
+      "heat": 4,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 4,
+      "cost": 3,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 250,
+      "minBed": 70,
+      "ams": true,
+      "short": "PET non glicolizzato, più rigido e termoresistente del PETG ma più impegnativo.",
+      "uses": "Parti tecniche, componenti resistenti, applicazioni industriali.",
+      "avoid": "Stampanti open con forte warping.",
+      "dry": "65–80 °C.",
+      "vent": "Ventilazione ambiente.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,34 g/cm³",
+      "hdt": "~80–100 °C",
+      "speed": "Media",
+      "shrink": "Medio",
+      "finish": "Lucida",
+      "brands": [
+        "FormFutura ReForm rPET",
+        "Bambu Lab PET-CF come variante rinforzata"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pvb",
+      "name": "PVB",
+      "family": "Speciale",
+      "group": [
+        "easy",
+        "special"
+      ],
+      "t": [
+        195,
+        225
+      ],
+      "bed": [
+        60,
+        75
+      ],
+      "detail": 5,
+      "strength": 2,
+      "impact": 2,
+      "heat": 2,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 4,
+      "moisture": 4,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 195,
+      "minBed": 60,
+      "ams": true,
+      "short": "Filamento levigabile chimicamente con isopropanolo per superfici molto lisce.",
+      "uses": "Vasi, modelli estetici, elementi traslucidi e decorativi.",
+      "avoid": "Parti strutturali o alte temperature.",
+      "dry": "45–55 °C, molto importante tenerlo asciutto.",
+      "vent": "Usare IPA solo con corretta ventilazione e lontano da fiamme.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,08 g/cm³",
+      "hdt": "~55–65 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Lucida/levigabile",
+      "brands": [
+        "Prusament PVB",
+        "Fiberlogy FiberSmooth"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "tpu98",
+      "name": "TPU 98A",
+      "family": "Flessibile",
+      "group": [
+        "flex"
+      ],
+      "t": [
+        215,
+        245
+      ],
+      "bed": [
+        30,
+        60
+      ],
+      "detail": 3,
+      "strength": 4,
+      "impact": 5,
+      "heat": 3,
+      "uv": 3,
+      "flex": 4,
+      "chemical": 4,
+      "ease": 3,
+      "moisture": 4,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 215,
+      "minBed": 30,
+      "ams": false,
+      "short": "TPU relativamente rigido e più facile dei gradi molto morbidi.",
+      "uses": "Paraurti, cover, ruote, piedini, protezioni.",
+      "avoid": "AMS/MMU non dichiarati compatibili e bowden lunghi.",
+      "dry": "55–70 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,20 g/cm³",
+      "hdt": "~60–80 °C",
+      "speed": "Media",
+      "shrink": "Molto basso",
+      "finish": "Gommosa",
+      "brands": [
+        "AzureFilm Flexible 98A",
+        "Fiberlogy FiberFlex 40D"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "tpu90",
+      "name": "TPU 90A",
+      "family": "Flessibile",
+      "group": [
+        "flex"
+      ],
+      "t": [
+        215,
+        245
+      ],
+      "bed": [
+        30,
+        60
+      ],
+      "detail": 2,
+      "strength": 4,
+      "impact": 5,
+      "heat": 3,
+      "uv": 3,
+      "flex": 5,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 4,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 215,
+      "minBed": 30,
+      "ams": false,
+      "short": "Più morbido del 95A, richiede percorso filamento ben vincolato.",
+      "uses": "Guarnizioni, grip, bumper, parti elastiche.",
+      "avoid": "Estrusori bowden non ottimizzati e velocità alte.",
+      "dry": "55–70 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,20 g/cm³",
+      "hdt": "~55–75 °C",
+      "speed": "Bassa",
+      "shrink": "Molto basso",
+      "finish": "Morbida",
+      "brands": [
+        "Bambu Lab TPU 90A",
+        "SUNLU TPU 90A"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "tpc",
+      "name": "TPC / Copoliestere elastomerico",
+      "family": "Flessibile tecnico",
+      "group": [
+        "flex",
+        "engineering"
+      ],
+      "t": [
+        230,
+        270
+      ],
+      "bed": [
+        40,
+        80
+      ],
+      "detail": 2,
+      "strength": 4,
+      "impact": 5,
+      "heat": 4,
+      "uv": 4,
+      "flex": 4,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 230,
+      "minBed": 40,
+      "ams": false,
+      "short": "Elastomero tecnico con buona resistenza chimica e termica.",
+      "uses": "Soffietti, guarnizioni tecniche, componenti flessibili durevoli.",
+      "avoid": "Stampanti non adatte ai flessibili o profili veloci.",
+      "dry": "60–80 °C.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,1–1,2 g/cm³",
+      "hdt": "~80–110 °C",
+      "speed": "Bassa",
+      "shrink": "Molto basso",
+      "finish": "Tecnica",
+      "brands": [
+        "DSM Arnitel / TPC family"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "abs-plus",
+      "name": "ABS+ / Easy ABS",
+      "family": "ABS modificato",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        230,
+        270
+      ],
+      "bed": [
+        80,
+        105
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 4,
+      "heat": 4,
+      "uv": 2,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 3,
+      "moisture": 2,
+      "cost": 2,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 230,
+      "minBed": 80,
+      "ams": true,
+      "short": "ABS modificato per ridurre warping e migliorare tenacità.",
+      "uses": "Gusci, parti funzionali, prototipi tecnici.",
+      "avoid": "Stampa senza ventilazione o grandi pezzi completamente open.",
+      "dry": "70–80 °C.",
+      "vent": "Ventilare bene; emissioni VOC.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,04 g/cm³",
+      "hdt": "~85–100 °C",
+      "speed": "Media",
+      "shrink": "Medio",
+      "finish": "Satinata",
+      "brands": [
+        "eSUN ABS+",
+        "SUNLU Easy ABS",
+        "AzureFilm ABS Plus"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "abs-gf",
+      "name": "ABS-GF",
+      "family": "ABS composito",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        240,
+        280
+      ],
+      "bed": [
+        90,
+        110
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 3,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 240,
+      "minBed": 90,
+      "ams": true,
+      "short": "ABS rinforzato fibra vetro: più rigido e stabile ma abrasivo.",
+      "uses": "Jig, staffe, componenti tecnici e termici.",
+      "avoid": "Ugello standard e camera aperta.",
+      "dry": "70–80 °C.",
+      "vent": "Ventilazione/filtrazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,15–1,30 g/cm³",
+      "hdt": "~100–115 °C",
+      "speed": "Media",
+      "shrink": "Medio",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "3D Prima ABS-GF lines",
+        "Polymaker engineering ABS-GF"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "asa-cf",
+      "name": "ASA-CF",
+      "family": "ASA composito",
+      "group": [
+        "engineering",
+        "outdoor",
+        "abrasive"
+      ],
+      "t": [
+        250,
+        290
+      ],
+      "bed": [
+        90,
+        110
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 5,
+      "flex": 1,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 3,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 250,
+      "minBed": 90,
+      "ams": true,
+      "short": "ASA rinforzato carbonio: rigido, UV resistente e dimensionalmente stabile.",
+      "uses": "Parti automotive esterne, droni, supporti outdoor rigidi.",
+      "avoid": "Ugello standard, camera aperta, urti che richiedono duttilità.",
+      "dry": "70–85 °C.",
+      "vent": "Ventilazione/filtrazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,10–1,25 g/cm³",
+      "hdt": "~100–120 °C",
+      "speed": "Media",
+      "shrink": "Basso/Medio",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "FormFutura ApolloX CF10",
+        "Nobufil ASAx CF"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "asa-gf",
+      "name": "ASA-GF",
+      "family": "ASA composito",
+      "group": [
+        "engineering",
+        "outdoor",
+        "abrasive"
+      ],
+      "t": [
+        250,
+        290
+      ],
+      "bed": [
+        90,
+        110
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 5,
+      "flex": 1,
+      "chemical": 4,
+      "ease": 2,
+      "moisture": 3,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 250,
+      "minBed": 90,
+      "ams": true,
+      "short": "ASA fibra vetro per parti rigide e outdoor.",
+      "uses": "Enclosure, supporti esterni, parti tecniche.",
+      "avoid": "Ugello standard e stampanti open.",
+      "dry": "70–85 °C.",
+      "vent": "Ventilazione/filtrazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,20–1,35 g/cm³",
+      "hdt": "~100–120 °C",
+      "speed": "Media",
+      "shrink": "Basso/Medio",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "3D Prima ASA-GF lines"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pc-abs",
+      "name": "PC-ABS",
+      "family": "Blend engineering",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        255,
+        290
+      ],
+      "bed": [
+        90,
+        115
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 2,
+      "flex": 2,
+      "chemical": 4,
+      "ease": 1,
+      "moisture": 3,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 255,
+      "minBed": 90,
+      "ams": true,
+      "short": "Blend PC/ABS: unisce resistenza agli urti e calore con processabilità migliore del PC puro.",
+      "uses": "Automotive, enclosure, utensili, parti tecniche.",
+      "avoid": "Stampante aperta e hotend sotto specifica.",
+      "dry": "80–90 °C.",
+      "vent": "Ventilazione/filtrazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,10–1,18 g/cm³",
+      "hdt": "~100–120 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Medio/Alto",
+      "finish": "Liscia",
+      "brands": [
+        "Polymaker PC-ABS",
+        "Fiberlogy PC/ABS",
+        "Spectrum PC/ABS FR"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pc-cf",
+      "name": "PC-CF",
+      "family": "PC composito",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        270,
+        310
+      ],
+      "bed": [
+        95,
+        120
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 3,
+      "flex": 1,
+      "chemical": 4,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": true,
+      "minNozzle": 270,
+      "minBed": 95,
+      "ams": true,
+      "short": "Policarbonato rinforzato carbonio, molto rigido e termoresistente.",
+      "uses": "Parti strutturali, fixture, componenti ad alta temperatura.",
+      "avoid": "Ugello standard, camera fredda, filamento umido.",
+      "dry": "80–100 °C.",
+      "vent": "Ventilazione/filtrazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,20–1,35 g/cm³",
+      "hdt": "~120–150 °C",
+      "speed": "Bassa",
+      "shrink": "Basso/Medio",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Polymaker PolyMax PC-FR/PC-CF families",
+        "3DXTech CarbonX PC-CF"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pc-fr",
+      "name": "PC-FR / Flame Retardant",
+      "family": "PC speciale",
+      "group": [
+        "engineering",
+        "special"
+      ],
+      "t": [
+        270,
+        310
+      ],
+      "bed": [
+        95,
+        120
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 3,
+      "flex": 1,
+      "chemical": 4,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": false,
+      "minNozzle": 270,
+      "minBed": 95,
+      "ams": true,
+      "short": "PC con additivi ritardanti di fiamma; classificazione dipende dalla specifica formulazione.",
+      "uses": "Enclosure elettriche e parti tecniche dove è richiesta una formulazione FR.",
+      "avoid": "Dichiarare una classe UL senza TDS/certificazione del prodotto.",
+      "dry": "80–100 °C.",
+      "vent": "Ventilazione/filtrazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,2 g/cm³",
+      "hdt": "~120–140 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Liscia",
+      "brands": [
+        "Bambu Lab PC FR",
+        "Polymaker PolyMax PC-FR"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pa6",
+      "name": "PA6 / Nylon 6",
+      "family": "Nylon",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        250,
+        290
+      ],
+      "bed": [
+        70,
+        100
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 3,
+      "flex": 3,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 250,
+      "minBed": 70,
+      "ams": true,
+      "short": "Nylon resistente e tenace, molto sensibile all’umidità.",
+      "uses": "Ingranaggi, cerniere, parti meccaniche e antiusura.",
+      "avoid": "Bobine non essiccate e parti dimensionali su stampante open.",
+      "dry": "70–90 °C per diverse ore, secondo TDS.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,12–1,15 g/cm³",
+      "hdt": "~100–150 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Medio/Alto",
+      "finish": "Tecnica",
+      "brands": [
+        "Bambu Lab PA6-GF/CF families",
+        "eSUN ePA"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pa12",
+      "name": "PA12 / Nylon 12",
+      "family": "Nylon",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        250,
+        290
+      ],
+      "bed": [
+        70,
+        100
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 4,
+      "uv": 3,
+      "flex": 3,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 250,
+      "minBed": 70,
+      "ams": true,
+      "short": "Nylon con minore assorbimento d’acqua e buona stabilità dimensionale rispetto al PA6.",
+      "uses": "Parti meccaniche, snap-fit, condotti e componenti tecnici.",
+      "avoid": "Stampa senza essiccazione o senza controllo del warping.",
+      "dry": "70–90 °C.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,01 g/cm³",
+      "hdt": "~90–130 °C",
+      "speed": "Bassa/Media",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "Fiberlogy Nylon PA12"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pa11",
+      "name": "PA11",
+      "family": "Nylon bio-based",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        250,
+        290
+      ],
+      "bed": [
+        70,
+        100
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 4,
+      "uv": 3,
+      "flex": 4,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 250,
+      "minBed": 70,
+      "ams": true,
+      "short": "Nylon molto tenace e flessibile, usato anche in applicazioni funzionali avanzate.",
+      "uses": "Cerniere vive, parti antiurto, componenti tecnici.",
+      "avoid": "Stampa senza essiccazione e camera controllata.",
+      "dry": "70–90 °C.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,03 g/cm³",
+      "hdt": "~90–120 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "Prusament PA11 Carbon Fiber (rinforzato)"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pa-gf",
+      "name": "PA-GF",
+      "family": "Nylon composito",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        260,
+        300
+      ],
+      "bed": [
+        80,
+        110
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 260,
+      "minBed": 80,
+      "ams": true,
+      "short": "Nylon rinforzato fibra vetro: alta rigidità, temperatura e resistenza all’usura.",
+      "uses": "Dime, attrezzature, parti meccaniche e automotive.",
+      "avoid": "Ugello standard, bobina umida, stampante open.",
+      "dry": "80–100 °C.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,25–1,40 g/cm³",
+      "hdt": "~130–180 °C",
+      "speed": "Media",
+      "shrink": "Basso/Medio",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Bambu Lab PA6-GF",
+        "Polymaker Fiberon PA-GF"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pa12-cf",
+      "name": "PA12-CF",
+      "family": "Nylon composito",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        260,
+        300
+      ],
+      "bed": [
+        80,
+        110
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 260,
+      "minBed": 80,
+      "ams": true,
+      "short": "PA12 carbonio: buona stabilità dimensionale, rigidità e minore assorbimento rispetto al PA6.",
+      "uses": "Fixture, droni, parti meccaniche, automotive.",
+      "avoid": "Ugello standard e bobina umida.",
+      "dry": "80–100 °C.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,10–1,20 g/cm³",
+      "hdt": "~130–170 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "Fiberlogy PA12+CF",
+        "3DXTech PA12-CF"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "ppa",
+      "name": "PPA",
+      "family": "Nylon alta temperatura",
+      "group": [
+        "engineering"
+      ],
+      "t": [
+        280,
+        320
+      ],
+      "bed": [
+        90,
+        120
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": false,
+      "minNozzle": 280,
+      "minBed": 90,
+      "ams": true,
+      "short": "Poliftalamide ad alta temperatura, molto più impegnativa dei nylon standard.",
+      "uses": "Componenti automotive, fixture termiche, parti industriali.",
+      "avoid": "Hotend/camera non adatti e bobina non essiccata.",
+      "dry": "90–120 °C secondo TDS.",
+      "vent": "Filtrazione/ventilazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,1–1,2 g/cm³",
+      "hdt": "~150–220 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "Bambu Lab PPA-CF (rinforzato)",
+        "Polymaker Fiberon PPA"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pps",
+      "name": "PPS",
+      "family": "Super engineering",
+      "group": [
+        "engineering",
+        "special"
+      ],
+      "t": [
+        300,
+        340
+      ],
+      "bed": [
+        100,
+        130
+      ],
+      "detail": 2,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": false,
+      "minNozzle": 300,
+      "minBed": 100,
+      "ams": false,
+      "short": "Polimero ad altissima resistenza chimica e termica; richiede hardware avanzato.",
+      "uses": "Componenti industriali, chimici ed elettrici ad alta temperatura.",
+      "avoid": "Stampanti consumer senza camera calda e hotend adatto.",
+      "dry": "100–130 °C secondo TDS.",
+      "vent": "Filtrazione/ventilazione forte raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,35 g/cm³",
+      "hdt": ">200 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "PPS industrial filament"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pps-gf",
+      "name": "PPS-GF",
+      "family": "Super engineering composito",
+      "group": [
+        "engineering",
+        "special",
+        "abrasive"
+      ],
+      "t": [
+        310,
+        350
+      ],
+      "bed": [
+        100,
+        130
+      ],
+      "detail": 2,
+      "strength": 5,
+      "impact": 4,
+      "heat": 5,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": true,
+      "minNozzle": 310,
+      "minBed": 100,
+      "ams": false,
+      "short": "PPS rinforzato fibra vetro per estrema rigidità e stabilità termica.",
+      "uses": "Parti industriali e chimiche, fixture ad alta temperatura.",
+      "avoid": "Stampanti consumer e ugelli standard.",
+      "dry": "100–130 °C.",
+      "vent": "Filtrazione/ventilazione forte raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,5–1,7 g/cm³",
+      "hdt": ">220 °C",
+      "speed": "Bassa",
+      "shrink": "Basso",
+      "finish": "Opaca tecnica",
+      "brands": [
+        "PPS-GF industrial lines"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pp-gf",
+      "name": "PP-GF",
+      "family": "PP composito",
+      "group": [
+        "engineering",
+        "abrasive"
+      ],
+      "t": [
+        230,
+        270
+      ],
+      "bed": [
+        80,
+        110
+      ],
+      "detail": 2,
+      "strength": 4,
+      "impact": 5,
+      "heat": 4,
+      "uv": 4,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 2,
+      "moisture": 2,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": true,
+      "minNozzle": 230,
+      "minBed": 80,
+      "ams": true,
+      "short": "Polipropilene rinforzato fibra vetro: leggero e più rigido del PP puro.",
+      "uses": "Automotive, cerniere, contenitori tecnici, parti chimicamente resistenti.",
+      "avoid": "Piani senza superficie adatta al PP e ugelli standard.",
+      "dry": "60–80 °C.",
+      "vent": "Ventilazione ambiente.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,0–1,15 g/cm³",
+      "hdt": "~110–140 °C",
+      "speed": "Media",
+      "shrink": "Medio/Alto",
+      "finish": "Tecnica",
+      "brands": [
+        "PP-GF engineering filaments"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "bvoh",
+      "name": "BVOH",
+      "family": "Supporto solubile",
+      "group": [
+        "support"
+      ],
+      "t": [
+        190,
+        220
+      ],
+      "bed": [
+        45,
+        60
+      ],
+      "detail": 3,
+      "strength": 2,
+      "impact": 2,
+      "heat": 1,
+      "uv": 1,
+      "flex": 1,
+      "chemical": 2,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 5,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 190,
+      "minBed": 45,
+      "ams": false,
+      "short": "Supporto solubile in acqua, spesso più versatile del PVA.",
+      "uses": "Supporti complessi multi-materiale.",
+      "avoid": "Stoccaggio umido: assorbe acqua molto rapidamente.",
+      "dry": "45–60 °C e contenitore secco.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,1–1,2 g/cm³",
+      "hdt": "Bassa",
+      "speed": "Bassa",
+      "shrink": "Basso",
+      "finish": "Supporto",
+      "brands": [
+        "Fiberlogy BVOH"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "support-pa",
+      "name": "Support for PA / engineering",
+      "family": "Supporto tecnico",
+      "group": [
+        "support",
+        "engineering"
+      ],
+      "t": [
+        240,
+        290
+      ],
+      "bed": [
+        70,
+        100
+      ],
+      "detail": 2,
+      "strength": 2,
+      "impact": 2,
+      "heat": 3,
+      "uv": 2,
+      "flex": 1,
+      "chemical": 3,
+      "ease": 1,
+      "moisture": 5,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 240,
+      "minBed": 70,
+      "ams": false,
+      "short": "Materiale di supporto dedicato a nylon e tecnopolimeri, spesso breakaway.",
+      "uses": "Interfacce pulite in PA, PC o blend tecnici.",
+      "avoid": "Uso come materiale strutturale.",
+      "dry": "Essiccare secondo TDS.",
+      "vent": "Ventilazione consigliata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "Variabile",
+      "hdt": "Variabile",
+      "speed": "Bassa",
+      "shrink": "Basso",
+      "finish": "Supporto",
+      "brands": [
+        "Bambu Lab Support for PA/PET",
+        "Polymaker PolySupport for PA"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "cpe",
+      "name": "CPE / Co-Polyester",
+      "family": "Copoliestere",
+      "group": [
+        "engineering",
+        "outdoor"
+      ],
+      "t": [
+        240,
+        275
+      ],
+      "bed": [
+        70,
+        90
+      ],
+      "detail": 4,
+      "strength": 4,
+      "impact": 4,
+      "heat": 4,
+      "uv": 4,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 3,
+      "moisture": 3,
+      "cost": 3,
+      "enclosure": 0,
+      "abrasive": false,
+      "minNozzle": 240,
+      "minBed": 70,
+      "ams": true,
+      "short": "Copoliestere resistente e chimicamente stabile, alternativa a PETG/PCTG.",
+      "uses": "Parti funzionali, meccaniche, contenitori e outdoor.",
+      "avoid": "Profili generici senza calibrazione specifica.",
+      "dry": "60–70 °C.",
+      "vent": "Normale ventilazione.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,25–1,30 g/cm³",
+      "hdt": "~75–100 °C",
+      "speed": "Media",
+      "shrink": "Basso",
+      "finish": "Lucida",
+      "brands": [
+        "Fillamentum CPE",
+        "Ultimaker CPE"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pmma",
+      "name": "PMMA / Acrylic",
+      "family": "Acrilico",
+      "group": [
+        "special",
+        "engineering"
+      ],
+      "t": [
+        240,
+        270
+      ],
+      "bed": [
+        90,
+        110
+      ],
+      "detail": 4,
+      "strength": 3,
+      "impact": 2,
+      "heat": 4,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 3,
+      "ease": 1,
+      "moisture": 2,
+      "cost": 4,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 240,
+      "minBed": 90,
+      "ams": false,
+      "short": "Acrilico stampabile con buona trasparenza e rigidità, ma sensibile al cracking.",
+      "uses": "Diffusori, cover trasparenti, oggetti estetici.",
+      "avoid": "Pezzi antiurto e stampante open.",
+      "dry": "60–80 °C.",
+      "vent": "Ventilazione/filtrazione raccomandata.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,18 g/cm³",
+      "hdt": "~90–105 °C",
+      "speed": "Bassa",
+      "shrink": "Alto",
+      "finish": "Lucida/trasparente",
+      "brands": [
+        "PMMA filament families"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pom",
+      "name": "POM / Acetal",
+      "family": "Super engineering",
+      "group": [
+        "engineering",
+        "special"
+      ],
+      "t": [
+        210,
+        235
+      ],
+      "bed": [
+        90,
+        120
+      ],
+      "detail": 3,
+      "strength": 5,
+      "impact": 5,
+      "heat": 4,
+      "uv": 3,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 2,
+      "cost": 5,
+      "enclosure": 1,
+      "abrasive": false,
+      "minNozzle": 210,
+      "minBed": 90,
+      "ams": false,
+      "short": "Acetalico a basso attrito, molto difficile da stampare e con scarsa adesione.",
+      "uses": "Ingranaggi, boccole e parti a basso attrito.",
+      "avoid": "Uso domestico senza corretta ventilazione e profilo validato.",
+      "dry": "60–80 °C.",
+      "vent": "Ventilazione molto importante; surriscaldamento da evitare.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,41 g/cm³",
+      "hdt": "~100–120 °C",
+      "speed": "Bassa",
+      "shrink": "Alto",
+      "finish": "Liscia",
+      "brands": [
+        "POM filament specialist lines"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pei",
+      "name": "PEI / ULTEM",
+      "family": "High-performance polymer",
+      "group": [
+        "engineering",
+        "special"
+      ],
+      "t": [
+        350,
+        390
+      ],
+      "bed": [
+        140,
+        170
+      ],
+      "detail": 2,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": false,
+      "minNozzle": 350,
+      "minBed": 140,
+      "ams": false,
+      "short": "Polimero industriale ad altissima temperatura; richiede stampante high-temp dedicata.",
+      "uses": "Aerospazio, elettrico, componenti industriali ad alta temperatura.",
+      "avoid": "Qualsiasi stampante consumer standard.",
+      "dry": "120–150 °C.",
+      "vent": "Camera calda e filtrazione professionale.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,27 g/cm³",
+      "hdt": ">200 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "PEI 9085 / ULTEM filament"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "peek",
+      "name": "PEEK",
+      "family": "High-performance polymer",
+      "group": [
+        "engineering",
+        "special"
+      ],
+      "t": [
+        360,
+        420
+      ],
+      "bed": [
+        140,
+        180
+      ],
+      "detail": 2,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": false,
+      "minNozzle": 360,
+      "minBed": 140,
+      "ams": false,
+      "short": "Termoplastico ad altissime prestazioni e costo elevato; serve hardware professionale.",
+      "uses": "Medicale/industriale qualificato, aerospazio, parti ad alta temperatura.",
+      "avoid": "Stampanti consumer e applicazioni certificate senza processo qualificato.",
+      "dry": "120–150 °C.",
+      "vent": "Camera calda e filtrazione professionale.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,30 g/cm³",
+      "hdt": ">250 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "PEEK industrial filament"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "pekk",
+      "name": "PEKK",
+      "family": "High-performance polymer",
+      "group": [
+        "engineering",
+        "special"
+      ],
+      "t": [
+        340,
+        400
+      ],
+      "bed": [
+        120,
+        160
+      ],
+      "detail": 2,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 4,
+      "flex": 1,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": false,
+      "minNozzle": 340,
+      "minBed": 120,
+      "ams": false,
+      "short": "Polimero high-temp della famiglia PAEK, spesso più stampabile del PEEK ma sempre industriale.",
+      "uses": "Aerospazio, industriale, parti ad alte prestazioni.",
+      "avoid": "Stampanti consumer e processi non qualificati.",
+      "dry": "120–150 °C.",
+      "vent": "Camera calda e filtrazione professionale.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,27–1,32 g/cm³",
+      "hdt": ">200 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "PEKK industrial filament"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    },
+    {
+      "id": "ppsu",
+      "name": "PPSU",
+      "family": "High-performance polymer",
+      "group": [
+        "engineering",
+        "special"
+      ],
+      "t": [
+        350,
+        390
+      ],
+      "bed": [
+        140,
+        170
+      ],
+      "detail": 2,
+      "strength": 5,
+      "impact": 5,
+      "heat": 5,
+      "uv": 4,
+      "flex": 2,
+      "chemical": 5,
+      "ease": 1,
+      "moisture": 4,
+      "cost": 5,
+      "enclosure": 2,
+      "abrasive": false,
+      "minNozzle": 350,
+      "minBed": 140,
+      "ams": false,
+      "short": "Polimero amorfo high-temp con elevata resistenza a urti, vapore e idrolisi.",
+      "uses": "Medicale/industriale, componenti sottoposti a sterilizzazione.",
+      "avoid": "Stampanti consumer e processi non qualificati.",
+      "dry": "120–150 °C.",
+      "vent": "Camera calda e filtrazione professionale.",
+      "bambu": [],
+      "sunlu": [],
+      "density": "~1,29 g/cm³",
+      "hdt": ">200 °C",
+      "speed": "Bassa",
+      "shrink": "Medio",
+      "finish": "Tecnica",
+      "brands": [
+        "PPSU industrial filament"
+      ],
+      "notes": "Valori indicativi: verificare sempre la scheda tecnica della specifica formulazione."
+    }
+  ],
+  "printers": [
+    {
+      "id": "bambu-a1-mini",
+      "brand": "Bambu Lab",
+      "model": "A1 mini",
+      "status": "current",
+      "volume": [
+        180,
+        180,
+        180
+      ],
+      "nozzleMax": 300,
+      "bedMax": 80,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "AMS lite",
+      "notes": "PLA/PETG/TPU/PVA ideali; materiali tecnici ad alta deformazione non consigliati."
+    },
+    {
+      "id": "bambu-a1",
+      "brand": "Bambu Lab",
+      "model": "A1",
+      "status": "current",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "AMS lite",
+      "notes": "PLA/PETG/TPU/PVA ideali; ABS/ASA/PC/PA e CF/GF non consigliati da Bambu come uso generale."
+    },
+    {
+      "id": "bambu-a2l",
+      "brand": "Bambu Lab",
+      "model": "A2L",
+      "status": "current",
+      "volume": [
+        330,
+        320,
+        325
+      ],
+      "nozzleMax": 300,
+      "bedMax": 80,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "AMS / AMS lite",
+      "notes": "Grande formato open-frame, orientata a PLA/PETG e filamenti non-engineering."
+    },
+    {
+      "id": "bambu-p1p",
+      "brand": "Bambu Lab",
+      "model": "P1P",
+      "status": "legacy",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "AMS",
+      "notes": "Modello EOL ma ancora supportato. Open-frame."
+    },
+    {
+      "id": "bambu-p1s",
+      "brand": "Bambu Lab",
+      "model": "P1S",
+      "status": "current",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "AMS / AMS 2 Pro",
+      "notes": "Camera chiusa passiva. Ottima per ABS/ASA; PA/PC possibili. CF/GF richiede hotend/ingranaggi adeguati."
+    },
+    {
+      "id": "bambu-p2s",
+      "brand": "Bambu Lab",
+      "model": "P2S",
+      "status": "current",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "enclosed",
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "AMS 2 Pro / AMS HT",
+      "notes": "Camera chiusa con gestione airflow e sistema di estrusione temprato; adatta anche a molti filamenti tecnici."
+    },
+    {
+      "id": "bambu-x1",
+      "brand": "Bambu Lab",
+      "model": "X1",
+      "status": "legacy",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "AMS",
+      "notes": "Legacy/EOL. Profilo simile alla prima generazione X1."
+    },
+    {
+      "id": "bambu-x1c",
+      "brand": "Bambu Lab",
+      "model": "X1 Carbon",
+      "status": "legacy",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "enclosed",
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "AMS / AMS 2 Pro",
+      "notes": "Legacy/EOL ma molto capace: nozzle e ingranaggi temprati, adatta a PA/PC e CF/GF."
+    },
+    {
+      "id": "bambu-x1e",
+      "brand": "Bambu Lab",
+      "model": "X1E",
+      "status": "legacy",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 320,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 60,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "AMS",
+      "notes": "Enterprise legacy con camera riscaldata: indicata per filamenti engineering."
+    },
+    {
+      "id": "bambu-x2d",
+      "brand": "Bambu Lab",
+      "model": "X2D",
+      "status": "current",
+      "volume": [
+        256,
+        256,
+        260
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "heated",
+      "chamberTemp": 65,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "Dual nozzle + AMS",
+      "notes": "Dual-toolhead, camera attiva 65 °C, ottima per supporti dedicati e materiali engineering."
+    },
+    {
+      "id": "bambu-h2s",
+      "brand": "Bambu Lab",
+      "model": "H2S",
+      "status": "current",
+      "volume": [
+        340,
+        320,
+        340
+      ],
+      "nozzleMax": 350,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 65,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "AMS 2 Pro / AMS HT",
+      "notes": "Grande formato, 350 °C, camera attiva 65 °C; ampia compatibilità con engineering."
+    },
+    {
+      "id": "bambu-h2d",
+      "brand": "Bambu Lab",
+      "model": "H2D",
+      "status": "current",
+      "volume": [
+        325,
+        320,
+        325
+      ],
+      "nozzleMax": 350,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 65,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "Dual nozzle + AMS 2 Pro / AMS HT",
+      "notes": "Dual nozzle, 350 °C, camera attiva 65 °C; molto adatta a compositi e multi-materiale."
+    },
+    {
+      "id": "bambu-h2d-pro",
+      "brand": "Bambu Lab",
+      "model": "H2D Pro",
+      "status": "current",
+      "volume": [
+        325,
+        320,
+        325
+      ],
+      "nozzleMax": 350,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 65,
+      "nozzle": "tungsten",
+      "direct": true,
+      "multicolor": "Dual nozzle + AMS 2 Pro / AMS HT",
+      "notes": "Versione enterprise: ugelli in carburo di tungsteno e supporto avanzato a PPA/PPS/PPS-CF."
+    },
+    {
+      "id": "bambu-h2c",
+      "brand": "Bambu Lab",
+      "model": "H2C",
+      "status": "current",
+      "volume": [
+        305,
+        320,
+        325
+      ],
+      "nozzleMax": 350,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 65,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "Vortek multi-material",
+      "notes": "Sistema multi-materiale avanzato, camera attiva e 350 °C."
+    },
+    {
+      "id": "creality-ender3",
+      "brand": "Creality",
+      "model": "Ender-3 / Ender-3 Pro",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        250
+      ],
+      "nozzleMax": 260,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": false,
+      "multicolor": "No",
+      "notes": "Profilo generico per Ender-3 classiche; modifiche hardware possono cambiare i limiti."
+    },
+    {
+      "id": "creality-ender3-v2",
+      "brand": "Creality",
+      "model": "Ender-3 V2 / Neo",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        250
+      ],
+      "nozzleMax": 260,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": false,
+      "multicolor": "No",
+      "notes": "Open-frame; ottima per PLA/PETG, TPU più semplice con direct-drive upgrade."
+    },
+    {
+      "id": "creality-ender3-s1",
+      "brand": "Creality",
+      "model": "Ender-3 S1 / S1 Pro",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        270
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Direct drive; S1 Pro può spingersi più in alto con materiali tecnici ma resta open-frame."
+    },
+    {
+      "id": "creality-ender3-v3-se",
+      "brand": "Creality",
+      "model": "Ender-3 V3 SE",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        250
+      ],
+      "nozzleMax": 260,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Profilo open-frame rapido per PLA/PETG/TPU."
+    },
+    {
+      "id": "creality-ender3-v3-ke",
+      "brand": "Creality",
+      "model": "Ender-3 V3 KE",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        240
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "300 °C ma senza enclosure: nylon/ABS grandi richiedono cautela."
+    },
+    {
+      "id": "creality-k1",
+      "brand": "Creality",
+      "model": "K1",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        250
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "CFS su revisioni compatibili",
+      "notes": "CoreXY chiusa; materiali tecnici possibili, abrasivi solo con ugello adeguato."
+    },
+    {
+      "id": "creality-k1c",
+      "brand": "Creality",
+      "model": "K1C",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        250
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "enclosed",
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "CFS su revisioni compatibili",
+      "notes": "Orientata anche a CF con nozzle/estrusore più adatti."
+    },
+    {
+      "id": "creality-k1-max",
+      "brand": "Creality",
+      "model": "K1 Max",
+      "status": "common",
+      "volume": [
+        300,
+        300,
+        300
+      ],
+      "nozzleMax": 300,
+      "bedMax": 120,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "CFS su revisioni compatibili",
+      "notes": "Grande formato CoreXY chiuso."
+    },
+    {
+      "id": "creality-k2-plus",
+      "brand": "Creality",
+      "model": "K2 Plus",
+      "status": "common",
+      "volume": [
+        350,
+        350,
+        350
+      ],
+      "nozzleMax": 350,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 60,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "CFS",
+      "notes": "Grande formato con camera riscaldata; adatta a engineering e compositi."
+    },
+    {
+      "id": "prusa-mini",
+      "brand": "Prusa",
+      "model": "MINI+",
+      "status": "common",
+      "volume": [
+        180,
+        180,
+        180
+      ],
+      "nozzleMax": 280,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": false,
+      "multicolor": "No",
+      "notes": "Compatta open-frame; PLA/PETG eccellenti."
+    },
+    {
+      "id": "prusa-mk3",
+      "brand": "Prusa",
+      "model": "MK3S+",
+      "status": "common",
+      "volume": [
+        250,
+        210,
+        210
+      ],
+      "nozzleMax": 300,
+      "bedMax": 120,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "MMU3",
+      "notes": "Molto versatile; enclosure opzionale per materiali warp-prone."
+    },
+    {
+      "id": "prusa-mk4s",
+      "brand": "Prusa",
+      "model": "MK4 / MK4S",
+      "status": "common",
+      "volume": [
+        250,
+        210,
+        220
+      ],
+      "nozzleMax": 290,
+      "bedMax": 120,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "MMU3",
+      "notes": "Open-frame di precisione; enclosure consigliata per ABS/ASA/PC."
+    },
+    {
+      "id": "prusa-core-one",
+      "brand": "Prusa",
+      "model": "CORE One",
+      "status": "common",
+      "volume": [
+        250,
+        220,
+        270
+      ],
+      "nozzleMax": 290,
+      "bedMax": 120,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "MMU3",
+      "notes": "CoreXY chiusa, adatta a una gamma ampia di materiali."
+    },
+    {
+      "id": "prusa-xl",
+      "brand": "Prusa",
+      "model": "XL",
+      "status": "common",
+      "volume": [
+        360,
+        360,
+        360
+      ],
+      "nozzleMax": 290,
+      "bedMax": 120,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "2-5 toolheads",
+      "notes": "Multi-tool grande formato; enclosure disponibile/opzionale."
+    },
+    {
+      "id": "any-kobra2",
+      "brand": "Anycubic",
+      "model": "Kobra 2 / Kobra 2 Neo",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        250
+      ],
+      "nozzleMax": 260,
+      "bedMax": 110,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Open-frame per materiali standard."
+    },
+    {
+      "id": "any-kobra3",
+      "brand": "Anycubic",
+      "model": "Kobra 3",
+      "status": "common",
+      "volume": [
+        250,
+        250,
+        260
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "ACE",
+      "notes": "Multicolore open-frame; ottima su PLA/PETG/TPU."
+    },
+    {
+      "id": "any-kobra3-max",
+      "brand": "Anycubic",
+      "model": "Kobra 3 Max",
+      "status": "common",
+      "volume": [
+        420,
+        420,
+        500
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "ACE",
+      "notes": "Grande formato aperto: attenzione al warping con materiali tecnici."
+    },
+    {
+      "id": "elegoo-neptune3",
+      "brand": "Elegoo",
+      "model": "Neptune 3 / 3 Pro",
+      "status": "common",
+      "volume": [
+        225,
+        225,
+        280
+      ],
+      "nozzleMax": 260,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Open-frame generalista."
+    },
+    {
+      "id": "elegoo-neptune4",
+      "brand": "Elegoo",
+      "model": "Neptune 4 / 4 Pro",
+      "status": "common",
+      "volume": [
+        225,
+        225,
+        265
+      ],
+      "nozzleMax": 300,
+      "bedMax": 110,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Rapida e direct drive; 300 °C ma camera aperta."
+    },
+    {
+      "id": "elegoo-centauri",
+      "brand": "Elegoo",
+      "model": "Centauri Carbon",
+      "status": "common",
+      "volume": [
+        256,
+        256,
+        256
+      ],
+      "nozzleMax": 320,
+      "bedMax": 110,
+      "chamber": "enclosed",
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "CoreXY chiusa orientata anche a filamenti rinforzati."
+    },
+    {
+      "id": "qidi-q1pro",
+      "brand": "QIDI",
+      "model": "Q1 Pro",
+      "status": "common",
+      "volume": [
+        245,
+        245,
+        240
+      ],
+      "nozzleMax": 350,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 60,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Camera attiva; ottima per materiali engineering."
+    },
+    {
+      "id": "qidi-plus4",
+      "brand": "QIDI",
+      "model": "Plus4",
+      "status": "common",
+      "volume": [
+        305,
+        305,
+        280
+      ],
+      "nozzleMax": 370,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 65,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "QIDI Box",
+      "notes": "Alta temperatura e camera attiva, indicata per tecnopolimeri."
+    },
+    {
+      "id": "qidi-xmax3",
+      "brand": "QIDI",
+      "model": "X-Max 3",
+      "status": "common",
+      "volume": [
+        325,
+        325,
+        315
+      ],
+      "nozzleMax": 350,
+      "bedMax": 120,
+      "chamber": "heated",
+      "chamberTemp": 65,
+      "nozzle": "hardened",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Grande formato, camera riscaldata."
+    },
+    {
+      "id": "ff-5m",
+      "brand": "Flashforge",
+      "model": "Adventurer 5M",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        220
+      ],
+      "nozzleMax": 280,
+      "bedMax": 110,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "CoreXY aperta."
+    },
+    {
+      "id": "ff-5mpro",
+      "brand": "Flashforge",
+      "model": "Adventurer 5M Pro",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        220
+      ],
+      "nozzleMax": 280,
+      "bedMax": 110,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "CoreXY chiusa con filtrazione."
+    },
+    {
+      "id": "sovol-sv06",
+      "brand": "Sovol",
+      "model": "SV06 / SV06 Plus",
+      "status": "common",
+      "volume": [
+        220,
+        220,
+        250
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "Open-frame direct drive."
+    },
+    {
+      "id": "sovol-sv08",
+      "brand": "Sovol",
+      "model": "SV08",
+      "status": "common",
+      "volume": [
+        350,
+        350,
+        345
+      ],
+      "nozzleMax": 300,
+      "bedMax": 100,
+      "chamber": "open",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "No",
+      "notes": "CoreXY grande formato; enclosure opzionale."
+    },
+    {
+      "id": "voron24",
+      "brand": "Voron",
+      "model": "Voron 2.4 (profilo generico)",
+      "status": "custom",
+      "volume": [
+        300,
+        300,
+        300
+      ],
+      "nozzleMax": 300,
+      "bedMax": 120,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "ERCF / custom",
+      "notes": "Le Voron sono build personalizzate: modifica il profilo se la tua configurazione differisce."
+    },
+    {
+      "id": "voron-trident",
+      "brand": "Voron",
+      "model": "Trident (profilo generico)",
+      "status": "custom",
+      "volume": [
+        300,
+        300,
+        250
+      ],
+      "nozzleMax": 300,
+      "bedMax": 120,
+      "chamber": "enclosed",
+      "nozzle": "standard",
+      "direct": true,
+      "multicolor": "ERCF / custom",
+      "notes": "Profilo indicativo; dipende dai componenti installati."
+    }
+  ],
+  "brands": [
+    {
+      "name": "Bambu Lab",
+      "region": "EU",
+      "lines": [
+        "PLA Basic",
+        "PLA Matte",
+        "PLA Silk+",
+        "PETG HF",
+        "PETG Translucent",
+        "ABS",
+        "ASA",
+        "PC",
+        "PA6-CF",
+        "PAHT-CF",
+        "PET-CF",
+        "PPA-CF",
+        "PPS-CF",
+        "TPU"
+      ]
+    },
+    {
+      "name": "SUNLU",
+      "region": "EU/IT",
+      "lines": [
+        "PLA",
+        "PLA+",
+        "PLA Matte",
+        "Silk PLA",
+        "High Speed PLA",
+        "PETG",
+        "Elite PETG",
+        "ABS",
+        "ASA",
+        "TPU",
+        "PLA-CF",
+        "PETG-CF"
+      ]
+    },
+    {
+      "name": "eSUN",
+      "region": "EU",
+      "lines": [
+        "PLA+",
+        "ePLA-HS",
+        "PETG",
+        "ABS+",
+        "ASA",
+        "eTPU",
+        "ePA",
+        "ePA-CF",
+        "PVA",
+        "HIPS"
+      ]
+    },
+    {
+      "name": "Polymaker",
+      "region": "EU",
+      "lines": [
+        "Panchroma",
+        "PolyLite",
+        "PolyMax",
+        "Fiberon",
+        "PolyFlex",
+        "PolySupport",
+        "PolyDissolve"
+      ]
+    },
+    {
+      "name": "Prusament",
+      "region": "EU",
+      "lines": [
+        "PLA",
+        "PETG",
+        "ASA",
+        "PC Blend",
+        "PVB",
+        "PA11-CF"
+      ]
+    },
+    {
+      "name": "Fiberlogy",
+      "region": "EU",
+      "lines": [
+        "Easy PLA",
+        "PCTG",
+        "ASA",
+        "ABS",
+        "FiberFlex",
+        "Nylon PA12",
+        "PA12+CF",
+        "BVOH",
+        "FiberWood",
+        "FiberSmooth"
+      ]
+    },
+    {
+      "name": "Spectrum",
+      "region": "EU",
+      "lines": [
+        "PLA Premium",
+        "PLA HS",
+        "rPLA",
+        "PETG",
+        "ASA",
+        "PC-ABS FR",
+        "ReFill"
+      ]
+    },
+    {
+      "name": "FormFutura",
+      "region": "EU",
+      "lines": [
+        "EasyFil",
+        "HDglass",
+        "ApolloX",
+        "AthenaX",
+        "ReForm",
+        "CarbonFil",
+        "EasyWood",
+        "StoneFil"
+      ]
+    },
+    {
+      "name": "AzureFilm",
+      "region": "EU/IT",
+      "lines": [
+        "PLA Original",
+        "PLA Strongman",
+        "PLA Silk",
+        "PETG Hyper Speed",
+        "ASA",
+        "ABS Plus",
+        "PAHT-CF",
+        "PET-CF",
+        "Flexible 85A/98A"
+      ]
+    },
+    {
+      "name": "colorFabb",
+      "region": "EU",
+      "lines": [
+        "PLA/PHA",
+        "LW-PLA",
+        "LW-ASA",
+        "varioShore TPU",
+        "metalFill"
+      ]
+    },
+    {
+      "name": "Elegoo",
+      "region": "EU",
+      "lines": [
+        "PLA",
+        "PLA+",
+        "Rapid PLA+",
+        "PETG",
+        "TPU 95A",
+        "ASA"
+      ]
+    },
+    {
+      "name": "Creality",
+      "region": "EU",
+      "lines": [
+        "Hyper PLA",
+        "CR-PLA",
+        "CR-PETG",
+        "ABS",
+        "ASA",
+        "TPU"
+      ]
+    },
+    {
+      "name": "Anycubic",
+      "region": "EU",
+      "lines": [
+        "PLA",
+        "High Speed PLA",
+        "PETG",
+        "TPU",
+        "ABS"
+      ]
+    },
+    {
+      "name": "Overture",
+      "region": "Marketplace",
+      "lines": [
+        "PLA",
+        "PLA Professional",
+        "PETG",
+        "TPU",
+        "ABS",
+        "ASA",
+        "Nylon"
+      ]
+    },
+    {
+      "name": "ERYONE",
+      "region": "Marketplace/EU",
+      "lines": [
+        "PLA",
+        "Silk PLA",
+        "PETG",
+        "TPU",
+        "ASA",
+        "CF families"
+      ]
+    },
+    {
+      "name": "Fillamentum",
+      "region": "EU",
+      "lines": [
+        "PLA Extrafill",
+        "CPE",
+        "ASA Extrafill",
+        "Flexfill",
+        "Timberfill"
+      ]
+    },
+    {
+      "name": "3DJake",
+      "region": "EU/IT",
+      "lines": [
+        "ecoPLA",
+        "PETG",
+        "ASA",
+        "TPU",
+        "specialty lines"
+      ]
+    },
+    {
+      "name": "PrimaValue",
+      "region": "EU",
+      "lines": [
+        "PLA",
+        "PETG",
+        "ABS",
+        "ASA"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {money, compatibility, recommend, offerView, filterOffers, mergeSource, costEstimate, safeUrl} from '../src/web/domain.mjs';
+const catalog=JSON.parse(readFileSync(new URL('../src/web/catalog.json',import.meta.url)));
+const mat=id=>catalog.materials.find(m=>m.id===id), printer=id=>catalog.printers.find(p=>p.id===id);
+
+test('missing prices are not zero euros',()=>{assert.equal(money(null),'—');assert.equal(money(''),'—');});
+test('subtotal is explicit when shipping is unknown',()=>{const o=offerView({price:15,weight_kg:2,shipping_known:false},3);assert.equal(o.subtotal,45);assert.equal(o.total,null);assert.equal(o.purchasedKg,6);assert.equal(o.unitPerKg,7.5);});
+test('known shipping is charged once per order',()=>{const o=offerView({price:15,weight_kg:.75,shipping_known:true,shipping_cost:5},2);assert.equal(o.total,35);assert.equal(o.purchasedKg,1.5);});
+test('unknown weight never defaults to one kg',()=>{const o=offerView({price:15},1);assert.equal(o.unitPerKg,null);assert.equal(o.purchasedKg,null);});
+test('stock filtering requires explicit availability and safe URLs',()=>{const rows=[true,false,null].map((available,i)=>({price:i+1,available,url:'https://shop.test/'+i}));rows.push({price:1,available:true,url:'javascript:alert(1)'});assert.equal(filterOffers(rows,{stock:true},1).length,1);});
+test('exact refill and spool filters do not overlap',()=>{const rows=['Refill','With Spool','Senza bobina'].map(format=>({price:20,url:'https://shop.test',format}));assert.equal(filterOffers(rows,{format:'spool'},1).length,1);assert.equal(filterOffers(rows,{format:'refill'},1).length,2);});
+test('single-source retry replaces only that source',()=>{const current={offers:[{source_id:'a',price:10},{source_id:'b',price:20}],sources:[{id:'a'},{id:'b'}]};const next={offers:[{source_id:'a',price:9}],sources:[{id:'a',ok:true}]};const merged=mergeSource(current,next,'a');assert.deepEqual(merged.offers.map(o=>o.price),[20,9]);assert.equal(current.offers[0].price,10);});
+test('open printer blocks materials requiring enclosure',()=>{assert.equal(compatibility(mat('asa'),printer('bambu-a1-mini')).level,'blocked');});
+test('engineering materials exceed consumer printer temperature limits',()=>{assert.equal(compatibility(mat('peek'),printer('bambu-a1')).level,'blocked');});
+test('advisor excludes incompatible materials and never interprets a phone holder as soluble support',()=>{const rows=recommend(catalog.materials,'supporto telefono resistente al caldo in auto',printer('bambu-a1-mini'));assert.ok(rows.length);assert.ok(rows.every(r=>r.check.level!=='blocked'));assert.ok(rows.every(r=>!r.material.group.includes('support')));});
+test('flexible projects return flexible materials',()=>{const rows=recommend(catalog.materials,'cover flessibile elastica',printer('bambu-a1'));assert.ok(rows[0].material.flex>=4);});
+test('cost calculator includes material and kWh conversion',()=>{assert.deepEqual(costEstimate({grams:120,price:20,hours:5,watts:120,energy:.3}),{material:2.4,electricity:.18,total:2.58});});
+test('calculator rejects missing, negative and nonfinite values',()=>{for(const grams of [-1,NaN,Infinity,''])assert.throws(()=>costEstimate({grams,price:20,hours:5,watts:120,energy:.3}));});
+test('links reject executable and relative URLs',()=>{assert.equal(safeUrl('javascript:alert(1)'),'');assert.equal(safeUrl('/admin'),'');});

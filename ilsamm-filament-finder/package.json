@@ -1,0 +1,15 @@
+{
+  "name": "filament-finder-qa",
+  "private": true,
+  "version": "11.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/domain.test.mjs",
+    "test:browser": "playwright test",
+    "test:backend": "python -m unittest discover -s tests -p test_*.py -v"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@axe-core/playwright": "4.13.0"
+  }
+}

@@ -1,171 +1,107 @@
-name: Filament Finder image
+name: Filament Finder QA and image
 
 on:
-  push:
-    branches:
-      - master
-      - filament-finder-10.7-source-diagnostics
+  pull_request:
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
+      - '.dockerignore'
+  push:
+    branches: [master]
+    paths:
+      - 'ilsamm-filament-finder/**'
+      - '.github/workflows/filament-finder-image.yml'
+      - '.dockerignore'
   workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
-  group: filament-finder-image-${{ github.ref }}
+  group: filament-finder-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ilsamm-filament-finder
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: ilsamm-filament-finder/package-lock.json
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+      - run: npm test
+      - run: npm run test:backend
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:browser
+      - name: Store browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: filament-finder-browser-evidence
+          path: |
+            ilsamm-filament-finder/playwright-report
+            ilsamm-filament-finder/test-results
+          retention-days: 14
 
-      - name: Validate 10.7 source syntax
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./ilsamm-filament-finder/runtime/Dockerfile
+          load: true
+          tags: filament-finder:qa
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify container and persistent volume
         shell: bash
         run: |
           set -euo pipefail
-          node --check ilsamm-filament-finder/ui-v102/marketplace-capture.js
-          node --check ilsamm-filament-finder/ui-v104/price-quality.js
-          node --check ilsamm-filament-finder/ui-v105/deal-engine.js
-          node --check ilsamm-filament-finder/ui-v106/source-status.js
-          node --check ilsamm-filament-finder/ui-v107/source-diagnostics.js
-          python -m py_compile ilsamm-filament-finder/runtime/build_runtime.py
-          python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v106.py
-          python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v107.py
-          grep -q "const VERSION='10.7.0'" ilsamm-filament-finder/ui-v107/source-diagnostics.js
-          grep -q 'FF107_RETRY_SOURCE' ilsamm-filament-finder/ui-v107/source-diagnostics.js
-          grep -q 'URL chiamato' ilsamm-filament-finder/ui-v107/source-diagnostics.js
-          grep -q 'Riprova fonte' ilsamm-filament-finder/ui-v107/source-diagnostics.js
-          grep -q '.ff107-diagnostic-grid' ilsamm-filament-finder/ui-v107/source-diagnostics.css
-          grep -q 'version: "10.7.0"' ilsamm-filament-finder/umbrel-app.yml
-          grep -q 'filament-finder:10.7.0' ilsamm-filament-finder/docker-compose.yml
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+          docker run -d --name filament-finder-qa -p 18765:8765 -v ff-qa-data:/data filament-finder:qa
+          trap 'docker logs filament-finder-qa; docker rm -f filament-finder-qa' EXIT
+          python ilsamm-filament-finder/tests/container_smoke.py http://127.0.0.1:18765
+          docker restart filament-finder-qa
+          python ilsamm-filament-finder/tests/container_smoke.py http://127.0.0.1:18765 --verify-persistence
+      - name: Live Bambu variants release gate
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        run: python ilsamm-filament-finder/tests/live_bambu.py
       - name: Log in to GHCR
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push 10.7.0
+      - name: Build both Umbrel architectures and publish only from master
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./ilsamm-filament-finder/runtime/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
           tags: |
-            ghcr.io/ilsamm/filament-finder:10.7.0
+            ghcr.io/ilsamm/filament-finder:11.0.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
-
-      - name: Smoke diagnostics and retry test
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:10.7.0
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.7.0
-          trap 'docker logs filament-finder-test || true' EXIT
-
-          for i in $(seq 1 30); do
-            if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()"; then break; fi
-            sleep 1
-          done
-
-          python - <<'PY'
-          import json, urllib.request
-          BASE='http://127.0.0.1:18765'
-          def get(path, timeout=35):
-              with urllib.request.urlopen(BASE+path, timeout=timeout) as r:
-                  assert r.status==200, r.status
-                  return json.load(r)
-          health=get('/api/health',10)
-          assert health['version']=='10.7.0', health
-          live=get('/api/catalog?material=PLA&brand=all&qty=10&refresh=1')
-          assert len(live.get('sources',[]))>=11, live
-          assert len(live.get('offers',[]))>=20, len(live.get('offers',[]))
-          # Successful sources must expose at least request URL or telemetry trace.
-          active=[s for s in live['sources'] if int(s.get('results') or 0)>0]
-          assert active, live['sources']
-          assert any(s.get('request_url') or s.get('request_trace') for s in active), active[:3]
-          # Single-source endpoint used by the Retry button must really isolate one source.
-          sid=str(active[0].get('id'))
-          one=get('/api/catalog?material=PLA&brand=all&qty=10&refresh=1&source='+sid)
-          ids={str(s.get('id')) for s in one.get('sources',[])}
-          assert sid in ids, (sid,ids)
-          print('BACKEND_107_DIAGNOSTICS_OK', {'source':sid,'sources':len(live['sources'])})
-          PY
-
-          command -v google-chrome >/dev/null
-          python -m pip install --quiet websocket-client
-          google-chrome --headless=new --no-sandbox --disable-gpu \
-            --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --remote-allow-origins=* \
-            --user-data-dir=/tmp/ff-chrome http://127.0.0.1:18765 >/tmp/ff-chrome.log 2>&1 &
-          CHROME_PID=$!
-          trap 'kill $CHROME_PID 2>/dev/null || true; docker logs filament-finder-test || true' EXIT
-
-          python - <<'PY'
-          import json,time,urllib.request
-          from websocket import create_connection
-          deadline=time.time()+15
-          targets=[]
-          while time.time()<deadline:
-              try:
-                  targets=[t for t in json.load(urllib.request.urlopen('http://127.0.0.1:9222/json',timeout=2)) if t.get('type')=='page']
-                  if targets: break
-              except Exception: pass
-              time.sleep(.25)
-          assert targets
-          ws=create_connection(targets[0]['webSocketDebuggerUrl'],timeout=20)
-          counter=0
-          def ev(expr):
-              global counter
-              counter+=1
-              ws.send(json.dumps({'id':counter,'method':'Runtime.evaluate','params':{'expression':expr,'returnByValue':True,'awaitPromise':True}}))
-              while True:
-                  msg=json.loads(ws.recv())
-                  if msg.get('id')==counter:
-                      if 'exceptionDetails' in msg.get('result',{}): raise AssertionError(msg['result']['exceptionDetails'])
-                      return msg['result']['result'].get('value')
-          deadline=time.time()+12
-          while time.time()<deadline and not ev("document.readyState==='complete' && !!document.querySelector('#ff10-app .ff10-nav')"):
-              time.sleep(.2)
-          assert ev("window.FF107_SOURCE_DIAGNOSTICS_VERSION==='10.7.0'")
-          assert ev("typeof window.FF107_RETRY_SOURCE==='function'")
-          ev("document.querySelector('.ff10-nav [data-nav=\"prices\"]').click()")
-          deadline=time.time()+4
-          while time.time()<deadline and not ev("!!document.querySelector('[data-market-run]')"):time.sleep(.1)
-          ev("(()=>{const qty=document.querySelector('#ff10-price-qty');qty.value='10';qty.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[data-market-run]').click();return true;})()")
-          deadline=time.time()+32
-          while time.time()<deadline and not ev("!!document.querySelector('.ff107-diagnostics-panel') && document.querySelectorAll('.ff107-card').length>=11"):
-              time.sleep(.25)
-          assert ev("document.querySelectorAll('.ff107-card').length===window.FF106_LAST_DATA.sources.length")
-          assert ev("!!document.querySelector('.ff107-field.is-url')")
-          assert ev("document.querySelector('.ff107-diagnostics-panel').textContent.includes('HTTP')")
-          assert ev("document.querySelector('.ff107-diagnostics-panel').textContent.includes('Tempo fonte')")
-          assert ev("document.documentElement.scrollWidth<=innerWidth+2")
-          # Deterministic retry-button rendering for an error source.
-          ev("window.FF106_LAST_DATA={sources:[{id:'broken',name:'Broken',ok:false,results:0,error_message:'HTTP 500'}],offers:[]};window.FF105_LAST_DATA=window.FF106_LAST_DATA")
-          ev("document.body.appendChild(document.createElement('i'))")
-          deadline=time.time()+2
-          while time.time()<deadline and not ev("!!document.querySelector('[data-ff107-retry=\"broken\"]')"):time.sleep(.1)
-          assert ev("document.querySelector('[data-ff107-retry=\"broken\"]')?.textContent.includes('Riprova fonte')")
-          print('FILAMENT_FINDER_10_7_DIAGNOSTICS_UI_OK')
-          ws.close()
-          PY
-
-          kill $CHROME_PID || true
-          trap - EXIT
-          docker inspect filament-finder-test --format '{{.State.Status}} {{.State.Health.Status}}'
+          cache-from: type=gha
