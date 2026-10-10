@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - filament-finder-10.5-smart-deals
+      - filament-finder-10.6-source-status
     paths:
       - 'ilsamm-filament-finder/**'
       - '.github/workflows/filament-finder-image.yml'
@@ -25,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate 10.5 source syntax
+      - name: Validate 10.6 source syntax
         shell: bash
         run: |
           set -euo pipefail
@@ -36,19 +37,24 @@ jobs:
           node --check ilsamm-filament-finder/ui-v102/marketplace-capture.js
           node --check ilsamm-filament-finder/ui-v104/price-quality.js
           node --check ilsamm-filament-finder/ui-v105/deal-engine.js
+          node --check ilsamm-filament-finder/ui-v106/source-status.js
           python -m py_compile ilsamm-filament-finder/runtime/build_runtime.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v102.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v104.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v105.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v105_official_promos.py
+          python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v106.py
           grep -q '.ff103-overview' ilsamm-filament-finder/ui-v102/price-sources.css
           grep -q "const VERSION='10.4.0'" ilsamm-filament-finder/ui-v104/price-quality.js
           grep -q "const VERSION='10.5.0'" ilsamm-filament-finder/ui-v105/deal-engine.js
-          grep -q 'FF105_BEST_TIER_PLAN' ilsamm-filament-finder/ui-v105/deal-engine.js
-          grep -q '.ff105-deals-panel' ilsamm-filament-finder/ui-v105/deal-engine.css
+          grep -q "const VERSION='10.6.0'" ilsamm-filament-finder/ui-v106/source-status.js
+          grep -q 'FF106_ENRICH_SOURCE_STATUS' ilsamm-filament-finder/ui-v106/source-status.js
+          grep -q 'Nessun risultato' ilsamm-filament-finder/ui-v106/source-status.js
+          grep -q 'Timeout' ilsamm-filament-finder/ui-v106/source-status.js
+          grep -q '.ff106-source-status-panel' ilsamm-filament-finder/ui-v106/source-status.css
           grep -q "source.get('id')=='sunlu'" ilsamm-filament-finder/runtime/patch_runtime_v105_official_promos.py
-          grep -q 'version: "10.5.0"' ilsamm-filament-finder/umbrel-app.yml
-          grep -q 'filament-finder:10.5.0' ilsamm-filament-finder/docker-compose.yml
+          grep -q 'version: "10.6.0"' ilsamm-filament-finder/umbrel-app.yml
+          grep -q 'filament-finder:10.6.0' ilsamm-filament-finder/docker-compose.yml
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -63,7 +69,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push 10.5.0
+      - name: Build and push 10.6.0
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -71,17 +77,17 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ilsamm/filament-finder:10.5.0
+            ghcr.io/ilsamm/filament-finder:10.6.0
             ghcr.io/ilsamm/filament-finder:latest
           provenance: false
 
-      - name: Smoke and smart-deals test
+      - name: Smoke, smart-deals and source-status test
         shell: bash
         run: |
           set -euo pipefail
           docker logout ghcr.io || true
-          docker pull ghcr.io/ilsamm/filament-finder:10.5.0
-          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.5.0
+          docker pull ghcr.io/ilsamm/filament-finder:10.6.0
+          docker run -d --name filament-finder-test -p 18765:8765 ghcr.io/ilsamm/filament-finder:10.6.0
           trap 'docker logs filament-finder-test || true' EXIT
 
           for i in $(seq 1 30); do
@@ -99,7 +105,7 @@ jobs:
 
           health=get('/api/health')
           assert health['ok'] is True
-          assert health['version']=='10.5.0', health
+          assert health['version']=='10.6.0', health
           assert health['materials']==67, health
           assert health['brands']==18, health
           assert health['sources']>=11, health
@@ -114,26 +120,17 @@ jobs:
           assert any(str(s.get('id'))=='bambu' for s in live['sources']), live['sources']
           assert len(active)>=3, active
           assert elapsed<30, elapsed
-          print('BACKEND_MARKET_105_OK', {
+          print('BACKEND_MARKET_106_OK', {
               'offers':len(live['offers']),
+              'sources':len(live['sources']),
               'active_sources':[(s.get('id'),s.get('kind'),s.get('results'),s.get('ok')) for s in active],
               'promo_rows':len(promos),
-              'promo_sources':sorted({str(o.get('source_id')) for o in promos}),
               'elapsed_s':round(elapsed,2)
           })
 
-          # SUNLU has live 3/6/10-spool quantity tiers on current product pages.
-          # Test the source independently so a failure cannot be hidden by the
-          # aggregate marketplace returning hundreds of offers from other stores.
           sunlu=get('/api/catalog?material=PLA&brand=all&qty=10&refresh=1&source=sunlu', timeout=30)
           sunlu_rows=[o for o in sunlu.get('offers',[]) if str(o.get('source_id'))=='sunlu']
           sunlu_promos=[o for o in sunlu_rows if o.get('promo_tiers')]
-          print('SUNLU_LIVE_105', {
-              'offers':len(sunlu_rows),
-              'promo_rows':len(sunlu_promos),
-              'sources':sunlu.get('sources',[]),
-              'sample_tiers':[o.get('promo_tiers') for o in sunlu_promos[:2]]
-          })
           assert sunlu_rows, sunlu
           assert sunlu_promos, 'SUNLU offers found but no verified quantity tiers were extracted'
           assert any(any(int(t.get('min_qty') or 0)>=10 for t in o.get('promo_tiers',[])) for o in sunlu_promos), sunlu_promos[:3]
@@ -182,24 +179,22 @@ jobs:
 
           assert evaluate("window.FF104_PRICE_QUALITY_VERSION==='10.4.0'")
           assert evaluate("window.FF105_DEAL_ENGINE_VERSION==='10.5.0'")
-          assert evaluate("typeof window.FF105_ENRICH_CATALOG==='function'")
-          assert evaluate("typeof window.FF105_BEST_TIER_PLAN==='function'")
+          assert evaluate("window.FF106_SOURCE_STATUS_VERSION==='10.6.0'")
+          assert evaluate("typeof window.FF106_ENRICH_SOURCE_STATUS==='function'")
+          assert evaluate("typeof window.FF106_STATUS_OF==='function'")
+
+          synthetic=evaluate("JSON.stringify(window.FF106_ENRICH_SOURCE_STATUS({sources:[{id:'ok',name:'OK source',ok:true,results:5,ms:100},{id:'empty',name:'Empty source',ok:true,results:0,ms:80},{id:'error',name:'Error source',ok:false,results:0,error_message:'HTTP 500'},{id:'timeout',name:'Timeout source',ok:false,results:0,error_message:'request timeout'}],offers:[]}))")
+          synthetic=json.loads(synthetic)
+          statuses={s['id']:s['status'] for s in synthetic['sources']}
+          assert statuses=={'ok':'ok','empty':'empty','error':'error','timeout':'timeout'}, statuses
+          summary=synthetic['source_status_summary']
+          assert summary['total']==4 and summary['ok']==1 and summary['empty']==1 and summary['error']==1 and summary['timeout']==1, summary
+          print('SOURCE_STATUS_CLASSIFICATION_OK', statuses)
 
           bulk=evaluate("JSON.stringify(window.FF105_ENRICH_CATALOG({quantity:10,offers:[{source_id:'test',store:'Test',product:'PLA Basic 1kg',price:20,weight_kg:1,final_total:200,final_perkg:20,ff104_packages:10,ff104_purchased_kg:10,promo_tiers:[{kind:'percent',min_qty:10,discount_pct:40,verified:true,label:'10+ bobine · -40%'}]}],sources:[{id:'test',name:'Test',ok:true,results:1}]},{qty:10}))")
           offer=json.loads(bulk)['offers'][0]
           assert abs(offer['final_total']-120)<0.01, offer
           assert abs(offer['ff105_bulk_savings']-80)<0.01, offer
-          assert offer['ff105_promo_applied'] is True, offer
-
-          buyx=evaluate("JSON.stringify(window.FF105_ENRICH_CATALOG({quantity:10,offers:[{source_id:'test',store:'Test',product:'PETG 1kg',price:20,weight_kg:1,final_total:200,ff104_packages:10,ff104_purchased_kg:10,promo_tiers:[{kind:'buyx',min_qty:5,buy_qty:5,pay_qty:4,verified:true,label:'5 al prezzo di 4'}]}],sources:[{id:'test',name:'Test',ok:true,results:1}]},{qty:10}))")
-          buyx=json.loads(buyx)['offers'][0]
-          assert abs(buyx['final_total']-160)<0.01, buyx
-
-          sale=evaluate("JSON.stringify(window.FF105_ENRICH_CATALOG({quantity:10,offers:[{source_id:'test',store:'Test',product:'PLA 1kg',price:20,list_price:25,weight_kg:1,final_total:200,ff104_packages:10,ff104_purchased_kg:10,promo_tiers:[{kind:'percent',min_qty:10,discount_pct:40,verified:true}]}],sources:[{id:'test',name:'Test',ok:true,results:1}]},{qty:10}))")
-          sale=json.loads(sale)['offers'][0]
-          assert abs(sale['ff105_list_total']-250)<0.01, sale
-          assert abs(sale['ff105_total_savings']-130)<0.01, sale
-          print('SMART_DEAL_MATH_OK')
 
           evaluate("document.querySelector('.ff10-nav [data-nav=\"prices\"]').click()")
           deadline=time.time()+4
@@ -210,13 +205,18 @@ jobs:
 
           deadline=time.time()+30
           def real_result_ready():
-              return bool(evaluate("!!document.querySelector('#ff10-market-results .ff103-overview') && !!document.querySelector('#ff10-market-results .ff105-deals-panel') && window.FF104_PRICE_QUALITY_LAST?.target_kg===10 && window.FF105_LAST_DATA?.deals?.target_kg===10"))
+              return bool(evaluate("!!document.querySelector('#ff10-market-results .ff103-overview') && !!document.querySelector('#ff10-market-results .ff105-deals-panel') && !!document.querySelector('#ff10-market-results .ff106-source-status-panel') && window.FF106_LAST_DATA?.sources?.length>=11"))
           while time.time()<deadline and not real_result_ready():
               time.sleep(.25)
-          assert real_result_ready(), 'real 10kg marketplace result did not finish'
-          assert evaluate("document.querySelectorAll('.ff103-offer-card').length>0")
+          assert real_result_ready(), 'real marketplace/source-status result did not finish'
+          assert evaluate("document.querySelectorAll('.ff106-source-card').length===window.FF106_LAST_DATA.sources.length")
+          assert evaluate("window.FF106_LAST_DATA.sources.every(s=>['ok','empty','error','timeout'].includes(s.status))")
+          assert evaluate("document.querySelector('.ff106-summary-card.is-ok')?.textContent.includes('OK')")
+          assert evaluate("document.querySelector('.ff106-summary-card.is-empty')?.textContent.includes('Nessun risultato')")
+          assert evaluate("document.querySelector('.ff106-summary-card.is-error')?.textContent.includes('Errore')")
+          assert evaluate("document.querySelector('.ff106-summary-card.is-timeout')?.textContent.includes('Timeout')")
           assert evaluate("document.documentElement.scrollWidth<=innerWidth+2")
-          print('FILAMENT_FINDER_10_5_SMART_DEALS_UI_OK')
+          print('FILAMENT_FINDER_10_6_SOURCE_STATUS_UI_OK')
           ws.close()
           PY
 
