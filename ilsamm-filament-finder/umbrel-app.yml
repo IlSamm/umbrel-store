@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "10.6.0"
+version: "10.7.0"
 port: 8765
 
 description: >-
@@ -14,14 +14,13 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Marketplace 10.6 con stato esplicito per ogni fonte della ricerca prezzi. Ogni sito mostra
-  sempre uno dei quattro esiti OK, Nessun risultato, Errore o Timeout, insieme al numero di
-  offerte restituite e alla latenza quando disponibile. Aggiunto un pannello Stato fonti con
-  riepilogo completo di tutte le fonti interrogate e dettaglio individuale, cosi un negozio
-  senza risultati non viene piu confuso con una fonte non raggiungibile. I chip delle fonti
-  usano lo stesso stato e forniscono un dettaglio accessibile tramite tooltip. Restano inclusi
-  Smart Deals 10.5, promozioni quantita verificate, multipack, refill, coupon, soglie di
-  spedizione gratuita, Bambu Lab EU e ricerca multi-store.
+  Marketplace 10.7 con diagnostica avanzata per ogni fonte. La schermata Ricerca prezzi mostra
+  URL realmente chiamato, codice HTTP, tempo della fonte, tempo della richiesta HTTP, numero di
+  risultati, numero di richieste e motivo preciso di errore o timeout. Le fonti in Errore o
+  Timeout hanno il nuovo pulsante Riprova fonte, che interroga soltanto quel negozio mantenendo
+  materiale e quantita correnti senza rilanciare l'intero marketplace. Migliorati inoltre colori,
+  contrasto, leggibilita dei testi, badge e layout responsive del pannello fonti. Restano inclusi
+  gli stati OK, Nessun risultato, Errore e Timeout e tutte le funzioni Smart Deals precedenti.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
