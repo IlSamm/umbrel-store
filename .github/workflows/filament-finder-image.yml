@@ -40,11 +40,13 @@ jobs:
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v102.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v104.py
           python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v105.py
+          python -m py_compile ilsamm-filament-finder/runtime/patch_runtime_v105_official_promos.py
           grep -q '.ff103-overview' ilsamm-filament-finder/ui-v102/price-sources.css
           grep -q "const VERSION='10.4.0'" ilsamm-filament-finder/ui-v104/price-quality.js
           grep -q "const VERSION='10.5.0'" ilsamm-filament-finder/ui-v105/deal-engine.js
           grep -q 'FF105_BEST_TIER_PLAN' ilsamm-filament-finder/ui-v105/deal-engine.js
           grep -q '.ff105-deals-panel' ilsamm-filament-finder/ui-v105/deal-engine.css
+          grep -q "source.get('id')=='sunlu'" ilsamm-filament-finder/runtime/patch_runtime_v105_official_promos.py
           grep -q 'version: "10.5.0"' ilsamm-filament-finder/umbrel-app.yml
           grep -q 'filament-finder:10.5.0' ilsamm-filament-finder/docker-compose.yml
 
@@ -112,7 +114,29 @@ jobs:
           assert any(str(s.get('id'))=='bambu' for s in live['sources']), live['sources']
           assert len(active)>=3, active
           assert elapsed<30, elapsed
-          print('BACKEND_MARKET_105_OK', {'offers':len(live['offers']),'active_sources':len(active),'promo_rows':len(promos),'promo_sources':sorted({str(o.get('source_id')) for o in promos}),'elapsed_s':round(elapsed,2)})
+          print('BACKEND_MARKET_105_OK', {
+              'offers':len(live['offers']),
+              'active_sources':[(s.get('id'),s.get('kind'),s.get('results'),s.get('ok')) for s in active],
+              'promo_rows':len(promos),
+              'promo_sources':sorted({str(o.get('source_id')) for o in promos}),
+              'elapsed_s':round(elapsed,2)
+          })
+
+          # SUNLU has live 3/6/10-spool quantity tiers on current product pages.
+          # Test the source independently so a failure cannot be hidden by the
+          # aggregate marketplace returning hundreds of offers from other stores.
+          sunlu=get('/api/catalog?material=PLA&brand=all&qty=10&refresh=1&source=sunlu', timeout=30)
+          sunlu_rows=[o for o in sunlu.get('offers',[]) if str(o.get('source_id'))=='sunlu']
+          sunlu_promos=[o for o in sunlu_rows if o.get('promo_tiers')]
+          print('SUNLU_LIVE_105', {
+              'offers':len(sunlu_rows),
+              'promo_rows':len(sunlu_promos),
+              'sources':sunlu.get('sources',[]),
+              'sample_tiers':[o.get('promo_tiers') for o in sunlu_promos[:2]]
+          })
+          assert sunlu_rows, sunlu
+          assert sunlu_promos, 'SUNLU offers found but no verified quantity tiers were extracted'
+          assert any(any(int(t.get('min_qty') or 0)>=10 for t in o.get('promo_tiers',[])) for o in sunlu_promos), sunlu_promos[:3]
           PY
 
           command -v google-chrome >/dev/null
