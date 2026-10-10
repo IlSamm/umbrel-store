@@ -17,8 +17,9 @@ for attempt in range(30):
         time.sleep(1)
 else:
     raise SystemExit('Container did not become healthy')
-assert health['version']=='11.0.0',health
+assert health['version']=='11.1.0',health
 assert b'app.mjs' in get('/')
+assert b'costEstimate' in get('/cost.mjs')
 assert len(json.loads(get('/catalog.json'))['materials'])==67
 for path in ('/server.py','/data/alerts.json'):
     try:

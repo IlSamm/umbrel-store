@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 
 const fixture = {
-  version: "11.0.0",
+  version: "11.1.0",
   updated_at: "2026-10-10T10:00:00Z",
   quantity: 2,
   material: "PLA",
@@ -198,16 +199,162 @@ test("advisor honors selected printer and cost calculator works", async ({
   await page.getByRole("button", { name: "Trova i materiali" }).click();
   await expect(page.locator(".recommendation").first()).toContainText("TPU");
   await navigate(page, "cost");
-  await page.getByLabel("Filamento utilizzato (g)").fill("100");
+  await page.getByLabel("Peso dei pezzi (g)").fill("100");
   await page.getByRole("button", { name: "Calcola costo" }).click();
   await expect(page.locator("#cost-output")).toContainText("2,18");
-  await page.getByLabel("Filamento utilizzato (g)").fill("");
+  await page.getByLabel("Peso dei pezzi (g)").fill("");
   await page.getByRole("link", { name: "Materiali", exact: true }).click();
   await page.goto("/#cost");
   await expect(page.locator("#cost-output")).toContainText(
-    "Inserisci valori numerici",
+    "Peso dei pezzi (g): inserisci",
   );
 });
+test("product cost calculates a complete batch, saves it and exports a readable quote", async ({
+  page,
+}, testInfo) => {
+  await navigate(page, "cost");
+  await page
+    .getByLabel("Nome del prodotto", { exact: true })
+    .fill("Supporto sensore");
+  for (const [label, value] of [
+    ["Pezzi nel lotto", "4"],
+    ["Peso dei pezzi (g)", "360"],
+    ["Supporti e spurghi (g)", "40"],
+    ["Prezzo confezione (€)", "24"],
+    ["Peso netto confezione (g)", "750"],
+    ["Durata del lotto (ore)", "3"],
+    ["Minuti aggiuntivi", "30"],
+    ["Consumo medio (W)", "200"],
+    ["Tariffa energia (€/kWh)", "0.25"],
+  ])
+    await page.getByLabel(label, { exact: true }).fill(value);
+  await page.locator("#cost-machine summary").click();
+  for (const [label, value] of [
+    ["Costo della stampante (€)", "600"],
+    ["Manutenzione (€/ora)", "0.1"],
+    ["Probabilità di ristampa (%)", "20"],
+  ])
+    await page.getByLabel(label, { exact: true }).fill(value);
+  await page.locator("#cost-labor summary").click();
+  for (const [label, value] of [
+    ["Preparazione lotto (min)", "30"],
+    ["Finitura per pezzo (min)", "5"],
+    ["Valore del lavoro (€/ora)", "18"],
+    ["Imballaggio per pezzo (€)", "0.6"],
+    ["Altri costi del lotto (€)", "2"],
+  ])
+    await page.getByLabel(label, { exact: true }).fill(value);
+  await expect(page.locator('[data-cost="unit"]')).toContainText("9,23");
+  await expect(page.locator('[data-cost="total"]')).toContainText("36,93");
+  await page.locator("#cost-sales summary").click();
+  await page.getByLabel("Calcola anche il prezzo di vendita").check();
+  for (const [label, value] of [
+    ["Commissioni variabili (%)", "5"],
+    ["Commissione fissa per lotto (€)", "0.35"],
+    ["IVA da applicare (%)", "22"],
+  ])
+    await page.getByLabel(label, { exact: true }).fill(value);
+  await expect(page.locator('[data-sale="net-unit"]')).toContainText("14,59");
+  await expect(page.locator('[data-sale="gross"]')).toContainText("71,20");
+  await expect(page.locator('[data-sale="profit"]')).toContainText("17,52");
+  await page
+    .getByRole("button", { name: "Calcola costo", exact: true })
+    .click();
+  await expect(page.locator("#cost-summary")).toBeFocused();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    )
+    .toBe(true);
+  const scan = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .analyze();
+  expect(
+    scan.violations.map((v) => ({
+      id: v.id,
+      nodes: v.nodes.map((n) => n.target),
+    })),
+  ).toEqual([]);
+  await page
+    .locator("#cost-summary")
+    .screenshot({ path: testInfo.outputPath("product-cost-summary.png") });
+  await page.reload();
+  await expect(
+    page.getByLabel("Nome del prodotto", { exact: true }),
+  ).toHaveValue("Supporto sensore");
+  await expect(page.getByLabel("Pezzi nel lotto", { exact: true })).toHaveValue(
+    "4",
+  );
+  await expect(page.locator('[data-cost="total"]')).toContainText("36,93");
+  await expect(page.locator('[data-sale="net-unit"]')).toContainText("14,59");
+  const pendingDownload = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Scarica riepilogo", exact: true })
+    .click();
+  const download = await pendingDownload;
+  expect(download.suggestedFilename()).toBe(
+    "filament-finder-costo-prodotto.txt",
+  );
+  const report = await readFile(await download.path(), "utf8");
+  expect(report).toContain("Supporto sensore");
+  expect(report).toContain("Costo lotto: 36,93");
+  expect(report).toContain("Prezzo netto per pezzo: 14,59");
+});
+
+test("invalid product costs hide old totals and can recover, reset and tolerate blocked storage", async ({
+  page,
+}) => {
+  await navigate(page, "cost");
+  await page.getByLabel("Peso netto confezione (g)", { exact: true }).fill("0");
+  await expect(page.locator('[data-cost="total"]')).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Scarica riepilogo", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Calcola costo", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Peso netto confezione (g)", { exact: true }),
+  ).toBeFocused();
+  await page
+    .getByLabel("Peso netto confezione (g)", { exact: true })
+    .fill("1000");
+  await page.locator("#cost-sales summary").click();
+  await page.getByLabel("Calcola anche il prezzo di vendita").check();
+  await page.getByLabel("Margine desiderato (%)", { exact: true }).fill("90");
+  await page
+    .getByLabel("Commissioni variabili (%)", { exact: true })
+    .fill("10");
+  await expect(page.locator("#cost-error")).toContainText("assorbono tutto");
+  await expect(page.locator('[data-cost="total"]')).toHaveCount(0);
+  await page.getByLabel("Calcola anche il prezzo di vendita").uncheck();
+  await expect(page.locator('[data-cost="total"]')).toContainText("2,58");
+  await page
+    .getByRole("button", { name: "Ripristina esempio", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Ripristina dati", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(
+    page.getByLabel("Nome del prodotto", { exact: true }),
+  ).toBeFocused();
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException("Disabled", "SecurityError");
+    };
+  });
+  await page.reload();
+  await page.getByLabel("Peso dei pezzi (g)", { exact: true }).fill("200");
+  await expect(page.locator('[data-cost="total"]')).toContainText("4,18");
+  await expect(page.locator("#cost-storage")).toContainText(
+    "salvataggio del browser non disponibile",
+  );
+});
+
 test("search failure can be retried and cancelled without stale results", async ({
   page,
 }) => {
