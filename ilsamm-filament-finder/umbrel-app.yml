@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "10.5.0"
+version: "10.6.0"
 port: 8765
 
 description: >-
@@ -14,17 +14,14 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Marketplace 10.5 con motore Smart Deals. La ricerca non confronta piu soltanto il prezzo
-  della singola bobina: rileva e valuta promozioni quantita esplicite, multipack, refill,
-  prezzi barrati Shopify, regole X al prezzo di Y, codici promo mostrati in pagina e soglie
-  di spedizione gratuita. Per richieste da 3, 4, 6, 10 kg e oltre calcola quante confezioni
-  e bobine servono, applica solo sconti verificabili sulla pagina del prodotto e ricalcola
-  totale effettivo, costo al kg e risparmio rispetto al prezzo normale. Le offerte con prezzo
-  promozionale possono quindi salire realmente nel ranking Miglior totale. Aggiunto un pannello
-  Acquisto intelligente con le migliori combinazioni per la quantita scelta, badge promo e
-  risparmio, oltre a nuove quantita fino a 50 kg. I codici coupon vengono segnalati ma non sono
-  sommati automaticamente ad altri sconti quando la cumulabilita non e verificabile. Restano
-  invariati catalogo tecnico, Bambu Lab EU, ricerca parallela multi-store, alert e storico.
+  Marketplace 10.6 con stato esplicito per ogni fonte della ricerca prezzi. Ogni sito mostra
+  sempre uno dei quattro esiti OK, Nessun risultato, Errore o Timeout, insieme al numero di
+  offerte restituite e alla latenza quando disponibile. Aggiunto un pannello Stato fonti con
+  riepilogo completo di tutte le fonti interrogate e dettaglio individuale, cosi un negozio
+  senza risultati non viene piu confuso con una fonte non raggiungibile. I chip delle fonti
+  usano lo stesso stato e forniscono un dettaglio accessibile tramite tooltip. Restano inclusi
+  Smart Deals 10.5, promozioni quantita verificate, multipack, refill, coupon, soglie di
+  spedizione gratuita, Bambu Lab EU e ricerca multi-store.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"
