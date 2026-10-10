@@ -4,7 +4,8 @@ WORKDIR /src
 COPY . /src
 RUN python /src/ilsamm-filament-finder/runtime/build_runtime.py /src /opt/filament-finder \
     && python /src/ilsamm-filament-finder/runtime/patch_runtime_v104.py /src /opt/filament-finder \
-    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v105.py /src /opt/filament-finder
+    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v105.py /src /opt/filament-finder \
+    && python /src/ilsamm-filament-finder/runtime/patch_runtime_v105_official_promos.py /opt/filament-finder
 
 FROM public.ecr.aws/docker/library/python:3.13-slim
 
