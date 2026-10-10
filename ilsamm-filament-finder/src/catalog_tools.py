@@ -28,7 +28,8 @@ def weight_kg(text):
     text = re.sub(r'\b(\d)[.](\d{3})\s*g\b', r'\1\2 g', text, flags=re.I)
     multi = re.search(r"\b(\d{1,2})\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(kg|g)\b", text, re.I)
     if multi:
-        return round(int(multi[1]) * float(multi[2].replace(",", ".")) / (1000 if multi[3].lower() == "g" else 1), 3)
+        result = round(int(multi[1]) * float(multi[2].replace(",", ".")) / (1000 if multi[3].lower() == "g" else 1), 3)
+        return result if 0.05 <= result <= 50 else None
     match = re.search(r"(?<![\d.])(\d+(?:[.,]\d+)?)\s*(kg|g)\b", text, re.I)
     if not match:
         return None

@@ -581,13 +581,16 @@ def weight_kg_from_text(text):
 
 def fetch(url, accept='text/html,*/*'):
     started=time.perf_counter()
+    remaining=getattr(_ff107_tls,'deadline',started+FETCH_TIMEOUT)-started
+    if remaining <= 0:
+        raise TimeoutError('Tempo massimo della fonte superato')
     req=Request(url, headers={
         'User-Agent':UA,
         'Accept-Language':'it-IT,it;q=0.9,en;q=0.7',
         'Accept':accept,
         'Cache-Control':'no-cache'
     })
-    with urlopen(req, timeout=FETCH_TIMEOUT) as r:
+    with urlopen(req, timeout=min(FETCH_TIMEOUT,remaining)) as r:
         raw=r.read(4_500_000)
         enc=r.headers.get_content_charset() or 'utf-8'
         _ff107_record_http(url, r.status, (time.perf_counter()-started)*1000, r.geturl(), None)
@@ -961,6 +964,8 @@ def enrich_final_cost(offer, source, qty=1):
 def amazon_scrape(source, query):
     url=source['search'].format(q=quote(query))
     html, final, _=fetch(url)
+    if re.search(r'validateCaptcha|captchacharacters|automated access|robot check',html,re.I):
+        raise RuntimeError('Il negozio richiede una verifica nel browser. Usa la ricerca manuale.')
     offers=[]
     chunks=re.split(r'(?=<div[^>]+data-asin=["\'][A-Z0-9]{10}["\'])', html, flags=re.I)
     for chunk in chunks[1:45]:
@@ -1290,6 +1295,7 @@ def _ff107_collect_source(source, material, brand, qty):
     }
     _ff107_tls.telemetry=tele
     started=_ff107_time.perf_counter()
+    _ff107_tls.deadline=started+PRICE_SEARCH_BUDGET
     try:
         result=_ff107_original_collect_source(source,material,brand,qty)
         _ff107_attach_diagnostics(result,source,tele)
@@ -1300,6 +1306,8 @@ def _ff107_collect_source(source, material, brand, qty):
     finally:
         tele['source_elapsed_ms']=round((_ff107_time.perf_counter()-started)*1000,1)
         _ff107_tls.telemetry=None
+        if hasattr(_ff107_tls,'deadline'):
+            del _ff107_tls.deadline
 
 
 _collect_source=_ff107_collect_source
