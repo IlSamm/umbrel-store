@@ -9,7 +9,8 @@
     "test:backend": "python -m unittest discover -s tests -p test_*.py -v"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.0",
-    "@axe-core/playwright": "4.13.0"
+    "prettier": "3.9.10"
   }
 }
