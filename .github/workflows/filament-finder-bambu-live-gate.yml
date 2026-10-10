@@ -1,0 +1,84 @@
+name: Filament Finder Bambu live gate
+
+on:
+  push:
+    branches:
+      - master
+      - filament-finder-10.7-bambu-required-tests
+    paths:
+      - 'ilsamm-filament-finder/**'
+      - '.github/workflows/filament-finder-bambu-live-gate.yml'
+      - '.github/workflows/filament-finder-image.yml'
+  pull_request:
+    paths:
+      - 'ilsamm-filament-finder/**'
+      - '.github/workflows/filament-finder-bambu-live-gate.yml'
+      - '.github/workflows/filament-finder-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: filament-finder-bambu-live-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bambu-live-gate:
+    name: Bambu Lab required live gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate detailed Bambu test syntax
+        run: |
+          set -euo pipefail
+          python -m py_compile ilsamm-filament-finder/runtime/test_bambu_required.py
+          grep -q 'BAMBU_VARIANT' ilsamm-filament-finder/runtime/test_bambu_required.py
+          grep -q 'BAMBU_FAMILY FAIL' ilsamm-filament-finder/runtime/test_bambu_required.py
+          grep -q 'BAMBU_REQUIRED_LIVE_GATE' ilsamm-filament-finder/runtime/test_bambu_required.py
+
+      - name: Build test image
+        run: |
+          set -euo pipefail
+          docker build \
+            --file ilsamm-filament-finder/runtime/Dockerfile \
+            --tag filament-finder:bambu-gate \
+            .
+
+      - name: Start Filament Finder
+        run: |
+          set -euo pipefail
+          docker run -d \
+            --name filament-finder-bambu-gate \
+            -p 18765:8765 \
+            filament-finder:bambu-gate
+
+          for i in $(seq 1 40); do
+            if python - <<'PY'
+          import urllib.request
+          urllib.request.urlopen('http://127.0.0.1:18765/api/health', timeout=2).read()
+          PY
+            then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo 'Filament Finder non ha superato healthcheck' >&2
+          docker logs filament-finder-bambu-gate || true
+          exit 1
+
+      - name: Mandatory Bambu Lab PLA Basic / PLA Matte / PETG HF gate
+        run: |
+          set -euo pipefail
+          python ilsamm-filament-finder/runtime/test_bambu_required.py http://127.0.0.1:18765
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs filament-finder-bambu-gate || true
+
+      - name: Stop test container
+        if: always()
+        run: docker rm -f filament-finder-bambu-gate || true
