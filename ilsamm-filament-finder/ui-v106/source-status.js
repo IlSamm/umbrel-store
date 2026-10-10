@@ -153,8 +153,7 @@ const observer=new MutationObserver(mutations=>{
   if(mutations.some(m=>[...m.addedNodes].some(n=>n?.nodeType===1&&!n.classList?.contains('ff106-source-status-panel'))||[...m.removedNodes].some(n=>n?.nodeType===1&&!n.classList?.contains('ff106-source-status-panel'))))scheduleRender();
 });
 function boot(){
-  const root=q('#ff10-market-results');
-  if(root)observer.observe(root,{childList:true,subtree:true});
+  observer.observe(document.documentElement,{childList:true,subtree:true});
   scheduleRender();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
