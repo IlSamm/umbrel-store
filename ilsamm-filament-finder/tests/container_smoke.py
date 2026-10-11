@@ -17,7 +17,7 @@ for attempt in range(30):
         time.sleep(1)
 else:
     raise SystemExit('Container did not become healthy')
-assert health['version']=='12.0.0',health
+assert health['version']=='12.0.1',health
 assert b'app.mjs' in get('/')
 assert b'costEstimate' in get('/cost.mjs')
 assert b'<svg' in get('/sculpture.svg')

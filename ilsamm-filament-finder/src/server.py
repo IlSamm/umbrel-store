@@ -6,7 +6,7 @@ import json, re, time, os, html as htmlmod, threading, uuid, tempfile, math
 from catalog_tools import price_number, weight_kg, material_matches, structured_offers
 from concurrent.futures import ThreadPoolExecutor, wait
 
-APP_VERSION = '12.0.0'
+APP_VERSION = '12.0.1'
 STATIC_MATERIAL_COUNT = 67
 STATIC_BRAND_COUNT = 18
 PORT = int(os.getenv('FILAMENT_FINDER_PORT', '8765'))
