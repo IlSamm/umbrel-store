@@ -3453,6 +3453,9 @@ footer {
 }
 
 .material-card[data-family] .material-mark {
+  width: max-content;
+  min-width: 50px;
+  white-space: nowrap;
   color: var(--material-color);
   background: linear-gradient(145deg, #ffffff0d, #ffffff02);
   border-color: #ffffff15;

@@ -312,7 +312,7 @@ function homeView() {
 }
 function materialCard(m) {
   const c = compatibility(m, state.printer);
-  return `<button type="button" class="material-card" data-material="${esc(m.id)}" data-family="${esc(m.name.split(/[ +/]/)[0])}"><div class="material-top"><span class="material-mark">${esc(m.name.split(/[ +/]/)[0].slice(0, 5))}</span>${badge(state.printer ? (c.level === "ok" ? "Compatibile" : c.level === "blocked" ? "Setup da adattare" : "Da calibrare") : m.ease >= 4 ? "Facile" : m.ease <= 2 ? "Avanzato" : "Intermedio", state.printer ? c.level : "")}</div><h3>${esc(m.name)}</h3><p>${esc(m.short)}</p><div class="material-specs"><span>${range(m.t)} ugello</span><span>·</span><span>${range(m.bed)} piano</span></div></button>`;
+  return `<button type="button" class="material-card" data-material="${esc(m.id)}" data-family="${esc(m.name.split(/[ +/]/)[0])}"><div class="material-top"><span class="material-mark">${esc(m.name.split(/[ +/]/)[0])}</span>${badge(state.printer ? (c.level === "ok" ? "Compatibile" : c.level === "blocked" ? "Setup da adattare" : "Da calibrare") : m.ease >= 4 ? "Facile" : m.ease <= 2 ? "Avanzato" : "Intermedio", state.printer ? c.level : "")}</div><h3>${esc(m.name)}</h3><p>${esc(m.short)}</p><div class="material-specs"><span>${range(m.t)} ugello</span><span>·</span><span>${range(m.bed)} piano</span></div></button>`;
 }
 function selectedMaterials() {
   return state.catalog.materials.filter(
