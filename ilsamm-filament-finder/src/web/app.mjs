@@ -114,12 +114,12 @@ function updateMotion() {
   if (document.documentElement.dataset.motion === "off")
     document.getAnimations().forEach((animation) => animation.cancel());
 }
-function animateSurface(element) {
+function animateSurface(element, { fade = true } = {}) {
   if (document.documentElement.dataset.motion === "off") return;
   element.getAnimations().forEach((animation) => animation.cancel());
   element.animate(
     [
-      { opacity: 0, transform: "translateY(10px)" },
+      { opacity: fade ? 0 : 1, transform: "translateY(10px)" },
       { opacity: 1, transform: "translateY(0)" },
     ],
     { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" },
@@ -218,25 +218,42 @@ function updatePrinter() {
   $("#printer-button").innerHTML =
     `${icon("printer")}<span>${esc(printerName(state.printer))}</span>`;
 }
+function goTo(route) {
+  if (!Object.hasOwn(routes, route)) return;
+  const url = new URL(location.href);
+  url.hash = route;
+  if (url.href !== location.href) history.pushState(null, "", url.href);
+  navigate();
+}
 function navigate() {
   const route = location.hash.slice(1);
+  const nextRoute = Object.hasOwn(routes, route) ? route : "home";
+  closeDialog();
+  if (
+    mountedRoute === nextRoute &&
+    state.catalogReady &&
+    !screens.get(nextRoute)?.dirty
+  )
+    return;
+  const firstVisit = !screens.has(nextRoute);
   if (mountedRoute && screens.has(mountedRoute))
     screens.get(mountedRoute).scroll = window.scrollY;
-  state.route = Object.hasOwn(routes, route) ? route : "home";
+  state.route = nextRoute;
   $("#page-name").textContent = routes[state.route];
   document.title = `${routes[state.route]} · Filament Finder`;
   document.querySelectorAll("[data-route]").forEach((a) => {
     if (a.dataset.route === state.route) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   });
-  closeDialog();
   render({ reuse: true });
   window.scrollTo(0, screens.get(state.route)?.scroll || 0);
   $("#main").focus({ preventScroll: true });
-  if (state.catalogReady) animateSurface($("#main").firstElementChild);
+  if (state.catalogReady && firstVisit)
+    animateSurface($("#main").firstElementChild, { fade: false });
 }
 function render({ reuse = false } = {}) {
   if (!state.catalogReady) {
+    if (!state.catalogError && $("#main > .loading")) return;
     $("#main").innerHTML = state.catalogError
       ? empty(
           "Il catalogo non è disponibile.",
@@ -742,6 +759,7 @@ async function loadAlerts() {
   try {
     const data = await api("/api/alerts");
     if (revision !== alertsRevision) return;
+    validateAlertPayload(data);
     state.alerts = data.alerts;
     state.events = data.events;
     state.alertsError = "";
@@ -753,7 +771,20 @@ async function loadAlerts() {
     }
   }
 }
+function validateAlertPayload(data) {
+  if (
+    ![data?.alerts, data?.events].every(
+      (items) =>
+        Array.isArray(items) &&
+        items.every((item) => item && typeof item === "object"),
+    )
+  )
+    throw new Error(
+      "La risposta degli alert non è valida. Riprova ad aggiornare l’elenco.",
+    );
+}
 function acceptAlertUpdate(data) {
+  validateAlertPayload(data);
   // An older list request must not undo a write that has just completed.
   alertsRevision++;
   state.alerts = data.alerts;
@@ -871,8 +902,8 @@ async function showHistory(index) {
         `<p class="note error">${esc(error.message)}</p>`;
   }
 }
-function settingsView() {
-  return `${header("IL TUO LABORATORIO", "Impostazioni e strumenti.", "Informazioni sull’app, preferenze del browser e monitoraggio locale.")}<div class="compare-grid"><section class="panel"><h2>Filament Finder</h2><dl class="settings-list">${[
+function settingsDetails() {
+  return [
     ["Versione", state.health?.version || "Non disponibile"],
     ["Materiali", state.catalog.materials.length],
     ["Stampanti", state.catalog.printers.length],
@@ -885,9 +916,16 @@ function settingsView() {
     ],
   ]
     .map(([key, value]) => `<div><dt>${key}</dt><dd>${esc(value)}</dd></div>`)
-    .join(
-      "",
-    )}</dl></section><section class="panel"><h2>Il tuo stile</h2><label class="motion-setting" for="motion-enabled"><span><strong>Animazioni dell’interfaccia</strong><small>Transizioni, movimenti e piccoli dettagli. Rispetta anche la preferenza del dispositivo.</small></span><input id="motion-enabled" type="checkbox" role="switch" ${state.motion ? "checked" : ""}></label><h2 class="spaced">I tuoi dati</h2><p>Alert e storico prezzi sono salvati sul tuo Umbrel. La stampante selezionata rimane in questo browser.</p><button class="button secondary" data-action="export-alerts">Esporta alert e notifiche</button><div class="section-heading"><h2>Altri strumenti</h2></div><div class="stack">${link("compare", icon("compare") + " Confronta materiali", "button secondary")}${link("cost", icon("cost") + " Calcola costo stampa", "button secondary")}${link("alerts", icon("alerts") + " Gestisci alert", "button secondary")}</div></section></div><p class="note spaced">Le ricerche dipendono dai siti dei negozi: blocchi, cambi di pagina o dati mancanti vengono segnalati per fonte. Nessun prezzo viene ricavato dai prodotti vicini e un peso sconosciuto non diventa automaticamente 1 kg.</p>`;
+    .join("");
+}
+function refreshSettingsDetails() {
+  const details = screens
+    .get("settings")
+    ?.node.querySelector("[data-settings-info]");
+  if (details) details.innerHTML = settingsDetails();
+}
+function settingsView() {
+  return `${header("IL TUO LABORATORIO", "Impostazioni e strumenti.", "Informazioni sull’app, preferenze del browser e monitoraggio locale.")}<div class="compare-grid"><section class="panel"><h2>Filament Finder</h2><dl class="settings-list" data-settings-info>${settingsDetails()}</dl></section><section class="panel"><h2>Il tuo stile</h2><label class="motion-setting" for="motion-enabled"><span><strong>Animazioni dell’interfaccia</strong><small>Transizioni, movimenti e piccoli dettagli. Rispetta anche la preferenza del dispositivo.</small></span><input id="motion-enabled" type="checkbox" role="switch" ${state.motion ? "checked" : ""}></label><h2 class="spaced">I tuoi dati</h2><p>Alert e storico prezzi sono salvati sul tuo Umbrel. La stampante selezionata rimane in questo browser.</p><button class="button secondary" data-action="export-alerts">Esporta alert e notifiche</button><div class="section-heading"><h2>Altri strumenti</h2></div><div class="stack">${link("compare", icon("compare") + " Confronta materiali", "button secondary")}${link("cost", icon("cost") + " Calcola costo stampa", "button secondary")}${link("alerts", icon("alerts") + " Gestisci alert", "button secondary")}</div></section></div><p class="note spaced">Le ricerche dipendono dai siti dei negozi: blocchi, cambi di pagina o dati mancanti vengono segnalati per fonte. Nessun prezzo viene ricavato dai prodotti vicini e un peso sconosciuto non diventa automaticamente 1 kg.</p>`;
 }
 
 function showNavigation() {
@@ -928,8 +966,7 @@ document.addEventListener("click", async (event) => {
     state.search.material = materialById(target.dataset.materialPrices).name;
     invalidateScreens("prices");
     closeDialog();
-    location.hash = "prices";
-    if (state.route === "prices") render();
+    goTo("prices");
     return;
   }
   if (target.dataset.addCompare) {
@@ -941,8 +978,7 @@ document.addEventListener("click", async (event) => {
     ];
     invalidateScreens("compare");
     closeDialog();
-    location.hash = "compare";
-    if (state.route === "compare") render();
+    goTo("compare");
     return;
   }
   if (target.dataset.group) {
@@ -1184,12 +1220,36 @@ $("#detail-dialog").addEventListener("close", () => {
   state.historyToken = null;
 });
 window.addEventListener("hashchange", navigate);
+window.addEventListener("popstate", navigate);
 reducedMotion.addEventListener("change", updateMotion);
-// Clicking the current route closes the mobile menu without rebuilding the view.
-document.addEventListener("click", (event) => {
-  const anchor = event.target.closest('a[href^="#"]');
-  if (anchor?.getAttribute("href") === `#${state.route}`) closeDialog();
-});
+// Own internal navigation so a host/base URL cannot turn a section into a new document.
+// Modified clicks keep the normal browser behavior for opening a separate tab.
+document.addEventListener(
+  "click",
+  (event) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const anchor = event.target.closest('a[href^="#"]');
+    if (
+      !anchor ||
+      anchor.hasAttribute("download") ||
+      (anchor.target && anchor.target !== "_self")
+    )
+      return;
+    const route = anchor.getAttribute("href").slice(1);
+    if (!Object.hasOwn(routes, route)) return;
+    event.preventDefault();
+    goTo(route);
+  },
+  true,
+);
 
 async function init() {
   state.motion = storage.get("ff12_motion", true) !== false;
@@ -1212,8 +1272,9 @@ async function init() {
       )
       .join("") +
     '<button class="nav-more" data-action="navigation" aria-label="Altre sezioni"><span class="more-dots" aria-hidden="true">•••</span><span>Altro</span></button>';
+  let catalog;
   try {
-    const catalog = await api("/catalog.json");
+    catalog = await api("/catalog.json");
     if (
       !Array.isArray(catalog?.materials) ||
       !Array.isArray(catalog.printers) ||
@@ -1223,46 +1284,47 @@ async function init() {
       )
     )
       throw new Error("Il catalogo ricevuto è incompleto. Ricarica l’app.");
-    state.catalog = catalog;
-    state.catalogReady = true;
-    $("#printer-button").disabled = false;
-    const saved = storage.get("ff11_printer");
-    let legacy = null;
-    try {
-      legacy = localStorage.getItem("ff10_active_printer");
-    } catch {}
-    state.printer =
-      state.catalog.printers.find(
-        (p) => p.id === saved || printerName(p) === legacy,
-      ) || null;
-    updatePrinter();
-    navigate();
-    await Promise.allSettled([
-      api("/api/health")
-        .then((h) => {
-          state.health = h;
-          $("#server-status").textContent = "Laboratorio online";
-          invalidateScreens("settings");
-        })
-        .catch(() => {
-          $("#server-status").textContent = "Server non disponibile";
-        }),
-      api("/api/sources").then((data) => {
-        state.sources = data.sources;
-        invalidateScreens("settings");
-        const sourceCount = screens
-          .get("home")
-          ?.node.querySelector("[data-source-count]");
-        if (sourceCount) sourceCount.textContent = state.sources.length;
-      }),
-      loadAlerts(),
-    ]);
-    if (["settings", "alerts"].includes(state.route)) render();
   } catch (error) {
-    state.catalogReady = false;
     state.catalogError = error.message;
-    $("#printer-button").disabled = true;
     render();
+    return;
   }
+  state.catalog = catalog;
+  state.catalogReady = true;
+  $("#printer-button").disabled = false;
+  const saved = storage.get("ff11_printer");
+  let legacy = null;
+  try {
+    legacy = localStorage.getItem("ff10_active_printer");
+  } catch {}
+  state.printer =
+    state.catalog.printers.find(
+      (p) => p.id === saved || printerName(p) === legacy,
+    ) || null;
+  updatePrinter();
+  navigate();
+  await Promise.allSettled([
+    api("/api/health")
+      .then((h) => {
+        state.health = h;
+        $("#server-status").textContent = "Laboratorio online";
+        refreshSettingsDetails();
+      })
+      .catch(() => {
+        $("#server-status").textContent = "Server non disponibile";
+      }),
+    api("/api/sources").then((data) => {
+      if (!Array.isArray(data?.sources)) return;
+      state.sources = data.sources;
+      refreshSettingsDetails();
+      const sourceCount = screens
+        .get("home")
+        ?.node.querySelector("[data-source-count]");
+      if (sourceCount) sourceCount.textContent = state.sources.length;
+    }),
+    loadAlerts().then(() => {
+      if (state.route === "alerts") render();
+    }),
+  ]);
 }
 init();

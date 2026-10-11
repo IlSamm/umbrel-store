@@ -98,6 +98,17 @@ zero sono esplicitamente esclusi; i valori iniziali sono un esempio modificabile
 
 ## Dati persistenti e aggiornamenti
 
+### Correzioni 12.0.1
+
+- I link interni sono gestiti dal router con History API: mantengono URL e parametri
+  correnti anche se il contenitore imposta un URL base diverso, senza ricaricare il documento.
+  Avanti/Indietro e collegamenti diretti continuano a funzionare.
+- La pagina resta visibile durante i cambi di sezione. Le viste gia visitate tornano
+  immediatamente, senza una nuova animazione di ingresso.
+- Le risposte non valide degli alert producono un errore locale recuperabile e non
+  riportano il catalogo allo stato iniziale. I metadati del server aggiornano solo
+  la diagnostica, conservando controlli, stato e focus nelle impostazioni.
+
 ### Correzioni 11.1.1
 
 - Il riepilogo costi si scarica al primo clic anche subito dopo la modifica di un campo.
@@ -122,8 +133,8 @@ potrebbero non corrispondere alle nuove offerte verificate: controllali e ricrea
 dal prodotto corretto, conservando il vecchio storico.
 
 Prima dell'aggiornamento crea un backup del volume dati. Dopo la pubblicazione
-dell'immagine 12.0.0, aggiorna il community store e l'app da Umbrel. Per tornare
-alla 11.1.1 usa l'immagine `ghcr.io/ilsamm/filament-finder:11.1.1` e lo stesso mount;
+dell'immagine 12.0.1, aggiorna il community store e l'app da Umbrel. Per tornare
+alla 12.0.0 usa l'immagine `ghcr.io/ilsamm/filament-finder:12.0.0` e lo stesso mount;
 conserva il backup prima di qualsiasi ripristino.
 
 ## Verifiche

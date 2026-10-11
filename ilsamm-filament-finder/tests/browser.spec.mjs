@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 
 const fixture = {
-  version: "12.0.0",
+  version: "12.0.1",
   updated_at: "2026-10-10T10:00:00Z",
   quantity: 2,
   material: "PLA",
@@ -105,6 +105,118 @@ const navigate = async (page, route) => {
   await page.goto("/#" + route);
   await expect(page.locator("#page-name")).not.toHaveText("Panoramica");
 };
+
+test("internal menu navigation stays in the current document even with a host base URL", async ({
+  page,
+}) => {
+  const documents = [];
+  page.on("request", (request) => {
+    if (request.resourceType() === "document") documents.push(request.url());
+  });
+  await page.evaluate(() => {
+    window.navigationSession = "same-document";
+    const base = document.createElement("base");
+    base.href = "/?host-view=embedded";
+    document.head.append(base);
+  });
+  await page.getByRole("link", { name: "Calcolo costi", exact: true }).click();
+  await expect(page.locator("#cost-form")).toBeVisible();
+  await page.getByLabel("Nome del prodotto").fill("Bozza da conservare");
+  await page.getByRole("link", { name: "Materiali", exact: true }).click();
+  await page.getByRole("link", { name: "Calcolo costi", exact: true }).click();
+  expect(documents).toEqual([]);
+  expect(await page.evaluate(() => window.navigationSession)).toBe(
+    "same-document",
+  );
+  await expect(page).not.toHaveURL(/host-view/);
+  await expect(page.getByLabel("Nome del prodotto")).toHaveValue(
+    "Bozza da conservare",
+  );
+  await page.goBack();
+  await expect(
+    page.getByRole("searchbox", { name: "Cerca materiale" }),
+  ).toBeVisible();
+  await page.goForward();
+  await expect(page.getByLabel("Nome del prodotto")).toHaveValue(
+    "Bozza da conservare",
+  );
+});
+
+test("changing sections never fades the whole screen to a blank page", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  for (const [name, route] of [
+    ["Materiali", "materials"],
+    ["Calcolo costi", "cost"],
+    ["Ricerca prezzi", "prices"],
+    ["Materiali", "materials"],
+  ]) {
+    await page.getByRole("link", { name, exact: true }).click();
+    await expect(page.locator(".route-view")).toHaveAttribute(
+      "data-view",
+      route,
+    );
+    const opacity = await page
+      .locator(".route-view")
+      .evaluate((node) => getComputedStyle(node).opacity);
+    expect(opacity).toBe("1");
+    await expect(
+      page.getByText("Caricamento del laboratorio…", { exact: true }),
+    ).toHaveCount(0);
+  }
+});
+
+test("an invalid alerts response cannot reset an already loaded catalog", async ({
+  page,
+}) => {
+  await page.route("**/api/alerts", (route) =>
+    route.fulfill({ json: { error: "Risposta incompleta" } }),
+  );
+  await page.goto("/?invalid-alerts=1#alerts");
+  await expect(
+    page.getByRole("heading", {
+      name: "I prezzi cambiano. Tu resti aggiornato.",
+    }),
+  ).toBeVisible();
+  await expect(page.locator("#main [role=alert]")).toContainText("alert");
+  await page.getByRole("link", { name: "Materiali", exact: true }).click();
+  await expect(page.locator(".material-card")).toHaveCount(67);
+  await expect(
+    page.getByText("Il catalogo non è disponibile.", { exact: true }),
+  ).toHaveCount(0);
+});
+
+test("late server information does not replace focused settings controls", async ({
+  page,
+}) => {
+  let release;
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/health", async (route) => {
+    await pending;
+    await route.continue();
+  });
+  await page.goto("/?late-health=1#settings");
+  const motion = page.getByRole("switch", {
+    name: /Animazioni dell’interfaccia/,
+  });
+  await motion.uncheck();
+  await motion.focus();
+  const control = await motion.elementHandle();
+  const response = page.waitForResponse("**/api/health");
+  release();
+  await response;
+  await expect(page.locator(".settings-list")).toContainText("12.0.1");
+  expect(
+    await control.evaluate(
+      (node) => node === document.querySelector("#motion-enabled"),
+    ),
+  ).toBe(true);
+  await expect(motion).toBeFocused();
+  await expect(motion).not.toBeChecked();
+});
 
 test("navigation preserves cost drafts, expanded sections, scroll and the mounted form without fetching again", async ({
   page,
