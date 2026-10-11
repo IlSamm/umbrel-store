@@ -4,7 +4,7 @@ name: Filament Finder
 tagline: Scegli il filamento giusto e confronta i prezzi live
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-filament-finder/icon.svg
 category: developer
-version: "11.1.1"
+version: "12.0.0"
 port: 8765
 
 description: >-
@@ -14,12 +14,13 @@ description: >-
   storico continuano a persistere localmente su Umbrel.
 
 releaseNotes: >-
-  Corretto il download del riepilogo costi al primo clic dopo una modifica. Risolti gli
-  errori di navigazione durante il caricamento del catalogo e con il collegamento da
-  tastiera. Gli alert della stessa variante per quantita e filtri diversi non si
-  sovrascrivono piu e confrontano solo osservazioni coerenti. Le risposte lente non
-  ripristinano elenchi vecchi e non chiudono nuove finestre; le cancellazioni fallite
-  possono essere ritentate. Mantenuti tema scuro, calcolatore completo e dati persistenti.
+  Interfaccia completamente rinnovata: tema scuro, accenti lavanda, pannelli arrotondati,
+  nuova grafica 3D e transizioni fluide. Navigazione riorganizzata e barra mobile con
+  accesso diretto al calcolatore. Cambiare sezione conserva campi, filtri, pannelli aperti
+  e posizione della pagina senza ricostruire le schermate o ricaricare il catalogo.
+  I risultati delle ricerche avviate in background vengono aggiornati al ritorno.
+  Animazioni disattivabili dalle impostazioni, nel rispetto delle preferenze di sistema.
+  Calcoli, alert e dati persistenti restano compatibili con la versione precedente.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-filament-finder"

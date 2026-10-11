@@ -1,13 +1,26 @@
-# Filament Finder 11 — Umbrel
+# Filament Finder 12 — Umbrel
 
 Un laboratorio locale per scegliere filamenti, confrontare materiali e prezzi,
 calcolare costi e seguire varianti con alert. Interfaccia scura in italiano,
 utilizzabile da desktop, telefono e tastiera, senza CDN, font esterni o dipendenze
-frontend a runtime. La grafica della bobina è un asset SVG locale.
+frontend a runtime. La grafica 3D e il marchio sono asset SVG locali.
+
+## Interfaccia e navigazione (12.0)
+
+Tema scuro con accenti lavanda, pannelli arrotondati e una home organizzata per attività.
+La barra mobile mette catalogo, prezzi e calcolatore a portata di mano; “Altre sezioni”
+apre tutte le destinazioni. Transizioni, hover e grafica animata rispettano la preferenza
+“Riduci movimento” del sistema e si disattivano anche da Impostazioni.
+
+Le otto sezioni conservano il proprio DOM durante la sessione: tornando a una schermata
+si ritrovano bozze, filtri, pannelli aperti e scorrimento, senza nuove richieste del catalogo.
+I cambiamenti condivisi, come una nuova stampante o una ricerca terminata in background,
+invalidano solo le viste interessate. Ricaricando il browser restano il calcolo valido,
+la stampante e le preferenze salvate; bozze non valide e scorrimento sono solo di sessione.
 
 ## Sorgenti e avvio locale
 
-La versione 11 parte direttamente dai file leggibili in `src/`. `src/server.py`
+La versione 12 parte direttamente dai file leggibili in `src/`. `src/server.py`
 mantiene connettori e persistenza; `catalog_tools.py` contiene i parser testabili.
 Il frontend è in `src/web/`, con un solo controller e funzioni di dominio isolate.
 Le directory `ui-v*`, `bundle/` e i vecchi patcher sono archivio della versione 10:
@@ -109,8 +122,8 @@ potrebbero non corrispondere alle nuove offerte verificate: controllali e ricrea
 dal prodotto corretto, conservando il vecchio storico.
 
 Prima dell'aggiornamento crea un backup del volume dati. Dopo la pubblicazione
-dell'immagine 11.1.1, aggiorna il community store e l'app da Umbrel. Per tornare
-alla 11.1.0 usa l'immagine `ghcr.io/ilsamm/filament-finder:11.1.0` e lo stesso mount;
+dell'immagine 12.0.0, aggiorna il community store e l'app da Umbrel. Per tornare
+alla 11.1.1 usa l'immagine `ghcr.io/ilsamm/filament-finder:11.1.1` e lo stesso mount;
 conserva il backup prima di qualsiasi ripristino.
 
 ## Verifiche

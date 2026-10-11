@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 
 const fixture = {
-  version: "11.1.1",
+  version: "12.0.0",
   updated_at: "2026-10-10T10:00:00Z",
   quantity: 2,
   material: "PLA",
@@ -96,13 +96,125 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Una buona stampa inizia qui." }),
+    page.getByRole("heading", {
+      name: "La prossima idea. Il materiale giusto.",
+    }),
   ).toBeVisible();
 });
 const navigate = async (page, route) => {
   await page.goto("/#" + route);
   await expect(page.locator("#page-name")).not.toHaveText("Panoramica");
 };
+
+test("navigation preserves cost drafts, expanded sections, scroll and the mounted form without fetching again", async ({
+  page,
+}) => {
+  const requests = [];
+  page.on("request", (request) => {
+    if (
+      request.resourceType() === "document" ||
+      request.url().endsWith("/catalog.json")
+    )
+      requests.push(request.url());
+  });
+  await page.getByRole("link", { name: "Calcolo costi", exact: true }).click();
+  await page.locator("#cost-machine summary").click();
+  await page
+    .getByLabel("Costo della stampante (€)", { exact: true })
+    .fill("456");
+  await page.getByLabel("Vita utile prevista (ore)", { exact: true }).fill("");
+  const form = await page.locator("#cost-form").elementHandle();
+  const scroll = await page.evaluate(() => scrollY);
+  await page.getByRole("link", { name: "Materiali", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Cerca materiale" }).fill("ASA");
+  await page.getByRole("link", { name: "Calcolo costi", exact: true }).click();
+  await expect(page.locator("#cost-machine")).toHaveAttribute("open", "");
+  await expect(
+    page.getByLabel("Costo della stampante (€)", { exact: true }),
+  ).toHaveValue("456");
+  await expect(
+    page.getByLabel("Vita utile prevista (ore)", { exact: true }),
+  ).toHaveValue("");
+  expect(
+    await form.evaluate(
+      (node) => node === document.querySelector("#cost-form"),
+    ),
+  ).toBe(true);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(scroll, 0);
+  await page.goBack();
+  await expect(
+    page.getByRole("searchbox", { name: "Cerca materiale" }),
+  ).toHaveValue("ASA");
+  await page.goForward();
+  await expect(page.locator("#cost-machine")).toHaveAttribute("open", "");
+  expect(requests).toEqual([]);
+});
+
+test("a search finishing in the background updates its cached section", async ({
+  page,
+}) => {
+  let release;
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.unroute("**/api/catalog?*");
+  await page.route("**/api/catalog?*", async (route) => {
+    await pending;
+    await route.fulfill({ json: fixture });
+  });
+  await page.getByRole("link", { name: "Ricerca prezzi", exact: true }).click();
+  await page.getByRole("button", { name: "Cerca prezzi", exact: true }).click();
+  await page.getByRole("link", { name: "Materiali", exact: true }).click();
+  const response = page.waitForResponse("**/api/catalog?*");
+  release();
+  await response;
+  await page.getByRole("link", { name: "Ricerca prezzi", exact: true }).click();
+  await expect(page.locator(".offer")).toHaveCount(2);
+  await expect(
+    page.getByRole("button", { name: "Annulla ricerca" }),
+  ).toHaveCount(0);
+});
+
+test("all sections are reachable and motion preferences persist", async ({
+  page,
+  isMobile,
+}) => {
+  if (isMobile) {
+    await page.getByRole("button", { name: "Altre sezioni" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: "Consigliere", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(page.getByLabel("Il tuo progetto")).toBeVisible();
+    await page.getByRole("button", { name: "Altre sezioni" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: "Impostazioni", exact: true })
+      .click();
+  } else {
+    await page.getByRole("link", { name: "Strumenti", exact: true }).click();
+  }
+  await page
+    .getByRole("switch", { name: /Animazioni dell’interfaccia/ })
+    .uncheck();
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "off");
+  await page.reload();
+  await expect(
+    page.getByRole("switch", { name: /Animazioni dell’interfaccia/ }),
+  ).not.toBeChecked();
+  await page
+    .getByRole("switch", { name: /Animazioni dell’interfaccia/ })
+    .check();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("link", { name: "Panoramica", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "off");
+  expect(
+    await page
+      .locator(".hero-art img")
+      .evaluate((node) => getComputedStyle(node).animationName),
+  ).toBe("none");
+});
 
 test("cost export works on the first click immediately after editing", async ({
   page,
@@ -444,6 +556,7 @@ test("product cost calculates a complete batch, saves it and exports a readable 
       ),
     )
     .toBe(true);
+  await expect(page.locator(".route-view")).toHaveCSS("opacity", "1");
   const scan = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
@@ -591,6 +704,7 @@ test("responsive pages and basic accessibility have no automated violations", as
         ),
       )
       .toBe(true);
+    await expect(page.locator(".route-view")).toHaveCSS("opacity", "1");
     const scan = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
       .analyze();
@@ -602,6 +716,7 @@ test("responsive pages and basic accessibility have no automated violations", as
     ).toEqual([]);
   }
   await search(page);
+  await expect(page.locator(".route-view")).toHaveCSS("opacity", "1");
   const scan = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
