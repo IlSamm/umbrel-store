@@ -101,9 +101,36 @@ const state = {
   calcSaved: false,
   epoch: 0,
   retrying: new Set(),
+  motion: true,
 };
 let searchController, toastTimer;
 let alertsRevision = 0;
+const screens = new Map();
+let mountedRoute = null;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+function updateMotion() {
+  document.documentElement.dataset.motion =
+    state.motion && !reducedMotion.matches ? "on" : "off";
+  if (document.documentElement.dataset.motion === "off")
+    document.getAnimations().forEach((animation) => animation.cancel());
+}
+function animateSurface(element) {
+  if (document.documentElement.dataset.motion === "off") return;
+  element.getAnimations().forEach((animation) => animation.cancel());
+  element.animate(
+    [
+      { opacity: 0, transform: "translateY(10px)" },
+      { opacity: 1, transform: "translateY(0)" },
+    ],
+    { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" },
+  );
+}
+function invalidateScreens(...names) {
+  for (const name of names) {
+    const screen = screens.get(name);
+    if (screen) screen.dirty = true;
+  }
+}
 const materialById = (id) => state.catalog.materials.find((m) => m.id === id);
 const badge = (text, level = "") =>
   `<span class="badge ${esc(level)}">${esc(text)}</span>`;
@@ -177,9 +204,12 @@ function toast(message) {
   toastTimer = setTimeout(() => node.classList.remove("visible"), 4000);
 }
 function openDialog(title, html) {
+  state.historyToken = null;
   $("#dialog-title").textContent = title;
   $("#dialog-content").innerHTML = html;
   if (!$("#detail-dialog").open) $("#detail-dialog").showModal();
+  $("#detail-dialog").scrollTop = 0;
+  animateSurface($("#detail-dialog"));
 }
 function closeDialog() {
   $("#detail-dialog").close();
@@ -190,6 +220,8 @@ function updatePrinter() {
 }
 function navigate() {
   const route = location.hash.slice(1);
+  if (mountedRoute && screens.has(mountedRoute))
+    screens.get(mountedRoute).scroll = window.scrollY;
   state.route = Object.hasOwn(routes, route) ? route : "home";
   $("#page-name").textContent = routes[state.route];
   document.title = `${routes[state.route]} · Filament Finder`;
@@ -198,11 +230,12 @@ function navigate() {
     else a.removeAttribute("aria-current");
   });
   closeDialog();
-  render();
-  window.scrollTo(0, 0);
+  render({ reuse: true });
+  window.scrollTo(0, screens.get(state.route)?.scroll || 0);
   $("#main").focus({ preventScroll: true });
+  if (state.catalogReady) animateSurface($("#main").firstElementChild);
 }
-function render() {
+function render({ reuse = false } = {}) {
   if (!state.catalogReady) {
     $("#main").innerHTML = state.catalogError
       ? empty(
@@ -213,32 +246,73 @@ function render() {
       : '<div class="loading" role="status">Caricamento del laboratorio…</div>';
     return;
   }
-  $("#main").innerHTML = {
-    home: homeView,
-    materials: materialsView,
-    prices: pricesView,
-    advisor: advisorView,
-    compare: compareView,
-    cost: costView,
-    alerts: alertsView,
-    settings: settingsView,
-  }[state.route]();
+  let screen = screens.get(state.route);
+  if (!reuse || !screen || screen.dirty) {
+    const openDetails = [
+      ...(screen?.node.querySelectorAll("details[id][open]") || []),
+    ].map((node) => node.id);
+    const node = document.createElement("div");
+    node.className = "route-view";
+    node.dataset.view = state.route;
+    node.innerHTML = {
+      home: homeView,
+      materials: materialsView,
+      prices: pricesView,
+      advisor: advisorView,
+      compare: compareView,
+      cost: costView,
+      alerts: alertsView,
+      settings: settingsView,
+    }[state.route]();
+    for (const id of openDetails) {
+      const detail = node.querySelector(`#${id}`);
+      if (detail) detail.open = true;
+    }
+    screen = { node, scroll: screen?.scroll || 0, dirty: false };
+    screens.set(state.route, screen);
+  }
+  $("#main").replaceChildren(screen.node);
+  mountedRoute = state.route;
 }
 
-function spoolArt() {
-  return `<div class="hero-art" aria-hidden="true"><img src="/spool.svg" width="370" height="320" alt=""><span class="art-caption">DAL MATERIALE ALL'IDEA.</span></div>`;
+function heroArt() {
+  return `<div class="hero-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><img src="/sculpture.svg" width="480" height="420" alt=""><span class="art-tag tag-top"><span class="status-dot"></span> STRATO DOPO STRATO</span><span class="art-tag tag-bottom">Un mondo di possibilità <span>↗</span></span></div>`;
 }
 function homeView() {
   const featured = ["pla", "petg", "asa"].map(materialById).filter(Boolean);
-  return `${header("BENVENUTO NEL TUO LABORATORIO", "Una buona stampa inizia qui.", "Tutto quello che serve per scegliere il prossimo filamento.", `<span class="date-stamp">${new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}</span>`)}
-    <section class="hero"><div class="hero-copy"><div class="eyebrow">MENO TENTATIVI. PIÙ IDEE.</div><h1>Il materiale giusto.<br><em>Per la tua prossima idea.</em></h1><p>Confronta le caratteristiche, verifica la tua stampante e trova il prezzo che cerchi.</p><div class="hero-actions">${link("advisor", `${icon("advisor")} Trova il mio materiale`, "button primary")}${link("prices", "Esplora i prezzi " + icon("arrow"), "button ghost")}</div></div>${spoolArt()}</section>
-    <div class="stats"><div class="stat"><div class="stat-icon">${icon("materials")}</div><div><strong>${state.catalog.materials.length}</strong><span>Materiali da esplorare</span></div></div><div class="stat"><div class="stat-icon">${icon("prices")}</div><div><strong>${state.sources.length || "—"}</strong><span>Negozi configurati</span></div></div><div class="stat"><div class="stat-icon">${icon("printer")}</div><div><strong>${state.catalog.printers.length}</strong><span>Profili stampante</span></div></div></div>
-    <div class="section-heading"><div><h2>Da dove vuoi iniziare?</h2><p>Tre materiali, tre modi diversi di dare forma alle idee.</p></div>${link("materials", "Tutti i materiali " + icon("arrow"))}</div><div class="materials-grid featured">${featured.map(materialCard).join("")}</div>
-    <div class="bottom-grid"><section class="panel setup"><div class="setup-icon">${icon("printer")}</div><div><div class="eyebrow">IL TUO SETUP</div><h3>${esc(printerName(state.printer))}</h3><p>${state.printer ? `${state.printer.nozzleMax} °C ugello · ${state.printer.bedMax} °C piano` : "Attiva i consigli sulla compatibilità."}</p></div><button class="text-link" data-action="printers">${state.printer ? "Cambia" : "Seleziona"} ${icon("arrow")}</button></section><section class="panel"><div class="eyebrow">UN OCCHIO AL BUDGET</div><h3>Quanto costa la tua prossima stampa?</h3><p>Materiale, macchina, lavoro e margine. Un costo chiaro per ogni pezzo.</p>${link("cost", "Apri il calcolatore " + icon("arrow"))}</section></div>`;
+  return `<div class="home-greeting"><p><span class="status-dot"></span> Il tuo spazio, le tue idee.</p><span>${new Date().toLocaleDateString("it-IT", { day: "numeric", month: "long" })}</span></div>
+    <section class="hero"><div class="hero-copy"><div class="eyebrow">MAKE SOMETHING GREAT</div><h1>La prossima idea.<br><em>Il materiale giusto.</em></h1><p>Dal primo strato al pezzo finito. Trova il filamento, confronta i prezzi e dai un costo alle tue idee.</p><div class="hero-actions">${link("advisor", `Trova il mio materiale ${icon("arrow")}`, "button primary")}${link("materials", "Esplora il catalogo", "button ghost")}</div><div class="hero-caption"><span class="mini-layers">${icon("materials")}</span> Il tuo laboratorio 3D, tutto qui.</div></div>${heroArt()}</section>
+    <div class="quick-grid">${[
+      [
+        "prices",
+        "Confronta i prezzi",
+        "La prossima bobina, al prezzo giusto.",
+        "mint",
+      ],
+      [
+        "cost",
+        "Dai valore alla stampa",
+        "Dal costo del lotto al tuo margine.",
+        "violet",
+      ],
+      [
+        "compare",
+        "Scegli cosa stampare",
+        "Due materiali. Tutte le differenze.",
+        "peach",
+      ],
+    ]
+      .map(
+        ([route, title, copy, tone]) =>
+          `<a href="#${route}" class="quick-card ${tone}"><span class="quick-icon">${icon(route)}</span><div><h2>${title}</h2><p>${copy}</p></div><span class="quick-arrow">${icon("arrow")}</span></a>`,
+      )
+      .join("")}</div>
+    <div class="home-bottom"><section><div class="section-heading"><div><div class="eyebrow">MATERIALI DA CONOSCERE</div><h2>Da qui nascono le idee.</h2></div>${link("materials", "Tutti " + icon("arrow"))}</div><div class="materials-grid featured">${featured.map(materialCard).join("")}</div></section><section class="panel setup-card"><div class="setup-icon">${icon("printer")}</div><div class="eyebrow">IL TUO SETUP</div><h2>${state.printer ? esc(printerName(state.printer)) : "Fatto per la tua stampante."}</h2><p>${state.printer ? `${state.printer.nozzleMax} °C ugello · ${state.printer.bedMax} °C piano` : "Seleziona il tuo modello per trovare i materiali compatibili."}</p><button class="button secondary" data-action="printers">${state.printer ? "Cambia stampante" : "Configura il setup"} ${icon("arrow")}</button><div class="setup-count"><strong>${state.catalog.printers.length}</strong> profili disponibili</div></section></div>
+    <div class="catalog-strip"><span><strong>${state.catalog.materials.length}</strong> materiali da esplorare</span><span><strong data-source-count>${state.sources.length || "—"}</strong> negozi configurati</span><span>${icon("alerts")} Monitoraggio sul tuo Umbrel</span></div>`;
 }
 function materialCard(m) {
   const c = compatibility(m, state.printer);
-  return `<button type="button" class="material-card" data-material="${esc(m.id)}" data-family="${esc(m.name.split(/[ +/]/)[0])}"><div class="material-top"><span class="material-mark">${esc(m.name.split(/[ +/]/)[0].slice(0, 5))}</span>${badge(state.printer ? (c.level === "ok" ? "Compatibile" : c.level === "blocked" ? "Setup da adattare" : "Da calibrare") : m.ease >= 4 ? "Facile" : m.ease <= 2 ? "Avanzato" : "Intermedio", state.printer ? c.level : "")}</div><h3>${esc(m.name)}</h3><p>${esc(m.short)}</p><div class="material-specs"><span>${range(m.t)} ugello</span><span>·</span><span>${range(m.bed)} piano</span></div></button>`;
+  return `<button type="button" class="material-card" data-material="${esc(m.id)}" data-family="${esc(m.name.split(/[ +/]/)[0])}"><div class="material-top"><span class="material-mark">${esc(m.name.split(/[ +/]/)[0])}</span>${badge(state.printer ? (c.level === "ok" ? "Compatibile" : c.level === "blocked" ? "Setup da adattare" : "Da calibrare") : m.ease >= 4 ? "Facile" : m.ease <= 2 ? "Avanzato" : "Intermedio", state.printer ? c.level : "")}</div><h3>${esc(m.name)}</h3><p>${esc(m.short)}</p><div class="material-specs"><span>${range(m.t)} ugello</span><span>·</span><span>${range(m.bed)} piano</span></div></button>`;
 }
 function selectedMaterials() {
   return state.catalog.materials.filter(
@@ -462,6 +536,7 @@ async function searchMarket() {
   state.busy = true;
   state.marketError = "";
   state.retrying.clear();
+  invalidateScreens("prices");
   if (state.route === "prices") render();
   try {
     const data = await api(
@@ -485,6 +560,7 @@ async function searchMarket() {
   } finally {
     if (epoch === state.epoch) {
       state.busy = false;
+      invalidateScreens("prices");
       if (state.route === "prices") render();
     }
   }
@@ -509,6 +585,7 @@ async function retrySource(id) {
   } finally {
     if (epoch === state.epoch) {
       state.retrying.delete(id);
+      invalidateScreens("prices");
       if (state.route === "prices")
         $("#market-content").innerHTML = marketContent();
     }
@@ -668,8 +745,12 @@ async function loadAlerts() {
     state.alerts = data.alerts;
     state.events = data.events;
     state.alertsError = "";
+    invalidateScreens("alerts");
   } catch (error) {
-    if (revision === alertsRevision) state.alertsError = error.message;
+    if (revision === alertsRevision) {
+      state.alertsError = error.message;
+      invalidateScreens("alerts");
+    }
   }
 }
 function acceptAlertUpdate(data) {
@@ -678,6 +759,7 @@ function acceptAlertUpdate(data) {
   state.alerts = data.alerts;
   state.events = data.events;
   state.alertsError = "";
+  invalidateScreens("alerts");
   if (state.route === "alerts") render();
 }
 function alertsView() {
@@ -805,7 +887,19 @@ function settingsView() {
     .map(([key, value]) => `<div><dt>${key}</dt><dd>${esc(value)}</dd></div>`)
     .join(
       "",
-    )}</dl></section><section class="panel"><h2>I tuoi dati</h2><p>Alert e storico prezzi sono salvati sul tuo Umbrel. La stampante selezionata rimane in questo browser.</p><button class="button secondary" data-action="export-alerts">Esporta alert e notifiche</button><div class="section-heading"><h2>Altri strumenti</h2></div><div class="stack">${link("compare", icon("compare") + " Confronta materiali", "button secondary")}${link("cost", icon("cost") + " Calcola costo stampa", "button secondary")}${link("alerts", icon("alerts") + " Gestisci alert", "button secondary")}</div></section></div><p class="note spaced">Le ricerche dipendono dai siti dei negozi: blocchi, cambi di pagina o dati mancanti vengono segnalati per fonte. Nessun prezzo viene ricavato dai prodotti vicini e un peso sconosciuto non diventa automaticamente 1 kg.</p>`;
+    )}</dl></section><section class="panel"><h2>Il tuo stile</h2><label class="motion-setting" for="motion-enabled"><span><strong>Animazioni dell’interfaccia</strong><small>Transizioni, movimenti e piccoli dettagli. Rispetta anche la preferenza del dispositivo.</small></span><input id="motion-enabled" type="checkbox" role="switch" ${state.motion ? "checked" : ""}></label><h2 class="spaced">I tuoi dati</h2><p>Alert e storico prezzi sono salvati sul tuo Umbrel. La stampante selezionata rimane in questo browser.</p><button class="button secondary" data-action="export-alerts">Esporta alert e notifiche</button><div class="section-heading"><h2>Altri strumenti</h2></div><div class="stack">${link("compare", icon("compare") + " Confronta materiali", "button secondary")}${link("cost", icon("cost") + " Calcola costo stampa", "button secondary")}${link("alerts", icon("alerts") + " Gestisci alert", "button secondary")}</div></section></div><p class="note spaced">Le ricerche dipendono dai siti dei negozi: blocchi, cambi di pagina o dati mancanti vengono segnalati per fonte. Nessun prezzo viene ricavato dai prodotti vicini e un peso sconosciuto non diventa automaticamente 1 kg.</p>`;
+}
+
+function showNavigation() {
+  openDialog(
+    "Tutto il laboratorio",
+    `<div class="navigation-grid">${Object.entries(routes)
+      .map(
+        ([route, label]) =>
+          `<a href="#${route}" class="menu-route" ${state.route === route ? 'aria-current="page"' : ""}>${icon(route)}<span>${label}</span>${icon("arrow")}</a>`,
+      )
+      .join("")}</div>`,
+  );
 }
 
 document.addEventListener("click", async (event) => {
@@ -825,11 +919,14 @@ document.addEventListener("click", async (event) => {
         state.project,
         state.printer,
       );
-    render();
+    invalidateScreens("home", "materials", "advisor", "compare");
+    if (["home", "materials", "advisor", "compare"].includes(state.route))
+      render();
     return;
   }
   if (target.dataset.materialPrices) {
     state.search.material = materialById(target.dataset.materialPrices).name;
+    invalidateScreens("prices");
     closeDialog();
     location.hash = "prices";
     if (state.route === "prices") render();
@@ -842,6 +939,7 @@ document.addEventListener("click", async (event) => {
         ? "petg"
         : state.compare[0],
     ];
+    invalidateScreens("compare");
     closeDialog();
     location.hash = "compare";
     if (state.route === "compare") render();
@@ -895,6 +993,8 @@ document.addEventListener("click", async (event) => {
     return;
   }
   switch (target.dataset.action) {
+    case "navigation":
+      return showNavigation();
     case "reload-app":
       location.reload();
       return;
@@ -1015,6 +1115,11 @@ document.addEventListener("input", (event) => {
 });
 document.addEventListener("change", (event) => {
   const el = event.target;
+  if (el.id === "motion-enabled") {
+    state.motion = el.checked;
+    storage.set("ff12_motion", state.motion);
+    updateMotion();
+  }
   if (el.id === "compatible-only") {
     state.compatibleOnly = el.checked;
     $("#catalog-results").innerHTML = catalogResults();
@@ -1079,19 +1184,34 @@ $("#detail-dialog").addEventListener("close", () => {
   state.historyToken = null;
 });
 window.addEventListener("hashchange", navigate);
+reducedMotion.addEventListener("change", updateMotion);
+// Clicking the current route closes the mobile menu without rebuilding the view.
+document.addEventListener("click", (event) => {
+  const anchor = event.target.closest('a[href^="#"]');
+  if (anchor?.getAttribute("href") === `#${state.route}`) closeDialog();
+});
 
 async function init() {
+  state.motion = storage.get("ff12_motion", true) !== false;
+  updateMotion();
+  history.scrollRestoration = "manual";
   $("#printer-button").disabled = true;
   const restoredCost = restoreCost(storage.get("ff11_cost"));
   state.calc = restoredCost.values;
   state.calcName = restoredCost.name;
   state.calcSaved = restoredCost.saved;
-  $("#navigation").innerHTML = Object.entries(routes)
-    .map(
-      ([key, label], i) =>
-        `${i === 4 ? '<div class="nav-separator"></div>' : ""}<a class="nav-link ${["compare", "cost", "alerts"].includes(key) ? "secondary-nav" : ""}" data-route="${key}" href="#${key}">${icon(key)}<span>${key === "settings" ? "Strumenti" : label}</span></a>`,
-    )
-    .join("");
+  $("#navigation").innerHTML =
+    [
+      ["ESPLORA", ["home", "materials", "prices"]],
+      ["CREA", ["advisor", "cost", "compare"]],
+      ["IL TUO SPAZIO", ["alerts", "settings"]],
+    ]
+      .map(
+        ([group, keys]) =>
+          `<div class="nav-group-label">${group}</div>${keys.map((key) => `<a class="nav-link" data-route="${key}" href="#${key}">${icon(key)}<span>${key === "settings" ? "Strumenti" : routes[key]}</span><span class="nav-active-dot"></span></a>`).join("")}`,
+      )
+      .join("") +
+    '<button class="nav-more" data-action="navigation" aria-label="Altre sezioni"><span class="more-dots" aria-hidden="true">•••</span><span>Altro</span></button>';
   try {
     const catalog = await api("/catalog.json");
     if (
@@ -1122,16 +1242,22 @@ async function init() {
         .then((h) => {
           state.health = h;
           $("#server-status").textContent = "Laboratorio online";
+          invalidateScreens("settings");
         })
         .catch(() => {
           $("#server-status").textContent = "Server non disponibile";
         }),
       api("/api/sources").then((data) => {
         state.sources = data.sources;
+        invalidateScreens("settings");
+        const sourceCount = screens
+          .get("home")
+          ?.node.querySelector("[data-source-count]");
+        if (sourceCount) sourceCount.textContent = state.sources.length;
       }),
       loadAlerts(),
     ]);
-    if (["home", "settings", "alerts"].includes(state.route)) render();
+    if (["settings", "alerts"].includes(state.route)) render();
   } catch (error) {
     state.catalogReady = false;
     state.catalogError = error.message;

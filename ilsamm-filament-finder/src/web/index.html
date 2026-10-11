@@ -6,38 +6,47 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <meta name="theme-color" content="#101513" />
+    <meta name="theme-color" content="#0e0e14" />
     <meta
       name="description"
       content="Il tuo laboratorio dei filamenti: materiali, compatibilità e prezzi in un unico posto."
     />
     <title>Filament Finder</title>
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/app.css?v=1111" />
-    <script type="module" src="/app.mjs?v=1111"></script>
+    <link rel="stylesheet" href="/app.css?v=1200" />
+    <script type="module" src="/app.mjs?v=1200"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Vai al contenuto</a>
     <aside class="sidebar">
       <a class="brand" href="#home"
-        ><span class="brand-icon">f.</span
+        ><span class="brand-icon" aria-hidden="true"
+          ><svg viewBox="0 0 32 32">
+            <path d="M8 24V11a4 4 0 0 1 4-4h13M8 15h13M15 25V12" /></svg></span
         ><span
           >filament<span class="brand-light">finder</span
-          ><small>IL TUO LABORATORIO 3D</small></span
+          ><small>MAKE. PRINT. REPEAT.</small></span
         ></a
       >
-      <div class="nav-label">WORKSPACE</div>
       <nav id="navigation" aria-label="Navigazione principale"></nav>
       <div class="sidebar-bottom">
+        <a class="sidebar-shortcut" href="#cost"
+          ><span>Ogni idea ha un valore.</span
+          ><strong
+            >Calcola la tua prossima stampa
+            <span aria-hidden="true">↗</span></strong
+          ></a
+        >
         <span class="status-dot"></span
         ><span id="server-status">Connessione in corso</span
-        ><small>Edizione 11 · Su Umbrel</small>
+        ><small>Filament Finder · Edizione 12</small>
       </div>
     </aside>
     <div class="workspace">
       <header class="topbar">
         <div class="breadcrumb">
-          Workspace <span>/</span> <strong id="page-name">Panoramica</strong>
+          <span class="breadcrumb-context">IL TUO LABORATORIO 3D</span
+          ><strong id="page-name">Panoramica</strong>
         </div>
         <button id="printer-button" class="printer-button" type="button">
           Scegli stampante
@@ -47,8 +56,8 @@
         <div class="loading" role="status">Caricamento del laboratorio…</div>
       </main>
       <footer>
-        Filament Finder
-        <span>Progettato per scegliere meglio, prima di stampare.</span>
+        <span class="footer-brand">filamentfinder <span>© 2026</span></span>
+        <span>Buone idee. Ottime stampe.</span>
       </footer>
     </div>
     <dialog id="detail-dialog" aria-labelledby="dialog-title">
