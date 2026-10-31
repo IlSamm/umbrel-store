@@ -9,7 +9,7 @@ services:
       PROXY_AUTH_WHITELIST: "/api/device/*"
 
   server:
-    image: ghcr.io/ilsamm/jarvis:1.0.0
+    image: ghcr.io/ilsamm/jarvis:1.1.0
     init: true
     restart: unless-stopped
     stop_grace_period: 10s

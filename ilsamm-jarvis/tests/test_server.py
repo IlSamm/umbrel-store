@@ -2,7 +2,7 @@
 import os,sys,json,threading,time,urllib.request,urllib.error,io,wave,struct,math,shutil,tempfile
 QUI=os.path.dirname(os.path.abspath(__file__))
 D=tempfile.mkdtemp(prefix="jarvis-test-")
-os.environ.update(JARVIS_DATA=D,PORT="18080",WHISPER_HOST="127.0.0.1:10300",PIPER_HOST="127.0.0.1:10200",GEMINI_BASE="http://127.0.0.1:18124/v1beta",EDGE_TTS_BIN="edge-tts-non-esiste",HA_CANDIDATES="http://127.0.0.1:1,http://127.0.0.1:18123")
+os.environ.update(JARVIS_DATA=D,PORT="18080",WHISPER_HOST="127.0.0.1:10300",PIPER_HOST="127.0.0.1:10200",GEMINI_BASE="http://127.0.0.1:18124/v1beta",EDGE_TTS_BIN="edge-tts-non-esiste",HA_CANDIDATES="http://127.0.0.1:1,http://127.0.0.1:18123",METEO_BASE="http://127.0.0.1:18125/v1",GEO_BASE="http://127.0.0.1:18125/v1",WIKI_BASE="http://127.0.0.1:18125")
 sys.path.insert(0,QUI);sys.path.insert(0,os.path.join(QUI,"..","server"));import mocks;mocks.start()
 import jarvis_server as J
 srv=J.ThreadingHTTPServer(("127.0.0.1",18080),J.H);threading.Thread(target=srv.serve_forever,daemon=True).start();time.sleep(.3)
@@ -44,6 +44,22 @@ try:req("/api/device/voice",raw=buf.getvalue(),ctype="audio/wav");ok(False,"disp
 except urllib.error.HTTPError as e:ok(e.code==401,"dispositivo senza chiave rifiutato")
 r=req("/api/device/voice?key="+key,raw=buf.getvalue(),ctype="audio/wav");ok(r["text"] and "audio" in r,"voce dispositivo: %s -> %s"%(r["text"],r["reply"]))
 t=req(r["audio"]);ok(t[0]=="audio/wav","audio per il dispositivo "+str(t))
+# internet: meteo, ricerca, modelli esauriti
+r=req("/api/ask",{"text":"che tempo fa?"});ok("13 gradi" in r["reply"] and "coperto" in r["reply"] and r["reply"].startswith("Qui fuori"),"meteo di casa senza Gemini: "+r["reply"])
+r=req("/api/ask",{"text":"pioverà domani a Roma?"});ok("Roma" in r["reply"] and "70%" in r["reply"],"previsioni per domani a Roma: "+r["reply"])
+r=req("/api/ask",{"text":"che temperatura c'è in soggiorno?"});ok(r["via"]=="gemini","la temperatura del soggiorno non va al meteo")
+mocks.GEMCFG["esauriti"]={"gemini-flash-lite-latest"}
+r=req("/api/ask",{"text":"come è finito il derby?"});ok(r["via"]=="gemini" and "Inter" in r["reply"] and r["fonti"],"ricerca web con fonti: "+r["reply"])
+usati=[g[0].split("/models/")[1].split(":")[0] for g in mocks.GEM[-4:]];ok("gemini-flash-lite-latest" in usati and "gemini-2.5-flash" in usati,"modello esaurito saltato: "+str(usati))
+mocks.GEMCFG["esauriti"]={"gemini-flash-lite-latest","gemini-2.5-flash","gemini-flash-latest","gemini-2.5-flash-lite","gemini-3.8-flash"}
+r=req("/api/ask",{"text":"raccontami una barzelletta"});ok(r["via"]=="gemini" and mocks.GEM[-1][0].split("/models/")[1].startswith("gemini-3.5-flash-lite"),"modello trovato nell'elenco di Google")
+mocks.GEMCFG["esauriti"]={"gemini-flash-lite-latest","gemini-2.5-flash","gemini-flash-latest","gemini-2.5-flash-lite","gemini-3.8-flash","gemini-3.5-flash-lite"}
+r=req("/api/ask",{"text":"raccontami una barzelletta"});ok(r["via"]=="offline" and "limite" in r["reply"],"tutti esauriti spiegato: "+r["reply"])
+r=req("/api/ask",{"text":"chi è Leonardo da Vinci?"});ok(r["via"]=="internet" and "1452" in r["reply"],"senza Gemini risponde da Wikipedia: "+r["reply"])
+mocks.GEMCFG["esauriti"]=set()
+req("/api/config",{"gemini_key":"KEYBAD"})
+r=req("/api/ask",{"text":"raccontami una barzelletta"});ok("chiave" in r["reply"],"chiave sbagliata spiegata: "+r["reply"])
+req("/api/config",{"gemini_key":"KEYX"})
 # indirizzo di Home Assistant sbagliato: lo ritrova da solo
 req("/api/config",{"ha_url":"http://127.0.0.1:9"})
 s=req("/api/status");ok(s["home_assistant"]["collegato"] and req("/api/config")["ha_url"]=="http://127.0.0.1:18123","Home Assistant ritrovato da solo")

@@ -38,14 +38,18 @@ PIPER = os.environ.get("PIPER_HOST", "piper:10200")
 PIPER_VOICE = os.environ.get("PIPER_VOICE", "it_IT-paola-medium")
 GEMINI_BASE = os.environ.get("GEMINI_BASE", "https://generativelanguage.googleapis.com/v1beta")
 EDGE_BIN = os.environ.get("EDGE_TTS_BIN", "edge-tts")
-VERSION = "1.0.0"
+VERSION = "1.1.0"
+METEO_BASE = os.environ.get("METEO_BASE", "https://api.open-meteo.com/v1")
+GEO_BASE = os.environ.get("GEO_BASE", "https://geocoding-api.open-meteo.com/v1")
+WIKI_BASE = os.environ.get("WIKI_BASE", "https://it.wikipedia.org")
 
 os.makedirs(os.path.join(DATA, "cache"), exist_ok=True)
 LOCK = threading.RLock()
 
 DEFAULT_CONFIG = {
     "gemini_key": "",
-    "gemini_model": "gemini-flash-latest",
+    "gemini_model": "auto",
+    "citta": "",
     "ha_url": "http://host.docker.internal:8123",
     "ha_token": "",
     "voce": "it-IT-DiegoNeural",
@@ -419,6 +423,96 @@ NUMWORDS = {"uno": 1, "una": 1, "due": 2, "tre": 3, "quattro": 4, "cinque": 5, "
             "venti": 20, "trenta": 30, "quaranta": 40, "cinquanta": 50, "cento": 100}
 
 
+# ------------------------------------------------------------------ internet: meteo e ricerca
+WMO = {0: "sereno", 1: "quasi sereno", 2: "poco nuvoloso", 3: "coperto", 45: "nebbia", 48: "nebbia con brina", 51: "pioviggine leggera",
+       53: "pioviggine", 55: "pioviggine intensa", 56: "pioviggine gelata", 57: "pioviggine gelata", 61: "pioggia leggera", 63: "pioggia",
+       65: "pioggia forte", 66: "pioggia gelata", 67: "pioggia gelata forte", 71: "neve leggera", 73: "neve", 75: "neve forte", 77: "nevischio",
+       80: "rovesci leggeri", 81: "rovesci", 82: "rovesci violenti", 85: "rovesci di neve", 86: "forti rovesci di neve", 95: "temporale",
+       96: "temporale con grandine", 99: "temporale con grandine forte"}
+GEO_CACHE = {}
+
+
+def geocode(nome):
+    k = norm(nome)
+    if k in GEO_CACHE:
+        return GEO_CACHE[k]
+    out = http_json("%s/search?name=%s&count=1&language=it&format=json" % (GEO_BASE, quote(nome)), timeout=8)
+    r = (out.get("results") or [None])[0]
+    if not r:
+        raise RuntimeError("non trovo il luogo «%s»" % nome)
+    GEO_CACHE[k] = (r["latitude"], r["longitude"], r.get("name") or nome)
+    return GEO_CACHE[k]
+
+
+def casa_posizione():
+    c = get_config()
+    if c.get("citta"):
+        return geocode(c["citta"])
+    if "casa" in GEO_CACHE:
+        return GEO_CACHE["casa"]
+    if c.get("ha_token"):
+        try:
+            hc = ha_call("/api/config", timeout=5)
+            if hc.get("latitude") is not None:
+                GEO_CACHE["casa"] = (hc["latitude"], hc["longitude"], hc.get("location_name") or "casa")
+                return GEO_CACHE["casa"]
+        except Exception:
+            pass
+    raise RuntimeError("non so dove si trova casa: scriva la sua città nelle impostazioni (⚙)")
+
+
+def meteo(luogo=None, giorno=0):
+    lat, lon, nome = geocode(luogo) if luogo else casa_posizione()
+    out = http_json("%s/forecast?latitude=%s&longitude=%s&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation"
+                    "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7" % (METEO_BASE, lat, lon), timeout=8)
+    cur, d = out.get("current") or {}, out.get("daily") or {}
+    giorno = max(0, min(int(giorno or 0), len(d.get("time") or [1]) - 1))
+    g = lambda k: (d.get(k) or [None] * 7)[giorno]
+    return {"luogo": nome, "giorno": (d.get("time") or [today()])[giorno],
+            "adesso": {"temperatura": cur.get("temperature_2m"), "percepita": cur.get("apparent_temperature"), "cielo": WMO.get(cur.get("weather_code"), "variabile"),
+                       "vento_kmh": cur.get("wind_speed_10m")} if giorno == 0 else None,
+            "previsione": {"cielo": WMO.get(g("weather_code"), "variabile"), "massima": g("temperature_2m_max"), "minima": g("temperature_2m_min"),
+                           "probabilita_pioggia": g("precipitation_probability_max")}}
+
+
+def meteo_frase(m, titolo):
+    gr = lambda x: "%d" % round(x) if x is not None else "?"
+    p = m["previsione"]
+    pioggia = p.get("probabilita_pioggia")
+    coda = (", probabilità di pioggia %d%%" % pioggia) if pioggia is not None and pioggia >= 20 else ""
+    if m.get("adesso"):
+        a = m["adesso"]
+        dove = "Qui fuori" if norm(m["luogo"]) in ("casa", "home", "") else "A " + m["luogo"]
+        return "%s ora ci sono %s gradi, %s. Oggi massima %s e minima %s%s, %s." % (dove, gr(a["temperatura"]), a["cielo"], gr(p["massima"]), gr(p["minima"]), coda, titolo)
+    giorni = {1: "Domani", 2: "Dopodomani"}
+    try:
+        dd = (datetime.date.fromisoformat(m["giorno"]) - now().date()).days
+    except Exception:
+        dd = 1
+    quando = giorni.get(dd) or ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"][datetime.date.fromisoformat(m["giorno"]).weekday()]
+    dove = "" if norm(m["luogo"]) in ("casa", "home", "") else " a " + m["luogo"]
+    return "%s%s: %s, massima %s e minima %s%s, %s." % (quando, dove, p["cielo"], gr(p["massima"]), gr(p["minima"]), coda, titolo)
+
+
+def wiki(domanda):
+    """Riassunto da Wikipedia in italiano: funziona anche senza Gemini."""
+    q = re.sub(r"^(chi e|chi era|chi sono|cos e|che cos e|cosa e|cosa sono|cos era|dov e|dove si trova|parlami di|dimmi qualcosa su|spiegami)\s+", "", norm(domanda)).strip()
+    q = re.sub(r"^(il|lo|la|i|gli|le|l|un|una|uno)\s+", "", q)
+    if not q:
+        return None
+    out = http_json("%s/w/api.php?action=query&list=search&srlimit=1&format=json&srsearch=%s" % (WIKI_BASE, quote(q)), timeout=8)
+    hits = (out.get("query") or {}).get("search") or []
+    if not hits:
+        return None
+    title = hits[0]["title"]
+    s = http_json("%s/api/rest_v1/page/summary/%s" % (WIKI_BASE, quote(title.replace(" ", "_"))), timeout=8)
+    txt = (s.get("extract") or "").strip()
+    if not txt:
+        return None
+    frasi = re.split(r"(?<=[.!?])\s+", txt)
+    return {"titolo": title, "testo": " ".join(frasi[:2]), "link": ((s.get("content_urls") or {}).get("desktop") or {}).get("page", "")}
+
+
 def local_intent(text, titolo):
     s = norm(text)
     s = re.sub(r"^(ehi |hey |ok )?jarvis\b ?", "", s)
@@ -433,6 +527,15 @@ def local_intent(text, titolo):
         g = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"][now().weekday()]
         m = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"][now().month - 1]
         return dict(res, reply="Oggi è %s %d %s, %s." % (g, now().day, m, titolo))
+    # meteo: Open-Meteo, gratis e senza chiave
+    if re.search(r"\b(che tempo (fa|fara|ce)|meteo|previsioni|piove|piovera|nevica|nevichera|ombrello|fa freddo|fa caldo)\b", s) and not re.search(r"\b(in|del|della|nel|nella) (salotto|soggiorno|camera|cucina|bagno|studio|casa)\b", s):
+        giorno = 2 if "dopodomani" in s else 1 if "domani" in s else 0
+        mm = re.search(r"\b(?:a|ad|su|per|in)\s+([a-z][a-z' ]{1,40}?)(?:\s+(?:oggi|domani|dopodomani|stasera|stanotte|questo|questa|adesso|ora)\b|\s*$)", s)
+        luogo = mm.group(1).strip() if mm and mm.group(1) not in ("casa", "che", "ora", "oggi") else None
+        try:
+            return dict(res, reply=meteo_frase(meteo(luogo, giorno), titolo), via="internet")
+        except Exception as e:
+            return dict(res, reply="Non riesco a leggere il meteo, %s: %s." % (titolo, str(e)[:120]))
     # lista della spesa su Home Assistant
     m = re.match(r"^(?:aggiungi|metti|segna)\s+(.+?)\s+(?:alla|nella|in)\s+(?:lista (?:della )?spesa|spesa|lista)$", raw)
     if m:
@@ -522,6 +625,10 @@ def tools_decl():
          "parameters": {"type": "OBJECT", "properties": {"cose": {"type": "ARRAY", "items": {"type": "STRING"}}}, "required": ["cose"]}},
         {"name": "calendario", "description": "Legge gli eventi dei calendari collegati a Home Assistant in un intervallo (predefinito: prossimi 7 giorni).",
          "parameters": {"type": "OBJECT", "properties": {"da": {"type": "STRING"}, "a": {"type": "STRING"}}}},
+        {"name": "cerca_web", "description": "Cerca su internet con Google e restituisce una risposta aggiornata con le fonti. Usalo per notizie, risultati sportivi, prezzi, orari di negozi, eventi, persone, fatti recenti e qualsiasi cosa che non sai con certezza.",
+         "parameters": {"type": "OBJECT", "properties": {"domanda": {"type": "STRING", "description": "Cosa cercare, in italiano, completo di luogo e data se servono"}}, "required": ["domanda"]}},
+        {"name": "meteo", "description": "Meteo attuale e previsioni fino a 7 giorni. Senza luogo: la casa dell'utente.",
+         "parameters": {"type": "OBJECT", "properties": {"luogo": {"type": "STRING"}, "giorno": {"type": "NUMBER", "description": "0 oggi, 1 domani, fino a 6"}}}},
     ]}]
 
 
@@ -558,6 +665,14 @@ def run_tool(name, args, res):
             return {"ok": True, "lista": lista}
         if name == "calendario":
             return {"eventi": ha_calendar(args.get("da"), args.get("a"))}
+        if name == "cerca_web":
+            r = cerca_web(args.get("domanda", ""))
+            res["fonti"] += r.get("fonti", [])
+            res["internet"] = True
+            return r
+        if name == "meteo":
+            res["internet"] = True
+            return meteo(args.get("luogo") or None, args.get("giorno") or 0)
     except Exception as e:
         return {"errore": str(e)[:200]}
     return {"errore": "strumento sconosciuto"}
@@ -572,7 +687,94 @@ def system_prompt(c):
             "Oggi è %s %s, ore %s.\n"
             "Dispositivi di casa su Home Assistant: %s.\n%s\n"
             "Usa gli strumenti per comandare la casa, leggere sensori e calendario, salvare ricordi e spese. Quando l'utente ti dice una spesa o qualcosa da ricordare, usa memorizza. "
-            "Non inventare mai dati o importi: se non lo sai, dillo." % (c.get("titolo") or "Signore", g, today(), now().strftime("%H:%M"), dl or "non collegati", digest()))
+            "Sei collegato a internet: per notizie, sport, prezzi, orari, persone, eventi e qualunque fatto recente o che non conosci con certezza usa cerca_web, senza chiedere il permesso; per il meteo usa meteo. "
+            "Non dire mai che non puoi accedere a internet. Non inventare mai dati o importi: se non lo trovi, dillo." % (c.get("titolo") or "Signore", g, today(), now().strftime("%H:%M"), dl or "non collegati", digest()))
+
+
+GEM = {"ok": "", "lista": [], "t": 0}
+GEM_PREF = ["gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
+
+
+def gemini_models(key):
+    """Modelli da provare: quello che ha funzionato l'ultima volta, poi i preferiti, poi quelli che Google elenca per la chiave."""
+    c = get_config()
+    scelto = (c.get("gemini_model") or "auto").strip()
+    if time.time() - GEM["t"] > 6 * 3600:
+        GEM["t"] = time.time()
+        try:
+            out = http_json("%s/models?pageSize=200&key=%s" % (GEMINI_BASE, quote(key)), timeout=10)
+            nomi = []
+            for m in out.get("models") or []:
+                n = m.get("name", "").split("/")[-1]
+                if "flash" in n and "generateContent" in (m.get("supportedGenerationMethods") or []) and not re.search(r"image|tts|live|audio|embedding|thinking|exp", n):
+                    nomi.append(n)
+            vers = lambda n: [float(x) for x in re.findall(r"\d+(?:\.\d+)?", n)[:1]] or [0]
+            GEM["lista"] = sorted(nomi, key=lambda n: ("preview" in n, "lite" not in n, [-v for v in vers(n)]))
+        except Exception:
+            pass
+    out = []
+    for m in ([scelto] if scelto not in ("", "auto") else []) + [GEM["ok"]] + GEM_PREF + GEM["lista"]:
+        if m and m not in out:
+            out.append(m)
+    return out
+
+
+def gemini_call(body, key):
+    """Prova i modelli uno dopo l'altro: se uno è esaurito (429), non c'è (404) o è sovraccarico (5xx) passa al successivo."""
+    errori = []
+    for model in gemini_models(key):
+        try:
+            out = http_json("%s/models/%s:generateContent?key=%s" % (GEMINI_BASE, model, quote(key)), body, timeout=40)
+            GEM["ok"] = model
+            return out
+        except urllib.error.HTTPError as e:
+            try:
+                msg = e.read().decode("utf-8", "ignore")[:300]
+            except Exception:
+                msg = ""
+            errori.append(e.code)
+            if GEM["ok"] == model:
+                GEM["ok"] = ""
+            if e.code == 400 and re.search(r"API key not valid|API_KEY_INVALID", msg):
+                raise RuntimeError("chiave") from e
+            if e.code in (403,) and "PERMISSION_DENIED" in msg and "API" in msg and "has not been used" in msg:
+                raise RuntimeError("chiave") from e
+            if e.code in (400, 403, 404, 429, 500, 502, 503, 504):
+                continue
+            raise
+        except (urllib.error.URLError, OSError) as e:
+            raise RuntimeError("rete") from e
+    raise RuntimeError("limite" if errori and all(c == 429 for c in errori) else "gemini")
+
+
+def cerca_web(domanda):
+    domanda = str(domanda or "").strip()
+    if not domanda:
+        return {"errore": "domanda vuota"}
+    key = get_config().get("gemini_key")
+    if key:
+        try:
+            body = {"contents": [{"role": "user", "parts": [{"text": "Oggi è %s. %s\nRispondi in italiano in poche frasi, con i fatti principali, numeri e date." % (today(), domanda)}]}],
+                    "tools": [{"google_search": {}}], "generationConfig": {"temperature": 0.3, "maxOutputTokens": 600}}
+            out = gemini_call(body, key)
+            cand = (out.get("candidates") or [{}])[0]
+            txt = " ".join(p.get("text", "") for p in ((cand.get("content") or {}).get("parts") or [])).strip()
+            fonti = []
+            for ch in ((cand.get("groundingMetadata") or {}).get("groundingChunks") or [])[:5]:
+                w = ch.get("web") or {}
+                if w.get("uri"):
+                    fonti.append({"titolo": w.get("title") or w.get("uri"), "link": w["uri"]})
+            if txt:
+                return {"risposta": txt, "fonti": fonti}
+        except Exception:
+            pass
+    try:
+        w = wiki(domanda)
+        if w:
+            return {"risposta": w["testo"], "fonti": [{"titolo": "Wikipedia: " + w["titolo"], "link": w["link"]}]}
+    except Exception:
+        pass
+    return {"errore": "la ricerca non ha dato risultati"}
 
 
 def gemini(question, history, res):
@@ -586,30 +788,18 @@ def gemini(question, history, res):
         contents.append({"role": "model", "parts": [{"text": h["j"]}]})
     contents.append({"role": "user", "parts": [{"text": question}]})
     body = {"systemInstruction": {"parts": [{"text": system_prompt(c)}]}, "contents": contents, "tools": tools_decl(),
-            "generationConfig": {"temperature": 0.6, "maxOutputTokens": 500}}
-    models = [c.get("gemini_model") or "gemini-flash-latest"] + [m for m in ("gemini-2.5-flash", "gemini-2.0-flash") if m != c.get("gemini_model")]
-    last = None
-    for model in models:
-        try:
-            for _ in range(5):
-                out = http_json("%s/models/%s:generateContent?key=%s" % (GEMINI_BASE, model, quote(key)), body, timeout=40)
-                cand = (out.get("candidates") or [{}])[0]
-                parts = (cand.get("content") or {}).get("parts") or []
-                calls = [p["functionCall"] for p in parts if "functionCall" in p]
-                if not calls:
-                    txt = " ".join(p.get("text", "") for p in parts).strip()
-                    return txt or "Fatto, %s." % (c.get("titolo") or "Signore")
-                body["contents"].append({"role": "model", "parts": parts})
-                body["contents"].append({"role": "user", "parts": [{"functionResponse": {"name": fc.get("name"), "response": {"risultato": run_tool(fc.get("name"), fc.get("args"), res)}}} for fc in calls]})
-            return "Ho fatto quello che potevo, %s." % (c.get("titolo") or "Signore")
-        except urllib.error.HTTPError as e:
-            last = e
-            if e.code == 404:
-                continue  # modello non disponibile: provo il successivo
-            if e.code == 429:
-                raise RuntimeError("limite") from e
-            raise
-    raise last or RuntimeError("gemini")
+            "generationConfig": {"temperature": 0.6, "maxOutputTokens": 600}}
+    for _ in range(5):
+        out = gemini_call(body, key)
+        cand = (out.get("candidates") or [{}])[0]
+        parts = (cand.get("content") or {}).get("parts") or []
+        calls = [p["functionCall"] for p in parts if "functionCall" in p]
+        if not calls:
+            txt = " ".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+            return txt or "Fatto, %s." % (c.get("titolo") or "Signore")
+        body["contents"].append({"role": "model", "parts": parts})
+        body["contents"].append({"role": "user", "parts": [{"functionResponse": {"name": fc.get("name"), "response": {"risultato": run_tool(fc.get("name"), fc.get("args"), res)}}} for fc in calls]})
+    return "Ho fatto quello che potevo, %s." % (c.get("titolo") or "Signore")
 
 
 def ollama(question, history):
@@ -628,7 +818,7 @@ def ask(text):
     text = str(text or "").strip()[:600]
     c = get_config()
     titolo = c.get("titolo") or "Signore"
-    res = {"reply": "", "via": "locale", "azioni": [], "casa": [], "memorie": [], "cerca": []}
+    res = {"reply": "", "via": "locale", "azioni": [], "casa": [], "memorie": [], "cerca": [], "fonti": [], "internet": False}
     if not text:
         res["reply"] = "La ascolto, %s." % titolo
         return res
@@ -651,10 +841,22 @@ def ask(text):
                 res["via"] = "ollama"
             except Exception:
                 res["via"] = "offline"
-                if why == "nokey":
+                w = None
+                if re.search(r"^(chi |cos|che cos|cosa |dov|dove |parlami|dimmi qualcosa|spiegami)", norm(text)):
+                    try:
+                        w = wiki(text)
+                    except Exception:
+                        w = None
+                if w:
+                    res.update(reply=w["testo"], via="internet", fonti=[{"titolo": "Wikipedia: " + w["titolo"], "link": w["link"]}])
+                elif why == "chiave":
+                    res["reply"] = "Google rifiuta la chiave di Gemini, %s: la ricontrolli nelle impostazioni (⚙). Deve iniziare con AIza." % titolo
+                elif why == "rete":
+                    res["reply"] = "Il server non riesce a uscire su internet in questo momento, %s. I comandi della casa funzionano comunque." % titolo
+                elif why == "nokey":
                     res["reply"] = "Per le domande mi serve il cervello, %s: inserisca la chiave gratuita di Gemini nelle impostazioni (⚙). I comandi della casa e le spese funzionano già." % titolo
                 elif why == "limite":
-                    res["reply"] = "Ho superato il limite gratuito di Gemini per ora, %s. Riprovi tra poco." % titolo
+                    res["reply"] = "Tutti i modelli gratuiti di Gemini sono al limite in questo momento, %s. Riprovi tra un minuto." % titolo
                 else:
                     res["reply"] = "Non riesco a raggiungere il mio cervello online in questo momento, %s. I comandi della casa funzionano comunque." % titolo
     res["cerca"] = [w for w in norm(text).split() if len(w) > 3][:6]

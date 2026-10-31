@@ -4,8 +4,9 @@ name: Jarvis
 tagline: Il tuo assistente personale, a voce, sul tuo Umbrel
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-jarvis/icon.svg
 category: automation
-version: "1.0.0"
+version: "1.1.0"
 port: 8791
+requiresHttps: true
 
 description: >-
   Jarvis è un assistente personale in italiano che gira sul tuo Umbrel.
@@ -24,9 +25,11 @@ description: >-
   ascolto (circa 2 GB in tutto), quindi serve qualche minuto.
 
 releaseNotes: >-
-  Prima versione: casa con Home Assistant, memoria e spese, calendari, lista della
-  spesa, Gemini con strumenti, ascolto locale con Whisper, voce Diego con riserva Piper,
-  API per i dispositivi vocali.
+  Jarvis ora va su internet da solo quando serve: notizie, sport, prezzi, orari e
+  fatti recenti con Google, meteo e previsioni anche senza Gemini, e risposte da
+  Wikipedia se Gemini non è disponibile. Se un modello gratuito di Gemini è al limite,
+  passa da solo a un altro. Si apre in https, così dal telefono puoi parlargli a voce
+  (serve il certificato HTTPS di Umbrel installato sul telefono). Nuova città per il meteo.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-jarvis"

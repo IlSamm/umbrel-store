@@ -75,7 +75,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
           tags: |
-            ghcr.io/ilsamm/jarvis:1.0.0
+            ghcr.io/ilsamm/jarvis:1.1.0
             ghcr.io/ilsamm/jarvis:latest
           labels: |
             org.opencontainers.image.source=https://github.com/IlSamm/umbrel-store

@@ -138,6 +138,14 @@ body.kb #cap{top:26%}body.kb .stats{display:none}
   <div id="labels"></div>
   <div id="side" class="ui"><h1 id="brand" tabindex="0" role="button" title="Tocca per riavviare Jarvis">JARVIS</h1><div class="sub" id="hello">Buongiorno, Signore.</div><ul id="slist"></ul></div>
   <div class="clockbox ui"><div class="clock" id="clock">--:--</div><small id="date"></small><button id="snd" class="mini" type="button" aria-label="Disattiva l’audio">🔊 audio</button><br><button id="lite" class="mini" type="button" aria-pressed="false">⚡ fluida</button><br><button id="exb" class="mini" type="button" aria-pressed="true">✦ esempi: sì</button><br><button id="cfgb" class="mini" type="button" aria-label="Impostazioni">⚙ impostazioni</button></div><div id="toast" role="status" aria-live="polite"></div>
+  <div id="httpsb" class="cfg" hidden role="dialog" aria-modal="true" aria-labelledby="httpst"><div class="cfgin">
+    <div class="sh-h"><h2 id="httpst">Per parlarmi a voce</h2><button class="ib" type="button" id="httpsx" aria-label="Chiudi" style="width:34px;height:34px">✕</button></div>
+    <p class="hint" style="font-size:15px;color:#c8d6e5">Il browser concede il microfono solo alle pagine sicure (https). Adesso sono aperto in http, quindi non posso sentirti.</p>
+    <h3>Da fare una volta sola</h3>
+    <p class="hint" style="font-size:15px;color:#c8d6e5">1. In Umbrel apri <b>Impostazioni</b> e cerca <b>HTTPS</b>. Scarica il certificato e installalo sul telefono seguendo i passaggi per iPhone o Android.<br>2. Riapri Jarvis dall’icona di Umbrel: si apre in https e ti chiede il microfono. Tocca <b>Consenti</b>.</p>
+    <p class="hint">Intanto puoi usare il 🎤 della tastiera: invio io appena smetti di parlare.</p>
+    <div class="cfgb"><button type="button" class="pri" id="httpsgo">Apri in https</button><button type="button" id="httpsk">Usa la tastiera</button></div>
+  </div></div>
   <div id="cfg" class="cfg" hidden role="dialog" aria-modal="true" aria-labelledby="cfgt"><div class="cfgin">
     <div class="sh-h"><h2 id="cfgt">Impostazioni di Jarvis</h2><button class="ib" type="button" id="cfgx" aria-label="Chiudi" style="width:34px;height:34px">✕</button></div>
     <div id="cfgst" class="cfgst"></div>
@@ -152,6 +160,8 @@ body.kb #cap{top:26%}body.kb .stats{display:none}
     <label>Voce<select id="c_vo"></select></label>
     <label>Velocità<select id="c_ve"><option value="-10%">più lenta</option><option value="+0%">normale</option><option value="+6%">un po' più veloce</option><option value="+12%">veloce</option><option value="+20%">molto veloce</option></select></label>
     <label>Come ti chiamo<input id="c_ti" type="text" autocomplete="off" placeholder="Signore"></label>
+    <h3>Meteo</h3>
+    <label>La tua città<input id="c_ci" type="text" autocomplete="off" placeholder="vuoto = la posizione di Home Assistant"></label>
     <details><summary>Avanzate</summary>
       <label>Ollama (IA locale di riserva) · indirizzo<input id="c_ou" type="text" autocomplete="off" placeholder="http://umbrel.local:11434"></label>
       <label>Ollama · modello<input id="c_om" type="text" autocomplete="off" placeholder="qwen2.5:3b"></label>
@@ -872,10 +882,10 @@ function cfgStatus(){var el=$("cfgst");if(!el)return;var s=SRV.st;if(!s){el.inne
 function openCfg(){var c=SRV.cfg||{};$("c_gk").value="";$("c_gk").placeholder=c.gemini_key_impostata?"impostata ✓ (lascia vuoto per non cambiarla)":"incolla qui la chiave";
   $("c_hu").value=c.ha_url||"";$("c_ht").value="";$("c_ht").placeholder=c.ha_token_impostata?"impostato ✓ (lascia vuoto per non cambiarlo)":"incolla qui il token";
   $("c_vo").innerHTML=(c.voci||[]).map(function(v){return '<option value="'+esc(v[0])+'"'+(v[0]===c.voce?" selected":"")+'>'+esc(v[1])+'</option>'}).join("");
-  $("c_ve").value=c.velocita||"+6%";$("c_ti").value=c.titolo||"Signore";$("c_ou").value=c.ollama_url||"";$("c_om").value=c.ollama_model||"";$("c_dk").textContent=c.device_key||"—";
+  $("c_ve").value=c.velocita||"+6%";$("c_ti").value=c.titolo||"Signore";$("c_ci").value=c.citta||"";$("c_ou").value=c.ollama_url||"";$("c_om").value=c.ollama_model||"";$("c_dk").textContent=c.device_key||"—";
   $("cfg").hidden=false;cfgStatus();srvStatus()}
 function closeCfg(){$("cfg").hidden=true}
-async function saveCfg(){var b={ha_url:$("c_hu").value.trim(),voce:$("c_vo").value,velocita:$("c_ve").value,titolo:$("c_ti").value.trim()||"Signore",ollama_url:$("c_ou").value.trim(),ollama_model:$("c_om").value.trim()};
+async function saveCfg(){var b={ha_url:$("c_hu").value.trim(),voce:$("c_vo").value,velocita:$("c_ve").value,titolo:$("c_ti").value.trim()||"Signore",citta:$("c_ci").value.trim(),ollama_url:$("c_ou").value.trim(),ollama_model:$("c_om").value.trim()};
   if($("c_gk").value.trim())b.gemini_key=$("c_gk").value.trim();if($("c_ht").value.trim())b.ha_token=$("c_ht").value.trim();
   try{SRV.cfg=await api("config",{body:b});$("c_gk").value="";$("c_ht").value="";toast("Salvato, Signore.",2200);await srvStatus();srvHome();srvAgenda();openCfg()}catch(x){toast("Non riesco a salvare: "+x.message,5000)}}
 
@@ -1055,6 +1065,7 @@ async function ask(q,voice){q=(q||"").trim();dlog("domanda",(busy?"OCCUPATO ":""
   try{var r=await api("ask",{body:{text:q}});ans=r.reply||"Fatto, Signore.";dlog("via",r.via);
     if(r.memorie&&r.memorie.length)await srvMem();
     var ids=[];(r.memorie||[]).forEach(function(m){if(MEM[m]!=null)ids.push(MEM[m])});(r.casa||[]).forEach(function(e){if(SRV.homeIds[e]!=null)ids.push(SRV.homeIds[e])});light(ids);
+    if(r.internet||r.via==="internet"){var fo=(r.fonti||[])[0];toast("🌐 cercato online"+(fo?" · "+String(fo.titolo).replace(/^https?:\/\//,"").slice(0,40):""),3500)}
     if(r.casa&&r.casa.length)setTimeout(srvHome,1500);if(r.via==="offline"&&/impostazioni/.test(ans))setTimeout(function(){if(!SRV.cfg||!SRV.cfg.gemini_key_impostata)toast("Tocca ⚙ impostazioni per collegare il cervello (gratis).",5000)},2500)}
   catch(e){ans="Non riesco a raggiungere il server di Jarvis, Signore.";dlog("server-errore",e&&e.message)}
   thinkStop();if(!found.length){clearTrace();light(guess(q))}
@@ -1079,7 +1090,7 @@ async function recListen(){shush();var st;try{st=await navigator.mediaDevices.ge
 function micUI(){mic.classList.toggle("on",listening);mic.classList.toggle("conv",CONVO&&!listening)}
 function micOff(){listening=false;micUI();if(!busy&&!speaking)actT=0}
 function listen(){if(CANREC){recListen();return true}if(SRbad||!rec)return false;try{shush();dlog("mic","start");rec.start();listening=true;heard=false;micUI();actT=.6;cap("Ti ascolto, Signore…",true);return true}catch(e){dlog("mic-errore","start: "+(e&&e.message));listening=false;micUI();return false}}
-function startDict(first){dlog("dettatura","attiva");DICT=true;CONVO=false;micUI();try{inp.focus()}catch(x){}
+var KEYB=false;function startDict(first){dlog("dettatura","attiva");DICT=true;CONVO=false;micUI();if(first==="k")KEYB=true;if(!window.isSecureContext&&!KEYB){$("httpsb").hidden=false;return}try{inp.focus()}catch(x){}
   toast(first?"Su questa connessione il browser non mi dà il microfono, Signore. Usiamo la dettatura: premi 🎤 sulla tastiera e parla, invio io appena smetti.":"Premi 🎤 in basso sulla tastiera e parla: invio io appena smetti.",first?7000:3500)}
 function afterSpeak(){if(CONVO&&(CANREC||!SRbad)&&!listening)setTimeout(function(){if(CONVO&&!speaking&&!busy&&!listening){gest=false;if(!listen()){CONVO=false;micUI();toast("Tocca 🎙 per rispondermi, Signore.",3000)}}},380)}
 if(SRc){try{rec=new SRc();rec.lang="it-IT";rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1}catch(x){rec=null;SRbad=true}}
@@ -1092,7 +1103,7 @@ if(rec){rec.onresult=function(e){var s="",fin=false;for(var i=e.resultIndex;i<e.
 mic.addEventListener("click",function(){unlockAudio();initAudio();dlog("mic","tocco ascolto="+listening+" conv="+CONVO+" srBloccato="+SRbad);
   if(listening){CONVO=false;if(REC.mr){recStop(false);return}try{rec.stop()}catch(x){}micOff();return}
   if(CONVO&&(speaking||busy)){CONVO=false;shush();micUI();return}
-  if(SRbad&&!CANREC){startDict(false);return}
+  if((SRbad||!window.isSecureContext)&&!CANREC){startDict(false);return}
   gest=true;CONVO=true;miss=0;if(!listen()){SRbad=true;startDict(true)}});
 inp.addEventListener("input",function(){if(!DICT)return;clearTimeout(dT);dT=setTimeout(function(){var v=inp.value.trim();if(v&&!busy)ask(v,true)},1500)});
 inp.addEventListener("blur",function(){setTimeout(function(){if(document.activeElement!==inp)DICT=false},400)});
@@ -1116,7 +1127,10 @@ else{
   try{localStorage.removeItem("jarvis-lite");if(localStorage.getItem("jarvis-lite2")==="1")setLite(true);if(localStorage.getItem("jarvis-ex")==="0")setEx(false)}catch(x){}
   $("start").addEventListener("click",startBoot);
   $("cfgb").addEventListener("click",openCfg);$("cfgx").addEventListener("click",closeCfg);$("cfgs").addEventListener("click",saveCfg);$("cfgv").addEventListener("click",function(){unlockAudio();initAudio();muted=false;speak("Buongiorno, "+((SRV.cfg&&SRV.cfg.titolo)||"Signore")+". Tutti i sistemi sono operativi.")});
-  $("cfg").addEventListener("click",function(e){if(e.target===$("cfg"))closeCfg()});$("skip").addEventListener("click",skipBoot);
+  $("cfg").addEventListener("click",function(e){if(e.target===$("cfg"))closeCfg()});
+  $("httpsx").addEventListener("click",function(){$("httpsb").hidden=true});
+  $("httpsk").addEventListener("click",function(){$("httpsb").hidden=true;startDict("k");toast("Premi 🎤 in basso sulla tastiera e parla: invio io appena smetti.",4000)});
+  $("httpsgo").addEventListener("click",function(){location.href="https://"+location.host+location.pathname+location.search});$("skip").addEventListener("click",skipBoot);
   var replay=function(){if(revealed)startBoot()};$("brand").addEventListener("click",replay);$("brand").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();replay()}});
   $("snd").addEventListener("click",function(){muted=!muted;this.textContent=muted?"🔈 muto":"🔊 audio";this.setAttribute("aria-label",muted?"Attiva l’audio":"Disattiva l’audio");
     if(MG)MG.gain.value=muted?0:.9;if(muted){if(window.speechSynthesis)speechSynthesis.cancel()}else{unlockAudio();initAudio();chime()}});
