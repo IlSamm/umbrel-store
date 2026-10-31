@@ -1,0 +1,44 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: ilsamm-jarvis_server_1
+      APP_PORT: 8080
+      # i dispositivi (ESP-Mosaico) usano la loro chiave, senza il login di Umbrel
+      PROXY_AUTH_WHITELIST: "/api/device/*"
+
+  server:
+    image: ghcr.io/ilsamm/jarvis:1.0.0
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 10s
+    environment:
+      TZ: Europe/Rome
+      JARVIS_DATA: /data
+      WHISPER_HOST: ilsamm-jarvis_whisper_1:10300
+      PIPER_HOST: ilsamm-jarvis_piper_1:10200
+      PIPER_VOICE: it_IT-paola-medium
+    extra_hosts:
+      # serve per raggiungere Home Assistant installato sullo stesso Umbrel
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+    security_opt:
+      - no-new-privileges:true
+
+  # ascolto in italiano, tutto in locale (il modello si scarica una volta sola)
+  whisper:
+    image: rhasspy/wyoming-whisper:latest
+    restart: unless-stopped
+    command: --stt-library faster-whisper --model base-int8 --language it --beam-size 1
+    volumes:
+      - ${APP_DATA_DIR}/whisper:/data
+
+  # voce locale di riserva quando internet non c'è
+  piper:
+    image: rhasspy/wyoming-piper:latest
+    restart: unless-stopped
+    command: --voice it_IT-paola-medium
+    volumes:
+      - ${APP_DATA_DIR}/piper:/data

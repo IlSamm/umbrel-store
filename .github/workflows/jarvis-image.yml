@@ -1,0 +1,84 @@
+name: Jarvis QA and image
+
+on:
+  pull_request:
+    paths:
+      - 'ilsamm-jarvis/**'
+      - '.github/workflows/jarvis-image.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'ilsamm-jarvis/**'
+      - '.github/workflows/jarvis-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Server tests with fake Home Assistant, Gemini, Whisper and Piper
+        run: python ilsamm-jarvis/tests/test_server.py
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build test image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ilsamm-jarvis/server
+          file: ./ilsamm-jarvis/server/Dockerfile
+          load: true
+          tags: jarvis:qa
+          cache-from: type=gha,scope=jarvis
+          cache-to: type=gha,mode=max,scope=jarvis
+      - name: Verify container and persistent volume
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name jarvis-qa -p 18791:8080 -v jarvis-qa-data:/data jarvis:qa
+          trap 'docker logs jarvis-qa; docker rm -f jarvis-qa' EXIT
+          python3 ilsamm-jarvis/tests/container_smoke.py http://127.0.0.1:18791
+          docker restart jarvis-qa
+          python3 ilsamm-jarvis/tests/container_smoke.py http://127.0.0.1:18791 --verify-persistence
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build both Umbrel architectures and publish only from master
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ilsamm-jarvis/server
+          file: ./ilsamm-jarvis/server/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/ilsamm/jarvis:1.0.0
+            ghcr.io/ilsamm/jarvis:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/IlSamm/umbrel-store
+            org.opencontainers.image.description=Jarvis per Umbrel
+          provenance: false
+          cache-from: type=gha,scope=jarvis
