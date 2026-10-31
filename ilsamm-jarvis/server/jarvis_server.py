@@ -38,7 +38,7 @@ PIPER = os.environ.get("PIPER_HOST", "piper:10200")
 PIPER_VOICE = os.environ.get("PIPER_VOICE", "it_IT-paola-medium")
 GEMINI_BASE = os.environ.get("GEMINI_BASE", "https://generativelanguage.googleapis.com/v1beta")
 EDGE_BIN = os.environ.get("EDGE_TTS_BIN", "edge-tts")
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 METEO_BASE = os.environ.get("METEO_BASE", "https://api.open-meteo.com/v1")
 GEO_BASE = os.environ.get("GEO_BASE", "https://geocoding-api.open-meteo.com/v1")
 WIKI_BASE = os.environ.get("WIKI_BASE", "https://it.wikipedia.org")
@@ -691,7 +691,7 @@ def system_prompt(c):
             "Non dire mai che non puoi accedere a internet. Non inventare mai dati o importi: se non lo trovi, dillo." % (c.get("titolo") or "Signore", g, today(), now().strftime("%H:%M"), dl or "non collegati", digest()))
 
 
-GEM = {"ok": "", "lista": [], "t": 0}
+GEM = {"ok": "", "lista": [], "t": 0, "err": ""}
 GEM_PREF = ["gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
 
 
@@ -713,7 +713,7 @@ def gemini_models(key):
         except Exception:
             pass
     out = []
-    for m in ([scelto] if scelto not in ("", "auto") else []) + [GEM["ok"]] + GEM_PREF + GEM["lista"]:
+    for m in ([scelto] if scelto not in ("", "auto", "gemini-flash-latest") else []) + [GEM["ok"]] + GEM_PREF + GEM["lista"]:
         if m and m not in out:
             out.append(m)
     return out
@@ -725,7 +725,7 @@ def gemini_call(body, key):
     for model in gemini_models(key):
         try:
             out = http_json("%s/models/%s:generateContent?key=%s" % (GEMINI_BASE, model, quote(key)), body, timeout=40)
-            GEM["ok"] = model
+            GEM.update(ok=model, err="")
             return out
         except urllib.error.HTTPError as e:
             try:
@@ -733,6 +733,7 @@ def gemini_call(body, key):
             except Exception:
                 msg = ""
             errori.append(e.code)
+            GEM["err"] = ", ".join("%s" % c for c in errori[-6:]) + " · ultimo: %s %s" % (model, msg[:120].replace("\n", " "))
             if GEM["ok"] == model:
                 GEM["ok"] = ""
             if e.code == 400 and re.search(r"API key not valid|API_KEY_INVALID", msg):
@@ -743,6 +744,7 @@ def gemini_call(body, key):
                 continue
             raise
         except (urllib.error.URLError, OSError) as e:
+            GEM["err"] = "rete: %s" % str(e)[:120]
             raise RuntimeError("rete") from e
     raise RuntimeError("limite" if errori and all(c == 429 for c in errori) else "gemini")
 
@@ -1079,7 +1081,7 @@ def status():
             ha["dispositivi"] = len(ha_devices())
     else:
         ha["errore"] = "token mancante"
-    return {"versione": VERSION, "home_assistant": ha, "gemini": bool(c.get("gemini_key")), "ollama": bool(c.get("ollama_url") and c.get("ollama_model")),
+    return {"versione": VERSION, "home_assistant": ha, "gemini": bool(c.get("gemini_key")), "gemini_modello": GEM["ok"], "gemini_errore": GEM["err"], "ollama": bool(c.get("ollama_url") and c.get("ollama_model")),
             "whisper": tcp_ok(WHISPER, 10300), "piper": tcp_ok(PIPER, 10200), "edge_tts": bool(shutil.which(EDGE_BIN)),
             "ffmpeg": bool(shutil.which("ffmpeg")), "voce": c.get("voce")}
 
@@ -1159,6 +1161,8 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, data, mime)
             if u.path == "/api/device/ask":
                 return self.send(200, ask((q.get("text") or [""])[0]))
+            if u.path == "/api/device/siri":
+                return self.send(200, ask((q.get("text") or [""])[0])["reply"], "text/plain; charset=utf-8")
             return self.static(u.path)
         except Exception as e:
             return self.send(500, {"errore": str(e)[:300]})
@@ -1181,6 +1185,18 @@ class H(BaseHTTPRequestHandler):
                 return self.send(200, r)
             if u.path in ("/api/stt", "/api/device/stt"):
                 return self.send(200, {"text": stt(self.body())})
+            if u.path in ("/api/device/ask", "/api/device/siri"):
+                raw = self.body(200_000)
+                try:
+                    j = json.loads(raw.decode("utf-8")) if raw else {}
+                    text = (j.get("text") or j.get("testo") or "") if isinstance(j, dict) else str(j)
+                except Exception:
+                    text = raw.decode("utf-8", "ignore")
+                text = text or (q.get("text") or [""])[0]
+                res = ask(text)
+                if u.path.endswith("/siri"):
+                    return self.send(200, res["reply"], "text/plain; charset=utf-8")
+                return self.send(200, res)
             if u.path == "/api/device/voice":
                 text = stt(self.body())
                 res = ask(text) if text else {"reply": "Non ho capito, %s." % (get_config().get("titolo") or "Signore")}

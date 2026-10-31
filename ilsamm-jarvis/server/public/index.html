@@ -137,7 +137,7 @@ body.kb #cap{top:26%}body.kb .stats{display:none}
   <canvas id="hud"></canvas>
   <div id="labels"></div>
   <div id="side" class="ui"><h1 id="brand" tabindex="0" role="button" title="Tocca per riavviare Jarvis">JARVIS</h1><div class="sub" id="hello">Buongiorno, Signore.</div><ul id="slist"></ul></div>
-  <div class="clockbox ui"><div class="clock" id="clock">--:--</div><small id="date"></small><button id="snd" class="mini" type="button" aria-label="Disattiva l’audio">🔊 audio</button><br><button id="lite" class="mini" type="button" aria-pressed="false">⚡ fluida</button><br><button id="exb" class="mini" type="button" aria-pressed="true">✦ esempi: sì</button><br><button id="cfgb" class="mini" type="button" aria-label="Impostazioni">⚙ impostazioni</button></div><div id="toast" role="status" aria-live="polite"></div>
+  <div class="clockbox ui"><div class="clock" id="clock">--:--</div><small id="date"></small><button id="snd" class="mini" type="button" aria-label="Disattiva l’audio">🔊 audio</button><br><button id="lite" class="mini" type="button" aria-pressed="false">⚡ fluida</button><br><button id="exb" class="mini" type="button" aria-pressed="false">✦ esempi: no</button><br><button id="cfgb" class="mini" type="button" aria-label="Impostazioni">⚙ impostazioni</button></div><div id="toast" role="status" aria-live="polite"></div>
   <div id="httpsb" class="cfg" hidden role="dialog" aria-modal="true" aria-labelledby="httpst"><div class="cfgin">
     <div class="sh-h"><h2 id="httpst">Per parlarmi a voce</h2><button class="ib" type="button" id="httpsx" aria-label="Chiudi" style="width:34px;height:34px">✕</button></div>
     <p class="hint" style="font-size:15px;color:#c8d6e5">Il browser concede il microfono solo alle pagine sicure (https). Adesso sono aperto in http, quindi non posso sentirti.</p>
@@ -147,7 +147,7 @@ body.kb #cap{top:26%}body.kb .stats{display:none}
     <div class="cfgb"><button type="button" class="pri" id="httpsgo">Apri in https</button><button type="button" id="httpsk">Usa la tastiera</button></div>
   </div></div>
   <div id="cfg" class="cfg" hidden role="dialog" aria-modal="true" aria-labelledby="cfgt"><div class="cfgin">
-    <div class="sh-h"><h2 id="cfgt">Impostazioni di Jarvis</h2><button class="ib" type="button" id="cfgx" aria-label="Chiudi" style="width:34px;height:34px">✕</button></div>
+    <div class="sh-h"><h2 id="cfgt">Impostazioni di Jarvis <small id="cfgver" style="font-size:12px;color:var(--muted);font-weight:500"></small></h2><button class="ib" type="button" id="cfgx" aria-label="Chiudi" style="width:34px;height:34px">✕</button></div>
     <div id="cfgst" class="cfgst"></div>
     <h3>Cervello · Google Gemini (gratis)</h3>
     <label>Chiave API<input id="c_gk" type="password" autocomplete="off" spellcheck="false" placeholder="incolla qui la chiave"></label>
@@ -167,6 +167,16 @@ body.kb #cap{top:26%}body.kb .stats{display:none}
       <label>Ollama · modello<input id="c_om" type="text" autocomplete="off" placeholder="qwen2.5:3b"></label>
       <p class="hint">Chiave per i dispositivi (ESP‑Mosaico): <code id="c_dk">—</code></p>
     </details>
+    <h3>Parlare con Siri</h3>
+    <p class="hint">Così gli parli dall’iPhone dicendo «Ehi Siri, Jarvis», anche senza https. Si fa una volta sola, nell’app <b>Comandi</b> dell’iPhone:</p>
+    <p class="hint" style="color:#c8d6e5">1. Nuovo comando (il <b>+</b> in alto), chiamalo <b>Jarvis</b>.<br>2. Aggiungi l’azione <b>Detta testo</b> (lingua: Italiano).<br>3. Aggiungi <b>Ottieni contenuto dell’URL</b>. Incolla questo indirizzo:</p>
+    <input id="c_siri" type="text" readonly onclick="this.select()" style="font-size:13px">
+    <p class="hint" style="color:#c8d6e5">Poi tocca la freccia <b>›</b> dell’azione: Metodo <b>POST</b>, Corpo della richiesta <b>JSON</b>, aggiungi un campo di testo con chiave <b>text</b> e come valore la variabile <b>Testo dettato</b>.<br>4. Aggiungi <b>Pronuncia testo</b> con <b>Contenuto dell’URL</b>.<br>5. Prova dicendo «Ehi Siri, Jarvis». La prima volta, se iPhone chiede di accedere alla rete locale, tocca <b>Consenti</b>.</p>
+    <div class="cfgb" style="margin-top:8px"><button type="button" id="cfgcp">Copia indirizzo</button></div>
+    <h3>Diagnosi</h3>
+    <p class="hint">Se qualcosa non va, tocca qui e mandami uno screenshot.</p>
+    <div class="cfgb" style="margin-top:8px"><button type="button" id="cfgd">🩺 Controlla tutto</button></div>
+    <div id="cfgdiag" class="cfgst" hidden style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.5"></div>
     <div class="cfgb"><button type="button" class="pri" id="cfgs">Salva</button><button type="button" id="cfgv">Prova la voce</button></div>
   </div></div>
   <div id="cap" aria-live="polite"></div>
@@ -540,7 +550,7 @@ var FC_="precision mediump float;varying vec2 vU;uniform sampler2D uS,uA,uB,uE;u
 "c=c+bg*(1.-c);c*=1.-smoothstep(.55,1.05,length(d*vec2(uAsp,1.)*1.2))*.5;"+
 "if(uLite<.5)c=max(c+(h(vU*731.+uN)-.5)*.016,0.);gl_FragColor=vec4(c,1.);}";
 
-var PP,PL,PB,PC,BP=null,BL=null,BQ,BPF=null,BLF=null,BPW=null,BLW=null,FBs=null,CW=1,CH=1,dprCap=Math.min(window.devicePixelRatio||1,1.5),LITE=false,SHOWEX=true,FT=16,lastAdj=0,LO=600,HI=150,MVP=new Float32Array(16);
+var PP,PL,PB,PC,BP=null,BL=null,BQ,BPF=null,BLF=null,BPW=null,BLW=null,FBs=null,CW=1,CH=1,dprCap=Math.min(window.devicePixelRatio||1,1.5),LITE=false,SHOWEX=false,FT=16,lastAdj=0,LO=600,HI=150,MVP=new Float32Array(16);
 var NNEB=0,NEBSRC=[],NN=0,NPT=0,NLV=0,NE=0,EV=[],LIT=new Float32Array(0),SDL=[],NREAL=0,TNOW=-10,RBT=0;
 function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(o));return o}
 function prog(v,f){var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,v));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,f));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))console.error("link: "+gl.getProgramInfoLog(p));p.u={};return p}
@@ -582,7 +592,7 @@ function rebuild(){NN=N.length;
   if(gl){if(BP){gl.deleteBuffer(BP);gl.deleteBuffer(BL);gl.deleteBuffer(BPF);gl.deleteBuffer(BLF);gl.deleteBuffer(BPW);gl.deleteBuffer(BLW)}
     BP=buf(PT);BL=buf(LB);BPF=buf(new Float32Array(NPT),1);BLF=buf(new Float32Array(NLV),1);BPW=buf(new Float32Array(NPT).fill(99),1);BLW=buf(new Float32Array(NLV*2).fill(99),1);
     flags();if(TRON)upTrace()}
-  if(revealed){$("nN").textContent=N.filter(function(n){return !n.gone}).length.toLocaleString("it-IT");$("nL").textContent=NE.toLocaleString("it-IT");$("nM").textContent=memList().length;$("nR").textContent=NREAL;sideList()}}
+  if(revealed){$("nN").textContent=vStars().toLocaleString("it-IT");$("nL").textContent=vLinks().toLocaleString("it-IT");$("nM").textContent=memList().length;$("nR").textContent=NREAL;sideList()}}
 
 var FOV=.9,ZB=4,zf=1;
 function size(){var d=Math.min(window.devicePixelRatio||1,dprCap),r=app.getBoundingClientRect();CW=Math.max(1,r.width);CH=Math.max(1,r.height);
@@ -591,7 +601,8 @@ function measure(){var ar=app.getBoundingClientRect(),shh=$("sheet"),el=shh.clas
   HI=$("side").classList.contains("dim")?Math.min(70,CH*.1)+14:Math.min(CH*.34,$("side").getBoundingClientRect().bottom-ar.top+4);if(VH<50){VH=LO-HI;VY=(LO+HI)/2}}
 function setLite(on,save){LITE=on;dprCap=on?1:Math.min(window.devicePixelRatio||1,1.5);var b=$("lite");b.setAttribute("aria-pressed",on?"true":"false");b.textContent=on?"⚡ fluida: sì":"⚡ fluida";
   if(save){try{localStorage.setItem("jarvis-lite2",on?"1":"0")}catch(x){}}if(gl&&FBs)size()}
-function setEx(on,save){SHOWEX=on;var b=$("exb");b.setAttribute("aria-pressed",on?"true":"false");b.textContent=on?"✦ esempi: sì":"✦ esempi: no";if(save){try{localStorage.setItem("jarvis-ex",on?"1":"0")}catch(x){}}}
+function vStars(){return N.filter(function(n){return !n.gone&&(SHOWEX||!n.ex)}).length}function vLinks(){if(SHOWEX)return NE;var c=0;for(var i=0;i<ED.length;i++){var a=N[ED[i][0]],b=N[ED[i][1]];if(a&&b&&!a.gone&&!b.gone&&!a.ex&&!b.ex)c++}return c}
+function setEx(on,save){SHOWEX=on;var b=$("exb");b.setAttribute("aria-pressed",on?"true":"false");b.textContent=on?"✦ esempi: sì":"✦ esempi: no";if(save){try{localStorage.setItem("jarvis-ex",on?"1":"0")}catch(x){}}if(revealed){$("nN").textContent=vStars().toLocaleString("it-IT");$("nL").textContent=vLinks().toLocaleString("it-IT");sideList()}}
 function proj(p){var m=MVP,x=m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12],y=m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13],w=m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15];return [(x/w*.5+.5)*CW,(1-(y/w*.5+.5))*CH,w]}
 function quad(p,texs){gl.useProgram(p);var en=bindA(p,[["aP",BQ,2,2,0]]);texs.forEach(function(t,i){gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,t[1].t);gl.uniform1i(U(p,t[0]),i)});return en}
 function blur(s,d,dx,dy,th){gl.bindFramebuffer(gl.FRAMEBUFFER,d.f);gl.viewport(0,0,d.w,d.h);var en=quad(PB,[["uT",s]]);gl.uniform2f(U(PB,"uD"),dx/s.w,dy/s.h);gl.uniform1f(U(PB,"uTh"),th);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);unbindA(en)}
@@ -686,7 +697,7 @@ function bootStep(B){if(!BOOT)return;
   if(stage===3&&B>=7){stage=4;revealed=true;reveal()}
   $("skip").classList.toggle("vis",B<6.9)}
 function reveal(){setTimeout(function(){var c=SRV.cfg||{};if(!c.gemini_key_impostata&&!c.ha_token_impostata){toast("Benvenuto, Signore. Colleghiamo casa e cervello: bastano due minuti.",5000);setTimeout(openCfg,1500)}},3000);document.querySelectorAll(".ui").forEach(function(el){el.classList.add("on")});$("side").classList.add("on");TAGS=tagsNow();
-  count("nN",N.filter(function(n){return !n.gone}).length);count("nL",NE);count("nM",memList().length);count("nR",NREAL);chime();var b=briefing();cap(b);speak(b);setTimeout(measure,950)}
+  count("nN",vStars());count("nL",vLinks());count("nM",memList().length);count("nR",NREAL);chime();var b=briefing();cap(b);speak(b);setTimeout(measure,950)}
 function startBoot(){if(!gl)return;unlockAudio();initAudio();dlog("avvio","tocco; audio="+(AC&&AC.state)+" vmode="+VMODE+" voce="+NT.st);speak(greet(new Date().getHours())+", Signore.");
   if(selN>=0||selA>=0||QRY.length){selA=-1;selN=-1;QRY=[];flags();panel();clearTrace()}
   BOOT=1;bootT0=performance.now();revealed=false;stage=0;SHOWN=0;zf=1;cap("",true);TAGS=[];
@@ -835,7 +846,7 @@ function sideList(){var nx=nextReal(),od=overdue(),m=memList().length,sp=spese()
   ["m","spese di "+MML[new Date().getMonth()]+": <b>"+eur(sp.totale)+"</b>"],
   [od?"r":"","<b>"+od+"</b> promemoria scadut"+(od===1?"o":"i")],
   ["","prossimo: <b>"+(nx?esc(nx.name)+"</b> · "+esc(when(nx.when,nx.allday)):"nessuno</b>")],
-  ["","costellazione: <b>"+N.filter(function(n){return !n.gone}).length.toLocaleString("it-IT")+"</b> stelle"]];
+  ["","costellazione: <b>"+vStars().toLocaleString("it-IT")+"</b> stelle"+(SHOWEX?" (con esempi)":" vere")]];
   $("slist").innerHTML=L.map(function(x,i){return '<li class="'+x[0]+'" style="transition-delay:'+(.15+i*.12)+'s">• '+x[1]+'</li>'}).join("")}
 
 /* ---------- memoria permanente privata ---------- */
@@ -851,6 +862,8 @@ function saveChat(){return;if(!CHATDOC)return;var h=hist.slice(-30);CHATQ=CHATQ.
 async function initMemory(){return srvInit()}
 
 /* =================== SERVER DI JARVIS (app Umbrel) =================== */
+window.addEventListener("error",function(e){try{dlog("errore-js",(e.message||"")+" @"+(e.lineno||"?"))}catch(x){}});
+window.addEventListener("unhandledrejection",function(e){try{dlog("errore-js","promessa: "+String(e.reason&&e.reason.message||e.reason).slice(0,160))}catch(x){}});
 var API=location.pathname.replace(/[^\/]*$/,"")+"api/";
 function api(p,opt){opt=opt||{};var o={method:opt.method||(opt.body!==undefined?"POST":"GET"),headers:{}};if(opt.body!==undefined){o.headers["Content-Type"]="application/json";o.body=JSON.stringify(opt.body)}
   return fetch(API+p,o).then(function(r){return r.json().catch(function(){return {}}).then(function(j){if(!r.ok)throw new Error(j.errore||("HTTP "+r.status));return j})})}
@@ -882,9 +895,27 @@ function cfgStatus(){var el=$("cfgst");if(!el)return;var s=SRV.st;if(!s){el.inne
 function openCfg(){var c=SRV.cfg||{};$("c_gk").value="";$("c_gk").placeholder=c.gemini_key_impostata?"impostata ✓ (lascia vuoto per non cambiarla)":"incolla qui la chiave";
   $("c_hu").value=c.ha_url||"";$("c_ht").value="";$("c_ht").placeholder=c.ha_token_impostata?"impostato ✓ (lascia vuoto per non cambiarlo)":"incolla qui il token";
   $("c_vo").innerHTML=(c.voci||[]).map(function(v){return '<option value="'+esc(v[0])+'"'+(v[0]===c.voce?" selected":"")+'>'+esc(v[1])+'</option>'}).join("");
-  $("c_ve").value=c.velocita||"+6%";$("c_ti").value=c.titolo||"Signore";$("c_ci").value=c.citta||"";$("c_ou").value=c.ollama_url||"";$("c_om").value=c.ollama_model||"";$("c_dk").textContent=c.device_key||"—";
+  $("cfgver").textContent=c.versione?"· versione "+c.versione:"";$("c_siri").value="http://"+location.host+location.pathname.replace(/[^\/]*$/,"")+"api/device/siri?key="+(c.device_key||"");$("c_ve").value=c.velocita||"+6%";$("c_ti").value=c.titolo||"Signore";$("c_ci").value=c.citta||"";$("c_ou").value=c.ollama_url||"";$("c_om").value=c.ollama_model||"";$("c_dk").textContent=c.device_key||"—";
   $("cfg").hidden=false;cfgStatus();srvStatus()}
 function closeCfg(){$("cfg").hidden=true}
+function copyText(el){try{el.focus();el.select();el.setSelectionRange(0,9999);var ok=document.execCommand("copy");if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(el.value);toast(ok||window.isSecureContext?"Indirizzo copiato.":"Tieni premuto sull’indirizzo e scegli Copia.",2600)}catch(x){toast("Tieni premuto sull’indirizzo e scegli Copia.",2600)}}
+async function runDiag(){var el=$("cfgdiag");el.hidden=false;el.textContent="Controllo in corso…";var L=[],ok=function(b){return b?"✓":"✗"};
+  L.push("Pagina: "+location.protocol+"//"+location.host+"  ("+(window.isSecureContext?"sicura":"non sicura: niente microfono nel browser")+")");
+  L.push("Browser: "+navigator.userAgent.replace(/^Mozilla\/5\.0 /,"").slice(0,110));
+  L.push("Microfono nel browser: "+(CANREC?"possibile":(window.isSecureContext?"non supportato":"no, serve https")));
+  L.push("Audio: "+(AC?AC.state:"non avviato")+(navigator.audioSession?" · sessione "+navigator.audioSession.type:"")+" · volume "+(muted?"spento":"acceso"));
+  L.push("Grafica: "+(gl?"WebGL ok":"WebGL assente")+" · "+Math.round(1000/Math.max(FT,1))+" fps · fluida "+(LITE?"sì":"no"));
+  try{var t0=performance.now(),s=await api("status");L.push("Server: versione "+s.versione+" · risponde in "+Math.round(performance.now()-t0)+" ms");
+    L.push(ok(s.home_assistant.collegato)+" Home Assistant"+(s.home_assistant.collegato?" ("+(s.home_assistant.dispositivi||0)+" dispositivi)":": "+(s.home_assistant.errore||"")));
+    L.push(ok(s.gemini)+" Gemini"+(s.gemini?(s.gemini_modello?" · modello "+s.gemini_modello:" · non ancora usato"):": manca la chiave")+(s.gemini_errore?"\n   ultimo errore: "+s.gemini_errore:""));
+    L.push(ok(s.whisper)+" Ascolto (Whisper)"+(s.whisper?"":": non ancora pronto o spento"));
+    L.push(ok(s.edge_tts)+" Voce Diego · "+ok(s.piper)+" Voce Piper · "+ok(s.ffmpeg)+" ffmpeg")}catch(e){L.push("✗ Server: "+e.message)}
+  try{var t1=performance.now(),r=await fetch(API+"tts?text="+encodeURIComponent("Prova."));var b=await r.arrayBuffer();
+    L.push((r.ok&&b.byteLength>1000?"✓":"✗")+" Prova voce: "+r.status+" · "+Math.round(b.byteLength/1024)+" KB in "+Math.round(performance.now()-t1)+" ms · "+(r.headers.get("Content-Type")||""));
+    if(AC&&r.ok){try{await AC.decodeAudioData(b.slice(0));L.push("✓ Il telefono sa leggere l’audio")}catch(x){L.push("✗ Il telefono non decodifica l’audio: "+(x&&x.message||x))}}}catch(e){L.push("✗ Prova voce: "+e.message)}
+  try{var t2=performance.now(),q=await api("ask",{body:{text:"che ore sono"}});L.push("✓ Risposta locale in "+Math.round(performance.now()-t2)+" ms: "+q.reply)}catch(e){L.push("✗ Risposta: "+e.message)}
+  L.push("Ultimi eventi:");DIAG.slice(-12).forEach(function(d){L.push("  "+d[0]+" "+d[1]+" "+d[2].slice(0,90))});
+  el.textContent=L.join("\n")}
 async function saveCfg(){var b={ha_url:$("c_hu").value.trim(),voce:$("c_vo").value,velocita:$("c_ve").value,titolo:$("c_ti").value.trim()||"Signore",citta:$("c_ci").value.trim(),ollama_url:$("c_ou").value.trim(),ollama_model:$("c_om").value.trim()};
   if($("c_gk").value.trim())b.gemini_key=$("c_gk").value.trim();if($("c_ht").value.trim())b.ha_token=$("c_ht").value.trim();
   try{SRV.cfg=await api("config",{body:b});$("c_gk").value="";$("c_ht").value="";toast("Salvato, Signore.",2200);await srvStatus();srvHome();srvAgenda();openCfg()}catch(x){toast("Non riesco a salvare: "+x.message,5000)}}
@@ -959,7 +990,7 @@ function ntSpeak(txt,raw,off,my){var L=raw.length,t=AC.currentTime+.05,first=tru
       var st=Math.max(t,AC.currentTime+.03),dur=buf.duration;src.start(st);SRCS.push(src);t=st+dur+.08;first=false;
       (function(i,dur,st){NTT.push(setTimeout(function(){if(my!==vTry)return;VST=1;speaking=true;NV=true;actT=1;if(!KAR){capInst=true;capS=txt;KAR={t:txt,i:0,sh:-1,b:0}}KAR.p=i;KAR.p0=performance.now();KAR.o=off[i];KAR.l=raw[i].length;KAR.d=dur*1000},Math.max(0,(st-AC.currentTime)*1000)))})(i,dur,st)}
     NTT.push(setTimeout(fin,Math.max(0,(t-AC.currentTime)*1000)))})()}
-function srvSpeak(txt){shush();var raw=splitSay(txt),off=[],acc=0;raw.forEach(function(r){off.push(acc);acc+=r.length});var my=vTry,t=AC.currentTime+.05,first=true;
+function srvSpeak(txt){shush();try{if(AC.state!=="running")AC.resume()}catch(x){}var raw=splitSay(txt),off=[],acc=0;raw.forEach(function(r){off.push(acc);acc+=r.length});var my=vTry,t=AC.currentTime+.05,first=true;
   var jobs=raw.map(function(r){var p=r.trim();if(!/[a-z0-9àèéìòù]/i.test(p))return Promise.resolve(null);
     return fetch(API+"tts?text="+encodeURIComponent(p)).then(function(x){if(!x.ok)throw new Error("tts "+x.status);return x.arrayBuffer()}).then(function(b){return AC.decodeAudioData(b)})});
   function fin(){if(my!==vTry)return;speaking=false;NV=false;actT=busy?.6:0;if(KAR){KAR=null;capEl.textContent=txt}afterSpeak()}
@@ -1124,9 +1155,9 @@ else{
   rebuild();size();window.addEventListener("resize",size);
   cv.addEventListener("webglcontextlost",function(e){e.preventDefault();fail("La grafica è stata interrotta dal dispositivo. Ricarica la pagina.")});
   $("lite").addEventListener("click",function(){setLite(!LITE,1)});$("exb").addEventListener("click",function(){setEx(!SHOWEX,1);if(selN>=0||selA>=0)panel()});
-  try{localStorage.removeItem("jarvis-lite");if(localStorage.getItem("jarvis-lite2")==="1")setLite(true);if(localStorage.getItem("jarvis-ex")==="0")setEx(false)}catch(x){}
+  try{localStorage.removeItem("jarvis-lite");if(localStorage.getItem("jarvis-lite2")==="1")setLite(true);setEx(localStorage.getItem("jarvis-ex")==="1")}catch(x){}
   $("start").addEventListener("click",startBoot);
-  $("cfgb").addEventListener("click",openCfg);$("cfgx").addEventListener("click",closeCfg);$("cfgs").addEventListener("click",saveCfg);$("cfgv").addEventListener("click",function(){unlockAudio();initAudio();muted=false;speak("Buongiorno, "+((SRV.cfg&&SRV.cfg.titolo)||"Signore")+". Tutti i sistemi sono operativi.")});
+  $("cfgb").addEventListener("click",openCfg);$("cfgd").addEventListener("click",runDiag);$("cfgcp").addEventListener("click",function(){copyText($("c_siri"))});$("cfgx").addEventListener("click",closeCfg);$("cfgs").addEventListener("click",saveCfg);$("cfgv").addEventListener("click",function(){unlockAudio();initAudio();muted=false;speak("Buongiorno, "+((SRV.cfg&&SRV.cfg.titolo)||"Signore")+". Tutti i sistemi sono operativi.")});
   $("cfg").addEventListener("click",function(e){if(e.target===$("cfg"))closeCfg()});
   $("httpsx").addEventListener("click",function(){$("httpsb").hidden=true});
   $("httpsk").addEventListener("click",function(){$("httpsb").hidden=true;startDict("k");toast("Premi 🎤 in basso sulla tastiera e parla: invio io appena smetti.",4000)});
