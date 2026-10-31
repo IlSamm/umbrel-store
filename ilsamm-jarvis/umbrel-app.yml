@@ -4,7 +4,7 @@ name: Jarvis
 tagline: Il tuo assistente personale, a voce, sul tuo Umbrel
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-jarvis/icon.svg
 category: automation
-version: "1.1.0"
+version: "1.2.0"
 port: 8791
 requiresHttps: true
 
@@ -25,11 +25,11 @@ description: >-
   ascolto (circa 2 GB in tutto), quindi serve qualche minuto.
 
 releaseNotes: >-
-  Jarvis ora va su internet da solo quando serve: notizie, sport, prezzi, orari e
-  fatti recenti con Google, meteo e previsioni anche senza Gemini, e risposte da
-  Wikipedia se Gemini non è disponibile. Se un modello gratuito di Gemini è al limite,
-  passa da solo a un altro. Si apre in https, così dal telefono puoi parlargli a voce
-  (serve il certificato HTTPS di Umbrel installato sul telefono). Nuova città per il meteo.
+  Parla con Jarvis da iPhone con «Ehi Siri, Jarvis»: in impostazioni trovi i passaggi e
+  l'indirizzo da copiare, senza bisogno di https. Nuova diagnosi in impostazioni che
+  controlla microfono, voce, Gemini, Home Assistant e ascolto. Le stelle di esempio
+  partono spente: vedi solo i tuoi dati veri e i contatori tornano. L'audio si riattiva
+  da solo se iPhone lo sospende. Se Gemini non risponde, la diagnosi mostra il motivo.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-jarvis"
