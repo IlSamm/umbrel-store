@@ -1,0 +1,41 @@
+manifestVersion: 1
+id: ilsamm-jarvis
+name: Jarvis
+tagline: Il tuo assistente personale, a voce, sul tuo Umbrel
+icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-jarvis/icon.svg
+category: automation
+version: "1.0.0"
+port: 8791
+
+description: >-
+  Jarvis è un assistente personale in italiano che gira sul tuo Umbrel.
+  Comanda la casa tramite Home Assistant (luci, prese, tapparelle, scene),
+  tiene le spese e le cose da ricordare, legge i calendari e aggiunge cose
+  alla lista della spesa. I comandi di casa, le spese e la memoria funzionano
+  senza internet; per le domande vere usa Google Gemini (chiave gratuita) solo
+  quando serve. Ascolta in locale con Whisper e risponde con una voce neurale,
+  con Piper come voce locale di riserva. L'interfaccia è una costellazione
+  animata in cui ogni stella è un dato vero: dispositivi, eventi, spese e ricordi.
+  Pronto per i dispositivi vocali come ESP-Mosaico tramite una chiave dedicata.
+
+
+  Dopo l'installazione apri Jarvis e tocca ⚙ impostazioni: incolla la chiave di
+  Gemini e il token di Home Assistant. Il primo avvio scarica i modelli di voce e
+  ascolto (circa 2 GB in tutto), quindi serve qualche minuto.
+
+releaseNotes: >-
+  Prima versione: casa con Home Assistant, memoria e spese, calendari, lista della
+  spesa, Gemini con strumenti, ascolto locale con Whisper, voce Diego con riserva Piper,
+  API per i dispositivi vocali.
+
+developer: IlSamm
+website: "https://github.com/IlSamm/umbrel-store/tree/master/ilsamm-jarvis"
+dependencies: []
+repo: "https://github.com/IlSamm/umbrel-store"
+support: "https://github.com/IlSamm/umbrel-store/issues"
+
+path: "/"
+defaultUsername: ""
+defaultPassword: ""
+submitter: IlSamm
+submission: ""
