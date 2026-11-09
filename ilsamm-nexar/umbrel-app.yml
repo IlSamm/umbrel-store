@@ -1,0 +1,31 @@
+manifestVersion: 1
+id: ilsamm-nexar
+name: NEXAR
+tagline: Accendi e controlla il tuo PC Windows, anche da fuori casa
+icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-nexar/app/icon.png
+category: networking
+version: "1.0.0"
+port: 8792
+
+description: >-
+  NEXAR su Umbrel resta sempre acceso in casa e sveglia il tuo PC Windows con Wake-on-LAN quando lo
+  chiedi dall'app per Mac, dal link sul telefono o dal bot Telegram, da qualunque rete. Apre anche la
+  dashboard completa del PC direttamente da Umbrel, senza altre password. Si collega una volta sola:
+  apri NEXAR sul PC, vai su Accensione, premi Collega Umbrel e incolla il codice qui.
+
+releaseNotes: >-
+  Prima versione: accensione dal Mac, dal telefono e da Telegram, dashboard del PC e controllo remoto
+  da Umbrel.
+
+developer: IlSamm
+website: "https://github.com/IlSamm/NEXAR"
+dependencies: []
+repo: "https://github.com/IlSamm/NEXAR"
+support: "https://github.com/IlSamm/NEXAR/issues"
+
+gallery: []
+path: "/"
+defaultUsername: ""
+defaultPassword: ""
+submitter: IlSamm
+submission: ""
