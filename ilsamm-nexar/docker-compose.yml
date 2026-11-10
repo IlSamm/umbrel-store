@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: ilsamm-nexar_server_1
+      APP_PORT: 8793
+
+  # La pagina dell'app, dietro al login di Umbrel: apre la dashboard del PC.
+  server:
+    image: python:3.12-alpine@sha256:e064671ca452259bab50e8e2c7bd896e39e9a343bb06ca25234adf6fe18d0fc7
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 5s
+    command: ["python", "-u", "/app/nexar.py", "web"]
+    environment:
+      TZ: Europe/Rome
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${APP_DATA_DIR}/app:/app:ro
+      - ${APP_DATA_DIR}/data:/data
+
+  # Sulla rete di casa: il segnale Wake-on-LAN deve partire da qui.
+  waker:
+    image: python:3.12-alpine@sha256:e064671ca452259bab50e8e2c7bd896e39e9a343bb06ca25234adf6fe18d0fc7
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 5s
+    network_mode: host
+    command: ["python", "-u", "/app/nexar.py", "waker"]
+    environment:
+      TZ: Europe/Rome
+    volumes:
+      - ${APP_DATA_DIR}/app:/app:ro
+      - ${APP_DATA_DIR}/data:/data
