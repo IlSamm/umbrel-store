@@ -4,7 +4,7 @@ name: NEXAR
 tagline: Accendi e controlla il tuo PC Windows, anche da fuori casa
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-nexar/app/icon.png
 category: networking
-version: "1.0.0"
+version: "1.0.1"
 port: 8792
 
 description: >-
@@ -14,8 +14,10 @@ description: >-
   apri NEXAR sul PC, vai su Accensione, premi Collega Umbrel e incolla il codice qui.
 
 releaseNotes: >-
-  Prima versione: accensione dal Mac, dal telefono e da Telegram, dashboard del PC e controllo remoto
-  da Umbrel.
+  /accendi da Telegram e accensione dal Mac più affidabili: il segnale Wake-on-LAN parte più volte, anche
+  diretto all'IP del PC, e viene ripetuto dopo 30 secondi. NEXAR non scambia più il PC spento per acceso
+  (alcune schede di rete Realtek rispondono in standby). Se il PC non si accende, il bot dice cosa
+  controllare nel BIOS.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/NEXAR"
