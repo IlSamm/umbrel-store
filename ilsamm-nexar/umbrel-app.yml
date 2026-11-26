@@ -4,7 +4,7 @@ name: NEXAR
 tagline: Accendi e controlla il tuo PC Windows, anche da fuori casa
 icon: https://raw.githubusercontent.com/IlSamm/umbrel-store/master/ilsamm-nexar/app/icon.png
 category: networking
-version: "1.0.2"
+version: "1.0.3"
 port: 8792
 
 description: >-
@@ -14,11 +14,10 @@ description: >-
   apri NEXAR sul PC, vai su Accensione, premi Collega Umbrel e incolla il codice qui.
 
 releaseNotes: >-
-  Accensione per tutti: NEXAR sul PC (1.0.83 o più nuova) ha il pulsante Prova in Accensione, e l'app qui
-  risponde dicendo se vede il PC e se ha il bot Telegram, con un messaggio anche su Telegram. Se colleghi o
-  cambi il bot Telegram sul PC dopo aver incollato il codice, l'app lo prende da sola. Quando il PC si accende
-  e legge già il bot, l'app si fa da parte invece di contendersi i messaggi. Il messaggio sul BIOS vale per
-  tutte le marche di scheda madre.
+  Telegram senza messaggi persi: l'app qui risponde solo ai messaggi che nessuno ha letto, quindi non ruba
+  più i comandi a NEXAR sul PC acceso, anche se Umbrel non riesce a raggiungerlo (firewall o rete diversa).
+  NEXAR sul PC (1.0.91 o più nuova) avvisa quando sta leggendo il bot e quando si spegne: da spento /accendi
+  funziona subito. Se scrivi /accendi col PC già acceso te lo dice invece di mandare un altro segnale.
 
 developer: IlSamm
 website: "https://github.com/IlSamm/NEXAR"
